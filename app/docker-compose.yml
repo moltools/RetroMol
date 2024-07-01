@@ -1,0 +1,48 @@
+version: "3.3"
+
+services:
+  moltools-server:
+    build:
+      context: . 
+      dockerfile: Dockerfile.server
+    image: moltools-server
+    environment:
+      - "NEO4J_URI=bolt://moltools-database:7687"
+    restart: always
+    networks:
+      - moltools-network
+    container_name: moltools-server
+
+  moltools-client:
+    build: 
+      context: . 
+      dockerfile: Dockerfile.client 
+    image: moltools-client
+    ports:
+      - "4001:80"
+    restart: always
+    networks:
+      - moltools-network
+    container_name: moltools-client
+
+  moltools-database:
+    build:
+      context: . 
+      dockerfile: Dockerfile.database
+    image: neo4j:5.16.0
+    environment:
+      - NEO4J_AUTH=none
+    ports:
+      - "4002:7474"
+      - "4003:7687"
+    volumes:
+      - "/local/data/meije132/npkg_current:/data"
+      # - "/Users/davidmeijer/Desktop/test_npkg:/data"
+    restart: always
+    networks:
+      - moltools-network
+    container_name: moltools-database
+
+networks:
+  moltools-network:
+    driver: bridge

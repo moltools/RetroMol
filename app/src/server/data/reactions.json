@@ -1,0 +1,242 @@
+[
+    { 
+        "name": "PKS 1",
+        "pattern": "[C,c:1][C;!R:2]~[C;!R:3][C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]~[C:3][C:4](=[O:5])[OH:6]" 
+    },
+    {
+        "name": "PKS 2",
+        "pattern": "[CH0;!R:1]=[C;!R:2]-[CH1;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH1;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH0;!R:3][C;!R:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "PKS 3",
+        "pattern": "[CH1;!R:1]=[C;!R:2]-[CH1;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH2;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH0;!R:3][C;!R:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "PKS 4",
+        "pattern": "[CH2;!R:1]=[C;!R:2]-[CH1;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH3;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH0;!R:3][C;!R:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "PKS 5",
+        "pattern": "[CH0;!R:1]=[C;!R:2]-[CH2;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH1;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH1;!R:3][C;!R:4](=[O:5])[OH:6]"   
+    },
+    {
+        "name": "PKS 6",
+        "pattern": "[CH0;!R:1]=[C;!R:2]-[CH2;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH1;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH1;!R:3][C;!R:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "PKS 7",
+        "pattern": "[CH1;!R:1]=[C;!R:2]-[CH2;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH2;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH1;!R:3][C;!R:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "PKS 8",
+        "pattern": "[CH1;!R:1]=[C;!R:2]-[CH2;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH2;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH1;!R:3][C;!R:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "PKS 9",
+        "pattern": "[CH2;!R:1]=[C;!R:2]-[CH2;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH3;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH1;!R:3][C;!R:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "PKS 10",
+        "pattern": "[CH1;!R:1]=[C;!R:2]-[CH0;!R:3][C;!R:4](=[O:5])[OH:6]>>[CH2;!R:1]-C(=O)[OH].[OH][S][C;!R:2]=[CH0;!R:3][C;!R:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "PKS 11 (backwards shift)",
+        "pattern": "[CH2;!R:1]-[CH1;!R:2]=[CH1;!R:3]-[CH0;!R:4][C;!R:5](=[O:6])[OH:7]>>[CH1;!R:1]=[CH1;!R:2]-C(=O)[OH].[OH][S][CH2;!R:3]-[CH0;!R:4][C;!R:5](=[O:6])[OH:7]"
+    },
+    {
+        "name": "adenylation domain 1 (alpha)",
+        "pattern": "[*:1][C:2](=[O:3])[NH1:4][C:5][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O:7])[OH:8]"
+    },
+    {
+        "name": "adenylation domain 2 (alpha)",
+        "pattern": "[*:1][C:2](=[O:3])[NH0:4][C:5][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH1:4][C:5][C:6](=[O:7])[OH:8]"
+    },
+    {
+        "name": "adenylation domain 3 (beta)",
+        "pattern": "[*:1][C:2](=[O:3])[NH0:4][C:5][C:9][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH1:4][C:5][C:9][C:6](=[O:7])[OH:8]"
+    },
+    {
+        "name": "disulfide linkage",
+        "pattern": "[C:1][S:2][S:3][C:4]>>[C:1][SH:2].[SH:3][C:4]"
+    },
+    {
+        "name": "sulfonation",
+        "pattern": "[*:1][S:2](=[O:3])(=[O:4])[OH:5]>>[*:1].[OH][S:2](=[O:3])(=[O:4])[OH:5]"
+    },
+    {
+        "name": "glycosyltransferase",
+        "pattern": "[C:1][O:2][C:3]1[O:4][C:5][C:6][C:7][C:8]1>>[C:1][OH:2].[OH][C:3]1[O:4][C:5][C:6][C:7][C:8]1"
+    },
+    {
+        "name": "etherification 1 (6-ring)",
+        "pattern": "[*:1]-[CH0:2]1(-[OH:3])-[O:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1>>([*:1]-[CH0:2]1=[OH0:3].[OH1:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)"
+    },
+    {
+        "name": "etherification 2 (6-ring)",
+        "pattern": "[*&D2,D3:3]-[CH1:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:8][C:9]1>>([*&D2,D3:3]-[CH0:1]=[C:2]1.[OH:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)"
+    },
+    {
+        "name": "etherification 3 (6-ring)",
+        "pattern": "[*&D2,D3:3]-[CH2:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:8][C:9]1>>([*&D2,D3:3]-[CH1:1]=[C:2]1.[O:4]=[CH0:5](-[*:6])-[C:7][C:8][C:9]1)"
+    },
+    {
+        "name": "etherification 4 (6-ring)",
+        "pattern": "[*:1]-[CH1:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH2:8]-[*:9]>>[*:1]-[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH1:8]-[*:9]"
+    },
+    {
+        "name": "etherification 5 (6-ring)",
+        "pattern": "[*:1]-[CH1:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH1:8]-[*:9]>>[*:1]-[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH0:8]-[*:9]"
+    },
+    {
+        "name": "etherification 6 (6-ring)",
+        "pattern": "[CH2:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH1:8]-[*:9]>>[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH0:8]-[*:9]"
+    },
+    {
+        "name": "etherification 7 (6-ring)",
+        "pattern": "[CH2:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH1:8]-[*:9]>>[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH0:8]-[*:9]"
+    },
+    {
+        "name": "etherification 8 (6-ring)",
+        "pattern": "[CH2:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH2:8]-[*:9]>>[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH1:8]-[*:9]"
+    },
+    {
+        "name": "etherification 9 (5-ring)",
+        "pattern": "[*&D2,D3:3]-[CH1:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:9]1>>([*&D2,D3:3]-[CH0:1]=[C:2]1.[OH:4]-[CH1:5](-[*:6])-[C:7][C:9]1)"
+    },
+    {
+        "name": "O-methyltransferase 1",
+        "pattern": "[C:1][O:2][CH3:3]>>[C:1][OH:2].[CH4:3]"
+    },
+    {
+        "name": "N-methyltransferase 1",
+        "pattern": "[C:1][NH1:2][CH3:3]>>[C:1][NH2:2].[CH4:3]"
+    },
+        {
+        "name": "N-methyltransferase 2",
+        "pattern": "[C:1][NH0:2]([C:4])[CH3:3]>>[C:1][NH1:2][C:4].[CH4:3]"
+    },
+    {
+        "name": "S-methyltransferase",
+        "pattern": "[SH1:1][CH3:2]>>[SH2:1].[CH4:2]"
+    },
+    {
+        "name": "C-methyltransferase 1",
+        "pattern": "[NH2:1][CH0:2]([CH3:3])[C:4](=[O:5])[OH:6]>>[NH2:1][CH1:2][C:4](=[O:5])[OH:6].[CH4:3]"
+    },
+    {
+        "name": "C-methyltransferase 2",
+        "pattern": "[NH2:1][CH0:2]([CH3:3])[CH2:4][C:5](=[O:6])[OH:7]>>[NH2:1][CH1:2][CH2:4][C:5](=[O:6])[OH:7].[CH4:3]"
+    },
+    {
+        "name": "oxidation 1",
+        "pattern": "[NH2:1][CH0:2]([OH:3])[C:4](=[O:5])[OH:6]>>[NH2:1][CH1:2][C:4](=[O:5])[OH:6].[OH2:3]"
+    },
+    {
+        "name": "oxidation 2",
+        "pattern": "[NH2:1][CH0:2]([OH:3])[CH2:4][C:5](=[O:6])[OH:7]>>[NH2:1][CH1:2][CH2:4][C:5](=[O:6])[OH:7].[OH2:3]"
+    },
+    {
+        "name": "epoxidation",
+        "pattern": "[C:1]1[O:2][C:3]1>>[C:1]=[C:3].[O:2]"
+    },
+    {
+        "name": "halogenation",
+        "pattern": "[C:1][Cl,Br,I:2]>>[C:1].[Cl,Br,I:2]"
+    },
+    {
+        "name": "macrocyclization (lactone)",
+        "pattern": "[C,c;R:1]-[C;R:2](=[O:3])-[O;R:4]-[C,c;R:5]>>([C,c:1]-[C:2](=[O:3])-[OH].[OH:4]-[C,c:5])"
+    },
+    {
+        "name": "break ester bond",
+        "pattern": "[C;!R:1][OH0;!R:2][C;!R:3](=[O:4])[C;!R:5]>>[C:1][OH1:2].[OH][C:3](=[O:4])[C:5]"
+    },
+    {
+        "name": "macrocyclization (thioester)",
+        "pattern": "[C,c;R:1]-[C;R:2](=[O:3])-[S;R:4]-[C,c;R:5]>>([C,c:1]-[C:2](=[O:3])-[OH].[SH:4]-[C,c:5])"
+    },
+    {
+        "name": "carbocyclization 1",
+        "pattern": "[*:1][C:2]1[C:3]([*:4])[C:5]=[C:6][CH1:7]([CH2;R:8])[C:9]([C;R:10])1>>([*:1][C:2]=1.[C:3]([*:4])[C:5]=[C:6][CH1:7](=[CH1;R:8]).[C:9]([C;R:10])=1)"
+    },
+    {
+        "name": "carbocyclization 2",
+        "pattern": "[*:1][C:2]1[C:3]([*:4])[C:5]=[C:6][CH1:7]([CH1;R:8])[C:9]([C;R:10])1>>([*:1][C:2]=1.[C:3]([*:4])[C:5]=[C:6][CH1:7](=[CH0;R:8]).[C:9]([C;R:10])=1)"
+    },
+    {
+        "name": "oxazole",
+        "pattern" : "[C:1][c:2]1[o:3][c:4][c:5]([C:6])[n:7]1>>([C:1]-[CH0:2]-1(=O).[OH1:3]-[CH2:4]-[CH1:5](-[C:6])-[NH1:7]-1)"
+    },
+    {
+        "name": "oxazoline",
+        "pattern" : "[C:1][C:2]=1[OH0:3][C:4][C:5]([C:6])[N:7]1>>([C:1]-[CH0:2]-1(=O).[OH1:3]-[CH2:4]-[CH1:5](-[C:6])-[NH1:7]-1)"
+    },
+    {
+        "name": "thiazole",
+        "pattern": "[C:1][c:2]1[s:3][c:4][c:5][n:7]1>>([C:1]-[CH0:2]-1(=O).[SH1:3]-[CH2:4]-[CH1:5]-[NH1:7]-1)"
+    },
+    {
+        "name": "thiazoline tautomerization",
+        "pattern" : "[O:1]=[CH0:2]-1[SH0:3][C:4][C:5]([C:6])[NH1:7]1>>[OH:1]-[CH0:2]=1[SH0:3][C:4][C:5]([C:6])[NH0:7]1"
+    },
+    {
+        "name": "thiazoline",
+        "pattern" : "[C,O:1][C:2]=1[SH0:3][C:4][C:5][N:7]1>>([C,O:1]-[CH0:2]-1(=O).[SH1:3]-[CH2:4]-[C:5]-[NH1:7]-1)"
+    },
+    {
+        "name": "thiazoline (saturated)",
+        "pattern" : "[*:1][C:2]([C:3][SH0:4]1)[NH1:5][C:6]1[*:7]>>[*:1][C:2]([C:3][SH1:4])[NH1:5][CH0:6](=[O])[*:7]"
+    },
+    {
+        "name": "tetramate 1",
+        "pattern" : "[*:1]-[C:2](-[OH:3])=[C:4]1[C:5](=[O:6])[N:7][C:8][C:9]1=[O:10]>>[*:1]-[C:2](=[OH0:3])-[CH2:4][C:5](=[O:6])[N:7][C:8][C:9](-[OH])=[O:10]"
+    },
+    {
+        "name": "tetramate 2",
+        "pattern" : "[*:1]-[C:2](-[OH:3])-[C:4]=1[C:5](=[O:6])[N:7][C:8][C:9]1-[OH:10]>>[*:1]-[C:2](=[OH0:3])-[CH2:4][C:5](=[O:6])[N:7][C:8][C:9](-[OH])=[O:10]"
+    },
+    {
+        "name": "tetronate 1",
+        "pattern" : "[*:1]-[C:2](-[OH:3])=[C:4]1[C:5](=[O:6])[O:7][C:8][C:9]1=[O:10]>>[*:1]-[C:2](=[OH0:3])-[CH2:4][C:5](=[O:6])[O:7][C:8][C:9](-[OH])=[O:10]"
+    },
+    {
+        "name": "tetronate 2",
+        "pattern" : "[*:1]-[C:2](-[OH:3])-[C:4]=1[C:5](=[O:6])[O:7][C:8][C:9]1-[OH:10]>>[*:1]-[C:2](=[OH0:3])-[CH2:4][C:5](=[O:6])[O:7][C:8][C:9](-[OH])=[O:10]"
+    },
+    {
+        "name": "dies-alder",
+        "pattern": "[C:1]-1-[C:2]=[C:3]-[C:4]-[C:5]-[C:6]-1>>([C:1]=[C:2]-[C:3]=[C:4].[C:5]=[C:6])"
+    },
+    {
+        "name": "amino acid reduction",
+        "pattern": "[NH1:1]-[CH1:2]-[CH2:3]-[OH:4]>>[NH1:1]-[CH1:2]-[CH0:3](=[O])-[OH:4]"
+    },
+    {
+        "name": "aromatization",
+        "pattern": "[*:1][c:2]1[c:3][c:4][c:5][c:6][c:7]1[*:8]>>[*:1]-[C:2]=[C:3]-[C:4]=[C:5]-[C:6]=[C:7]-[*:8]"
+    },
+    {
+        "name": "carbamic acid transferase 1",
+        "pattern": "[NH2:1]-[CH0:2](=[O:3])-[OH0:4]-[*:5]>>[NH2:1]-[CH0:2](=[O:3])[OH].[OH1:4]-[*:5]"
+    },
+    {
+        "name": "carbamic acid transferase 2",
+        "pattern": "[NH2:1]-[CH0:2](=[O:3])-[NH1:4]-[*:5]>>[NH2:1]-[CH0:2](=[O:3])[OH].[NH2:4]-[*:5]"
+    },
+    {
+        "name": "acetic acid transferase",
+        "pattern": "[CH3:1]-[CH0:2](=[O:3])-[OH0:4]-[*:5]>>[CH3:1]-[CH0:2](=[O:3])[OH].[OH1:4]-[*:5]"
+    },
+    {
+        "name": "kirromycin-like",
+        "pattern": "[c:1]1([C:2](=[O:8])[*:9])[c:3](~[O:10])[c:4][c:5][n:6][c:7](~[O:11])1>>[CH0:3](=[O:10])(-[OH])[CH2:4][CH2:5][NH1:6][CH0:7](=[O:11])[CH2:1]([CH0:2](=[O:8])[*:9])"
+    },
+    {
+        "name": "dioxane etherification",
+        "pattern": "[*:6][C:1]1[C:2][C:3]([*:7])[O:4][CH2][O:5]1>>[*:6][C:1]([OH:5])[C:2][C:3]([OH:4])[*:7]"
+    },
+    {
+        "name": "amidotransferase",
+        "pattern": "[NH1:1][CH1:2]([C:3](=[O:4])[NH2:5])[CH2:6][NH2:7]>>[NH1:1][CH1:2]([C:3](=[O:4])[OH:5])[CH2:6][NH2:7]"
+    }
+]

@@ -1,0 +1,42 @@
+{
+    "name": "retromol",
+    "version": "1.0.0-dev",
+    "private": true,
+    "dependencies": {
+        "@emotion/react": "^11.11.4",
+        "@emotion/styled": "^11.11.5",
+        "@mui/icons-material": "^5.15.19",
+        "@mui/material": "^5.15.19",
+        "bulma": "^1.0.1",
+        "classnames": "^2.5.1",
+        "html-to-image": "^1.11.11",
+        "react": "^18.1.0",
+        "react-beautiful-dnd": "^13.1.1",
+        "react-dom": "^18.1.0",
+        "react-draggable": "^4.4.6",
+        "react-icons": "^4.10.1",
+        "react-router-dom": "^6.14.2",
+        "react-scripts": "5.0.1",
+        "react-toastify": "^10.0.5",
+        "react-window": "^1.8.10"
+    },
+    "scripts": {
+        "start": "react-scripts start",
+        "build": "react-scripts build",
+        "test": "react-scripts test",
+        "eject": "react-scripts eject"
+    },
+    "browserslist": {
+        "production": [
+            ">0.2%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
+    },
+    "proxy": "http://localhost:4000"
+}

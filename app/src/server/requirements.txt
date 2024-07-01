@@ -1,0 +1,11 @@
+rdkit==2023.9.5
+versalign==0.0.1
+flask
+neo4j
+tqdm
+retromol @ git+https://github.com/moltools/retromol.git@develop
+cinemol==1.0.1
+biopython
+requests
+gunicorn
+numpy<2.0

@@ -1,0 +1,29 @@
+@import "react-toastify/dist/ReactToastify.css";
+
+.Toastify__toast--success {
+    color: #222222;
+    background-color: #f0f0f0;
+    box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2);
+    border: 1px solid #ccc;
+}
+
+.Toastify__toast--error {
+    color: #222222;
+    background-color: #f0f0f0;
+    box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2);
+    border: 1px solid #ccc;
+}
+
+.Toastify__toast--warning {
+    color: #222222;
+    background-color: #f0f0f0;
+    box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2);
+    border: 1px solid #ccc;
+}
+
+.Toastify__toast--info {
+    color: #222222;
+    background-color: #f0f0f0;
+    box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2);
+    border: 1px solid #ccc;
+}

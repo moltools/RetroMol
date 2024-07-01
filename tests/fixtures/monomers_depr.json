@@ -1,0 +1,1025 @@
+
+[
+    {
+        "name": "polyketide|A1",
+        "pattern": "[OH][S][C](=[O])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A1",
+        "pattern": "[OH][S][C]([OH])=[CH][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A2",
+        "pattern": "[OH][S][C](=[O])[CH1]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A2",
+        "pattern": "[OH][S][C]([OH])=[C]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A3",
+        "pattern": "[OH][S][C](=[O])[C]([CH3])([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A4",
+        "pattern": "[OH][S][C](=[O])[CH1]([CH2][CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A4",
+        "pattern": "[OH][S][C]([OH])=[C]([CH2][CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A5",
+        "pattern": "[OH][S][C](=[O])[CH1]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A5",
+        "pattern": "[OH][S][C]([OH])=[C]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A6",
+        "pattern": "[OH][S][C](=[O])[CH1]([CH2][OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A6",
+        "pattern": "[OH][S][C]([OH])=[C]([CH2][OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A7",
+        "pattern": "[OH][S][C](=[O])[C]([CH3])([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A8",
+        "pattern": "[OH][S][C](=[CH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A9",
+        "pattern": "[OH][S][C](=[CH2])[CH1]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A10",
+        "pattern": "[OH][S][C](=[CH2])[CH1]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A11",
+        "pattern": "[OH][S][C](=[CH2])[C](=[O])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|A12",
+        "pattern": "[OH][S][C](=[O])[C](=[O])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B1",
+        "pattern": "[OH][S][CH1]([OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B2",
+        "pattern": "[OH][S][CH1]([OH])[CH1]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B3",
+        "pattern": "[OH][S][CH1]([OH])[C]([CH3])([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B4",
+        "pattern": "[OH][S][CH1]([OH])[C]([CH2][CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B5",
+        "pattern": "[OH][S][CH1]([OH])[CH1]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B6",
+        "pattern": "[OH][S][CH1]([OH])[CH1]([CH2][OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B7",
+        "pattern": "[OH][S][CH1]([OH])[CH0]([CH3])([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B8",
+        "pattern": "[OH][S][CH0]([CH3])([OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B9",
+        "pattern": "[OH][S][CH0]([CH3])([OH])[CH1]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B10",
+        "pattern": "[OH][S][CH0]([CH3])([OH])[CH1]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B11",
+        "pattern": "[OH][S][CH]([OH])[C](=[O])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|B12",
+        "pattern": "[OH][S][CH]([OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|C1",
+        "pattern": "[OH][S][CH1,C&D2]=[CH1,C&D2][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|C2",
+        "pattern": "[OH][S][CH1,C&D2]=[C,C&D3]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|C4",
+        "pattern": "[OH][S][CH1,C&D2]=[C,C&D3]([CH2][CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|C6",
+        "pattern": "[OH][S][C,C&D3]([CH3])=[CH1,C&D2][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|C13",
+        "pattern": "[OH][S][CH1,C&D2]=[C,C&D3]([CH0]#[N])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D1",
+        "pattern": "[OH][S][CH2][CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D2",
+        "pattern": "[OH][S][CH2][CH1]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D3",
+        "pattern": "[OH][S][CH2][C]([CH3])([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D4",
+        "pattern": "[OH][S][CH2][CH1]([CH2][CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D5",
+        "pattern": "[OH][S][CH2][CH]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D6",
+        "pattern": "[OH][S][CH2][CH]([CH2][OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D7",
+        "pattern": "[OH][S][CH2][C]([CH3])([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D8",
+        "pattern": "[OH][S][CH1]([CH3])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D9",
+        "pattern": "[OH][S][CH1]([CH3])[CH1]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D11",
+        "pattern": "[OH][S][CH2][C](=[O])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D11",
+        "pattern": "[OH][S][CH1]=[C]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "polyketide|D12",
+        "pattern": "[OH][S][CH2][C](=[CH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|98112",
+        "pattern": "[CH3][n]1[cH][c]([CH2][CH]([NH2])[C](=[O])[OH])[c]2[cH][cH][cH][cH][c]21"
+    },
+    {
+        "name": "peptide|pubchem|4478245",
+        "pattern": "[CH3][CH]=[C]([NH][CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|73199452",
+        "pattern": "[CH3][CH]1[C](=[O])[NH][CH]([C](=[O])[OH])[CH]1[CH3]"
+    },
+    {
+        "name": "peptide|pubchem|73199451",
+        "pattern": "[CH3][CH]([C]([NH2])=[O])[CH]([CH3])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|237657",
+        "pattern": "[CH3][CH]([CH2][C](=[O])[OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|225441",
+        "pattern": "[CH3][c]1[cH][cH][cH][c]([CH2][CH]([NH2])[C](=[O])[OH])[cH]1"
+    },
+    {
+        "name": "peptide|pubchem|14185042",
+        "pattern": "[CH3][CH]1[CH2][CH2][NH][CH]1[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|235719",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][cH][c]([OH])[c]([N+](=[O])[O-])[cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|4633092",
+        "pattern": "[CH3][CH]1[CH2][CH]([OH])[CH]([C](=[O])[OH])[NH]1"
+    },
+    {
+        "name": "peptide|pubchem|277776",
+        "pattern": "[CH3][CH]([CH3])[CH]([OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|559314",
+        "pattern": "[O]=[C]([OH])[CH]1[NH][CH2][CH2][CH]1[OH]"
+    },
+    {
+        "name": "peptide|pubchem|111314",
+        "pattern": "[CH3][O][C](=[O])[CH]([CH3])[NH2]"
+    },
+    {
+        "name": "peptide|pubchem|76108366",
+        "pattern": "[CH3][CH]=[CH][CH2][CH]([CH3])[CH2][CH]([NH][CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|125578",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[CH]([OH])[CH2][Cl]"
+    },
+    {
+        "name": "peptide|pubchem|352051",
+        "pattern": "[CH3][CH]1[CH2][NH][CH]([C](=[O])[OH])[CH2]1"
+    },
+    {
+        "name": "peptide|pubchem|825",
+        "pattern": "[O]=[C]([OH])[CH]1[CH2][CH]([OH])[CH2][NH]1"
+    },
+    {
+        "name": "peptide|pubchem|3914727",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[CH]([OH])[CH2][OH]"
+    },
+    {
+        "name": "peptide|pubchem|3316607",
+        "pattern": "[CH3][CH]1[NH][CH]([C](=[O])[OH])[CH2][C]1=[O]"
+    },
+    {
+        "name": "peptide|pubchem|14263783",
+        "pattern": "[O]=[C]1[CH2][CH2][NH][CH]([C](=[O])[OH])[CH2]1"
+    },
+    {
+        "name": "peptide|pubchem|413589",
+        "pattern": "[O]=[C]1[CH2][NH][CH]([C](=[O])[OH])[CH2]1"
+    },
+    {
+        "name": "peptide|pubchem|72315764",
+        "pattern": "[CH3][CH]1[O][CH]([OH])[CH2][C]([CH3])([NH2])[C]1=[O]"
+    },
+    {
+        "name": "peptide|pubchem|408812",
+        "pattern": "[CH3][CH]1[CH2][CH2][CH]([C](=[O])[OH])[NH]1"
+    },
+    {
+        "name": "peptide|pubchem|129926144",
+        "pattern": "[NH]=[C]1[NH][CH]([OH])[CH2][CH]([CH]([NH2])[C](=[O])[OH])[NH]1"
+    },
+    {
+        "name": "peptide|pubchem|469",
+        "pattern": "[NH2][CH]([CH2][CH2][CH2][C](=[O])[OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|6657",
+        "pattern": "[CH3][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|3559215",
+        "pattern": "[NH2][CH]([CH2][CH]1[CH2][CH2][C](=[O])[CH]2[O][CH]12)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|22326384",
+        "pattern": "[NH2][CH]([CH2][CH]([OH])[CH2][C](=[O])[OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|57484214",
+        "pattern": "[CH3][CH]([OH])[CH]([C](=[O])[OH])[N]1[C](=[O])[CH]([NH2])[CH2][CH2][CH]1[OH]"
+    },
+    {
+        "name": "peptide|pubchem|90776695",
+        "pattern": "[NH2][CH]([CH2][CH2][CH2][c]1[cH][cH][c]([OH])[cH][cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|6119",
+        "pattern": "[CH3][C]([CH3])([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|602",
+        "pattern": "[CH3][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|24274385",
+        "pattern": "[CH3][CH]([NH2])[c]1[n][c]([C](=[O])[OH])[cH][s]1"
+    },
+    {
+        "name": "peptide|pubchem|11506835",
+        "pattern": "[CH3][O][c]1[cH][cH][c]([CH2][CH2][CH2][CH]([NH2])[C](=[O])[OH])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|296866",
+        "pattern": "[NH2][CH]([CH2][CH2][CH2][c]1[cH][cH][cH][cH][cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|232",
+        "pattern": "[NH2][C]([NH2])=[N][CH2][CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|236",
+        "pattern": "[NH2][C](=[O])[CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|424",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|22712963",
+        "pattern": "[O]=[C]([OH])[CH]1[NH][CH]1[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|73746095",
+        "pattern": "[CH3][CH]=[CH][CH2][CH]([CH3])[CH]([OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|66955297",
+        "pattern": "[CH3][NH][CH]([CH2][c]1[cH][cH][c]([OH])[c]([Br])[cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|73111437",
+        "pattern": "[NH2][CH]([CH2][c]1[c]([Br])[nH][c]2[cH][cH][c]([OH])[cH][c]12)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|85681",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][cH][c]([Br])[cH][cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|96735",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][nH][c]2[cH][cH][c]([Br])[cH][c]12)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|148708",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][cH][c]([OH])[c]([Br])[cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|133485",
+        "pattern": "[CH3][CH2][CH]1[CH2][C]1([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|96695",
+        "pattern": "[O]=[C]([OH])[c]1[cH][n][c]2[cH][cH][cH][cH][c]2[n]1"
+    },
+    {
+        "name": "peptide|pubchem|4627981",
+        "pattern": "[NH2][C]1=[N][CH2][CH2][CH]([CH]([NH2])[C](=[O])[OH])[NH]1"
+    },
+    {
+        "name": "peptide|pubchem|54038911",
+        "pattern": "[O]=[C]([OH])[CH]1[CH2][CH]2[CH2][CH2][CH]([OH])[CH2][CH]2[NH]1"
+    },
+    {
+        "name": "peptide|pubchem|833",
+        "pattern": "[NH2][C](=[O])[NH][CH2][CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|594",
+        "pattern": "[NH2][CH]([CH2][SH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|25701",
+        "pattern": "[NH2][CH]([CH2][S](=[O])(=[O])[OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|136625858",
+        "pattern": "[O]=[C]([OH])[CH]1[CH2][S][C]([c]2[cH][cH][cH][c]([OH])[c]2[OH])=[N]1"
+    },
+    {
+        "name": "peptide|pubchem|129650920",
+        "pattern": "[CH3][C]([CH]=[CH][CH]([NH2])[CH]([CH3])[C](=[O])[OH])=[CH][CH]([CH3])[CH]([OH])[CH2][c]1[cH][cH][cH][cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|470",
+        "pattern": "[NH2][CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|77194541",
+        "pattern": "[CH3][O][CH]([CH]1[CH2][CH2][CH2][NH]1)[CH]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|443585",
+        "pattern": "[NH2][CH]([CH2][CH2][CH2][CH]([NH2])[CH]([OH])[CH2][C](=[O])[OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|108001",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[c]1[cH][c]([OH])[cH][c]([OH])[cH]1"
+    },
+    {
+        "name": "peptide|pubchem|53838033",
+        "pattern": "[CH3][CH2][CH]([CH3])[CH]([NH][CH3])[CH]([CH2][C](=[O])[OH])[O][CH3]"
+    },
+    {
+        "name": "peptide|pubchem|369619",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][cH][cH][cH][cH]1)[c]1[n][cH][cH][s]1"
+    },
+    {
+        "name": "peptide|pubchem|14584527",
+        "pattern": "[CH3][CH]([CH3])[CH]([C](=[O])[OH])[N]([CH3])[CH3]"
+    },
+    {
+        "name": "peptide|pubchem|364",
+        "pattern": "[NH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|10560074",
+        "pattern": "[CH3][O][C]1=[CH][C](=[O])[NH][CH]1[CH2][c]1[cH][cH][cH][cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|56979812",
+        "pattern": "[NH]=[C]1[NH][CH2][CH]([CH2][CH]([NH2])[C](=[O])[OH])[NH]1"
+    },
+    {
+        "name": "peptide|pubchem|518928",
+        "pattern": "[CH3][CH2][CH]([CH2][CH3])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|700",
+        "pattern": "[NH2][CH2][CH2][OH]"
+    },
+    {
+        "name": "peptide|pubchem|98313",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[c]1[cH][cH][c]([F])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|75114616",
+        "pattern": "[NH2][CH]([CH2][CH2][CH2][N]([OH])[CH]=[O])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|541551",
+        "pattern": "[NH2][CH2][CH2][CH2][NH][CH2][CH2][CH2][CH2][N]=[C]([NH2])[NH2]"
+    },
+    {
+        "name": "peptide|pubchem|738",
+        "pattern": "[NH2][C](=[O])[CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|611",
+        "pattern": "[NH2][CH]([CH2][CH2][C](=[O])[OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|750",
+        "pattern": "[NH2][CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|3626",
+        "pattern": "[NH2][C]([NH2])=[N][CH2][CH2][CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|59108",
+        "pattern": "[N]#[C][N]([CH2][CH2][CH2][CH2][CH]([OH])[C]([NH2])=[O])[N]=[O]"
+    },
+    {
+        "name": "peptide|pubchem|520755",
+        "pattern": "[CH3][CH2][CH]([CH3])[CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|773",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][n][cH][nH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|13401",
+        "pattern": "[O]=[C]([OH])[c]1[n][cH][cH][cH][c]1[OH]"
+    },
+    {
+        "name": "peptide|pubchem|92143",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[c]1[cH][cH][c]([OH])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|102530",
+        "pattern": "[NH2][CH]([CH2][CH2][c]1[cH][cH][cH][cH][cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|849",
+        "pattern": "[O]=[C]([OH])[CH]1[CH2][CH2][CH2][CH2][NH]1"
+    },
+    {
+        "name": "peptide|pubchem|779",
+        "pattern": "[NH2][CH]([CH2][CH2][OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|73509",
+        "pattern": "[NH2][CH]1[CH2][CH2][O][C]1=[O]"
+    },
+    {
+        "name": "peptide|pubchem|4153395",
+        "pattern": "[NH2][CH]([CH2][CH2][c]1[cH][cH][c]([OH])[cH][cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|72508637",
+        "pattern": "[CH3][NH][CH]([CH2][c]1[cH][cH][c]([OH])[c]([I])[cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|91552274",
+        "pattern": "[CH3][CH]([NH2])[C](=[O])[C]([CH3])([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|791",
+        "pattern": "[CH3][CH2][CH]([CH3])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|91202",
+        "pattern": "[CH3][CH2][CH]([CH3])[CH]([NH2])[CH2][OH]"
+    },
+    {
+        "name": "peptide|pubchem|11267",
+        "pattern": "[NH2][CH2][CH]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|14428564",
+        "pattern": "[CH3][CH2][CH]([CH3])[CH]([NH2])[CH]([OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|94744",
+        "pattern": "[CH3][CH2][C]([CH3])([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|10154017",
+        "pattern": "[CH3][CH2][C]([CH3])([NH2])[CH2][OH]"
+    },
+    {
+        "name": "peptide|pubchem|846",
+        "pattern": "[NH2][c]1[cH][cH][cH][cH][c]1[C](=[O])[CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|5316628",
+        "pattern": "[CH3][CH]([NH2])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|857",
+        "pattern": "[CH3][CH]([CH3])[CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|79030",
+        "pattern": "[CH3][CH]([CH3])[CH2][CH]([NH2])[CH2][OH]"
+    },
+    {
+        "name": "peptide|pubchem|866",
+        "pattern": "[NH2][CH2][CH2][CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|9115266",
+        "pattern": "[CH3][n]1[cH][c]([Cl])[cH][c]1[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|541783",
+        "pattern": "[CH3][CH]([NH2])[CH]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|23446081",
+        "pattern": "[CH3][CH2][CH]([NH2])[CH]([CH3])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|25572671",
+        "pattern": "[CH3][n]1[c]([C](=[O])[OH])[cH][c]([Cl])[c]1[Cl]"
+    },
+    {
+        "name": "peptide|pubchem|876",
+        "pattern": "[CH3][S][CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|173844",
+        "pattern": "[CH3][CH]([CH3])[CH2][CH]([NH2])[CH]([OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|824",
+        "pattern": "[CH3][CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|847",
+        "pattern": "[CH3][S](=[O])[CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|69961",
+        "pattern": "[CH3][S](=[O])(=[O])[CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|389",
+        "pattern": "[NH2][CH2][CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|4794",
+        "pattern": "[CH3][P](=[O])([OH])[CH2][CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|94134",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[CH]([OH])[c]1[cH][cH][cH][cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|994",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][cH][cH][cH][cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|82548158",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][cH][cH][cH][cH]1)[c]1[n][c]([C](=[O])[OH])[cH][s]1"
+    },
+    {
+        "name": "peptide|pubchem|76652",
+        "pattern": "[NH2][CH]([CH2][OH])[CH2][c]1[cH][cH][cH][cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|614",
+        "pattern": "[O]=[C]([OH])[CH]1[CH2][CH2][CH2][NH]1"
+    },
+    {
+        "name": "peptide|pubchem|3358090",
+        "pattern": "[cH]1[cH][s][c]([CH]2[CH2][CH2][CH2][NH]2)[n]1"
+    },
+    {
+        "name": "peptide|pubchem|550774",
+        "pattern": "[NH2][C](=[O])[CH]1[CH2][CH2][CH2][NH]1"
+    },
+    {
+        "name": "peptide|pubchem|1045",
+        "pattern": "[NH2][CH2][CH2][CH2][CH2][NH2]"
+    },
+    {
+        "name": "peptide|pubchem|12025",
+        "pattern": "[O]=[C]1[CH2][CH2][CH2][NH]1"
+    },
+    {
+        "name": "peptide|pubchem|5221810",
+        "pattern": "[CH3][CH]1[O][CH]([OH])[CH2][CH]([NH2])[CH]1[OH]"
+    },
+    {
+        "name": "peptide|pubchem|617",
+        "pattern": "[NH2][CH]([CH2][OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|68294",
+        "pattern": "[NH2][CH]([CH2][OH])[CH2][OH]"
+    },
+    {
+        "name": "peptide|pubchem|1102",
+        "pattern": "[NH2][CH2][CH2][CH2][CH2][NH][CH2][CH2][CH2][NH2]"
+    },
+    {
+        "name": "peptide|pubchem|3387569",
+        "pattern": "[CH3][CH]([CH3])[CH2][CH]([NH2])[CH]([OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|1148",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][nH][c]2[cH][cH][cH][cH][c]12)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|1153",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][cH][c]([OH])[cH][cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|1182",
+        "pattern": "[CH3][CH]([CH3])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|12444668",
+        "pattern": "[CH3][CH]1[O][CH]([OH])[CH2][C]([CH3])([NH2])[CH]1[OH]"
+    },
+    {
+        "name": "peptide|pubchem|29",
+        "pattern": "[NH2][CH]([CH]=[O])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|205",
+        "pattern": "[CH3][CH]([OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|53417376",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][cH][c]([OH])[c]([N+](=[O])[O-])[cH]1"
+    },
+    {
+        "name": "peptide|pubchem|224389",
+        "pattern": "[NH2][CH]([CH2][CH2][C](=[O])[OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|10932",
+        "pattern": "[CH3][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|57203674",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[CH]([OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|77157399",
+        "pattern": "[NH2][CH]([CH2][CH2][c]1[cH][cH][c]([OH])[cH][cH]1)[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|239",
+        "pattern": "[NH2][CH2][CH2][C](=[O])[OH]"
+
+    },
+    {
+        "name": "peptide|pubchem|22471998",
+        "pattern": "[CH3][O][c]1[cH][cH][c]([CH2][CH2][CH]([NH2])[CH2][C](=[O])[OH])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|2733736",
+        "pattern": "[NH2][CH]([CH2][CH2][c]1[cH][cH][cH][cH][cH]1)[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|16224263",
+        "pattern": "[NH2][C]([NH2])=[N][CH2][CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|352913",
+        "pattern": "[NH2][C](=[O])[CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|554034",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][cH][c]([Br])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|129963084",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][nH][c]2[cH][cH][c]([Br])[cH][c]12"
+    },
+    {
+        "name": "peptide|pubchem|53417357",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][cH][c]([OH])[c]([Br])[cH]1"
+    },
+    {
+        "name": "peptide|pubchem|53417359",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][cH][c]([OH])[c]([Cl])[cH]1"
+    },
+    {
+        "name": "peptide|pubchem|55288738",
+        "pattern": "[NH2][CH]([SH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|21360412",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[S](=[O])(=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|14657827",
+        "pattern": "[NH2][CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|57013238",
+        "pattern": "[CH3][C]([NH2])([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|18970078",
+        "pattern": "[NH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|23346835",
+        "pattern": "[CH3][CH2][C]([NH2])([CH2][CH3])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|4422389",
+        "pattern": "[NH2][C](=[O])[CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|73064",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|4634230",
+        "pattern": "[NH2][C]([NH2])=[N][CH2][CH2][CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|2764414",
+        "pattern": "[CH3][CH2][CH]([CH3])[CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|12133634",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][n][cH][nH]1"
+    },
+    {
+        "name": "peptide|pubchem|277936",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[CH2][c]1[cH][cH][cH][cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|193314",
+        "pattern": "[NH2][CH]([CH2][OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|3605157",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[CH2][c]1[cH][cH][c]([OH])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|22247548",
+        "pattern": "[CH3][CH2][C]([CH3])([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|15788376",
+        "pattern": "[NH2][c]1[cH][cH][cH][cH][c]1[C](=[O])[CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|193411",
+        "pattern": "[CH3][CH]([CH3])[CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|392",
+        "pattern": "[NH2][CH2][CH2][CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|2832746",
+        "pattern": "[CH3][CH2][CH2][CH2][CH2][CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|3016562",
+        "pattern": "[CH3][CH]([C]([NH2])=[O])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|852",
+        "pattern": "[CH3][CH]([C](=[O])[OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|83913194",
+        "pattern": "[CH3][CH]([c]1[cH][cH][c]([Br])[cH][cH]1)[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|20193636",
+        "pattern": "[CH3][CH]([CH2][C]([NH2])=[O])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|15042684",
+        "pattern": "[CH3][CH2][C]([CH3])([CH3])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|64808",
+        "pattern": "[CH3][CH]([c]1[cH][cH][cH][cH][cH]1)[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|11126565",
+        "pattern": "[CH3][O][C](=[O])[CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|548355",
+        "pattern": "[CH3][S][CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|19602486",
+        "pattern": "[CH3][NH][C](=[O])[CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|129994876",
+        "pattern": "[CH3][S](=[O])[CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|54256943",
+        "pattern": "[CH3][S](=[O])(=[O])[CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|149866337",
+        "pattern": "[NH2][C](=[O])[C]([NH2])([OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|10313218",
+        "pattern": "[NH2][C]([OH])([CH2][C](=[O])[OH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|23570533",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[CH]([OH])[c]1[cH][cH][c]([Br])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|19383048",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[CH]([OH])[c]1[cH][cH][c]([OH])[c]([Cl])[cH]1"
+    },
+    {
+        "name": "peptide|pubchem|22592766",
+        "pattern": "[NH2][C](=[O])[CH2][CH]([OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|13683857",
+        "pattern": "[CH3][NH][CH]([C](=[O])[OH])[CH]([OH])[c]1[cH][cH][cH][cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|11029982",
+        "pattern": "[CH3][NH][CH]([C](=[O])[OH])[C]([CH3])([CH3])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|13309269",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[CH]([OH])[c]1[cH][cH][c]([OH])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|277794",
+        "pattern": "[CH3][C]([CH3])([OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|102699",
+        "pattern": "[CH3][O][C](=[O])[CH2][CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|23143915",
+        "pattern": "[CH3][O][CH]([c]1[cH][cH][c]([OH])[cH][cH]1)[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|14365084",
+        "pattern": "[NH2][CH2][CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|76553113",
+        "pattern": "[CH3][P](=[O])([OH])[CH2][CH]([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|69189",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][cH][cH][cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|42608870",
+        "pattern": "[NH2][CH]([OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|53781643",
+        "pattern": "[CH3][C]([NH2])([OH])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|11298653",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][nH][c]2[cH][cH][cH][cH][c]12"
+    },
+    {
+        "name": "peptide|pubchem|440311",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][cH][c]([OH])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|71370244",
+        "pattern": "[NH2][C](=[O])[NH][CH]=[C]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|2760933",
+        "pattern": "[CH3][C]([CH3])([NH2])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|75367",
+        "pattern": "[NH2][C](=[O])[CH2][C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|3712124",
+        "pattern": "[NH2][CH]([CH2][C](=[O])[OH])[c]1[cH][cH][c]([OH])[c]([OH])[cH]1"
+    },
+    {
+        "name": "peptide|pubchem|70319217",
+        "pattern": "[NH]=[C]1[NH][C](=[O])[C]2([OH])[CH]([NH2])[CH2][CH2][CH2][N]12"
+    },
+    {
+        "name": "peptide|pubchem|130995327",
+        "pattern": "[CH3][CH]([C](=[O])[OH])[CH]([OH])[CH]1[CH2][CH2][CH2][NH]1"
+    },
+    {
+        "name": "peptide|pubchem|123991",
+        "pattern": "[CH2]=[C]([NH2])[C](=[O])[OH]"
+
+    },
+    {
+        "name": "peptide|pubchem|441158",
+        "pattern": "[NH2][C](=[CH][c]1[cH][nH][c]2[cH][cH][cH][cH][c]12)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|3082167",
+        "pattern": "[CH3][CH]=[C]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|132279032",
+        "pattern": "[NH2][C](=[CH][SH])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|76548285",
+        "pattern": "[NH2][C]([NH2])=[N][CH2][CH]([OH])[CH]([OH])[CH]([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|836",
+        "pattern": "[NH2][CH]([CH2][c]1[cH][cH][c]([OH])[c]([OH])[cH]1)[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|62962225",
+        "pattern": "[NH2][CH]([CH2][CH2][C](=[O])[OH])[CH2][c]1[cH][cH][c]([OH])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|12439044",
+        "pattern": "[CH3][NH][CH]([C](=[O])[OH])[CH]([CH3])[CH2][OH]"
+    },
+    {
+        "name": "peptide|pubchem|53663068",
+        "pattern": "[NH]=[C]([NH2])[NH][CH2][CH2][CH2][CH]([NH2])[C](=[O])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|13436664",
+        "pattern": "[CH3][CH]1[CH2][C]1([NH2])[C](=[O])[OH]"
+    },
+    {
+        "name": "peptide|pubchem|499",
+        "pattern": "[O]=[C]1[CH2][CH2][CH]([C](=[O])[OH])[NH]1"
+    },
+    {
+        "name": "peptide|pubchem|978",
+        "pattern": "[NH2][c]1[cH][cH][c]([C](=[O])[OH])[cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|10331043",
+        "pattern": "[O]=[C]([OH])[CH]1[CH2][C]2([OH])[c]3[cH][cH][cH][cH][c]3[NH][CH]2[NH]1"
+    },
+    {
+        "name": "peptide|pubchem|3866",
+        "pattern": "[NH2][CH]([C](=[O])[OH])[c]1[cH][cH][cH][cH][cH]1"
+    },
+    {
+        "name": "peptide|pubchem|306131",
+        "pattern": "[CH3][C]([CH3])([CH3])[CH]([NH2])[C](=[O])[OH]"
+    }
+]
