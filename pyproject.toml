@@ -1,0 +1,21 @@
+[project]
+name = "retromol"
+version = "1.0.0"
+requires-python = ">=3.9"
+
+dependencies = [
+    "rdkit",
+    "numpy<2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.hatch.metadata]
+root = "src"
