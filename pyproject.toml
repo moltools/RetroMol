@@ -19,3 +19,6 @@ dev = [
 
 [tool.hatch.metadata]
 root = "src"
+
+[project.scripts]
+retromol = "retromol.cli:main"
