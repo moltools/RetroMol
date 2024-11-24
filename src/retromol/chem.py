@@ -1,8 +1,11 @@
+from typing import List, Optional
+
 from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
+import numpy as np
 
 
-def mol_to_fingerprint(mol: Chem.Mol, radius: int = 2, num_bits: int = 2048) -> rdFingerprintGenerator.ExplicitBitVect:
+def mol_to_fingerprint(mol: Chem.Mol, radius: int = 2, num_bits: int = 2048):
     """Converts an RDKit molecule to a Morgan fingerprint.
 
     :param mol: The molecule to convert.
@@ -12,23 +15,25 @@ def mol_to_fingerprint(mol: Chem.Mol, radius: int = 2, num_bits: int = 2048) -> 
     :param num_bits: The number of bits in the fingerprint.
     :type num_bits: int
     :return: The Morgan fingerprint.
-    :rtype: ExplicitBitVect
     """
     fp_generator = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=num_bits)
     return fp_generator.GetFingerprint(mol)
 
 
-def encode_mol(mol: Chem.Mol) -> int:
+def encode_mol(mol: Chem.Mol, additional_bits: Optional[List[int]] = None) -> int:
     """Encodes an RDKit molecule as an integer.
 
     :param mol: The molecule to encode.
     :type mol: Chem.Mol
+    :param additional_bits: Additional bits to include in the encoding.
+    :type additional_bits: Optional[List[int]
     :return: The encoded molecule.
     :rtype: int
     """
     fp = mol_to_fingerprint(mol)
-    fp_hash = hash(fp.data.tobytes())
-    return fp_hash
+    if additional_bits is None:
+        additional_bits = []
+    return hash(np.hstack([fp, additional_bits]).data.tobytes())
 
 
 def neutralize_mol(mol: Chem.Mol) -> None:

@@ -3,6 +3,7 @@ import csv
 import os
 import logging
 import threading
+import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Any, Dict, Optional, Tuple
@@ -145,7 +146,7 @@ def parse_item(item: Item, item_folder: str, logger: logging.Logger) -> None:
     logger.info(f"starting task for item {item.name} at {start_time}")
 
     # run RetroMol on item
-    run_retromol(item.smiles)
+    run_retromol(item.name, item.smiles, logger)
 
     # log end of task
     end_time = datetime.now()
@@ -182,6 +183,13 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Optio
         logger.warning(error_message)
         return error_type, error_message
     except Exception as e:
+        # get the last traceback
+        tb = e.__traceback__
+        while tb.tb_next:  # get the last traceback
+            tb = tb.tb_next
+        logger.error(f"error with item {item}: {e}", exc_info=(type(e), e, tb))
+
+        # return error type and message
         error_type = type(e).__name__
         error_message = str(e)
         logger.error(f"error with item {item}: {error_type} - {error_message}")
@@ -205,6 +213,8 @@ def cli() -> argparse.Namespace:
 
 def main() -> None:
     """Main entry point for the CLI."""
+    start_time = datetime.now()
+
     # parse CLI arguments
     args = cli()
 
@@ -292,6 +302,9 @@ def main() -> None:
                     # update the progress bar
                     pbar.update(1)
 
+    # sort results by item name
+    results = sorted(results, key=lambda x: x["item"])
+
     # write results to a CSV file
     csv_file_path = os.path.join(base_output_dir, "processing_results.csv")
     with open(csv_file_path, mode="w", newline="") as csvfile:
@@ -300,14 +313,14 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(results)
 
-    logger.info("processing complete")
-    logger.info(f"results written to: {base_output_dir}")
-    logger.info(f"overview results written to: {csv_file_path}")
-    logger.info(f"log file written to: {os.path.join(base_output_dir, log_file_name)}")
-    print("processing complete")
-    print(f"results written to: {base_output_dir}")
-    print(f"overview results written to: {csv_file_path}")
-    print(f"log file written to: {os.path.join(base_output_dir, log_file_name)}")
+    end_time = datetime.now()
+    msg = f"processing complete\n" \
+            f"total runtime: {end_time - start_time}\n" \
+            f"results written to: {base_output_dir}\n" \
+            f"overview results written to: {csv_file_path}\n" \
+            f"log file written to: {os.path.join(base_output_dir, log_file_name)}"
+    logger.info(msg)
+    print(msg)
     exit(0)
 
 
