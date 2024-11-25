@@ -163,9 +163,9 @@ def preprocess_mol(
 
                 # we except a single result
                 if len(results) == 0:
-                    raise ValueError("no products from uncontested reaction")
+                    raise ValueError(f"no products from uncontested reaction {reaction_rule.name}")
                 if len(results) > 1:
-                    raise ValueError("more than one product from uncontested reaction")
+                    raise ValueError(f"more than one product from uncontested reaction {reaction_rule.name}")
                 result = results[0]
 
                 # reset atom tags in products for atoms not in original reactant
@@ -224,24 +224,24 @@ def preprocess_mol(
     return encoding_to_mol, encoding_to_rxn, reaction_graph
 
 
-def match_mol(mol: Chem.Mol, logger: logging.Logger) -> Optional[str]:
+def match_mol(mol: Chem.Mol, logger: Optional[logging.Logger] = None) -> Optional[str]:
     """Match a molecule to a motif.
     
     :param mol: RDKit molecule
     :type mol: Chem.Mol
     :param logger: Logger object
-    :type logger: logging.Logger
+    :type logger: Optional[logging.Logger]
     :return: The name of the motif if a match is found, otherwise None
     :rtype: Optional[str]
     """
     motifs = get_default_motifs()
     for motif in motifs:
         if motif.is_match(mol):
-            logger.debug(f"matched motif {motif.name} to molecule {Chem.MolToSmiles(mol)}")
+            if logger: logger.debug(f"matched motif {motif.name} to molecule {Chem.MolToSmiles(mol)}")
             return motif.name
     
     # if no motif matched, return None
-    logger.debug(f"no motif matched to molecule {Chem.MolToSmiles(mol)}")
+    if logger: logger.debug(f"no motif matched to molecule {Chem.MolToSmiles(mol)}")
     return None
 
 
@@ -251,7 +251,7 @@ def sequence_mol(
     encoding_to_rxn: Dict[int, Reaction],
     reaction_graph: Dict[int, Dict[int, List[int]]],
     sequencing_rules: List[Reaction],
-    logger: logging.Logger,
+    logger: Optional[logging.Logger] = None
 ) -> Tuple[Dict[int, Chem.Mol], Dict[int, Reaction], Dict[int, Dict[int, List[int]]]]:
     """Apply custom rules to sequence a molecule into motifs.
     
@@ -266,7 +266,7 @@ def sequence_mol(
     :param sequencing_rules: List of sequencing rules
     :type sequencing_rules: List[Motif]
     :param logger: Logger object
-    :type logger: logging.Logger
+    :type logger: Optional[logging.Logger]
     :return: A tuple containing the following:
         - A dictionary mapping molecule encodings to RDKit molecules.
         - A dictionary mapping reaction encodings to Reaction objects.
@@ -285,11 +285,11 @@ def sequence_mol(
 
     # quick filter to see if any sequencing rule can be applied to parent
     if not any([rule(parent) for rule in sequencing_rules]):
-        logger.debug(f"no sequencing rule can be applied to {Chem.MolToSmiles(parent)}")
+        if logger: logger.debug(f"no sequencing rule can be applied to {Chem.MolToSmiles(parent)}")
         return encoding_to_mol, encoding_to_rxn, reaction_graph
     
     # report parent molecule
-    logger.debug(f"parent up for for sequencing: {mol_encoding} {Chem.MolToSmiles(parent)}")
+    if logger: logger.debug(f"parent up for for sequencing: {mol_encoding} {Chem.MolToSmiles(parent)}")
 
     # a parent given to this mol should only have one chain, that is the assumption, exhaustively apply all chaining rules
     chain = ([], deepcopy(parent))  # current chain, rest
@@ -300,7 +300,7 @@ def sequence_mol(
 
         new_chains = []
         for rxn in sequencing_rules:
-            results = rxn(rest_to_process)
+            results = rxn(rest_to_process, logger=logger)
             for result in results:
                 if len(result) != 2: 
                     raise ValueError("sequence rule produced more than two products")
@@ -329,7 +329,7 @@ def sequence_mol(
 
                 # check if it is a single connected component, this makes sure that the chain is not broken
                 if not nx.is_connected(temp_mol_repr):
-                    logger.debug(f"sequence rule {rxn.name} broke the chain")
+                    if logger: logger.debug(f"sequence rule {rxn.name} broke the chain")
                     continue
 
                 new_chains.append(new_chain1)
@@ -342,13 +342,18 @@ def sequence_mol(
             # add new chains to unfinished chains
             unfinished_chains.extend(new_chains)
 
+    # if there are no finished chains, return
+    if not finished_chains:
+        if logger: logger.debug(f"no chains found for molecule {mol_encoding}")
+        return encoding_to_mol, encoding_to_rxn, reaction_graph
+
     # check what is longest chain and only keep ones that have this length
     max_chain_length = max([len(chain) for chain in finished_chains])
     finished_chains = [chain for chain in finished_chains if len(chain) == max_chain_length]
 
     # add chaining reaction node to reaction graph, and add children
     for finished_chain in finished_chains:
-        num_rxn_nodes = max([enc for enc in encoding_to_rxn]) + 1
+        num_rxn_nodes = max([enc for enc in encoding_to_rxn]) + 1 if encoding_to_rxn else 1
         reaction_graph[mol_encoding][num_rxn_nodes] = set()
 
         # get sequence identities and construct sequence representation
@@ -360,7 +365,7 @@ def sequence_mol(
             else:
                 sequence_identities.append("UNKNOWN")
         sequence_repr = ">".join(sequence_identities)
-        logger.debug(f"sequence: {sequence_repr}")
+        if logger: logger.debug(f"sequence: {sequence_repr}")
 
         # add children to reaction graph
         encoding_to_rxn[num_rxn_nodes] = set([encode_mol(motif) for motif in finished_chain])
@@ -369,7 +374,7 @@ def sequence_mol(
     return encoding_to_mol, encoding_to_rxn, reaction_graph
 
 
-def run_retromol(name: str, smiles: str, logger: logging.Logger) -> None:
+def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None) -> None:
     """Parse a SMILES string.
     
     :param name: Name of the molecule
@@ -377,21 +382,21 @@ def run_retromol(name: str, smiles: str, logger: logging.Logger) -> None:
     :param smiles: SMILES string
     :type smiles: str
     :param logger: Logger object
-    :type logger: logging.Logger
+    :type logger: Optional[logging.Logger]
     :return: None
     """
     # retrieve reaction rules
-    logger.debug("loading default reaction rules")
+    if logger: logger.debug("loading default reaction rules")
     linearization_rules = get_default_linearization_rules()
-    logger.debug(f"loaded {len(linearization_rules)} linearization reaction rules")
+    if logger: logger.debug(f"loaded {len(linearization_rules)} linearization reaction rules")
     sequencing_rules = get_default_sequencing_rules()
-    logger.debug(f"loaded {len(sequencing_rules)} sequencing reaction rules")
+    if logger: logger.debug(f"loaded {len(sequencing_rules)} sequencing reaction rules")
 
     # preprocess the molecule
-    logger.debug(f"preprocessing molecule {name} with linearization rules")
+    if logger: logger.debug(f"preprocessing molecule {name} with linearization rules")
     encoding_to_mol, encoding_to_rxn, reaction_graph = preprocess_mol(smiles, linearization_rules, logger)
     leaf_nodes = [parent for parent, rxns in reaction_graph.items() if not rxns]
-    logger.debug(f"found {len(leaf_nodes)} leaf nodes")
+    if logger: logger.debug(f"found {len(leaf_nodes)} leaf nodes")
 
     # try to sequence all the leaf nodes
     for leaf_node in leaf_nodes:

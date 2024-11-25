@@ -52,7 +52,7 @@ SEQUENCING_RULES = [
     },
     {
         "name": "pks_unsaturated_shifted", 
-        "reaction_smarts": r"[C,c;!R:1]=[C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]"
+        "reaction_smarts": r"[C,c;!R:1]=[C;!R:2]-[C&D2,C&D3;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]"
     },
     {
         "name": "adenylation_domain", 

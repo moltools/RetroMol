@@ -71,8 +71,7 @@ def setup_logger(item_folder: str, logger_level: str = "DEBUG", log_file_name: s
     logger.setLevel(logging.getLevelName(logger_level))
 
     # remove existing handlers to prevent duplicate logs in the same run
-    if logger.hasHandlers():
-        logger.handlers.clear()
+    if logger.hasHandlers(): logger.handlers.clear()
 
     handler = logging.FileHandler(log_filepath)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -120,14 +119,14 @@ def run_with_timeout(
     thread.join(timeout)
 
     if thread.is_alive():
-        logger.error(f"function '{func.__name__}' timed out after {timeout} seconds")
-        raise TimeoutError(f"function '{func.__name__}' timed out after {timeout} seconds")
+        if logger: logger.error(f"function '{func.__name__}' timed out after {timeout} second(s)")
+        raise TimeoutError(f"function '{func.__name__}' timed out after {timeout} second(s)")
 
     if result_container["error"]:
-        logger.error(f"error in function '{func.__name__}': {result_container['error']}")
+        if logger: logger.error(f"error in function '{func.__name__}': {result_container['error']}")
         raise result_container["error"]
 
-    logger.info(f"function '{func.__name__}' completed successfully")
+    if logger: logger.info(f"function '{func.__name__}' completed successfully")
     return result_container["result"]
 
 
@@ -143,14 +142,14 @@ def parse_item(item: Item, item_folder: str, logger: logging.Logger) -> None:
     """
     # log start of task
     start_time = datetime.now()
-    logger.info(f"starting task for item {item.name} at {start_time}")
+    if logger: logger.info(f"starting task for item {item.name} at {start_time}")
 
     # run RetroMol on item
     run_retromol(item.name, item.smiles, logger)
 
     # log end of task
     end_time = datetime.now()
-    logger.info(f"completed task for item {item} at {end_time}")
+    if logger: logger.info(f"completed task for item {item} at {end_time}")
 
 
 def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Optional[Tuple[str, str]]:
@@ -237,7 +236,7 @@ def main() -> None:
     logger.info(f"* input file: {input_file}")
     logger.info(f"* output directory: {base_output_dir}")
     logger.info(f"* maximum CPUs: {max_cpus}")
-    logger.info(f"* timeout per item: {timeout} seconds")
+    logger.info(f"* timeout per item: {timeout} second(s)")
 
     # read input file
     items = []
@@ -278,6 +277,7 @@ def main() -> None:
                         error_type, error_message = result
                         results.append({
                             "item": str(item),
+                            "smiles": item.smiles,
                             "status": "failed",
                             "error_type": error_type,
                             "error_message": error_message
@@ -286,6 +286,7 @@ def main() -> None:
                         # if successful, note the success
                         results.append({
                             "item": str(item),
+                            "smiles": item.smiles,
                             "status": "success",
                             "error_type": None,
                             "error_message": None
@@ -294,6 +295,7 @@ def main() -> None:
                     # catch unexpected exceptions from `process_item` itself
                     results.append({
                         "item": str(item),
+                        "smiles": item.smiles,
                         "status": "failed",
                         "error_type": "UnexpectedError",
                         "error_message": f"{type(e).__name__}: {str(e)}"
@@ -308,7 +310,7 @@ def main() -> None:
     # write results to a CSV file
     csv_file_path = os.path.join(base_output_dir, "processing_results.csv")
     with open(csv_file_path, mode="w", newline="") as csvfile:
-        fieldnames = ["item", "status", "error_type", "error_message"]
+        fieldnames = ["item", "smiles", "status", "error_type", "error_message"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)

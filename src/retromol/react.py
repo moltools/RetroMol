@@ -129,6 +129,7 @@ class Reaction:
         
         # apply reaction
         results = self.rxn.RunReactants([reactant])
+        if logger and mask: logger.debug(f"reaction {self.name} applied with mask {mask} to reactant resulted in {len(results)} products")
 
         # if no results, return empty list
         if not results:
@@ -164,14 +165,20 @@ class Reaction:
                     num_hs = atom.GetNumExplicitHs()
                     if default_valence - valence_bonds < num_hs:
                         new_valence = default_valence - valence_bonds
+
+                        # if new valence is negative, set to 0
+                        if new_valence < 0:
+                            msg = f"new valence is negative for atom {atom.GetSymbol()} in mol {Chem.MolToSmiles(product)} after reaction {self.name}"
+                            if logger: logger.error(msg)
+                            raise ValueError(msg)
+
                         atom.SetNumExplicitHs(new_valence)
 
                 # sanitize product
                 try:
                     Chem.SanitizeMol(product, catchErrors=True)
                 except ValueError:
-                    if logger:
-                        logger.warning(f"failed sanitization of product {Chem.MolToSmiles(product)} in reaction {self.name}")
+                    if logger: logger.warning(f"failed sanitization of product {Chem.MolToSmiles(product)} in reaction {self.name}")
                     sanitization_results[result_idx] = False
                     break
 
