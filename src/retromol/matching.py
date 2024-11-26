@@ -1,4 +1,4 @@
-from typing import List, Optional, Set
+from typing import Dict, List, Optional, Set
 import logging
 
 from rdkit import Chem
@@ -82,3 +82,49 @@ def match_mol_greedily(mol: Chem.Mol, logger: Optional[logging.Logger] = None) -
     # if no motif matched, return None
     if logger: logger.debug(f"no motif matched to molecule {Chem.MolToSmiles(mol)}")
     return None
+
+
+def greedy_max_set_cover(
+    encoding_to_mol: Dict[int, Chem.Mol], 
+    nodes: List[int],
+    logger: Optional[logging.Logger] = None
+) -> List[int]:
+    """Find biggest non-overlapping set of mol nodes in the reaction graph.
+
+    :param encoding_to_mol: Mapping of encoding to RDKit molecule.
+    :type encoding_to_mol: Dict[int, Chem.Mol]
+    :param nodes: List of node encodings to consider for set cover.
+    :type nodes: List[int]
+    :param logger: Logger object
+    :type logger: Optional[logging.Logger]
+    :return: List of selected node encodings.
+    :rtype: List[int]
+    """
+    # create subsets of atom mappings per node.
+    subsets = list()
+    for node in nodes:
+        mol = encoding_to_mol[node]
+        tags = {atom.GetIsotope() for atom in mol.GetAtoms() if atom.GetIsotope() != 0}
+        subsets.append((node, tags))
+
+    # sort subsets by size of atom mappings, from largest to smallest.
+    sorted_subsets = sorted(subsets, key=lambda x: len(x[1]), reverse=True)
+    if logger: logger.debug(f"found {len(sorted_subsets)} subsets to consider for set cover")
+
+    # perform greedy set cover algorithm.
+    selected_subsets: List[int] = []
+    covered_elements: Set[int] = set()
+    for node, subset in sorted_subsets:
+        uncovered_elements = subset - covered_elements
+
+        # make sure that only a subset is selected if all elements are uncovered.
+        if uncovered_elements != subset:
+            continue
+
+        if uncovered_elements:
+            selected_subsets.append(node)
+            covered_elements.update(uncovered_elements)
+
+    if logger: logger.debug(f"greedily selected {len(selected_subsets)} subsets for set cover")
+
+    return selected_subsets

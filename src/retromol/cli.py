@@ -129,7 +129,7 @@ def run_with_timeout(
     return result_container["result"]
 
 
-def parse_item(item: Item, item_folder: str, logger: logging.Logger) -> None:
+def parse_item(item: Item, item_folder: str, logger: logging.Logger) -> float:
     """Simulates processing of an item by sleeping for the specified duration.
 
     :param item: The item to process.
@@ -138,20 +138,25 @@ def parse_item(item: Item, item_folder: str, logger: logging.Logger) -> None:
     :type item_folder: str
     :param logger: Logger instance to log messages.
     :type logger: logging.Logger
+    :return: The coverage score for the item.
+    :rtype: float
     """
     # log start of task
     start_time = datetime.now()
     if logger: logger.info(f"starting task for item {item.name} at {start_time}")
 
     # run RetroMol on item
-    run_retromol(item.name, item.smiles, logger)
+    coverage_score = run_retromol(item.name, item.smiles, logger)
+    if logger: logger.info(f"coverage score for item {item.name}: {coverage_score}")
 
     # log end of task
     end_time = datetime.now()
     if logger: logger.info(f"completed task for item {item} at {end_time}")
 
+    return coverage_score
 
-def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Optional[Tuple[str, str]]:
+
+def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Tuple[Optional[str], Optional[str], Optional[float]]:
     """Processes an item with a timeout and creates an item-specific folder.
 
     :param item: The item to process.
@@ -160,8 +165,8 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Optio
     :type base_output_folder: str
     :param timeout: Maximum time allowed for the task to run, in seconds.
     :type timeout: int
-    :return: A tuple with error type and message if an error occurs, or None if successful.
-    :rtype: tuple[str, str] | None
+    :return: A tuple containing the error type, error message, and coverage score.
+    :rtype: Tuple[Optional[str], Optional[str], Optional[float
     """
     # Create the item-specific folder
     item_folder = os.path.join(base_output_folder, f"results_{item}")
@@ -172,14 +177,14 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Optio
 
     try:
         # Run the task with a timeout, pass all required arguments
-        run_with_timeout(parse_item, args=(item, item_folder, logger), timeout=timeout, logger=logger)
+        coverage_score = run_with_timeout(parse_item, args=(item, item_folder, logger), timeout=timeout, logger=logger)
         logger.info(f"item {item} processed successfully")
-        return None
+        return None, None, coverage_score
     except TimeoutError:
         error_type = "TimeoutError"
         error_message = f"processing item {item} timed out"
         logger.warning(error_message)
-        return error_type, error_message
+        return error_type, error_message, None
     except Exception as e:
         # get the last traceback
         tb = e.__traceback__
@@ -191,7 +196,7 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Optio
         error_type = type(e).__name__
         error_message = str(e)
         logger.error(f"error with item {item}: {error_type} - {error_message}")
-        return error_type, error_message
+        return error_type, error_message, None
 
 
 def cli() -> argparse.Namespace:
@@ -271,30 +276,22 @@ def main() -> None:
                 item = future_to_item[future]
                 try:
                     result = future.result()
-                    if result:
-                        # if there's an error, store error type and message
-                        error_type, error_message = result
-                        results.append({
-                            "item": str(item),
-                            "status": "failed",
-                            "error_type": error_type,
-                            "error_message": error_message
-                        })
-                    else:
-                        # if successful, note the success
-                        results.append({
-                            "item": str(item),
-                            "status": "success",
-                            "error_type": None,
-                            "error_message": None
-                        })
+                    error_type, error_message, coverage_score = result
+                    results.append({
+                        "item": str(item),
+                        "status": "succeeded" if coverage_score is not None else "failed",
+                        "coverage_score": coverage_score,
+                        "error_type": error_type,
+                        "error_message": error_message,
+                    })
                 except Exception as e:
                     # catch unexpected exceptions from `process_item` itself
                     results.append({
                         "item": str(item),
                         "status": "failed",
+                        "coverage_score": None,
                         "error_type": "UnexpectedError",
-                        "error_message": f"{type(e).__name__}: {str(e)}"
+                        "error_message": f"{type(e).__name__}: {str(e)}",
                     })
                 finally:
                     # update the progress bar
@@ -306,7 +303,7 @@ def main() -> None:
     # write results to a CSV file
     csv_file_path = os.path.join(base_output_dir, "processing_results.csv")
     with open(csv_file_path, mode="w", newline="") as csvfile:
-        fieldnames = ["item", "status", "error_type", "error_message"]
+        fieldnames = ["item", "status", "coverage_score", "error_type", "error_message"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)

@@ -6,19 +6,19 @@ import logging
 from rdkit import Chem
 import networkx as nx
 
-from retromol.chem import encode_mol, neutralize_mol
+from retromol.chem import Reactant, encode_mol, neutralize_mol
 from retromol.chem import Reaction
 
 
 def preprocess_mol(
-    smiles: str, 
+    reactant: Reactant, 
     reaction_rules: List[Reaction],
     logger: logging.Logger
 ) -> Tuple[Dict[int, Chem.Mol], Dict[int, Reaction], Dict[int, Dict[int, List[int]]]]:
     """Apply custom rules to linearize a SMILES string.
     
-    :param smiles: SMILES string
-    :type smiles: str
+    :param reactant: Reactant object
+    :type reactant: Reactant
     :param reaction_rules: List of reaction rules
     :type reaction_rules: List[Reaction]
     :param logger: Logger object
@@ -28,14 +28,6 @@ def preprocess_mol(
         - A dictionary mapping reaction encodings to Reaction objects.
         - A dictionary representing the reaction graph.
     """
-    # parse the input SMILES
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        raise ValueError(f"invalid input SMILES: {smiles}")
-    
-    # neutralize the molecule
-    neutralize_mol(mol)
-
     # sort reaction rules based on number of heavy atoms in reactants
     # reactions with less heavy atoms should be applied first
     reaction_rule_sizes = []
@@ -49,11 +41,9 @@ def preprocess_mol(
     # prioritize 1-to-1 reaction rules over 1-to-many rules
     sorted_reaction_rules = sorted(sorted_reaction_rules, key=lambda x: x.rxn.GetNumProductTemplates())
 
-    # store atom indices as isotope numbers, since those persist through reactions
-    for atom in mol.GetAtoms():
-        tag = atom.GetIdx() + 1
-        atom.SetIsotope(tag)
-    original_taken_tags = [atom.GetIsotope() for atom in mol.GetAtoms() if atom.GetIsotope() != 0]
+    # we stored atom indices as isotope numbers, since those persist through reactions
+    # retrieve original isotope numbers as tags
+    original_taken_tags = reactant.get_tags()
 
     # create data structures
     encoding_to_mol = {}  # maps mol hash to Chem.Mol
@@ -62,7 +52,7 @@ def preprocess_mol(
     reaction_graph = {}  # as {reactant_mol_encoding: {reaction_encoding: [child_mol_encodings], ...}, ...}
 
     # create queue
-    mols = [mol]
+    mols = [deepcopy(reactant.mol)]
 
     # process queue
     while mols:

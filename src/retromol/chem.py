@@ -62,6 +62,57 @@ def neutralize_mol(mol: Chem.Mol) -> None:
             atom.UpdatePropertyCache()
 
 
+class Reactant:
+    """Defines an input molecule for RetroMol."""
+
+    def __init__(self, name: str, smiles: str) -> None:
+        """Initializes a Reactant molecule.
+        
+        :param name: The name of the molecule.
+        :type name: str
+        :param smiles: The SMILES string of the molecule.
+        :type smiles: str
+        """
+        self._name = name
+        self._smiles = smiles
+        self._mol = Chem.MolFromSmiles(smiles)
+
+        # check if molecule is valid
+        if self._mol is None:
+            raise ValueError(f"invalid molecule: {name}")
+
+        # neutralize the molecule
+        neutralize_mol(self._mol)
+
+        # store atom indices as isotope numbers, since those persist through reactions
+        for atom in self._mol.GetAtoms():
+            tag = atom.GetIdx() + 1
+            atom.SetIsotope(tag)
+    
+    @property
+    def name(self) -> str:
+        """The name of the molecule."""
+        return self._name
+
+    @property
+    def smiles(self) -> str:
+        """The SMILES string of the molecule."""
+        return self._smiles
+    
+    @property
+    def mol(self) -> Chem.Mol:
+        """The RDKit molecule object."""
+        return self._mol
+    
+    def get_tags(self) -> List[int]:
+        """Returns the atom tags of the molecule.
+        
+        :return: The atom tags of the molecule.
+        :rtype: List[int]
+        """
+        return [atom.GetIsotope() for atom in self._mol.GetAtoms() if atom.GetIsotope() != 0]
+
+
 class Reaction:
     """Defines a chemical reaction."""
 
