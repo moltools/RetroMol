@@ -257,7 +257,10 @@ def sequence_mol(
 
         new_chains = []
         for rxn in sequencing_rules:
+
+            # apply reaction rule
             results = rxn(rest_to_process, logger=logger)
+            
             for result in results:
                 if len(result) != 2: 
                     raise ValueError("sequence rule produced more than two products")

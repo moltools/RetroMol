@@ -37,9 +37,6 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
     leaf_nodes = [parent for parent, rxns in reaction_graph.items() if not rxns]
     if logger: logger.debug(f"found {len(leaf_nodes)} leaf nodes")
 
-    # TODO: the atom tags are also not correctly reset during/after sequencing, we need this
-    # to accurately map the individual motifs to the original molecule
-
     # find identities for nodes
     encoding_to_identity = {}
     for encoding, mol in encoding_to_mol.items():
