@@ -42,19 +42,6 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
     for encoding, mol in encoding_to_mol.items():
         encoding_to_identity[encoding] = match_mol_greedily(mol, logger)
 
-    # try to sequence all the unidentified leaf nodes
-    # these are arguably the core of the molecule consisting of a sequence of motifs
-    encoding_to_motif_codes = {}
-    for mol_encoding in leaf_nodes:
-
-        # skip if node is already identifiable
-        if encoding_to_identity[mol_encoding] is not None:
-            continue
-        
-        motif_codes = sequence_mol(encoding_to_mol[mol_encoding], sequencing_rules, logger)
-        if motif_codes:
-            encoding_to_motif_codes[mol_encoding] = motif_codes
-
     # find best match for identified nodes
     matched_nodes =  [n for n, identity in encoding_to_identity.items() if identity is not None]
     identified_picked_nodes = greedy_max_set_cover(encoding_to_mol, matched_nodes)
@@ -88,8 +75,33 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
 
     tags_unidentified_nodes = set()
     for node in unidentified_picked_nodes:
-        node_tags = [atom.GetIsotope() for atom in encoding_to_mol[node].GetAtoms() if atom.GetIsotope() != 0]
-        tags_unidentified_nodes.update(node_tags)
+        
+        # try to sequence unidentified node
+        motif_codes = sequence_mol(encoding_to_mol[node], sequencing_rules, logger)
+        all_tags_parent_motif_code = {atom.GetIsotope() for atom in encoding_to_mol[node].GetAtoms() if atom.GetIsotope() != 0}
+       
+        if motif_codes:
+            # identify the motifs in the motif_codes to calculate coverage
+            motif_code_to_identified_tags = {}
+            for i, motif_code in enumerate(motif_codes):
+                identified_tags = set()
+                for motif in motif_code:
+                    motif_tags = [atom.GetIsotope() for atom in motif.GetAtoms() if atom.GetIsotope() != 0]
+                    if match_mol_greedily(motif, logger):
+                        identified_tags.update(motif_tags)
+                motif_code_to_identified_tags[i] = identified_tags
+            
+            # calculate coverage score for each motif code, and pick the one with the highest coverage
+            motif_code_coverage = {i: len(identified_tags) / len(all_tags_parent_motif_code) for i, identified_tags in motif_code_to_identified_tags.items()}
+            best_motif_code = max(motif_code_coverage, key=motif_code_coverage.get)
+            tags_identified_nodes.update(motif_code_to_identified_tags[best_motif_code])
+            unidentified_tags_parent_motif_code = all_tags_parent_motif_code - motif_code_to_identified_tags[best_motif_code]
+            tags_unidentified_nodes.update(unidentified_tags_parent_motif_code)
+
+        else:
+            # if no motif codes are found, add all tags to the set of unidentified tags
+            node_tags = [atom.GetIsotope() for atom in encoding_to_mol[node].GetAtoms() if atom.GetIsotope() != 0]
+            tags_unidentified_nodes.update(node_tags)
 
     # sanity check, all tags should be either matched or unmatched
     assert not tags_identified_nodes.intersection(tags_unidentified_nodes), f"tags {tags_identified_nodes.intersection(tags_unidentified_nodes)} are both matched and unmatched at the same time"
