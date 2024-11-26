@@ -3,7 +3,6 @@ import csv
 import os
 import logging
 import threading
-import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Any, Dict, Optional, Tuple
@@ -277,7 +276,6 @@ def main() -> None:
                         error_type, error_message = result
                         results.append({
                             "item": str(item),
-                            "smiles": item.smiles,
                             "status": "failed",
                             "error_type": error_type,
                             "error_message": error_message
@@ -286,7 +284,6 @@ def main() -> None:
                         # if successful, note the success
                         results.append({
                             "item": str(item),
-                            "smiles": item.smiles,
                             "status": "success",
                             "error_type": None,
                             "error_message": None
@@ -295,7 +292,6 @@ def main() -> None:
                     # catch unexpected exceptions from `process_item` itself
                     results.append({
                         "item": str(item),
-                        "smiles": item.smiles,
                         "status": "failed",
                         "error_type": "UnexpectedError",
                         "error_message": f"{type(e).__name__}: {str(e)}"
@@ -310,7 +306,7 @@ def main() -> None:
     # write results to a CSV file
     csv_file_path = os.path.join(base_output_dir, "processing_results.csv")
     with open(csv_file_path, mode="w", newline="") as csvfile:
-        fieldnames = ["item", "smiles", "status", "error_type", "error_message"]
+        fieldnames = ["item", "status", "error_type", "error_message"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)

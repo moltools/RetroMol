@@ -1,7 +1,7 @@
 from rdkit import Chem
 import pytest
 
-from retromol.react import (
+from retromol.chem import (
     Motif,
     Reaction,
     get_default_motifs,
