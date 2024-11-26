@@ -86,5 +86,21 @@ MOTIFS = [
     {
         "name": "glycine",
         "smiles": "C(C(=O)O)N",
+    },
+    {
+        "name": "methyl",
+        "smiles": "C",
+    },
+    {
+        "name": "chloride",
+        "smiles": "Cl",
+    },
+    {
+        "name": "bromide",
+        "smiles": "Br",
+    },
+    {
+        "name": "iodide",
+        "smiles": "I",
     }
 ]
