@@ -104,19 +104,17 @@ def preprocess_mol(
             for atom in parent.GetAtoms():
                 if atom.GetIsotope() == 0:
                     tag = 1
-                    while tag in temp_taken_tags:
+                    while tag in original_taken_tags or tag in temp_taken_tags:
                         tag += 1
                     atom.SetIsotope(tag)
                     temp_taken_tags.append(tag)
             
-            # we don't have to worry about tagging new atoms, as all of these reactions
-            # are now uncontested, meaning they don't share any atoms with other reactions
-            # do make sure every atom in input is tagged
+            # make sure all atoms have a unique tag
             tagged_atoms = set([atom.GetIsotope() for atom in parent.GetAtoms() if atom.GetIsotope() != 0])
             if len(tagged_atoms) != len(parent.GetAtoms()):
                 raise ValueError("not all atoms have a unique tag before applying uncontested reactions")
 
-            # map tags to atomic nums so we can reset later after using mask
+            # map tags to atomic nums so we can use them to mask atoms
             idx_to_tag = {atom.GetIdx(): atom.GetIsotope() for atom in parent.GetAtoms()}
 
             # all uncontested reactions become one noe in the reaction_graph teogether
@@ -143,7 +141,7 @@ def preprocess_mol(
                 for atom in parent.GetAtoms():
                     if atom.GetIsotope() == 0:
                         tag = 1
-                        while tag in temp_taken_tags_uncontested:
+                        while tag in temp_taken_tags_uncontested or tag in original_taken_tags or tag in temp_taken_tags:
                             tag += 1
                         atom.SetIsotope(tag)
                         temp_taken_tags_uncontested.append(tag)
