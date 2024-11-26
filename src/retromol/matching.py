@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, List, Optional, Set
 import logging
 
@@ -80,7 +81,10 @@ def match_mol_greedily(mol: Chem.Mol, logger: Optional[logging.Logger] = None) -
             return motif.name
     
     # if no motif matched, return None
-    if logger: logger.debug(f"no motif matched to molecule {Chem.MolToSmiles(mol)}")
+    if logger: 
+        temp_mol = deepcopy(mol)
+        for atom in temp_mol.GetAtoms(): atom.SetIsotope(0)
+        logger.debug(f"no motif matched to molecule {Chem.MolToSmiles(mol)} ({Chem.MolToSmiles(temp_mol)})")
     return None
 
 
