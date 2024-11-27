@@ -69,6 +69,11 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
     unmatched_sequenceable_nodes = []
     encoding_to_motif_codes = {}
     for node, node_mol in encoding_to_mol.items():
+
+        # only consider leaf nodes, as these should be the sequenceable nodes
+        if node not in leaf_nodes:
+            continue
+
         motif_codes = sequence_mol(node_mol, sequencing_rules, logger)
         encoding_to_motif_codes[node] = motif_codes
         if len(motif_codes) != 0:
@@ -108,6 +113,8 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
     if logger:
         logger.debug(f"picked identified nodes: {identified_picked_nodes}")
         logger.debug(f"tags identified nodes: {tags_identified_nodes}")
+        for node in identified_picked_nodes:
+            logger.debug(f"{node} - {Chem.MolToSmiles(encoding_to_mol[node])} - {encoding_to_identity[node]}")
     
     tags_unidentified_sequenceable_nodes = set()
     for node in unidentified_sequenceable_picked_nodes:
@@ -116,6 +123,8 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
     if logger:
         logger.debug(f"picked unidentified sequenceable nodes: {unidentified_sequenceable_picked_nodes}")
         logger.debug(f"tags unidentified sequenceable nodes: {tags_unidentified_sequenceable_nodes}")
+        for node in unidentified_sequenceable_picked_nodes:
+            logger.debug(f"{node} - {Chem.MolToSmiles(encoding_to_mol[node])}")
 
     tags_unidentified_unsequenceable_nodes = set()
     for node in unidentified_unsequenceable_picked_nodes:
@@ -124,6 +133,8 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
     if logger:
         logger.debug(f"picked unidentified unsequenceable nodes: {unidentified_unsequenceable_picked_nodes}")
         logger.debug(f"tags unidentified unsequenceable nodes: {tags_unidentified_unsequenceable_nodes}")
+        for node in unidentified_unsequenceable_picked_nodes:
+            logger.debug(f"{node} - {Chem.MolToSmiles(encoding_to_mol[node])}")
 
     # sanity checks based on tags, none of the tags sets can overlap
     assert len(tags_identified_nodes & tags_unidentified_sequenceable_nodes) == 0, "identified and unidentified sequenceable tags overlap"

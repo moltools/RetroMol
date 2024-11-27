@@ -271,6 +271,19 @@ def sequence_mol(
                 product2 = result[1]
                 new_chain1 = (current_chain + [product2], product1)
 
+                # the new found motif has to to match polyketide, alpha amino acid, or beta amino acid backbone smarts
+                polyketide_smarts = Chem.MolFromSmarts("[OH]SC~CC(=O)[OH]")
+                alpha_amino_acid_smarts = Chem.MolFromSmarts("[NH2]CC(=O)[OH]")
+                beta_amino_acid_smarts = Chem.MolFromSmarts("[NH2]CCC(=O)[OH]")
+
+                if (
+                    not product2.HasSubstructMatch(polyketide_smarts) and
+                    not product2.HasSubstructMatch(alpha_amino_acid_smarts) and
+                    not product2.HasSubstructMatch(beta_amino_acid_smarts)
+                ):
+                    if logger: logger.debug(f"mined motif does not match polyketide, alpha amino acid, or beta amino acid backbone pattern")
+                    continue
+
                 # get tags of new_chain. Does it form a single connected component
                 temp_mol_repr = deepcopy(mol_repr)
 
@@ -310,5 +323,8 @@ def sequence_mol(
     # check what is longest chain and only keep ones that have this length
     max_chain_length = max([len(chain) for chain in finished_chains])
     finished_chains = [chain for chain in finished_chains if len(chain) == max_chain_length]
+
+    if logger:
+        logger.debug(f"found {len(finished_chains)} chains for molecule {Chem.MolToSmiles(mol)}")
 
     return finished_chains

@@ -45,7 +45,7 @@ class Motif:
         :return: True if the motif matches the molecule, False otherwise.
         :rtype: bool
         """
-        has_substruct_match = mol.HasSubstructMatch(self._mol)
+        has_substruct_match = mol.HasSubstructMatch(self._mol, useChirality=True)
         has_equal_num_atoms = mol.GetNumAtoms() == self._mol.GetNumAtoms()
         return has_substruct_match and has_equal_num_atoms
     
