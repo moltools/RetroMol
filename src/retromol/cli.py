@@ -249,7 +249,7 @@ def main() -> None:
         with open(input_file, "r") as fo:
             fo.readline()  # skip header
             for line in fo:
-                name, smiles = line.strip().split(",")
+                name, smiles, *_ = line.strip().split(",")
                 items.append(Item(name, smiles))
 
         # check if all names are unique
@@ -279,6 +279,7 @@ def main() -> None:
                     error_type, error_message, coverage_score = result
                     results.append({
                         "item": str(item),
+                        "smiles": item.smiles,
                         "status": "succeeded" if coverage_score is not None else "failed",
                         "coverage_score": coverage_score,
                         "error_type": error_type,
@@ -288,6 +289,7 @@ def main() -> None:
                     # catch unexpected exceptions from `process_item` itself
                     results.append({
                         "item": str(item),
+                        "smiles": item.smiles,
                         "status": "failed",
                         "coverage_score": None,
                         "error_type": "UnexpectedError",
@@ -303,7 +305,7 @@ def main() -> None:
     # write results to a CSV file
     csv_file_path = os.path.join(base_output_dir, "processing_results.csv")
     with open(csv_file_path, mode="w", newline="") as csvfile:
-        fieldnames = ["item", "status", "coverage_score", "error_type", "error_message"]
+        fieldnames = ["item", "smiles", "status", "coverage_score", "error_type", "error_message"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)
