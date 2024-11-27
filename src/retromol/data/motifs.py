@@ -15,6 +15,11 @@ MOTIFS = [
         "tags": ["polyketide"],
     },
     {
+        "name": "A2-tautomer",
+        "smiles": "OSC(O)=C(C)C(=O)O",
+        "tags": ["polyketide"],
+    },
+    {
         "name": "A3",
         "smiles": "OSC(=O)C(C)(C)C(=O)O",
         "tags": ["polyketide"],
@@ -40,8 +45,18 @@ MOTIFS = [
         "tags": ["polyketide"],
     },
     {
+        "name": "A7-tautomer",
+        "smiles": "OSC(O)=C(CO)C(=O)O",
+        "tags": ["polyketide"],
+    },
+    {
         "name": "A8",
         "smiles": "OSC(=C)CC(=O)O",
+        "tags": ["polyketide"],
+    },
+    {
+        "name": "A8-tautomer",
+        "smiles": "OSC(C)=CC(=O)O",
         "tags": ["polyketide"],
     },
     {
@@ -185,8 +200,18 @@ MOTIFS = [
         "tags": ["polyketide"],
     },
     {
+        "name": "D11-tautomer",
+        "smiles": "OSC=C(O)C(=O)O",
+        "tags": ["polyketide"],
+    },
+    {
         "name": "D11",
         "smiles": "OSCC(=C)C(=O)O",
+        "tags": ["polyketide"],
+    },
+    {
+        "name": "D12",
+        "smiles": "OSCC(C(C)O)C(=O)O",
         "tags": ["polyketide"],
     },
     {
@@ -345,6 +370,16 @@ MOTIFS = [
         "tags": ["sugar"],
     },
     {
+        "name": "6-methyloxane-2,3,4-triol",
+        "smiles": "CC1CC(O)C(O)C(O)O1",
+        "tags": ["sugar"],
+    },
+    {
+        "name": "4,6-dimethyloxane-2,4,5-triol",
+        "smiles": "OC1C(C)OC(O)CC1(C)O",
+        "tags": ["sugar"],
+    },
+    {
         "name": "ethanoic acid",
         "smiles": "CC(=O)O",
         "tags": ["fatty acid", "carboxylic acid"],
@@ -413,5 +448,30 @@ MOTIFS = [
         "name": "aminomalonate",
         "smiles": "NC(C(=O)O)C(=O)O",
         "tags": ["amino acid", "non-proteinogenic", "alpha"],
+    },
+    {
+        "name": "furan-3-carboxylic acid",
+        "smiles": "O=C(O)c1ccoc1",
+        "tags": ["aromatic", "carboxylic acid"],
+    },
+    {
+        "name": "2-(2,6-dioxopiperidin-4-yl)acetic acid",
+        "smiles": "O=C(O)CC1CC(=O)NC(=O)C1",
+        "tags": ["heterocycle", "carboxylic acid"],
+    },
+    {
+        "name": "2,6-dioxopiperidine-4-carboxylic acid",
+        "smiles": "O=C(O)C1CC(=O)NC(=O)C1",
+        "tags": ["heterocycle", "carboxylic acid"],
+    },
+    {
+        "name": "2,3-dihydroxybenzoic acid",
+        "smiles": "O=C(O)c1cccc(O)c1O",
+        "tags": ["aromatic", "carboxylic acid"],
+    },
+    {
+        "name": "3-Hydroxyquinoline-2-carboxylic acid",
+        "smiles": "O=C(O)c1nc2ccccc2cc1O",
+        "tags": ["aromatic", "carboxylic acid"],
     }
 ]

@@ -146,16 +146,19 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
     # find best motif coverage for the unidentified sequenceable nodes
     tags_identified_motifs = set()
     for node in unidentified_sequenceable_picked_nodes:
+        if logger: logger.debug(f"calculating motif coverage for sequenceable node {node}")
         motif_codes = encoding_to_motif_codes[node]
-        tags_identified_motifs_motif_code = set()
+        best_coverage_tags = set()
         for motif_code in motif_codes:
+            tags_identified_motifs_motif_code = set()
             for motif in motif_code:
                 motif_identity = match_mol_greedily(motif, logger)
                 if motif_identity is not None:
                     motif_tags = [atom.GetIsotope() for atom in motif.GetAtoms() if atom.GetIsotope() != 0]
                     tags_identified_motifs_motif_code.update(motif_tags)
-        if len(tags_identified_motifs_motif_code) > len(tags_identified_motifs):
-            tags_identified_motifs = tags_identified_motifs_motif_code
+            if len(tags_identified_motifs_motif_code) > len(best_coverage_tags):
+                best_coverage_tags = tags_identified_motifs_motif_code
+        tags_identified_motifs.update(best_coverage_tags)
 
     # calculate coverage score, round to 3 decimal places
     coverage_score = (len(tags_identified_nodes) + len(tags_identified_motifs)) / len(all_tags) * 100

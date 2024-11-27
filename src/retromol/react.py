@@ -87,6 +87,12 @@ def preprocess_mol(
         uncontested = []
         contested = []
         for i, (reaction_rule, match_set) in enumerate(up_for_election):
+
+            # check if reaction_rule contains any ring matching conditions like ;R or ;!R, always make these reactions contested
+            if any([reaction_rule.reaction_smarts.find(f";{ring_condition}") != -1 for ring_condition in ["R", "!R"]]):
+                contested.append((reaction_rule, match_set))
+                continue
+
             if not any(match_set.intersection(match_set_other) for j, (_, match_set_other) in enumerate(up_for_election) if i != j):
                 uncontested.append((reaction_rule, match_set))
             else:
@@ -262,8 +268,11 @@ def sequence_mol(
             results = rxn(rest_to_process, logger=logger)
 
             for result in results:
-                if len(result) != 2: 
-                    raise ValueError("sequence rule produced more than two products")
+                if len(result) < 2: 
+                    raise ValueError("sequence rule produced less than two products")
+                
+                if len(result) > 2:
+                    if logger: logger.warning(f"sequence rule {rxn.name} produced more than two products, only the first two are considered")
                 
                 # the left product is always the one that is connected to the chain
                 # the right product is always the one that is disconnected from the chain

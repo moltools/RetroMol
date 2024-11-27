@@ -13,7 +13,7 @@ LINEARIZATION_RULES = [
     },
     {
         "name": "s-methylation",
-        "reaction_smarts": r"[SH1:1][CH3:2]>>[SH2:1].[CH4:2]",
+        "reaction_smarts": r"[S:1][CH3:2]>>[S:1].[CH4:2]",
     },
     {
         "name": "glycosyltransferase", 
@@ -59,6 +59,18 @@ LINEARIZATION_RULES = [
         "name": "macrolactonization", 
         "reaction_smarts": r"[C;R:1][C;R:2](=[O:3])[O;R:4][C;R:5]>>([C:1][C:2](=[O:3])[OH].[OH:4][C:5])"
     },
+    {
+        "name": "ester bond", 
+        "reaction_smarts": r"[C:1][C;!R:2](=[O:3])[O;!R:4][C:5]>>[C:1][C:2](=[O:3])[OH].[OH:4][C:5]"
+    },
+    {
+        "name": "macrolactonethionization", 
+        "reaction_smarts": r"[C;R:1][C;R:2](=[O:3])[S;R:4][C;R:5]>>([C:1][C:2](=[O:3])[OH].[SH:4][C:5])"
+    },
+    {
+        "name": "thio-ester bond", 
+        "reaction_smarts": r"[C:1][C;!R:2](=[O:3])[S;!R:4][C:5]>>[C:1][C:2](=[O:3])[OH].[SH:4][C:5]"
+    },
     # {
     #     "name": "carbocyclization", 
     #     "reaction_smarts": r"[C:1][C:2]1[C:3]([C:4])[C:5]=[C:6][C:7]2[C:8]~[C:9]~[C:10]~[C:11][C:12]21>>([C:1][C:2]1.[C:3]([C:4])[C:5]=[C:6][C:7][C:8]~[C:9]~[C:10]~[C:11]~[C:12]1)"
@@ -80,12 +92,20 @@ LINEARIZATION_RULES = [
         "reaction_smarts": r"[NH2:1]-[CH0:2](=[O:3])-[OH0:4]-[*:5]>>[NH2:1]-[CH0:2](=[O:3])[OH].[OH1:4]-[*:5]"
     },
     {
+        "name": "acetic acid", 
+        "reaction_smarts": r"[CH3:1]-[CH0:2](=[O:3])-[OH0:4]-[*:5]>>[CH3:1]-[CH0:2](=[O:3])[OH].[OH1:4]-[*:5]"
+    },
+    {
         "name": "cyanide",
         "reaction_smarts": r"[C:1][C&D2:2]#[N&D1:3]>>[C:1].[C:2]#[N:3]"
     },
     {
         "name": "disulfide bridge",
-        "reaction_smarts": r"[C:1][S:2][S:3][C:4]>>[C:1][SH:2].[SH:3][C:4]",
+        "reaction_smarts": r"[C;R:1][C:2][S:3][S:4][C:5][C;R:6]>>([C;R:1][C:2][SH:3].[SH:4][C:5][C;R:6])",
+    },
+    {
+        "name": "disulfide bridge",
+        "reaction_smarts": r"[C:1][C:2][S:3][S:4][C:5][C:6]>>[C;R:1][C:2][SH:3].[SH:4][C:5][C;R:6]",
     },
     {
         "name": "hydroxyl sulfonation",
@@ -181,6 +201,10 @@ SEQUENCING_RULES = [
     {
         "name": "pks (unsaturated and shifted)", 
         "reaction_smarts": r"[C,c:1]=[C;!R:2]-[C&D2,C&D3;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "pks (shifted and late stage oxidation)", 
+        "reaction_smarts": r"[C,c:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]"
     },
     {
         "name": "adenylation domain", 

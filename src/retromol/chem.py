@@ -186,7 +186,13 @@ class Reaction:
         
         # apply reaction
         results = self.rxn.RunReactants([reactant])
-        if logger and mask: logger.debug(f"reaction {self.name} applied with mask {mask} to reactant resulted in {len(results)} products")
+        if logger:
+            if mask: 
+                logger.debug(f"reaction {self.name} applied with mask {mask} to reactant resulted in {len(results)} result(s):")
+            else:
+                logger.debug(f"reaction {self.name} applied without mask to reactant resulted in {len(results)} result(s):")
+            for i, result in enumerate(results):
+                logger.debug(f"result {i + 1} has {len(result)} product(s)")
 
         # if no results, return empty list
         if not results:
