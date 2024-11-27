@@ -16,6 +16,10 @@ LINEARIZATION_RULES = [
         "reaction_smarts": r"[S:1][CH3:2]>>[S:1].[CH4:2]",
     },
     {
+        "name": "c-methylation amino acid",
+        "reaction_smarts": r"[N:1][C:2]([CH3:3])([*:4])[C:5](=[O:6])[O:7]>>[N:1][C:2]([*:4])[C:5](=[O:6])[O:7].[CH4:3]"
+    },
+    {
         "name": "glycosyltransferase", 
         "reaction_smarts": r"[C:1][O:2][C:3]1[O:4][C:5][C:6][C:7][C:8]1>>[C:1][OH:2].[OH][C:3]1[O:4][C:5][C:6][C:7][C:8]1"
     },
@@ -71,25 +75,25 @@ LINEARIZATION_RULES = [
         "name": "thio-ester bond", 
         "reaction_smarts": r"[C:1][C;!R:2](=[O:3])[S;!R:4][C:5]>>[C:1][C:2](=[O:3])[OH].[SH:4][C:5]"
     },
-    # {
-    #     "name": "carbocyclization", 
-    #     "reaction_smarts": r"[C:1][C:2]1[C:3]([C:4])[C:5]=[C:6][C:7]2[C:8]~[C:9]~[C:10]~[C:11][C:12]21>>([C:1][C:2]1.[C:3]([C:4])[C:5]=[C:6][C:7][C:8]~[C:9]~[C:10]~[C:11]~[C:12]1)"
-    # },
     {
-        "name": "carbocyclization",
-        "reaction_smarts": r"[*:1][C:2]1[C:3]([*:4])[C:5]=[C:6][CH1:7]([CH2;R:8])[C:9]([C;R:10])1>>([*:1][C:2]=1.[C:3]([*:4])[C:5]=[C:6][CH1:7](=[CH1;R:8]).[C:9]([C;R:10])=1)",
+        "name": "carbocyclization 1",
+        "reaction_smarts": r"[*:1][C:2]1[C:3]([*:4])[C:5]=[C:6][CH1:7]([C;R:8])[C:9]([C;R:10])1>>([*:1][C:2]=1.[C:3]([*:4])=[C:5]-[C:6]=[CH1:7]([C;R:8]).[C:9]([C;R:10])=1)",
     },
     {
-        "name": "carbocyclization",
-        "reaction_smarts": r"[*:1][C:2]1[C:3]([*:4])[C:5]=[C:6][CH1:7]([CH1;R:8])[C:9]([C;R:10])1>>([*:1][C:2]=1.[C:3]([*:4])[C:5]=[C:6][CH1:7](=[CH0;R:8]).[C:9]([C;R:10])=1)",
+        "name": "carbocyclization 2",
+        "reaction_smarts": r"[*:1][C:2]1[C:3]([*:4])[C:5]=[C:6][C:7](=[C;R:8][C;R:11])[C:9]([C;R:10])1>>([*:1][C:2]=1.[C:3]([*:4])=[C:5]-[C:6]=[C:7](-[C;R:8]=[C;R:11]).[C:9]([C;R:10])=1)",
     },
     {
         "name": "dihalogenation", 
         "reaction_smarts": r"[C&D4:2]([Cl,Br,I:3])([Cl,Br,I:4])>>[C:2].[Cl,Br,I:3].[Cl,Br,I:4]"
     },
     {
-        "name": "carbamic acid", 
+        "name": "carbamic acid 1 ", 
         "reaction_smarts": r"[NH2:1]-[CH0:2](=[O:3])-[OH0:4]-[*:5]>>[NH2:1]-[CH0:2](=[O:3])[OH].[OH1:4]-[*:5]"
+    },
+    {
+        "name": "carbamic acid 2", 
+        "reaction_smarts": r"[NH2:1]-[C:2](=[O:3])-[N:4]-[*:5]>>[NH2:1]-[C:2](=[O:3])[OH].[N:4]-[*:5]"
     },
     {
         "name": "acetic acid", 
@@ -141,7 +145,7 @@ LINEARIZATION_RULES = [
     },
     {
         "name": "thiazoline",
-        "reaction_smarts" : r"[C,O:1][C:2]=1[SH0:3][C:4][C:5][N:7]1>>([C,O:1]-[CH0:2]-1(=O).[SH1:3]-[CH2:4]-[C:5]-[NH1:7]-1)",
+        "reaction_smarts" : r"[*:1][C:2]=1[SH0:3][C:4][C:5][N:7]1>>([*:1]-[CH0:2]-1(=O).[SH1:3]-[CH2:4]-[C:5]-[NH1:7]-1)",
     },
     {
         "name": "thiazoline",
@@ -169,11 +173,11 @@ LINEARIZATION_RULES = [
     },
     {
         "name": "dioxane etherifcation",
-        "reaction_smarts": r"[*:6][C:1]1[C:2][C:3]([*:7])[O:4][CH2][O:5]1>>[*:6][C:1]([OH:5])[C:2][C:3]([OH:4])[*:7]",
+        "reaction_smarts": r"[*:6][C:1]1~[C:2]~[C:3]([*:7])[O:4][C:8][O:5]1>>[*:6][C:1]([OH:5])~[C:2]~[C:3]([OH:4])[*:7].[C:8]",
     },
     {
         "name": "amido transferase",
-        "reaction_smarts": r"[NH1:1][CH1:2]([C:3](=[O:4])[NH2:5])[CH2:6][NH2:7]>>[NH1:1][CH1:2]([C:3](=[O:4])[OH:5])[CH2:6][NH2:7]",
+        "reaction_smarts": r"[NH1:1][CH1:2]([C:3](=[O:4])[NH2:5])[CH2:6][NH2:7]>>[NH1:1][CH1:2]([C:3](=[O:4])[OH])[CH2:6][NH2:7].[N:5]",
     },
     {
         "name": "hydrogenation",
@@ -186,6 +190,10 @@ LINEARIZATION_RULES = [
     {
         "name": "DAOC-synthetase",
         "reaction_smarts": r"[C:1][N:2][C:3]1[C:4]2[S:5][C:6][CH0:7]=[CH0:8]([C:9])[N:10]2[C:11]1=[O:12]>>[C:1][N:2][C:3]1[C:4]2[S:5][CH0:7]([CH3:6])[CH1:8]([C:9])[N:10]2[C:11]1=[O:12]",
+    },
+    {
+        "name": "salinosporamide-like",
+        "reaction_smarts": r"[*:1][C:2]1[C:3](=[O:4])[N:5][C:6]([C:7](=[O:8])2)([*:9])[C:10]1([C:11])[O:12]2>>[*:1][C:2][C:3](=[O:4])[OH].[N:5][C:6]([C:7](=[O:8])[OH])([*:9]).[C:10]([C:11])(=[O])[OH:12]"
     }
 ]
 

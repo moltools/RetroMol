@@ -315,6 +315,11 @@ MOTIFS = [
         "tags": ["amino acid", "proteinogenic", "alpha"],
     },
     {
+        "name": "2-amino-3-oxobutanoic acid",
+        "smiles": "CC(=O)C(N)C(=O)O",
+        "tags": ["amino acid", "non-proteinogenic", "alpha"],
+    },
+    {
         "name": "3-methylglutamic acid",
         "smiles": "CC(CC(=O)O)C(C(=O)O)N",
         "tags": ["amino acid", "non-proteinogenic", "alpha"],
@@ -328,6 +333,15 @@ MOTIFS = [
         "name": "kynurenine",
         "smiles": "C1=CC=C(C(=C1)C(=O)CC(C(=O)O)N)N",
         "tags": ["amino acid", "non-proteinogenic", "alpha"],
+    },
+    {
+        "name": "2-hydroxyglycine",
+        "smiles": "NC(O)C(=O)O",
+        "tags": ["amino acid", "non-proteinogenic", "alpha"],
+    },  
+    {
+        "name": "(2S)-2,3-diaminopropanoic acid",
+        "smiles": "NC[C@H](N)C(=O)O",
     },
     {
         "name": "methyl",
@@ -473,5 +487,25 @@ MOTIFS = [
         "name": "3-Hydroxyquinoline-2-carboxylic acid",
         "smiles": "O=C(O)c1nc2ccccc2cc1O",
         "tags": ["aromatic", "carboxylic acid"],
+    },
+    {
+        "name": "2-hydroxy-6-pentylbenzoic acid",
+        "smiles": "CCCCCc1cccc(O)c1C(=O)O",
+        "tags": ["aromatic", "carboxylic acid"],
+    },
+    {
+        "name": "methanol",
+        "smiles": "CO",
+        "tags": ["alcohol"],
+    },
+    {
+        "name": "ethanol",
+        "smiles": "CCO",
+        "tags": ["alcohol"],
+    },    
+    {
+        "name": "3-butynoic acid",
+        "smiles": "C#CCC(=O)O",
+        "tags": ["alkynoic acid", "carboxylic acid"],
     }
 ]
