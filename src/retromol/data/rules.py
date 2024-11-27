@@ -9,11 +9,7 @@ LINEARIZATION_RULES = [
     },
     {
         "name": "n-methylation",
-        "reaction_smarts": r"[N&D2:1][CH3:2]>>[N:1].[C:2]"
-    },
-    {
-        "name": "n-dimethylation", 
-        "reaction_smarts": r"[N&D3:1]([CH3:2])[CH3:3]>>[N:1].[C:2].[C:3]"
+        "reaction_smarts": r"[N:1][CH3:2]>>[N:1].[C:2]"
     },
     {
         "name": "s-methylation",

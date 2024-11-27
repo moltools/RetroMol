@@ -408,5 +408,10 @@ MOTIFS = [
         "name": "phenylacetic acid",
         "smiles": "O=C(O)Cc1ccccc1",
         "tags": ["aromatic", "carboxylic acid"],
+    },
+    {
+        "name": "aminomalonate",
+        "smiles": "NC(C(=O)O)C(=O)O",
+        "tags": ["amino acid", "non-proteinogenic", "alpha"],
     }
 ]
