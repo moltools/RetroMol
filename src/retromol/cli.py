@@ -146,7 +146,7 @@ def parse_item(item: Item, item_folder: str, logger: logging.Logger) -> float:
     if logger: logger.info(f"starting task for item {item.name} at {start_time}")
 
     # run RetroMol on item
-    coverage_score = run_retromol(item.name, item.smiles, logger)
+    coverage_score = run_retromol(item.name, item.smiles, item_folder, logger)
     if logger: logger.info(f"coverage score for item {item.name}: {coverage_score}")
 
     # log end of task
@@ -279,7 +279,6 @@ def main() -> None:
                     error_type, error_message, coverage_score = result
                     results.append({
                         "item": str(item),
-                        "smiles": item.smiles,
                         "status": "succeeded" if coverage_score is not None else "failed",
                         "coverage_score": coverage_score,
                         "error_type": error_type,
@@ -289,7 +288,6 @@ def main() -> None:
                     # catch unexpected exceptions from `process_item` itself
                     results.append({
                         "item": str(item),
-                        "smiles": item.smiles,
                         "status": "failed",
                         "coverage_score": None,
                         "error_type": "UnexpectedError",
@@ -305,7 +303,7 @@ def main() -> None:
     # write results to a CSV file
     csv_file_path = os.path.join(base_output_dir, "processing_results.csv")
     with open(csv_file_path, mode="w", newline="") as csvfile:
-        fieldnames = ["item", "smiles", "status", "coverage_score", "error_type", "error_message"]
+        fieldnames = ["item", "status", "coverage_score", "error_type", "error_message"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)

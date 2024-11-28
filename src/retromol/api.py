@@ -1,6 +1,8 @@
 
 from typing import Optional
+import json
 import logging
+import os
 
 from rdkit import Chem
 
@@ -9,13 +11,15 @@ from retromol.matching import match_mol_greedily, greedy_max_set_cover
 from retromol.react import preprocess_mol, sequence_mol
 
 
-def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None) -> float:
+def run_retromol(name: str, smiles: str, out_folder: str, logger: Optional[logging.Logger] = None) -> float:
     """Parse a SMILES string.
     
     :param name: Name of the molecule
     :type name: str
     :param smiles: SMILES string
     :type smiles: str
+    :param out_folder: Output folder
+    :type out_folder: str
     :param logger: Logger object
     :type logger: Optional[logging.Logger]
     :return: coverage score
@@ -163,6 +167,39 @@ def run_retromol(name: str, smiles: str, logger: Optional[logging.Logger] = None
     # calculate coverage score, round to 3 decimal places
     coverage_score = (len(tags_identified_nodes) + len(tags_identified_motifs)) / len(all_tags) * 100
     coverage_score = round(coverage_score, 2)
+
+    # collate all nodes that have been picked
+    picked_nodes = identified_picked_nodes + unidentified_sequenceable_picked_nodes + unidentified_unsequenceable_picked_nodes
+
+    # make sure picked sequenceable nodes are in identity mapping as "_backbone"
+    for node in unidentified_sequenceable_picked_nodes:
+        if node not in encoding_to_identity:
+            encoding_to_identity[node] = "_backbone"
+
+    # create output json file
+    out_data = dict(
+        name=name,
+        smiles=Chem.MolToSmiles(reactant.mol),
+        coverage_score=coverage_score,
+        encoding_to_smiles={encoding: Chem.MolToSmiles(encoding_to_mol[encoding]) for encoding in picked_nodes},
+        encoding_to_identity={encoding: encoding_to_identity.get(encoding, None) for encoding in picked_nodes},
+        encoding_to_motif_codes={
+            encoding: {
+                i: [
+                    {
+                        "identity": match_mol_greedily(motif, logger),  # TODO: now identifying twice, once here and once in the loop above
+                        "smiles": Chem.MolToSmiles(motif)
+                    }
+                    for motif in motif_code
+                ]
+                for i, motif_code in enumerate(encoding_to_motif_codes.get(encoding, [])) 
+            }
+            for encoding in unidentified_sequenceable_picked_nodes
+        }   
+    )
+    out_file = os.path.join(out_folder, f"out.json")
+    with open(out_file, 'w') as f:
+        json.dump(out_data, f, indent=4)
 
     # TODO: generate output files
     # 1) data structure that shows the monomers that the reactant molecule is composed of
