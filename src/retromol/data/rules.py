@@ -215,7 +215,15 @@ SEQUENCING_RULES = [
         "reaction_smarts": r"[C,c:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]"
     },
     {
-        "name": "adenylation domain", 
+        "name": "adenylation domain (alpha amino acid)", 
         "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O:7])[OH:8]"
+    },
+    {
+        "name": "adenylation domain (reduced alpha amino acid)", 
+        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C&D2:6][OH:7]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O])[OH:7]"
+    },
+    {
+        "name": "adenylation domain (beta amino acid)", 
+        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][CH2:6][C:7](=[O:8])[OH:9]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][CH2:6][C:7](=[O:8])[OH:9]"
     },
 ]
