@@ -98,6 +98,11 @@ def preprocess_mol(
             else:
                 contested.append((reaction_rule, match_set))
 
+        if logger:
+            logger.debug(f"parent molecule: {Chem.MolToSmiles(parent)}")
+            logger.debug(f"{len(uncontested)} uncontested reactions: {[reaction_rule.name for reaction_rule, _ in uncontested]}")
+            logger.debug(f"{len(contested)} contested reactions: {[reaction_rule.name for reaction_rule, _ in contested]}")
+
         # if neither uncontested or contested, start over with new parent
         if not uncontested and not contested:
             continue
@@ -182,17 +187,8 @@ def preprocess_mol(
             # restart loop with new parent
             continue
 
-        # check if a 1-to-1 reaction is contested, if so, apply these first before doing anything else
-        temp_reaction_rules = []
-        if contested:
-            for reaction_rule, match_set in contested:
-                if reaction_rule.rxn.GetNumReactantTemplates() == 1 and reaction_rule.rxn.GetNumProductTemplates() == 1:
-                    temp_reaction_rules.append(reaction_rule)
-        if not temp_reaction_rules:
-            temp_reaction_rules= sorted_reaction_rules
-
         # exhaustive reaction_rule application for all contested reactions
-        for reaction_rule in temp_reaction_rules:
+        for reaction_rule in sorted_reaction_rules:
             results = reaction_rule(parent, logger=logger)
             for result in results:
 
@@ -284,11 +280,13 @@ def sequence_mol(
                 # the new found motif has to to match polyketide, alpha amino acid, or beta amino acid backbone smarts
                 polyketide_smarts = Chem.MolFromSmarts("[OH]SC~CC(=O)[OH]")
                 alpha_amino_acid_smarts = Chem.MolFromSmarts("[NH2]CC(=O)[OH]")
+                alpha_amino_acid_smart_proline_like = Chem.MolFromSmarts("[NH1]CC(=O)[OH]")
                 beta_amino_acid_smarts = Chem.MolFromSmarts("[NH2]CCC(=O)[OH]")
 
                 if (
                     not product2.HasSubstructMatch(polyketide_smarts) and
                     not product2.HasSubstructMatch(alpha_amino_acid_smarts) and
+                    not product2.HasSubstructMatch(alpha_amino_acid_smart_proline_like) and
                     not product2.HasSubstructMatch(beta_amino_acid_smarts)
                 ):
                     if logger: logger.debug(f"mined motif does not match polyketide, alpha amino acid, or beta amino acid backbone pattern")
@@ -310,6 +308,7 @@ def sequence_mol(
                 # remove all atoms that are not in new_chain_indices
                 temp_mol_repr.remove_nodes_from([node for node in temp_mol_repr.nodes if node not in new_chain_indices])
 
+                # TODO: only consider backbone atoms to see if it is a single connected component, this is a quick fix
                 # check if it is a single connected component, this makes sure that the chain is not broken
                 if not nx.is_connected(temp_mol_repr):
                     if logger: logger.debug(f"sequence rule {rxn.name} broke the chain")
@@ -344,23 +343,23 @@ def sequence_mol(
         return finished_chains
     
     # report on number of finished chains
-    if logger: logger.debug(f"number of finished chains: {len(finished_chains)}")
+    if logger: logger.info(f"number of finished chains: {len(finished_chains)}")
 
     # check what is longest chain and only keep ones that have this length
     max_chain_length = max([len(chain) for chain in finished_chains])
     finished_chains = [chain for chain in finished_chains if len(chain) == max_chain_length]
 
     # report on number of unique chains
-    if logger: logger.debug(f"number of finished chains: {len(finished_chains)}")
+    if logger: logger.info(f"number of finished chains: {len(finished_chains)}")
     encoded_chains = []
     for chain in finished_chains:
         encoded_chain = [encode_mol(unit) for unit in chain]
         encoded_chains.append(encoded_chain)
     # check how many unique chains we have
     unique_chains = set([tuple(chain) for chain in encoded_chains])
-    if logger: logger.debug(f"number of unique finished chains: {len(unique_chains)}")
+    if logger: logger.info(f"number of unique finished chains: {len(unique_chains)}")
 
     if logger:
-        logger.debug(f"found {len(finished_chains)} chains for molecule {Chem.MolToSmiles(mol)}")
+        logger.info(f"found {len(finished_chains)} chains for molecule {Chem.MolToSmiles(mol)}")
 
     return finished_chains

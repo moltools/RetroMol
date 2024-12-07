@@ -285,6 +285,16 @@ MOTIFS = [
         "tags": ["amino acid", "proteinogenic", "alpha"],
     },
     {
+        "name": "lysine-like amide",
+        "smiles": "N[C@H](CCCCN(O)C=O)C(=O)O",
+        "tags": ["amino acid", "non-proteinogenic", "alpha"],
+    },
+    {
+        "name": "lysine-like nitroso",
+        "smiles": "NC(CCCCN=O)C(O)=O",
+        "tags": ["amino acid", "non-proteinogenic", "alpha"],
+    },
+    {
         "name": "methionine",
         "smiles": "CSCCC(C(=O)O)N",
         "tags": ["amino acid", "proteinogenic", "alpha"],

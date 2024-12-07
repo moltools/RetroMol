@@ -221,6 +221,10 @@ class Reaction:
                     if atom.GetIsAromatic():
                         continue
 
+                    # also skip atoms with a charge
+                    if atom.GetFormalCharge() != 0:
+                        continue
+
                     # sanity check if atom complies with valence rules, otherwise adjust explicit Hs
                     valence_bonds = sum([bond.GetValenceContrib(atom) for bond in atom.GetBonds()])
                     valence_bonds = int(valence_bonds)

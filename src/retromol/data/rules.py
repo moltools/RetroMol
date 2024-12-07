@@ -24,40 +24,40 @@ LINEARIZATION_RULES = [
         "reaction_smarts": r"[C:1][O:2][C:3]1[O:4][C:5][C:6][C:7][C:8]1>>[C:1][OH:2].[OH][C:3]1[O:4][C:5][C:6][C:7][C:8]1"
     },
     {
-        "name": "etherification",
+        "name": "etherification 1",
         "reaction_smarts": r"[*:1]-[CH0:2]1(-[OH:3])-[O:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1>>([*:1]-[CH0:2]1=[OH0:3].[OH1:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)",
     },
     {
-        "name": "etherification",
+        "name": "etherification 2",
         "reaction_smarts": r"[*&D2,D3:3]-[CH1:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:8][C:9]1>>([*&D2,D3:3]-[CH0:1]=[C:2]1.[OH:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)",
     },
     {
-        "name": "etherification",
+        "name": "etherification 3",
         "reaction_smarts": r"[*&D2,D3:3]-[CH2:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:8][C:9]1>>([*&D2,D3:3]-[CH1:1]=[C:2]1.[O:4]=[CH0:5](-[*:6])-[C:7][C:8][C:9]1)",
     },
     {
-        "name": "etherification",
+        "name": "etherification 4",
         "reaction_smarts": r"[*:1]-[CH1:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH2:8]-[*:9]>>[*:1]-[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH1:8]-[*:9]",
     },
     {
-        "name": "etherification",
+        "name": "etherification 5",
         "reaction_smarts": r"[*:1]-[CH1:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH1:8]-[*:9]>>[*:1]-[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH0:8]-[*:9]",
     },
     {
-        "name": "etherification",
+        "name": "etherification 6",
         "reaction_smarts": r"[CH2:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH1:8]-[*:9]>>[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH0:8]-[*:9]",
     },
     {
-        "name": "etherification",
-        "reaction_smarts": r"[CH2:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH1:8]-[*:9]>>[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH0:8]-[*:9]",
-    },
-    {
-        "name": "etherification",
+        "name": "etherification 7",
         "reaction_smarts": r"[CH2:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH2:8]-[*:9]>>[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH1:8]-[*:9]",
     },
     {
-        "name": "etherification",
+        "name": "etherification 8",
         "reaction_smarts": r"[*&D2,D3:3]-[CH1:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:9]1>>([*&D2,D3:3]-[CH0:1]=[C:2]1.[OH:4]-[CH1:5](-[*:6])-[C:7][C:9]1)",
+    },
+    {
+        "name": "etherification 9",
+        "reaction_smarts": r"[*:3]-[CH1:1]-[C&D3:2]1-[O:4]-[C:5](-[*:6])-[C:7][C:9]1>>([*:3]-[CH0:1]=[C:2]1.[OH:4]-[C:5](-[*:6])-[C:7][C:9]1)",
     },
     {
         "name": "macrolactonization", 
@@ -82,6 +82,14 @@ LINEARIZATION_RULES = [
     {
         "name": "carbocyclization 2",
         "reaction_smarts": r"[*:1][C:2]1[C:3]([*:4])[C:5]=[C:6][C:7](=[C;R:8][C;R:11])[C:9]([C;R:10])1>>([*:1][C:2]=1.[C:3]([*:4])=[C:5]-[C:6]=[C:7](-[C;R:8]=[C;R:11]).[C:9]([C;R:10])=1)",
+    },
+    {
+        "name": "carbocycle oxidation",
+        "reaction_smarts": r"[#6:1]1(-[#6:4](=[#6:6]-[#6:7](-[#8:3])-[#6:8](-[#6:10])-[#6:2]-1-[#6:9])-[*:11])-[*:12]>>[#6:1]1(-[#6:4](-[#6:6]=[#6:7]-[#6:8](-[#6:10])-[#6:2]-1-[#6:9])-[*:11])-[*:12].[#8:3]",
+    },
+    {
+        "name": "heterocycle",
+        "reaction_smarts": r"[C:1]1[C:2][N:3][C:4](=[O:5])[C:6]=1([*:7])>>[C:1]([OH])(=[O])[C:2][N:3][C:4](=[O:5])[C:6]([*:7])",
     },
     {
         "name": "dihalogenation", 
@@ -123,13 +131,9 @@ LINEARIZATION_RULES = [
         "name": "reduction 2",
         "reaction_smarts": r"[NH2:1][CH0:2]([OH:3])[CH2:4][C:5](=[O:6])[OH:7]>>[NH2:1][CH1:2][CH2:4][C:5](=[O:6])[OH:7].[OH2:3]",
     },
-    # {
-    #     "name": "reduction 3",
-    #     "reaction_smarts": r"[NH1:1]-[CH1:2]-[CH2:3]-[OH:4]>>[NH1:1]-[CH1:2]-[CH0:3](=[O])-[OH:4]",
-    # },
     {
         "name": "oxazole",
-        "reaction_smarts" : r"[C:1][c:2]1[o:3][c:4][c:5]([C:6])[n:7]1>>([C:1]-[CH0:2]-1(=O).[OH1:3]-[CH2:4]-[CH1:5](-[C:6])-[NH1:7]-1)",
+        "reaction_smarts" : r"[C,c:1][c:2]1[o:3][c:4][c:5]([C:6])[n:7]1>>([C:1]-[CH0:2]-1(=O).[OH1:3]-[CH2:4]-[CH1:5](-[C:6])-[NH1:7]-1)",
     },
     {
         "name": "oxazoline",
@@ -193,14 +197,34 @@ LINEARIZATION_RULES = [
     },
     {
         "name": "salinosporamide-like",
-        "reaction_smarts": r"[*:1][C:2]1[C:3](=[O:4])[N:5][C:6]([C:7](=[O:8])2)([*:9])[C:10]1([C:11])[O:12]2>>[*:1][C:2][C:3](=[O:4])[OH].[N:5][C:6]([C:7](=[O:8])[OH])([*:9]).[C:10]([C:11])(=[O])[OH:12]"
-    }
+        "reaction_smarts": r"[*:1][C:2]1[C:3](=[O:4])[N:5][C:6]([C:7](=[O:8])2)([*:9])[C:10]1([C:11])[O:12]2>>[*:1][C:2][C:3](=[O:4])[OH].[N:5][C:6]([C:7](=[O:8])[OH])([*:9]).[C:10]([C:11])(=[O])[OH:12]",
+    },
+    {
+        "name": "lysine-like cyclization",
+        "reaction_smarts": r"[C:1]1(-[N:2])[C:3][C:4][C:5][C:6][N:7]([OH:8])[C:9](=[O:10])1>>([C:1](-[N:2])([C:9](=[O:10])([OH]))[C:3][C:4][C:5][C:6][N:7](=[OH0:8]))",
+    },
+    {
+        "name": "aromatic ring starter",
+        "reaction_smarts": r"[c:1]1[c:2]([C:7](=[O:8])([OH:9]))[c:3]([C:10])[c:4][c:5][c:6]1>>([C:1]1=[C:2]([C:7](=[O:8])([OH:9])).[C:3]([C:10])=[C:4][C:5]=[C:6]1)",
+    },
+    {
+        "name": "spirocycle",
+        "reaction_smarts": r"[#6:1]1(-[*:14])-[#8:6]-[#6:5]2(-[#8:7]-[#6:11](-[#6:13]-[*:12])-[#6:10]-[#6:9]-[#6:8]-2)-[#6:4]-[#6:3]-[#6:2]-1>>[#6:1](-[*:14])(-[#8:6])-[#6:2]-[#6:3]-[#6:4]-[#6:5](=[#8:7])-[#6:8]-[#6:9]-[#6:10]-[#6:11]=[#6:13]-[*:12]",
+    },
+    {
+        "name": "spirocycle",
+        "reaction_smarts": r"[#6:1]1(-[*:13])-[#8:6]-[#6:5]2(-[#8:7]-[#6:10](-[#6:9]-[#6:8]-2)-[#6:12]-[*:11])-[#6:4]-[#6:3]-[#6:2]-1>>[#6:1](-[*:13])(-[#8:6])-[#6:2]-[#6:3]-[#6:4]-[#6:5](=[#8:7])-[#6:8]-[#6:9]-[#6:10]=[#6:12]-[*:11]",
+    },
 ]
 
 SEQUENCING_RULES = [
     {
         "name": "pks (saturated)", 
         "reaction_smarts": r"[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH:6]"
+    },
+    {
+        "name": "pks (saturated anhydride)", 
+        "reaction_smarts": r"[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[CH2:6][CH3:7]>>[C:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH].[C:6][C:7]"
     },
     {
         "name": "pks (unsaturated)", 
@@ -215,13 +239,17 @@ SEQUENCING_RULES = [
         "reaction_smarts": r"[C,c:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]"
     },
     {
+        "name": "adenylation domain (alpha amino acid proline-like)", 
+        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH0:4][C:5][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH1:4][C:5][C:6](=[O:7])[OH:8]"
+    },
+    {
         "name": "adenylation domain (alpha amino acid)", 
         "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O:7])[OH:8]"
     },
-    # {
-    #     "name": "adenylation domain (reduced alpha amino acid)", 
-    #     "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C&D2:6][OH:7]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O])[OH:7]"
-    # },
+    {
+        "name": "adenylation domain (reduced alpha amino acid)", 
+        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C&D2:6][OH:7]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O])[OH:7]"
+    },
     {
         "name": "adenylation domain (beta amino acid)", 
         "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][CH2:6][C:7](=[O:8])[OH:9]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][CH2:6][C:7](=[O:8])[OH:9]"
