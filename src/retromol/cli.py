@@ -51,7 +51,7 @@ class TimeoutError(Exception):
     pass
 
 
-def setup_logger(item_folder: str, logger_level: str = "DEBUG", log_file_name: str = "run.log") -> logging.Logger:
+def setup_logger(item_folder: str, logger_level: str = "DEBUG", log_file_name: str = "run.log", verbose: bool = False) -> logging.Logger:
     """Sets up a logger that writes to a log file in the specified item folder.
 
     :param item_folder: Path to the item-specific folder where the log file will be stored.
@@ -60,6 +60,8 @@ def setup_logger(item_folder: str, logger_level: str = "DEBUG", log_file_name: s
     :type level: str, optional
     :param log_file_name: Name of the log file, defaults to "run.log".
     :type log_file_name: str, optional
+    :param verbose: Whether to enable verbose logging, defaults to False.
+    :type verbose: bool, optional
     :return: A configured logger instance.
     :rtype: logging.Logger
     """
@@ -76,6 +78,12 @@ def setup_logger(item_folder: str, logger_level: str = "DEBUG", log_file_name: s
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    # if verbose logging is enabled, also log to stdout
+    if verbose:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
 
     return logger
 
@@ -113,9 +121,9 @@ def run_with_timeout(
         except Exception as e:
             result_container["error"] = e
 
-    thread = threading.Thread(target=target)
+    thread = threading.Thread(target=target, daemon=True)  # daemon=True makes sure the thread is killed when the main thread exits 
     thread.start()
-    thread.join(timeout)
+    thread.join(timeout=float(timeout))
 
     if thread.is_alive():
         if logger: logger.error(f"function '{func.__name__}' timed out after {timeout} second(s)")
@@ -156,7 +164,7 @@ def parse_item(item: Item, item_folder: str, logger: logging.Logger) -> float:
     return coverage_score
 
 
-def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Tuple[Optional[str], Optional[str], Optional[float]]:
+def process_item(item: Item, base_output_folder: str, timeout: int = 5, logger_level: str = "DEBUG", log_file_name: str = "run.log", verbose: bool = False) -> Tuple[Optional[str], Optional[str], Optional[float]]:
     """Processes an item with a timeout and creates an item-specific folder.
 
     :param item: The item to process.
@@ -165,6 +173,12 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Tuple
     :type base_output_folder: str
     :param timeout: Maximum time allowed for the task to run, in seconds.
     :type timeout: int
+    :param logger_level: Logging level for the logger.
+    :type logger_level: str
+    :param log_file_name: Name of the log file.
+    :type log_file_name: str
+    :param verbose: Whether to enable verbose logging.
+    :type verbose: bool
     :return: A tuple containing the error type, error message, and coverage score.
     :rtype: Tuple[Optional[str], Optional[str], Optional[float
     """
@@ -173,7 +187,7 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5) -> Tuple
     os.makedirs(item_folder, exist_ok=True)
 
     # Set up a logger for this item
-    logger = setup_logger(item_folder)
+    logger = setup_logger(item_folder, logger_level, log_file_name, verbose)
 
     try:
         # Run the task with a timeout, pass all required arguments
@@ -211,6 +225,7 @@ def cli() -> argparse.Namespace:
     parser.add_argument("-m", "--max-cpus", type=int, default=1, help="maximum number of CPUs to use")
     parser.add_argument("-t", "--timeout", type=int, default=5, help="timeout for each item in seconds")
     parser.add_argument("-l", "--log-level", type=str, default="INFO", help="logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+    parser.add_argument("-v", "--verbose", action="store_true", help="enable verbose logging by also logging to stdout")
     return parser.parse_args()
 
 
@@ -228,6 +243,7 @@ def main() -> None:
     timeout = args.timeout
     logger_level = args.log_level
     log_file_name = "retromol.log"
+    verbose = args.verbose
 
     # configure logging
     logger = setup_logger(base_output_dir, logger_level, log_file_name)
@@ -241,6 +257,8 @@ def main() -> None:
     logger.info(f"* output directory: {base_output_dir}")
     logger.info(f"* maximum CPUs: {max_cpus}")
     logger.info(f"* timeout per item: {timeout} second(s)")
+    logger.info(f"* logging level: {logger_level}")
+    logger.info(f"* verbose logging: {'enabled' if verbose else 'disabled'}")
 
     # read input file
     items = []
@@ -268,7 +286,7 @@ def main() -> None:
 
     # use ThreadPoolExecutor to process items in parallel
     with ThreadPoolExecutor(max_workers=max_cpus) as executor:
-        future_to_item = {executor.submit(process_item, item, base_output_dir, timeout): item for item in items}
+        future_to_item = {executor.submit(process_item, item, base_output_dir, timeout, logger_level, verbose=verbose): item for item in items}
 
         # progress bar setup
         with tqdm(total=len(future_to_item), desc="processing items", unit="item") as pbar:

@@ -236,6 +236,7 @@ def sequence_mol(
     """
     # data structure for saving found motif codes
     finished_chains = []
+    encoded_finished_chains = []
 
     # retrieve parent molecule
     tag_to_idx = {atom.GetIsotope(): atom.GetIdx() for atom in mol.GetAtoms() if atom.GetIsotope() != 0}
@@ -319,19 +320,45 @@ def sequence_mol(
         # if no new chains, add current chain to finished chains
         if not new_chains:
             # add remainder as motif unit (actually starter) to finished chains
-            finished_chains.append(current_chain + [rest_to_process])
+            new_finished_chain = current_chain + [rest_to_process]
+            encoded_new_finished_chain = set([encode_mol(unit) for unit in new_finished_chain])
+            
+            # skip duplication check if finished chains is empty
+            if not finished_chains:
+                finished_chains.append(new_finished_chain)
+                encoded_finished_chains.append(encoded_new_finished_chain)
+                continue
+
+            # check if new chain is unique
+            if encoded_new_finished_chain not in encoded_finished_chains:
+                finished_chains.append(new_finished_chain)
+                encoded_finished_chains.append(encoded_new_finished_chain)
         else:
             # add new chains to unfinished chains
-            unfinished_chains.extend(new_chains)
+            for new_chain in new_chains:
+                unfinished_chains.append(new_chain)
 
     # if there are no finished chains, return
     if not finished_chains:
         if logger: logger.debug(f"no chains found for molecule {mol}")
         return finished_chains
+    
+    # report on number of finished chains
+    if logger: logger.debug(f"number of finished chains: {len(finished_chains)}")
 
     # check what is longest chain and only keep ones that have this length
     max_chain_length = max([len(chain) for chain in finished_chains])
     finished_chains = [chain for chain in finished_chains if len(chain) == max_chain_length]
+
+    # report on number of unique chains
+    if logger: logger.debug(f"number of finished chains: {len(finished_chains)}")
+    encoded_chains = []
+    for chain in finished_chains:
+        encoded_chain = [encode_mol(unit) for unit in chain]
+        encoded_chains.append(encoded_chain)
+    # check how many unique chains we have
+    unique_chains = set([tuple(chain) for chain in encoded_chains])
+    if logger: logger.debug(f"number of unique finished chains: {len(unique_chains)}")
 
     if logger:
         logger.debug(f"found {len(finished_chains)} chains for molecule {Chem.MolToSmiles(mol)}")
