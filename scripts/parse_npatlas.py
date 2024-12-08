@@ -6,19 +6,33 @@ from collections import Counter
 
 from tqdm import tqdm
 
+#TODO; superclass results and do macrolides
 
 classes_polyketides = [
-    "Open-chain polyketides",
-    "Simple cyclic polyketides",
+    "Open-chain polyketides", # INCLUDE
+    # "Simple cyclic polyketides", # EXCLUDE
+    "Macrolide lactones", # INCLUDE
+    "Polyene macrolides", # INCLUDE
+    # "Macrolide lactams", # EXCLUDE
+    "Erythromycins", # INCLUDE
+    "Epothilones", # INCLUDE
+    # "Zearalenones", # EXCLUDE
+    # "Ansa macrolides",  # EXCLUDE
+    "Tylosins", # INCLUDE
+    "Bafilomycins", # INCLUDE
+    "Antimycins", # INCLUDE
+    "Lactam bearing macrolide lactones", # INCLUDE
 ]
 
 classes_non_ribosomal_peptides = [
-    "Cyclic peptides",
-    "Depsipeptides",
-    "Linear peptides",
-    "Lipopeptides",
+    # "Cyclic peptides",
+    # "Linear peptides",
+    # "Lipopeptides",
+    # "Microcystins",
+    # "Cyanopeptolins",
+    # "Dipeptides",
+    # "Tripeptides",
 ]
-
 
 def cli() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -50,7 +64,7 @@ def main() -> None:
     out_fo = open(args.output, "w")
 
     # write header
-    out_fo.write("npaid,smiles\n")
+    out_fo.write("npaid,smiles,classes\n")
 
     parsed = 0
     for record in tqdm(data, leave=False):
@@ -65,7 +79,8 @@ def main() -> None:
 
                 # check if class_results overlap with desired_classes, if so write out
                 if any(class_result in desired_classes for class_result in class_results):
-                    out_fo.write(f"{npaid},{smiles}\n")
+                    class_results = [class_result for class_result in class_results if class_result in desired_classes]
+                    out_fo.write(f"{npaid},{smiles},\"{'|'.join(class_results)}\"\n")
                     parsed += 1
 
                 if class_results is not None:
@@ -78,9 +93,9 @@ def main() -> None:
     logger.info("done")
 
     # sort class results and print to stdout
-    # print("Class\tCount")
-    # for class_result, count in class_counter.most_common():
-    #     print(f"{class_result}\t{count}")
+    print("class,count")
+    for class_result, count in class_counter.most_common():
+        print(f"\"{class_result}\",{count}")
 
 if __name__ == "__main__":
     main()
