@@ -906,3 +906,4 @@ catboost_info/
 
 # ignore data/test_data.csv
 data/test_data.csv
+analysis_primary_sequences/
