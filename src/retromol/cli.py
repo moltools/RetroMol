@@ -1,4 +1,5 @@
 import argparse
+import atexit
 import csv
 import os
 import logging
@@ -84,6 +85,13 @@ def setup_logger(item_folder: str, logger_level: str = "DEBUG", log_file_name: s
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
         logger.addHandler(stream_handler)
+
+    # ensure the handler is closed properly when exiting
+    def close_handler_on_exit():
+        for handler in logger.handlers:
+            handler.close()
+
+    atexit.register(close_handler_on_exit)
 
     return logger
 
