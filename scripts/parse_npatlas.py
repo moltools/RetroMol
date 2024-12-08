@@ -25,13 +25,13 @@ classes_polyketides = [
 ]
 
 classes_non_ribosomal_peptides = [
-    # "Cyclic peptides",
-    # "Linear peptides",
-    # "Lipopeptides",
-    # "Microcystins",
-    # "Cyanopeptolins",
-    # "Dipeptides",
-    # "Tripeptides",
+    "Cyclic peptides", # INCLUDE
+    "Linear peptides", # INCLUDE
+    "Lipopeptides", # INCLUDE
+    "Microcystins", # INCLUDE
+    "Cyanopeptolins", # INCLUDE
+    # "Dipeptides", # EXCLUDE
+    # "Tripeptides", # EXCLUDE
 ]
 
 def cli() -> argparse.Namespace:
