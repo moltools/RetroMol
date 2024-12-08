@@ -115,8 +115,8 @@ def plot_number_sequenceable_nodes(ax, data_folder):
     for i in range(0, max(hist_values)+1, 200):
         ax.axhline(i, color="k", linestyle="--", linewidth=0.5, zorder=1, alpha=0.3)
     # set counts on bin 4 and bin 5
-    ax.text(4, 20, f"#{hist_values[4]}", ha="center", va="bottom", fontsize=12, color="k", rotation=0, zorder=3)
-    ax.text(5, 20, f"#{hist_values[5]}", ha="center", va="bottom", fontsize=12, color="k", rotation=0, zorder=3)
+    # ax.text(4, 20, f"#{hist_values[4]}", ha="center", va="bottom", fontsize=12, color="k", rotation=0, zorder=3)
+    # ax.text(5, 20, f"#{hist_values[5]}", ha="center", va="bottom", fontsize=12, color="k", rotation=0, zorder=3)
     
 
 def plot_number_of_sequences_per_sequenceable_node(ax, data_folder):
