@@ -130,7 +130,7 @@ MOTIFS = [
         "tags": ["polyketide"],
     },
     {
-        "name": "B11",
+        "name": "B12",
         "smiles": "OSC(O)C(N)C(=O)O",
         "tags": ["polyketide"],
     },
