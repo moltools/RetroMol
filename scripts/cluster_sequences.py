@@ -248,15 +248,15 @@ def score_func(scoring_matrix: Dict[str, Dict[str, int]], a: Motif, b: Motif) ->
     return scoring_matrix[a.name][b.name]
 
 
-def compute_similarity(args: Tuple[int, int, Sequence, Sequence, Dict[str, Dict[str, int]]]) -> Tuple[int, int, int]:
+def compute_similarity(args: Tuple[int, int, Sequence, Sequence, Dict[str, Dict[str, int]], int]) -> Tuple[int, int, int]:
     """Compute similarity for a given pair of indices."""
     # unpack arguments
-    i, j, seq_a, seq_b, scoring_matrix = args
+    i, j, seq_a, seq_b, scoring_matrix, match_score = args
 
     seq_a = deepcopy(seq_a)
     seq_b = deepcopy(seq_b)
 
-    def score_motif_similarity(a: Motif, b: Motif) -> int:
+    def score_motif_similarity(a: Motif, b: Motif) -> float:
         return score_func(scoring_matrix, a, b)
 
     _, _, score = align_pairwise(
@@ -265,10 +265,14 @@ def compute_similarity(args: Tuple[int, int, Sequence, Sequence, Dict[str, Dict[
         algorithm=PairwiseAlignment.NEEDLEMAN_WUNSCH,
         options={"gap_penalty": 3, "end_gap_penalty": 2},  # conserved sequences: (5, 3); variable sequences: (3, 1); balanced: (4, 2)
     )
+
+    max_score = match_score * len(seq_a)
+    score /= max_score
+
     return (i, j, score)
 
 
-def pairwise_similarity(num_cpus: int, record_sequences: List[Sequence], scoring_matrix: Dict[str, Dict[str, int]]) -> np.ndarray:
+def pairwise_similarity(num_cpus: int, record_sequences: List[Sequence], scoring_matrix: Dict[str, Dict[str, int]], match_score: int) -> np.ndarray:
     # make sure to keep one cpu free
     num_cpus = min(num_cpus, cpu_count() - 1)
     print(f"using {num_cpus} cpus for parallel computation")
@@ -285,7 +289,7 @@ def pairwise_similarity(num_cpus: int, record_sequences: List[Sequence], scoring
 
             # only add as tasks if the sequences are same length or at max 3 units different
             if abs(len(seq_a) - len(seq_b)) <= 3:
-                tasks.append((i, j, seq_a, seq_b, scoring_matrix))
+                tasks.append((i, j, seq_a, seq_b, scoring_matrix, match_score))
 
     print(f"number of tasks: {len(tasks)}")
 
@@ -299,13 +303,17 @@ def pairwise_similarity(num_cpus: int, record_sequences: List[Sequence], scoring
 
     # populate the similarity matrix with the results
     for i, j, score in results:
-        similarity_matrix[i, j] = score
-        similarity_matrix[j, i] = score
+        max_score_i = match_score * len(record_sequences[i])
+        max_score_j = match_score * len(record_sequences[j])
+        similarity_matrix[i, j] = score / max_score_i
+        similarity_matrix[j, i] = score / max_score_j
 
     return similarity_matrix
 
 
 def main() -> None:
+    do_test = False
+
     # disable rdkit logging
     RDLogger.DisableLog("rdApp.*")
 
@@ -328,6 +336,45 @@ def main() -> None:
     # parse scoring matrix and use in scoring function
     scoring_matrix = parse_scoring_matrix(args.s)
 
+    # get highest score on diagonal
+    match_score = max([scoring_matrix[name][name] for name in scoring_matrix.keys()])
+    print(match_score)
+
+    # test pairwise alignment
+    if do_test:
+        def motif_code_to_seq(motif_code: List[str]) -> List[Motif]:
+            motifs = []
+            for motif_name in motif_code:
+                parsed_motif = parse_motif(motif_name, "", parasect_substrates_as_fingerprint, retromol_motif_as_fingerprint)
+                motifs.append(parsed_motif)
+            return motifs
+
+        seq1 = ["ethanoic acid", "C1", "C2", "B2", "B2", "D2", "C2", "B2", "C1", "B1", "B2", "B2"]
+        seq2 = ["ethanoic acid", "C1", "C2", "B2", "B1", "D2", "D2", "B2", "C1", "B1", "B2", "C1", "C1"]
+        # seq1 = ["B1", "A3", "B5"]
+        # seq2 = ["B1", "A3", "B5"]
+        seq1 = Sequence("test1", motif_code_to_seq(seq1))
+        seq2 = Sequence("test2", motif_code_to_seq(seq2))
+
+        def score_func(a: Motif, b: Motif) -> int:
+            return scoring_matrix[a.name][b.name]
+
+        aligned1, aligned2, score1 = align_pairwise(
+            seq_a=seq1, seq_b=seq2,
+            score_func=score_func,
+            algorithm=PairwiseAlignment.NEEDLEMAN_WUNSCH,
+            options={"gap_penalty": 3, "end_gap_penalty": 2},
+        )
+        _, _, score2 = compute_similarity((0, 1, seq1, seq2, scoring_matrix, match_score))
+
+        print("aligned1:", aligned1)
+        print("aligned2:", aligned2)
+        for a, b in zip(aligned1, aligned2):
+            print(a, b)
+        print("scores:", score1, score2)
+
+        exit(1)
+
     # parse sequences from retromol results folder
     record_names, record_smiles_strings, record_sequences = parse_retromol_results(args.i, parasect_substrates_as_fingerprint, retromol_motif_as_fingerprint)
 
@@ -340,13 +387,19 @@ def main() -> None:
     record_names = [record_names[i] for i in ids_to_keep]
     record_smiles_strings = [record_smiles_strings[i] for i in ids_to_keep]
     record_sequences = [record_sequences[i] for i in ids_to_keep]
+
+    # randomly pick 100 from the dataset
+    inds = np.random.choice(len(record_names), 1000, replace=False)
+    record_names = [record_names[i] for i in inds]
+    record_smiles_strings = [record_smiles_strings[i] for i in inds]
+    record_sequences = [record_sequences[i] for i in inds]
     
     print("number of records:", len(record_names))
     print("number of smiles strings:", len(record_smiles_strings))
     print("number of sequences:", len(record_sequences))
 
     # calculate pairwise similarity
-    similarity_matrix = pairwise_similarity(args.c, record_sequences, scoring_matrix)
+    similarity_matrix = pairwise_similarity(args.c, record_sequences, scoring_matrix, match_score)
 
     # save similarity matrix to file, as well as the record names and smiles strings
     out_tuple = (record_names, record_smiles_strings, similarity_matrix)
