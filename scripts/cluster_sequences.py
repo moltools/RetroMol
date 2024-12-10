@@ -95,6 +95,7 @@ parasect_substrates_as_smiles = {
 
 
 polyketide_motif_identities = [
+    "A", "B", "C", "D",
     "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11",
     "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11",
     "C1", "C2", "C4",
@@ -248,10 +249,10 @@ def score_func(scoring_matrix: Dict[str, Dict[str, int]], a: Motif, b: Motif) ->
     return scoring_matrix[a.name][b.name]
 
 
-def compute_similarity(args: Tuple[int, int, Sequence, Sequence, Dict[str, Dict[str, int]], int]) -> Tuple[int, int, int]:
+def compute_similarity(args: Tuple[int, int, Sequence, Sequence, Dict[str, Dict[str, int]]]) -> Tuple[int, int, int]:
     """Compute similarity for a given pair of indices."""
     # unpack arguments
-    i, j, seq_a, seq_b, scoring_matrix, match_score = args
+    i, j, seq_a, seq_b, scoring_matrix = args
 
     seq_a = deepcopy(seq_a)
     seq_b = deepcopy(seq_b)
@@ -265,9 +266,6 @@ def compute_similarity(args: Tuple[int, int, Sequence, Sequence, Dict[str, Dict[
         algorithm=PairwiseAlignment.NEEDLEMAN_WUNSCH,
         options={"gap_penalty": 3, "end_gap_penalty": 2},  # conserved sequences: (5, 3); variable sequences: (3, 1); balanced: (4, 2)
     )
-
-    max_score = match_score * len(seq_a)
-    score /= max_score
 
     return (i, j, score)
 
@@ -289,7 +287,7 @@ def pairwise_similarity(num_cpus: int, record_sequences: List[Sequence], scoring
 
             # only add as tasks if the sequences are same length or at max 3 units different
             if abs(len(seq_a) - len(seq_b)) <= 3:
-                tasks.append((i, j, seq_a, seq_b, scoring_matrix, match_score))
+                tasks.append((i, j, seq_a, seq_b, scoring_matrix))
 
     print(f"number of tasks: {len(tasks)}")
 
@@ -313,6 +311,7 @@ def pairwise_similarity(num_cpus: int, record_sequences: List[Sequence], scoring
 
 def main() -> None:
     do_test = False
+    retrieval = True
 
     # disable rdkit logging
     RDLogger.DisableLog("rdApp.*")
@@ -378,6 +377,40 @@ def main() -> None:
     # parse sequences from retromol results folder
     record_names, record_smiles_strings, record_sequences = parse_retromol_results(args.i, parasect_substrates_as_fingerprint, retromol_motif_as_fingerprint)
 
+
+    if retrieval:
+        query_string = ["B", "B", "B", "D", "B", "B"]
+        # query_string = ["tryptophan", "asparagine", "aspartic acid", "threonine", "glycine", "ornithine", "aspartic acid", "alanine", "aspartic acid", "glycine", "serine", "3-methylglutamic acid", "kynurenine"]
+        query_motifs = [parse_motif(name, "", parasect_substrates_as_fingerprint, retromol_motif_as_fingerprint) for name in query_string]
+
+        def score_func(a: Motif, b: Motif) -> int:
+            return scoring_matrix[a.name][b.name]
+
+        # find best 10 best matches with pairwise similarity
+        query_seq = Sequence("query", query_motifs)
+        query_scores = []
+        for i, seq in tqdm(enumerate(record_sequences)):
+            aligned_a, aligned_b, score = align_pairwise(
+                seq_a=query_seq, seq_b=seq,
+                score_func=score_func,
+                algorithm=PairwiseAlignment.SMITH_WATERMAN,
+                options={"gap_penalty": 0}#, "end_gap_penalty": 0},
+            )
+            query_scores.append((i, score, seq, aligned_a, aligned_b))
+        
+        # get highest score, filter for only those
+        highest_score = max([score for i, score, seq, aligned_a, aligned_b in query_scores])
+        query_scores = [(i, score, seq, aligned_a, aligned_b) for i, score, seq, aligned_a, aligned_b in query_scores if score == highest_score]
+
+        # now sort on length other sequence, shortest first
+        query_scores = sorted(query_scores, key=lambda x: len(x[2]))
+
+        print("best hits:")
+        for i, score, seq, aligned_a, aligned_b in query_scores[:10]:
+            print(record_names[i], score, aligned_a)
+
+        exit(1)
+
     # filter out sequences that are too short (<6 units)
     ids_to_keep = []
     for i, sequence in enumerate(record_sequences):
@@ -388,7 +421,7 @@ def main() -> None:
     record_smiles_strings = [record_smiles_strings[i] for i in ids_to_keep]
     record_sequences = [record_sequences[i] for i in ids_to_keep]
 
-    # randomly pick 100 from the dataset
+    # randomly pick X from the dataset
     inds = np.random.choice(len(record_names), 1000, replace=False)
     record_names = [record_names[i] for i in inds]
     record_smiles_strings = [record_smiles_strings[i] for i in inds]
