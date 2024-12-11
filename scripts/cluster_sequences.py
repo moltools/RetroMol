@@ -155,6 +155,10 @@ def parse_motif(name: Optional[str], smiles: str, parasect_substrates_as_fingerp
     if name is None:
         return SequenceMotif("other")
 
+    # check if start or end
+    if name == "start" or name == "end":
+        return SequenceMotif(name)
+
     # check for '-tautomer' suffix in polyketide motif identities
     name = format_polyketide_tautomer_identity(name)
 
@@ -214,12 +218,13 @@ def parse_retromol_results(results_folder: str, parasect_substrates_as_fingerpri
         # parse out sequences
         for node, motif_codes in encoding_to_motif_codes.items():
             for motif_code in motif_codes.values():
-                motifs = []
+                motifs = [SequenceMotif("start")]
                 for motif in motif_code[::-1]:
                     motif_name = motif["identity"]
                     motif_smiles = motif["smiles"]
                     parsed_motif = parse_motif(motif_name, motif_smiles, parasect_substrates_as_fingerprint, retromol_motif_as_fingerprint)
                     motifs.append(parsed_motif)
+                motifs.append(SequenceMotif("end"))
 
                 # instantiate sequence
                 sequence = Sequence(record_name, motifs)
@@ -310,8 +315,9 @@ def pairwise_similarity(num_cpus: int, record_sequences: List[Sequence], scoring
 
 
 def main() -> None:
-    do_test = False
-    retrieval = True
+    do_test = True
+    retrieval = False
+    similarity = False
 
     # disable rdkit logging
     RDLogger.DisableLog("rdApp.*")
@@ -348,10 +354,10 @@ def main() -> None:
                 motifs.append(parsed_motif)
             return motifs
 
-        seq1 = ["ethanoic acid", "C1", "C2", "B2", "B2", "D2", "C2", "B2", "C1", "B1", "B2", "B2"]
-        seq2 = ["ethanoic acid", "C1", "C2", "B2", "B1", "D2", "D2", "B2", "C1", "B1", "B2", "C1", "C1"]
-        # seq1 = ["B1", "A3", "B5"]
-        # seq2 = ["B1", "A3", "B5"]
+        # seq1 = ["ethanoic acid", "C1", "C2", "B2", "B1", "D2", "D2", "B2", "C1", "B1", "B2", "C1", "C1"]
+        # seq2 = ["ethanoic acid", "C1", "C2", "B2", "B2", "D2", "C2", "B2", "C1", "B1", "B2", "B2"]
+        seq1 = ["B6", "B2", "A2", "D6", "B2", "B2"]
+        seq2 = ["B2", "B2", "A2", "D2", "B2", "B2"]
         seq1 = Sequence("test1", motif_code_to_seq(seq1))
         seq2 = Sequence("test2", motif_code_to_seq(seq2))
 
@@ -364,13 +370,13 @@ def main() -> None:
             algorithm=PairwiseAlignment.NEEDLEMAN_WUNSCH,
             options={"gap_penalty": 3, "end_gap_penalty": 2},
         )
-        _, _, score2 = compute_similarity((0, 1, seq1, seq2, scoring_matrix, match_score))
 
         print("aligned1:", aligned1)
         print("aligned2:", aligned2)
         for a, b in zip(aligned1, aligned2):
             print(a, b)
-        print("scores:", score1, score2)
+        max_score = match_score * len(seq1)
+        print("scores:", score1, score1 / max_score)
 
         exit(1)
 
@@ -379,8 +385,9 @@ def main() -> None:
 
 
     if retrieval:
-        query_string = ["B", "B", "B", "D", "B", "B"]
-        # query_string = ["tryptophan", "asparagine", "aspartic acid", "threonine", "glycine", "ornithine", "aspartic acid", "alanine", "aspartic acid", "glycine", "serine", "3-methylglutamic acid", "kynurenine"]
+        # query_string = ["start", "B", "B", "B", "D", "B", "B", "end"]
+        # query_string = ["start", "tryptophan", "asparagine", "aspartic acid", "threonine", "glycine", "ornithine", "aspartic acid", "alanine", "aspartic acid", "glycine", "serine", "3-methylglutamic acid", "kynurenine", "end"]
+        query_string = ["C4", "C1", "B1", "C1", "end"] # anguinomycin/ratjadon(e)/leptofuranin/leptomycin/leptolstatin/roimatacene(NPA014832)/Nafuredin B(NPA022519) nuclear charge
         query_motifs = [parse_motif(name, "", parasect_substrates_as_fingerprint, retromol_motif_as_fingerprint) for name in query_string]
 
         def score_func(a: Motif, b: Motif) -> int:
@@ -390,55 +397,64 @@ def main() -> None:
         query_seq = Sequence("query", query_motifs)
         query_scores = []
         for i, seq in tqdm(enumerate(record_sequences)):
-            aligned_a, aligned_b, score = align_pairwise(
+            aligned_a, aligned_b, score_a = align_pairwise(
                 seq_a=query_seq, seq_b=seq,
                 score_func=score_func,
                 algorithm=PairwiseAlignment.SMITH_WATERMAN,
-                options={"gap_penalty": 0}#, "end_gap_penalty": 0},
+                options={"gap_penalty": 3}#, "end_gap_penalty": 0},
             )
-            query_scores.append((i, score, seq, aligned_a, aligned_b))
+            # aligned_b, aligned_a, score_b = align_pairwise(
+            #     seq_a=seq, seq_b=query_seq,
+            #     score_func=score_func,
+            #     algorithm=PairwiseAlignment.NEEDLEMAN_WUNSCH,
+            #     options={"gap_penalty": 3, "end_gap_penalty": 0},
+            # )
+            score_b = 0.0
+            query_scores.append((i, score_a, score_b, seq, aligned_a, aligned_b))
         
-        # get highest score, filter for only those
-        highest_score = max([score for i, score, seq, aligned_a, aligned_b in query_scores])
-        query_scores = [(i, score, seq, aligned_a, aligned_b) for i, score, seq, aligned_a, aligned_b in query_scores if score == highest_score]
-
-        # now sort on length other sequence, shortest first
-        query_scores = sorted(query_scores, key=lambda x: len(x[2]))
-
+        # sort on the two scores, makes sure both scores are as high as possible
+        query_scores.sort(key=lambda x: (x[1], x[2]), reverse=True)
+        
         print("best hits:")
-        for i, score, seq, aligned_a, aligned_b in query_scores[:10]:
-            print(record_names[i], score, aligned_a)
+        for i, score_a, score_b, seq, aligned_a, aligned_b in query_scores[:20]:
+            print(record_names[i], score_a, score_b, aligned_a, aligned_b)
 
         exit(1)
 
-    # filter out sequences that are too short (<6 units)
-    ids_to_keep = []
-    for i, sequence in enumerate(record_sequences):
-        if len(sequence) >= 6:
-            ids_to_keep.append(i)
+    if similarity:
+        # filter out sequences that are too short (<6 units)
+        ids_to_keep = []
+        for i, sequence in enumerate(record_sequences):
+            if len(sequence) >= 6:
+                ids_to_keep.append(i)
 
-    record_names = [record_names[i] for i in ids_to_keep]
-    record_smiles_strings = [record_smiles_strings[i] for i in ids_to_keep]
-    record_sequences = [record_sequences[i] for i in ids_to_keep]
+        record_names = [record_names[i] for i in ids_to_keep]
+        record_smiles_strings = [record_smiles_strings[i] for i in ids_to_keep]
+        record_sequences = [record_sequences[i] for i in ids_to_keep]
 
-    # randomly pick X from the dataset
-    inds = np.random.choice(len(record_names), 1000, replace=False)
-    record_names = [record_names[i] for i in inds]
-    record_smiles_strings = [record_smiles_strings[i] for i in inds]
-    record_sequences = [record_sequences[i] for i in inds]
+        # randomly pick X from the dataset
+        inds = np.random.choice(len(record_names), 1000, replace=False)
+        record_names = [record_names[i] for i in inds]
+        record_smiles_strings = [record_smiles_strings[i] for i in inds]
+        record_sequences = [record_sequences[i] for i in inds]
+        
+        print("number of records:", len(record_names))
+        print("number of smiles strings:", len(record_smiles_strings))
+        print("number of sequences:", len(record_sequences))
+
+        # calculate pairwise similarity
+        similarity_matrix = pairwise_similarity(args.c, record_sequences, scoring_matrix, match_score)
+
+        # save similarity matrix to file, as well as the record names and smiles strings
+        out_tuple = (record_names, record_smiles_strings, similarity_matrix)
+        out_path = os.path.join(args.o, "similarity_matrix.pkl")
+        with open(out_path, "wb") as f:
+            pickle.dump(out_tuple, f)
     
-    print("number of records:", len(record_names))
-    print("number of smiles strings:", len(record_smiles_strings))
-    print("number of sequences:", len(record_sequences))
+    # TODO: check for some known motifs, do the erytormycin one and the anguinomycn one. Test for significance for both. Test if these are random occurances, or statistically significant.
+    # TODO: some kind of clustering of the sequences that we have (after filtering of course)
+    # TODO: screen for most common motifs. Also screen for motifs that are not common globally but are common in a subset of the data.
 
-    # calculate pairwise similarity
-    similarity_matrix = pairwise_similarity(args.c, record_sequences, scoring_matrix, match_score)
-
-    # save similarity matrix to file, as well as the record names and smiles strings
-    out_tuple = (record_names, record_smiles_strings, similarity_matrix)
-    out_path = os.path.join(args.o, "similarity_matrix.pkl")
-    with open(out_path, "wb") as f:
-        pickle.dump(out_tuple, f)
 
 
 if __name__ == "__main__":
