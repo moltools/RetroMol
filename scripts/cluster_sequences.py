@@ -317,6 +317,74 @@ def parallel_similarity_matrix(record_sequences, scoring_matrix, match_score, nu
 
     return combined_matrix
 
+
+# Function to compute similarity for a row
+def compute_similarity_row(args):
+    i, record_sequences, scoring_matrix, match_score = args
+    n = len(record_sequences)
+    row_scores = np.zeros(n, dtype=np.int8)  # Store scaled scores
+    row_lengths = np.zeros(n, dtype=np.int8)  # Store alignment lengths
+
+    seq_a = record_sequences[i]
+
+    def score_func(a, b):
+        return scoring_matrix[(str(a.name), str(b.name))]
+
+    for j in range(i, n):  # Compute only upper triangle
+        seq_b = record_sequences[j]
+
+        aligned_a, aligned_b, score = align_pairwise(
+            seq_a=seq_a, seq_b=seq_b,
+            score_func=score_func,
+            algorithm=PairwiseAlignment.SMITH_WATERMAN,
+            options={"gap_penalty": 3}
+        )
+
+        alignment_length = len(aligned_a)
+        normalized_score = score / (alignment_length * match_score)
+        scaled_normalized_score = int(normalized_score * 100)
+        assert 0 <= scaled_normalized_score <= 100, (
+            f"score: {normalized_score}, alignment_length: {alignment_length}, score: {score}, match_score: {match_score}"
+        )
+
+        # Store results for the current row
+        row_scores[j] = scaled_normalized_score
+        row_lengths[j] = alignment_length
+
+    return i, row_scores, row_lengths
+
+
+# Parallelized similarity matrix computation
+def parallel_similarity_matrix_by_row(record_sequences, scoring_matrix, match_score, num_workers=1):
+    n = len(record_sequences)
+    combined_matrix = np.zeros((n, n), dtype=np.int8)  # Matrix to store scaled scores and lengths
+
+    # Determine the number of workers
+    all_cpus = cpu_count()
+    num_workers = min(num_workers, all_cpus - 1)
+    print(f"Assigned {num_workers} workers out of {all_cpus} available.")
+
+    # Generate arguments for each row
+    row_args = [i for i in range(n)]
+
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        with tqdm(total=n, desc="Calculating pairwise similarity by row...") as pbar:
+            futures = {executor.submit(compute_similarity_row, (i, record_sequences, scoring_matrix, match_score)): i for i in row_args}
+
+            for future in as_completed(futures):
+                i = futures[future]
+                try:
+                    i, row_scores, row_lengths = future.result()
+
+                    # Update the combined matrix
+                    combined_matrix[i, i:] = row_scores[i:]  # Upper triangle
+                    combined_matrix[i:, i] = row_lengths[i:]  # Lower triangle
+                except Exception as e:
+                    print(f"Error processing row {i}: {e}")
+                pbar.update(1)
+
+    return combined_matrix
+
 def main() -> None:
     do_test = False
     retrieval = False
@@ -450,14 +518,13 @@ def main() -> None:
     if similarity:
         
         print(f"Calculating similarity matrix with {args.c} workers...")
-        combined_matrix = parallel_similarity_matrix(record_sequences, scoring_matrix, match_score, num_workers=args.c)
-
-        # # create similarity matrix
-        # combined_matrix = np.zeros((len(record_sequences), len(record_sequences)), dtype=np.int8)
+        # combined_matrix = parallel_similarity_matrix(record_sequences, scoring_matrix, match_score, num_workers=args.c)
+        combined_matrix = parallel_similarity_matrix_by_row(record_sequences, scoring_matrix, match_score, num_workers=args.c)
 
         # # calculate pairwise similarity
+        # combined_matrix = np.zeros((len(record_sequences), len(record_sequences)), dtype=np.int8)
         # for i in tqdm(range(len(record_sequences)), desc="calculating pairwise similarity...", leave=True):
-        #     for j in range(i, len(record_sequences)):
+        #     for j in tqdm(range(i, len(record_sequences)), desc="calculating pairwise similarity...", leave=False):
         #         seq_a = record_sequences[i]
         #         seq_b = record_sequences[j]
 
