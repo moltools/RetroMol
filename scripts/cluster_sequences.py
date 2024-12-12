@@ -269,36 +269,51 @@ def compute_similarity(args):
 
     return i, j, scaled_normalized_score, alignment_length
 
-# Parallelized similarity matrix computation
-def parallel_similarity_matrix(record_sequences, scoring_matrix, match_score, num_workers=1):
+# Parallelized similarity matrix computation with chunking
+def parallel_similarity_matrix(record_sequences, scoring_matrix, match_score, num_workers=1, chunk_size=10000):
     n = len(record_sequences)
     combined_matrix = np.zeros((n, n), dtype=np.int8)
 
-    # num workes always 1 lower than the number of cpus
+    # Determine the number of workers
     all_cpus = cpu_count()
     num_workers = min(num_workers, all_cpus - 1)
-    print(f"assigned {num_workers} workers out of {all_cpus} available")
+    print(f"Assigned {num_workers} workers out of {all_cpus} available.")
 
-    # Generate all index pairs for the upper triangle
-    print("Generating index pairs...")
-    index_pairs = [(i, j, record_sequences, scoring_matrix, match_score) for i in tqdm(range(n), desc="Generating index pairs...", leave=False) for j in range(i, n)]
-    
-    # Use ProcessPoolExecutor for parallel execution
-    print("Calculating pairwise similarity...")
+    # Function to generate index pairs for chunks
+    def generate_index_pairs():
+        for i in range(n):
+            for j in range(i, n):
+                yield i, j, record_sequences, scoring_matrix, match_score
+
+    # Create a generator for index pairs
+    index_pair_generator = generate_index_pairs()
+
+    # Process in chunks
+    total_pairs = n * (n + 1) // 2
+    print(f"Total pairs: {total_pairs}; processing in chunks of {chunk_size} pairs.")
+    completed_pairs = 0
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
-        # Submit tasks to the executor
-        future_to_indices = {executor.submit(compute_similarity, args): args[:2] for args in index_pairs}
+        with tqdm(total=total_pairs, desc="Calculating pairwise similarity...") as pbar:
+            while completed_pairs < total_pairs:
+                # Create a batch of tasks
+                batch_pairs = [next(index_pair_generator) for _ in range(min(chunk_size, total_pairs - completed_pairs))]
 
-        # Use tqdm to track progress and process results as they are completed
-        for future in tqdm(as_completed(future_to_indices), desc="Calculating pairwise similarity...", total=len(future_to_indices)):
-            i, j = future_to_indices[future]
-            try:
-                i, j, scaled_score, alignment_length = future.result()
-                # Update the combined matrix
-                combined_matrix[i, j] = scaled_score  # Upper triangle
-                combined_matrix[j, i] = alignment_length  # Lower triangle
-            except Exception as e:
-                print(f"Error processing pair ({i}, {j}): {e}")
+                # Submit tasks to the executor
+                future_to_indices = {executor.submit(compute_similarity, args): args[:2] for args in batch_pairs}
+
+                # Process results as they are completed
+                for future in as_completed(future_to_indices):
+                    i, j = future_to_indices[future]
+                    try:
+                        i, j, scaled_score, alignment_length = future.result()
+                        # Update the combined matrix
+                        combined_matrix[i, j] = scaled_score  # Upper triangle
+                        combined_matrix[j, i] = alignment_length  # Lower triangle
+                    except Exception as e:
+                        print(f"Error processing pair ({i}, {j}): {e}")
+                    pbar.update(1)
+
+                completed_pairs += len(batch_pairs)
 
     return combined_matrix
 
