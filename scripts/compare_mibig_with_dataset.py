@@ -63,19 +63,29 @@ def parse_mibig(path_to_folder: str) -> List[MibigEntry]:
 def main() -> None:
     RDLogger.DisableLog("rdApp.*")
     args = cli()    
-    included_compounds = parse_datset(args.dataset)
+    included_compounds = parse_datset(args.dataset)  # {compound_id: inchikey_connectivity, ...}
+    included_compounds = {v: k for k, v in included_compounds.items()}  # {inchikey_connectivity: compound_id, ...}
     print("Number of included compounds:", len(included_compounds))
+
     mibig_entries = parse_mibig(args.mibig)
     print("Number of mibig entries with compounds:", len(mibig_entries))
-    mibig_accessions_with_compounds_in_dataset = []
+
+    mibig_accessions_with_compounds_in_dataset = {}
     for mibig_entry in mibig_entries:
-        if any([compound_connectivity in included_compounds.values() for compound_connectivity in mibig_entry.compound_connectivities]):
-            mibig_accessions_with_compounds_in_dataset.append(mibig_entry.accession)
+        for compound_connectivity in mibig_entry.compound_connectivities:
+            if compound_connectivity in included_compounds:
+                if mibig_entry.accession not in mibig_accessions_with_compounds_in_dataset:
+                    mibig_accessions_with_compounds_in_dataset[mibig_entry.accession] = [included_compounds[compound_connectivity]]
+                else:
+                    mibig_accessions_with_compounds_in_dataset[mibig_entry.accession].append(included_compounds[compound_connectivity])
     print("Number of mibig entries with compounds in dataset:", len(mibig_accessions_with_compounds_in_dataset))
-    mibig_accessions_with_compounds_in_dataset.sort()
-    with open(os.path.join(args.output, "mibig_accessions_with_compounds_in_dataset.txt"), "w") as f:
-        for accession in mibig_accessions_with_compounds_in_dataset:
-            f.write(accession + "\n")
+    print("Unique mibig accessions with compounds in dataset:", len(set(mibig_accessions_with_compounds_in_dataset)))
+
+    mibig_accession_keys = sorted(list(mibig_accessions_with_compounds_in_dataset.keys()))
+    with open(os.path.join(args.output, "mibig_accessions_with_compounds_in_dataset.csv"), "w") as f:
+        f.write("item,mibig,npaids\n")
+        for i, accession in enumerate(mibig_accession_keys):
+            f.write(f"{i+1},{accession},{'|'.join(sorted(mibig_accessions_with_compounds_in_dataset[accession]))}\n")
 
 
 if __name__ == "__main__":

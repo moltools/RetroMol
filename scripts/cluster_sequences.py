@@ -138,7 +138,7 @@ def match_other_motif(smiles: str) -> Optional[str]:
 
 def parse_motif(name: Optional[str], smiles: str, motif_to_fingerprint, substrate_to_fingerprint) -> Motif:
     # unidentified motifs are named 'other'
-    if name is None:
+    if name is None or name == "other":
         return SequenceMotif("other")
 
     # check if start or end
@@ -173,6 +173,11 @@ def cli() -> argparse.Namespace:
     parser.add_argument("-o", type=str, required=True, help="output folder")
     parser.add_argument("-c", type=int, default=cpu_count(), help="number of cpus to use")
     parser.add_argument("--parsed_data", type=str, default=None, help="path to parsed data file")
+
+    # flag to say deorphanize
+    parser.add_argument("--deorphanize", action="store_true", help="deorphanize motifs")
+    parser.add_argument("--mibig-mapping", type=str, default=None, required=False, help="path to mibig mapping file")
+
     return parser.parse_args()
     
 def extract_kmers(word_list, k):
@@ -441,6 +446,54 @@ def main() -> None:
     print("number of records:", len(record_names))
     print("number of smiles strings:", len(record_smiles_strings))
     print("number of sequences:", len(record_sequences))
+
+    if args.deorphanize:
+        # parse mibig mapping
+        mibig_mapping = {}
+        with open(args.mibig_mapping, "r") as f:
+            f.readline()
+            for line in f:
+                parts = line.strip().split(",")
+                mibig_accession = parts[1]
+                npaids = parts[2].split("|")
+                mibig_mapping[mibig_accession] = npaids
+
+        mibig_accession = "BGC0000055"
+        target_npaids = mibig_mapping[mibig_accession]
+        print("target npaids:", target_npaids)
+        query_string = ["start", "other", "B", "B", "B", "D", "B", "B", "end"]
+        query_motifs = [parse_motif(name, "", motif_to_fingerprint, substrate_to_fingerprint) for name in query_string]
+
+        def score_func(a: SequenceMotif, b: SequenceMotif) -> int:
+            return scoring_matrix[(str(a.name), str(b.name))]
+
+        # find best 10 best matches with pairwise similarity
+        query_seq = Sequence("query", query_motifs)
+        query_scores = []
+        for i, seq in tqdm(enumerate(record_sequences)):
+            aligned_a, aligned_b, score_a = align_pairwise(
+                seq_a=query_seq, seq_b=seq,
+                score_func=score_func,
+                algorithm=PairwiseAlignment.SMITH_WATERMAN,
+                options={"gap_penalty": 2}
+            )
+            query_scores.append((i, score_a, seq, aligned_a, aligned_b))
+        
+        # sort on the two scores, makes sure both scores are as high as possible
+        query_scores.sort(key=lambda x: x[1], reverse=True)
+
+        # print position of highest ranking target npaid
+        for j, (i, score_a, seq, aligned_a, aligned_b) in enumerate(query_scores):
+            if seq._identifier in target_npaids:
+                print(seq._identifier, target_npaids)
+                print("target npaid found at position:", j, "out of", len(record_sequences))
+                # break
+        
+        print("best hits:")
+        for j, (i, score_a, seq, aligned_a, aligned_b) in enumerate(query_scores[:10]):
+            print(i, record_names[i], score_a, "|".join([str(m) for m in aligned_a._motifs]), "|".join([str(m) for m in aligned_b._motifs]))
+
+        exit(1)
 
     # test pairwise alignment
     if do_test:
