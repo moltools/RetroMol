@@ -2,61 +2,23 @@
 import argparse 
 import pickle
 import os
+import json
 import typing as ty
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
-import networkx as nx
 from tqdm import tqdm
-from sklearn.manifold import TSNE
-from sklearn.cluster import SpectralClustering
 from scipy.sparse.csgraph import laplacian
 from rdkit import Chem
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse.csgraph import laplacian
-from cluster_sequences import SequenceMotif
 from retromol.chem import mol_to_fingerprint
 from rdkit.Chem import DataStructs
-from scipy.cluster.hierarchy import linkage, dendrogram
-from scipy.cluster.hierarchy import dendrogram, linkage, cut_tree, to_tree
+from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import linkage, cut_tree, to_tree
+from cluster_sequences import SequenceMotif
 
 # use arial
 plt.rcParams['font.sans-serif'] = "Arial"
-
-def spectral_clustering_with_probable_cluster(similarity_matrix, n_clusters=200):
-    """
-    Perform spectral clustering and compute both soft membership scores and the most probable cluster.
-
-    Parameters:
-        similarity_matrix (numpy.ndarray): The similarity matrix (n x n).
-        n_clusters (int): Number of clusters to assign.
-
-    Returns:
-        tuple:
-            - numpy.ndarray: A matrix (n x n_clusters) with membership scores for each item.
-            - numpy.ndarray: A vector (n,) indicating the most probable cluster for each item.
-    """
-    # Step 1: Normalize the similarity matrix to create a graph Laplacian
-    laplacian_matrix, diag = laplacian(similarity_matrix, normed=True, return_diag=True)
-
-    # Step 2: Compute the smallest n_clusters + 1 eigenvectors (ignoring the first trivial one)
-    eigenvalues, eigenvectors = np.linalg.eigh(laplacian_matrix)
-    embedding = eigenvectors[:, 1:n_clusters + 1]  # Use the next n_clusters eigenvectors
-
-    # Step 3: Normalize the embedding (row-wise) for stability
-    embedding_normalized = embedding / np.linalg.norm(embedding, axis=1, keepdims=True)
-
-    # Step 4: Compute soft membership scores by cosine similarity to cluster prototypes
-    cluster_prototypes = embedding_normalized[:n_clusters]  # Use first n_clusters rows as cluster prototypes
-    membership_scores = cosine_similarity(embedding_normalized, cluster_prototypes)
-
-    # Step 5: Normalize membership scores so that they sum to 1 for each item
-    membership_scores = membership_scores / membership_scores.sum(axis=1, keepdims=True)
-
-    # Step 6: Determine the most probable cluster for each item
-    most_probable_cluster = np.argmax(membership_scores, axis=1)
-
-    return membership_scores, most_probable_cluster, eigenvalues, eigenvectors
 
 def cli() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -64,6 +26,7 @@ def cli() -> argparse.Namespace:
     parser.add_argument("--parsed-data", type=str, required=True, help="path to parsed data pickle")
     parser.add_argument("--dataset", type=str, required=True, help="npatlas compounds with classes, original input")
     parser.add_argument("--output", type=str, required=True, help="path to output folder")
+    parser.add_argument("--npatlas", type=str, required=True, help="path to npatlas data")
     return parser.parse_args()
 
 def mol_to_fp(mol):
@@ -72,75 +35,43 @@ def mol_to_fp(mol):
     DataStructs.ConvertToNumpyArray(fp, fp_arr)
     return fp_arr
 
-
 def calc_tanimoto_similarity(arr1, arr2):
-    """
-    Calculates the Tanimoto similarity for binary vectors.
-    """
-    # Dot product gives the intersection (A ∩ B)
     intersection = np.dot(arr1, arr2)
-    # Sum gives the total "1s" in each vector
     sum_arr1 = np.sum(arr1)
     sum_arr2 = np.sum(arr2)
-    # Calculate Tanimoto similarity
     tanimoto_sim = intersection / (sum_arr1 + sum_arr2 - intersection)
     return tanimoto_sim
 
-
 def load_similarity_data(similarity_data: str) -> tuple:
-    with open(similarity_data, "rb") as f:
-        data = pickle.load(f)
+    with open(similarity_data, "rb") as f: data = pickle.load(f)
     return data
 
 def to_newick(linkage_matrix: np.ndarray, labels: ty.List[str]) -> str:
-    """
-    Outputs linkage matrix as Newick file.
-
-    Parameters
-    ----------
-    linkage_matrix : np.ndarray
-        condensed distance matrix
-    labels : list of str, optional
-        leaf labels
-
-    Returns
-    -------
-    newick : str
-        linkage matrix in newick format tree
-
-    Source:
-    https://stackoverflow.com/questions/28222179/save-dendrogram-to-newick-format
-    """
     tree = to_tree(linkage_matrix, rd=False)
-
     def get_newick(node, newick, parentdist, leaf_names):
-        if node.is_leaf():
-            return "%s:%.2f%s" % (
-                leaf_names[node.id],
-                parentdist - node.dist,
-                newick
-            )
+        if node.is_leaf(): return "%s:%.2f%s" % (leaf_names[node.id], parentdist - node.dist, newick)
         else:
-            if len(newick) > 0:
-                newick = "):%.2f%s" % (parentdist - node.dist, newick)
-            else:
-                newick = ");"
-            newick = get_newick(
-                node.get_left(),
-                newick,
-                node.dist,
-                leaf_names
-            )
-            newick = get_newick(
-                node.get_right(),
-                ",%s" % (newick),
-                node.dist,
-                leaf_names
-            )
+            if len(newick) > 0: newick = "):%.2f%s" % (parentdist - node.dist, newick)
+            else: newick = ");"
+            newick = get_newick(node.get_left(), newick, node.dist, leaf_names)
+            newick = get_newick(node.get_right(), ",%s" % (newick), node.dist, leaf_names)
             newick = "(%s" % (newick)
             return newick
     newick = get_newick(tree, "", tree.dist, labels)
     return newick
+
+def color_strips(leafs, colors, labels):
+    src = """DATASET_COLORSTRIP
+SEPARATOR SPACE
+DATASET_LABEL label1
+COLOR #ff0000
+COLOR_BRANCHES 0
+DATA
+#9606 #ff0000 Human
+"""
+    for leaf, color, label in zip(leafs, colors, labels):
+        src += f"{leaf} {color} {label}\n"
+    return src
 
 def main() -> None:
     args = cli()
@@ -153,8 +84,20 @@ def main() -> None:
         for line in tqdm(lines):
             npaid, smiles, class_ = line.strip().split(",")
             npaid_to_class[npaid] = class_
-    # print(npaid_to_class)
     print(f"Number of npaids in dataset: {len(npaid_to_class)}")
+
+    # load npatlas data json
+    npaid_to_organism = {}
+    with open(args.npatlas, "r") as f:
+        npatlas_data = json.load(f)
+        for record in npatlas_data:
+            npaid = record["npaid"]
+            genus = record["origin_organism"]["genus"]
+            npaid_to_organism[npaid] = genus
+    print(f"Number of npaids in npatlas: {len(npaid_to_organism)}")
+
+    # count most common organism
+    from collections import Counter
 
     # load pickled data
     record_names, record_smiles_strings, combined_matrix = load_similarity_data(args.similarity_data)
@@ -173,6 +116,7 @@ def main() -> None:
     record_names_parsed_data = [record_names_parsed_data[i] for i in ids_to_keep]
     record_smiles_strings_parsed_data = [record_smiles_strings_parsed_data[i] for i in ids_to_keep]
     record_sequences = [record_sequences[i] for i in ids_to_keep]
+    record_sequences = ["|".join([str(m) for m in s._motifs]) for s in record_sequences]
     print(len(record_names_parsed_data), len(record_smiles_strings_parsed_data), len(record_sequences))
 
     # check if record names are the same
@@ -208,15 +152,6 @@ def main() -> None:
         if npaid not in npaid_to_sequences:
             npaid_to_sequences[npaid] = []
         npaid_to_sequences[npaid].append(i)
-    
-    # for every npaid, check if there are multiple sequences
-    for npaid, sequence_ids in npaid_to_sequences.items():
-        if len(sequence_ids) > 1:
-            print(sequence_ids)
-
-    exit()
-
-    # per NPAID, dereplicate. If there are multiple sequences, but one has less "other", than pick that one 
 
     # drawm dendrogram
     distance = 1 - alignment_scores
@@ -229,58 +164,95 @@ def main() -> None:
     with open(os.path.join(args.output, "dendrogram_first.nwk"), "w") as f:
         f.write(newick)
 
-    # create annotation files
-    # 1) length of primary sequences
-    # 2) biosynthetic class of primary sequences
-    # 3) specief of primary sequences
-    # 4) PK/NRP/hybrid of primary sequences
+    genus_counter = Counter([npaid_to_organism[npaid.split("_")[1]] for npaid in record_names])
+    print(genus_counter.most_common(10))
+
+    # for every leaf determine if genus is Streptomyces or not, if yes color is red, else blue
+    leaf_colors = []
+    labels = []
+    for record_name in record_names:
+        genus = npaid_to_organism[record_name.split("_")[1]]
+        if genus == "Streptomyces":
+            leaf_colors.append("#e69f00")
+        elif genus == "Bacillus":
+            leaf_colors.append("#56b4e9")
+        elif genus == "Pseudomonas":
+            leaf_colors.append("#039e73")
+        elif genus == "Microcystis":
+            leaf_colors.append("#f0e442")
+        elif genus == "Lyngbya":
+            leaf_colors.append("#0072b2")
+        elif genus == "Sorangium":
+            leaf_colors.append("#d55f00")
+        elif genus == "Trichoderma":
+            leaf_colors.append("#cc79a7")
+        else:
+            leaf_colors.append("#ceccca")
+        labels.append(genus)
+
+    # save color strips
+    color_strip_src = color_strips(record_names, leaf_colors, labels)
+    with open(os.path.join(args.output, "color_strip.txt"), "w") as f:
+        f.write(color_strip_src)
 
 
-    # plt.figure(figsize=(8, 5))
-    # dendrogram(linkage_matrix, labels=record_names, orientation='top', leaf_rotation=90)
-    # plt.title('Hierarchical Clustering Dendrogram')
-    # plt.xlabel('Sample Index')
-    # plt.ylabel('Distance')
-    # plt.show()
-        
-    exit()
+    # exit()
 
-    # multiple alignment scores by the alignment lengths
-    # alignment_scores = alignment_scores * alignment_lengths
+    # cut tree for clusters
+    # num_clusters = 500
+    # clusters = cut_tree(linkage_matrix, n_clusters=num_clusters)
+    # print(clusters.shape)
+    # cut under a certain threshold
+    threshold = 0.5
+    clusters = cut_tree(linkage_matrix, height=threshold)
+    num_clusters = len(np.unique(clusters))
+    print(f"Number of clusters: {num_clusters}")
+    
+    # # for every cluster gather all class labels, and all genus labels, afterwards, check for each cluster if they are enriched in a certain class or genus
+    # cluster_to_class = {}
+    # cluster_to_genus = {}
+    # for i, record_name in enumerate(record_names):
+    #     record_name = record_name.split("_")[1] # appended with index to give unique name for iTOL
+    #     cluster = clusters[i].item()
+    #     if cluster not in cluster_to_class:
+    #         cluster_to_class[cluster] = []
+    #     if cluster not in cluster_to_genus:
+    #         cluster_to_genus[cluster] = []
+    #     class_ = npaid_to_class[record_name].split("|")
+    #     genus = npaid_to_organism[record_name] if record_name in npaid_to_organism else "Unknown"
+    #     cluster_to_class[cluster].extend(class_)
+    #     cluster_to_genus[cluster].append(genus)
 
-    # peform spectral overlap clustering on the alignment scores
-    # cluster, but soft assignment, items can be part of multiple clusters
-    num_clusters = 500
-    print(f"Performing spectral clustering with {num_clusters} clusters")
-    clusters, top_clusters, eigenvalues, eigenvectors = spectral_clustering_with_probable_cluster(alignment_scores, n_clusters=num_clusters)
-    # first 100 eigenvalues
-    eigenvalues = eigenvalues[:10]
-    plt.plot(range(1, len(eigenvalues) + 1), eigenvalues, marker='o')
-    plt.xlabel('Index')
-    plt.ylabel('Eigenvalue')
-    plt.title('Eigenvalue Spectrum')
-    plt.savefig(os.path.join(args.output, "eigenvalue_spectrum_first.svg"))
-    plt.close()
-    print(clusters.shape, top_clusters.shape)
+    # # for every cluster, do enrichment analysis, which is a simple Chi-squared test
+    # from scipy.stats import chi2_contingency, fisher_exact
 
-    # visualize clustering in 2D
-    # tsne = TSNE(n_components=2, perplexity=50, max_iter=300)
-    # print(eigenvectors.shape, eigenvectors[:, 1:3].shape)
-    # tsne_embedding = tsne.fit_transform(eigenvectors[:, 1:3])
-    # print(tsne_embedding.shape)
-    plt.figure(figsize=(10, 10))
-    # sns.scatterplot(x=tsne_embedding[:, 0], y=tsne_embedding[:, 1], hue=top_clusters, palette="tab20", legend='full')
-    sns.scatterplot(x=eigenvectors[:, 1], y=eigenvectors[:, 2])
-    plt.title("Spectral Clustering")
-    plt.xlabel("t-SNE 1")
-    plt.ylabel("t-SNE 2")
-    plt.savefig(os.path.join(args.output, "spectral_clustering_first.svg"))
+    # cluster_to_class_enrichment = {}
+    # cluster_to_genus_enrichment = {}
+    # for cluster in tqdm(range(num_clusters), desc="Calculating enrichment"):
+    #     class_counts = {}
+    #     genus_counts = {}
+    #     for class_ in cluster_to_class[cluster]:
+    #         if class_ not in class_counts:
+    #             class_counts[class_] = 0
+    #         class_counts[class_] += 1
+    #     for genus in cluster_to_genus[cluster]:
+    #         if genus not in genus_counts:
+    #             genus_counts[genus] = 0
+    #         genus_counts[genus] += 1
+    #     # calculate enrichment
+    #     class_enrichment = chi2_contingency(class_counts)
+    #     genus_enrichment = chi2_contingency(genus_counts)
+    #     print(class_enrichment, genus_enrichment)
+    #     cluster_to_class_enrichment[cluster] = class_enrichment
+    #     cluster_to_genus_enrichment[cluster] = genus_enrichment
+    # print("Enrichment analysis done")
+
 
     # for every cluster, get the smiles strings and calculate average tanimoto similarity, with std
     cluster_to_tanimoto_similarity = {}
     for cluster in tqdm(range(num_clusters), desc="Calculating average Tanimoto similarity"):
         cluster_smiles = []
-        for i, cluster_assignment in enumerate(top_clusters):
+        for i, cluster_assignment in enumerate(clusters):
             if cluster_assignment == cluster:
                 cluster_smiles.append(record_smiles_strings[i])
         #format cluster_smiles
@@ -301,23 +273,22 @@ def main() -> None:
         std_similarity = np.std(similarities)
         cluster_to_tanimoto_similarity[cluster] = (avg_similarity, std_similarity)
         
-
-    print_top_clusters = 3
-    with open(os.path.join(args.output, "cluster_assignment_first.tsv"), "w") as f:
-        f.write("npaid\tsmiles\tnum_primary_sequences\tprimary_sequence\tavg_tanimoto_similarity\tstd_avg_tanimoto_similarity\tbiosynthetic_class\t" + '\t'.join(['pick_{0}'.format(i+1) for i in range(print_top_clusters)]) + "\n")
+    with open(os.path.join(args.output, "cluster_assignment.tsv"), "w") as f:
+        f.write("npaid\tsmiles\tnum_primary_sequences\tprimary_sequence\tavg_tanimoto_similarity\tstd_avg_tanimoto_similarity\tbiosynthetic_class\tgenus\tcluster\n")
         for i, (record_name, record_smiles_string) in enumerate(zip(record_names, record_smiles_strings)):
+            record_name = record_name.split("_")[1] # appended with index to give unique name for iTOL
             mol = Chem.MolFromSmiles(record_smiles_string)
             for atom in mol.GetAtoms():
                 atom.SetIsotope(0)
             smiles = Chem.MolToSmiles(mol)
-            cluster_assignments = clusters[i]
-            top_clusters = np.argsort(cluster_assignments)[::-1][:print_top_clusters]
-            primary_sequence = "|".join([str(m) for m in record_sequences[i]._motifs])
+            primary_sequence = record_sequences[i]
             num_primary_sequences = record_name_counts[record_name]
-            top_assigned_cluster = top_clusters[0]
+            top_assigned_cluster = clusters[i].item()
             avg_similarity, std_similarity = cluster_to_tanimoto_similarity[top_assigned_cluster]
-            f.write(f"{record_name}\t{smiles}\t{num_primary_sequences}\t{primary_sequence}\t{avg_similarity}\t{std_similarity}\t{npaid_to_class[record_name]}\t" + '\t'.join([str(cluster+1) for cluster in top_clusters]) + "\n")
-    print("Cluster assignment saved to cluster_assignment_first_clustering.tsv")
+            genus = npaid_to_organism[record_name] if record_name in npaid_to_organism else "Unknown"
+            # print(genus)
+            f.write(f"{record_name}\t{smiles}\t{num_primary_sequences}\t{primary_sequence}\t{avg_similarity}\t{std_similarity}\t{npaid_to_class[record_name]}\t{genus}\t{top_assigned_cluster}\n")
+    print("Cluster assignment saved to cluster_assignment.tsv")
 
 
 
