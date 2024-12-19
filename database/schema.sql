@@ -10,7 +10,9 @@
 CREATE TABLE compounds (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    smiles VARCHAR(1000)
+    smiles VARCHAR(1000),
+    inchikey VARCHAR(27),
+    inchikey_prefix VARCHAR(14)
 );
 
 -- =====================================
@@ -58,7 +60,9 @@ CREATE TABLE compounds_bioactivities (
 -- =====================================
 CREATE TABLE biosynthetic_classes (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
+    name VARCHAR(255) NOT NULL,
+    classifiers VARCHAR(255) NOT NULL
+        CHECK (classifiers IN ('npclassifier', 'classyfire', 'manual'))
 );
 
 -- =====================================
@@ -77,7 +81,9 @@ CREATE TABLE compounds_biosynthetic_classes (
 -- =====================================
 CREATE TABLE primary_sequences (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
+    name VARCHAR(255) NOT NULL,
+    retromol_version VARCHAR(50) NOT NULL
+        CHECK (retromol_version ~ '^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$')
 );
 
 -- =====================================
@@ -98,6 +104,89 @@ CREATE TABLE motifs (
     id SERIAL PRIMARY KEY,
     motif_name VARCHAR(255) NOT NULL
 );
+
+-- Insert predefined list of motifs
+INSERT INTO motifs (motif_name) VALUES
+('start'),
+('end'),
+('other'),
+('amino acid'),
+('polyketide'),
+('2-aminoadipic acid'),
+('2-aminoisobutyric acid'),
+('2,4-diaminobutyric acid'),
+('3,5-dihydroxyphenylglycine'),
+('4-hydroxyphenylglycine'),
+('alanine'),
+('arginine'),
+('asparagine'),
+('aspartic acid'),
+('beta-alanine'),
+('beta-hydroxytyrosine'),
+('cysteine'),
+('D-alanine'),
+('glutamic acid'),
+('glutamine'),
+('glycine'),
+('histidine'),
+('isoleucine'),
+('leucine'),
+('lysine'),
+('N5-formyl-N5-hydroxyornithine'),
+('N5-hydroxyornithine'),
+('ornithine'),
+('phenylalanine'),
+('pipecolic acid'),
+('proline'),
+('serine'),
+('threonine'),
+('tryptophan'),
+('tyrosine'),
+('valine'),
+('2,3-dihydroxybenzoic acid'),
+('anthranillic acid'),
+('salicylic acid'),
+('A'),
+('A1'),
+('A2'),
+('A3'),
+('A4'),
+('A5'),
+('A6'),
+('A7'),
+('A8'),
+('A9'),
+('A10'),
+('A11'),
+('B'),
+('B1'),
+('B2'),
+('B3'),
+('B4'),
+('B5'),
+('B6'),
+('B7'),
+('B8'),
+('B9'),
+('B10'),
+('B11'),
+('C'),
+('C1'),
+('C2'),
+('C4'),
+('D'),
+('D1'),
+('D2'),
+('D3'),
+('D4'),
+('D5'),
+('D6'),
+('D7'),
+('D8'),
+('D9'),
+('D10'),
+('D11'),
+('D12'),
 
 -- =====================================
 -- Primary_sequences_motifs.
