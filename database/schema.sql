@@ -8,72 +8,109 @@
 -- Create table for compounds.
 -- =====================================
 CREATE TABLE compounds (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    smiles VARCHAR(1000),
-    inchikey VARCHAR(27),
-    inchikey_prefix VARCHAR(14)
+    npa_id VARCHAR(9) PRIMARY KEY,
+    name VARCHAR(1000) NOT NULL,
+    smiles VARCHAR(1000) NOT NULL,
+    inchikey VARCHAR(27) NOT NULL,
+    inchikey_prefix VARCHAR(14) NOT NULL
 );
 
 -- =====================================
 -- Create table for organisms.
 -- =====================================
 CREATE TABLE organisms (
-    id SERIAL PRIMARY KEY,
+    type VARCHAR(255) NOT NULL
+        CHECK (type IN ('bacterium', 'fungus')),
     genus VARCHAR(255) NOT NULL,
     species VARCHAR(255) NOT NULL,
-    ncbi_id VARCHAR(50)
+    PRIMARY KEY (genus, species)
 );
 
 -- =====================================
 -- Many-to-many: compounds_organisms.
 -- =====================================
 CREATE TABLE compounds_organisms (
-    compound_id INT NOT NULL,
-    organism_id INT NOT NULL,
-    PRIMARY KEY (compound_id, organism_id),
-    FOREIGN KEY (compound_id) REFERENCES compounds(id) ON DELETE CASCADE,
-    FOREIGN KEY (organism_id) REFERENCES organisms(id) ON DELETE CASCADE
+    compound_id VARCHAR(9) NOT NULL,
+    organism_genus VARCHAR(255) NOT NULL,
+    organism_species VARCHAR(255) NOT NULL,
+    PRIMARY KEY (compound_id, organism_genus, organism_species),
+    FOREIGN KEY (compound_id) REFERENCES compounds(npa_id) ON DELETE CASCADE,
+    FOREIGN KEY (organism_genus, organism_species) 
+        REFERENCES organisms(genus, species) ON DELETE CASCADE
 );
 
 -- =====================================
 -- Create table for bioactivities.
 -- =====================================
 CREATE TABLE bioactivities (
-    id SERIAL PRIMARY KEY,
-    bioactivity_type VARCHAR(255) NOT NULL
+    bioactivity_type VARCHAR(255) PRIMARY KEY
 );
+
+-- Insert predefined list of bioactivities
+INSERT INTO bioactivities (bioactivity_type) VALUES
+('antibacterial'),
+('antifungal'),
+('antigramnegative'),
+('antigrampositive'),
+('antioxidant'),
+('anticoronaviral'),
+('antiretroviral'),
+('antiviral'),
+('cytotoxic'),
+('inhibitor'),
+('not_antibacterial'),
+('not_antifungal'),
+('not_antiviral'),
+('siderophore'),
+('signalling'),
+('surfactant');
+
+CREATE OR REPLACE FUNCTION prevent_modifications_bioactivities()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'modifications to the bioactivities table are not allowed';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER no_modifications
+BEFORE INSERT OR UPDATE OR DELETE ON bioactivities
+FOR EACH ROW
+EXECUTE FUNCTION prevent_modifications_bioactivities();
 
 -- =====================================
 -- Many-to-many: compounds_bioactivities.
 -- =====================================
 CREATE TABLE compounds_bioactivities (
-    compound_id INT NOT NULL,
-    bioactivity_id INT NOT NULL,
-    PRIMARY KEY (compound_id, bioactivity_id),
-    FOREIGN KEY (compound_id) REFERENCES compounds(id) ON DELETE CASCADE,
-    FOREIGN KEY (bioactivity_id) REFERENCES bioactivities(id) ON DELETE CASCADE
+    compound_id VARCHAR(9) NOT NULL,
+    bioactivity_type VARCHAR(255) NOT NULL,
+    PRIMARY KEY (compound_id, bioactivity_type),
+    FOREIGN KEY (compound_id) REFERENCES compounds(npa_id) ON DELETE CASCADE,
+    FOREIGN KEY (bioactivity_type) REFERENCES bioactivities(bioactivity_type) ON DELETE CASCADE
 );
 
 -- =====================================
 -- Create table for biosynthetic_classes.
 -- =====================================
 CREATE TABLE biosynthetic_classes (
-    id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    classifiers VARCHAR(255) NOT NULL
-        CHECK (classifiers IN ('npclassifier', 'classyfire', 'manual'))
+    level VARCHAR(255) NOT NULL,
+    classifier VARCHAR(255) NOT NULL
+        CHECK (classifier IN ('npclassifier', 'classyfire', 'manual')),
+    PRIMARY KEY (name, level, classifier)
 );
 
 -- =====================================
 -- Many-to-many: compounds_biosynthetic_classes.
 -- =====================================
 CREATE TABLE compounds_biosynthetic_classes (
-    compound_id INT NOT NULL,
-    biosynthetic_class_id INT NOT NULL,
-    PRIMARY KEY (compound_id, biosynthetic_class_id),
-    FOREIGN KEY (compound_id) REFERENCES compounds(id) ON DELETE CASCADE,
-    FOREIGN KEY (biosynthetic_class_id) REFERENCES biosynthetic_classes(id) ON DELETE CASCADE
+    compound_id VARCHAR(9) NOT NULL,
+    biosynthetic_class_name VARCHAR(255) NOT NULL,
+    biosynthetic_class_level VARCHAR(255) NOT NULL,
+    biosynthetic_class_classifier VARCHAR(255) NOT NULL,
+    PRIMARY KEY (compound_id, biosynthetic_class_name, biosynthetic_class_level, biosynthetic_class_classifier),
+    FOREIGN KEY (compound_id) REFERENCES compounds(npa_id) ON DELETE CASCADE,
+    FOREIGN KEY (biosynthetic_class_name, biosynthetic_class_level, biosynthetic_class_classifier) 
+        REFERENCES biosynthetic_classes(name, level, classifier) ON DELETE CASCADE
 );
 
 -- =====================================
@@ -81,28 +118,48 @@ CREATE TABLE compounds_biosynthetic_classes (
 -- =====================================
 CREATE TABLE primary_sequences (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
     retromol_version VARCHAR(50) NOT NULL
-        CHECK (retromol_version ~ '^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$')
 );
 
 -- =====================================
 -- Many-to-many: compounds_primary_sequences.
 -- =====================================
 CREATE TABLE compounds_primary_sequences (
-    compound_id INT NOT NULL,
+    compound_id VARCHAR(9) NOT NULL,
     primary_sequence_id INT NOT NULL,
     PRIMARY KEY (compound_id, primary_sequence_id),
-    FOREIGN KEY (compound_id) REFERENCES compounds(id) ON DELETE CASCADE,
+    FOREIGN KEY (compound_id) REFERENCES compounds(npa_id) ON DELETE CASCADE,
     FOREIGN KEY (primary_sequence_id) REFERENCES primary_sequences(id) ON DELETE CASCADE
+);
+
+-- =====================================
+-- Create table for modifications.
+-- =====================================
+CREATE TABLE modifications (
+    id SERIAL PRIMARY KEY,
+    epoxidation BOOLEAN NOT NULL,
+    glycosylation BOOLEAN NOT NULL,
+    halogenation BOOLEAN NOT NULL,
+    macrocyclization BOOLEAN NOT NULL,
+    methylation BOOLEAN NOT NULL
+);
+
+-- =====================================
+-- Many-to-many: primary_sequences_modifications.
+-- =====================================
+CREATE TABLE primary_sequences_modifications (
+    primary_sequence_id INT NOT NULL,
+    modification_id INT NOT NULL,
+    PRIMARY KEY (primary_sequence_id, modification_id),
+    FOREIGN KEY (primary_sequence_id) REFERENCES primary_sequences(id) ON DELETE CASCADE,
+    FOREIGN KEY (modification_id) REFERENCES modifications(id) ON DELETE CASCADE
 );
 
 -- =====================================
 -- Create table for motifs.
 -- =====================================
 CREATE TABLE motifs (
-    id SERIAL PRIMARY KEY,
-    motif_name VARCHAR(255) NOT NULL
+    motif_name VARCHAR(255) PRIMARY KEY
 );
 
 -- Insert predefined list of motifs
@@ -186,7 +243,19 @@ INSERT INTO motifs (motif_name) VALUES
 ('D9'),
 ('D10'),
 ('D11'),
-('D12'),
+('D12');
+
+CREATE OR REPLACE FUNCTION prevent_modifications_motifs()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'modifications to the motifs table are not allowed';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER no_modifications
+BEFORE INSERT OR UPDATE OR DELETE ON motifs
+FOR EACH ROW
+EXECUTE FUNCTION prevent_modifications_motifs();
 
 -- =====================================
 -- Primary_sequences_motifs.
@@ -194,10 +263,10 @@ INSERT INTO motifs (motif_name) VALUES
 CREATE TABLE primary_sequences_motifs (
     primary_sequence_id INT NOT NULL,
     position INT NOT NULL,
-    motif_id INT NOT NULL,
+    motif_id VARCHAR(255) NOT NULL,
     PRIMARY KEY (primary_sequence_id, position),
     FOREIGN KEY (primary_sequence_id) REFERENCES primary_sequences(id) ON DELETE CASCADE,
-    FOREIGN KEY (motif_id) REFERENCES motifs(id),
+    FOREIGN KEY (motif_id) REFERENCES motifs(motif_name),
     CHECK (position >= 0)
 );
 
@@ -255,10 +324,12 @@ CREATE TABLE antismash_database_records (
 -- =====================================
 CREATE TABLE antismash_database_records_organisms (
     antismash_record_id INT NOT NULL,
-    organism_id INT NOT NULL,
-    PRIMARY KEY (antismash_record_id, organism_id),
+    organism_genus VARCHAR(255) NOT NULL,
+    organism_species VARCHAR(255) NOT NULL,
+    PRIMARY KEY (antismash_record_id, organism_genus, organism_species),
     FOREIGN KEY (antismash_record_id) REFERENCES antismash_database_records(id) ON DELETE CASCADE,
-    FOREIGN KEY (organism_id) REFERENCES organisms(id) ON DELETE CASCADE
+    FOREIGN KEY (organism_genus, organism_species) 
+        REFERENCES organisms(genus, species) ON DELETE CASCADE
 );
 
 -- =====================================
@@ -271,3 +342,50 @@ CREATE TABLE antismash_database_records_primary_sequences (
     FOREIGN KEY (antismash_record_id) REFERENCES antismash_database_records(id) ON DELETE CASCADE,
     FOREIGN KEY (primary_sequence_id) REFERENCES primary_sequences(id) ON DELETE CASCADE
 );
+
+-- *********************************************************************************************************************
+-- *********************************************************************************************************************
+-- Views.
+-- *********************************************************************************************************************
+-- *********************************************************************************************************************
+
+-- =====================================
+-- Create a view to display compound details.
+-- =====================================
+CREATE OR REPLACE VIEW compound_details_view AS
+SELECT
+    c.npa_id AS compound_id,
+    c.name AS compound_name,
+    o.type AS organism_type,
+    o.genus AS organism_genus,
+    o.species AS organism_species,
+    bc.name AS biosynthetic_class_name,
+    bc.level AS biosynthetic_class_level,
+    bc.classifier AS biosynthetic_class_classifier
+FROM
+    compounds AS c
+LEFT JOIN
+    compounds_organisms AS co ON c.npa_id = co.compound_id
+LEFT JOIN
+    organisms AS o ON co.organism_genus = o.genus AND co.organism_species = o.species
+LEFT JOIN
+    compounds_biosynthetic_classes AS cbc ON c.npa_id = cbc.compound_id
+LEFT JOIN
+    biosynthetic_classes AS bc ON cbc.biosynthetic_class_name = bc.name 
+                                AND cbc.biosynthetic_class_level = bc.level 
+                                AND cbc.biosynthetic_class_classifier = bc.classifier;
+
+-- =====================================
+-- Create a view to display compound bioactivities.
+-- =====================================
+CREATE OR REPLACE VIEW compound_bioactivities_view AS
+SELECT
+    c.npa_id AS compound_id,
+    c.name AS compound_name,
+    b.bioactivity_type AS bioactivity
+FROM
+    compounds AS c
+LEFT JOIN
+    compounds_bioactivities AS cb ON c.npa_id = cb.compound_id
+LEFT JOIN
+    bioactivities AS b ON cb.bioactivity_type = b.bioactivity_type;
