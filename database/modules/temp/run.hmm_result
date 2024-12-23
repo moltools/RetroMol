@@ -1,0 +1,171 @@
+hmmpfam - search one or more sequences against HMM database
+HMMER 2.3.2 (Oct 2003)
+Copyright (C) 1992-2003 HHMI/Washington University School of Medicine
+Freely distributed under the GNU General Public License (GPL)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+HMM file:                 /Users/davidmeijer/miniconda3/envs/retromol/lib/python3.9/site-packages/parasect/data/AMP-binding_hmmer2.hmm
+Sequence file:            /Users/davidmeijer/repos/moltools/RetroMol/database/temp/renamed_fasta.txt
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Query sequence: 1
+Accession:      [none]
+Description:    [none]
+
+Scores for sequence family classification (score includes all domains):
+Model         Description                               Score    E-value  N 
+--------      -----------                               -----    ------- ---
+AMP-binding                                             383.2   8.6e-116   2
+AMP-binding_C                                           147.0    1.1e-44   2
+
+Parsed for domains:
+Model         Domain  seq-f seq-t    hmm-f hmm-t      score  E-value
+--------      ------- ----- -----    ----- -----      -----  -------
+AMP-binding     1/2     669   813 ..     1   166 []   201.7  3.8e-61
+AMP-binding_C   1/2     967  1014 ..     1    50 []    73.1    2e-22
+AMP-binding     2/2    1721  1864 ..     1   166 []   181.5  4.5e-55
+AMP-binding_C   2/2    2015  2062 ..     1    50 []    73.9  1.1e-22
+
+Alignments of top-scoring domains:
+AMP-binding: domain 1 of 2, from 669 to 813: score 201.7, E = 3.8e-61
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KG +v H++++n ++w+++   ++g+++     +drvLq+++  +FD
+           1   669    KGTVVAHQAIANRLLWMQD---AYGLGP-----DDRVLQKTP-AGFD 706  
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   +Svwe+f++L++G+ LV+++++   +++Dp +La li+++++T+++++Ps
+           1   707 VSVWEFFWPLITGAALVLARPG---GHRDPGYLAGLIREQRVTTAHFVPS 753  
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   +l+++ld     +p  a ++   Lrrv++ GEaL+++la+r +++ p+ +
+           1   754 MLRVFLD-----DPAAATARGV-LRRVVCSGEALPTDLADRCLALLPG-T 796  
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                      l+N+YGPTE++V++T+   
+           1   797 --ALHNLYGPTEAAVDVTA    813  
+
+AMP-binding_C: domain 1 of 2, from 967 to 1014: score 73.1, E = 2e-22
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      d+ ++R+ L+a+LPd   P+a  +vvLdalPLTpNGKlDR+ALPaPd
+           1   967    DPLQVRQDLRATLPDQLLPAA--VVVLDALPLTPNGKLDRAALPAPD 1011 
+
+                   aaa<-*
+                    +    
+           1  1012 LSG    1014 
+
+AMP-binding: domain 2 of 2, from 1721 to 1864: score 181.5, E = 4.5e-55
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KG m++Hr++++ ++w +    l g++      +d+ L++++ ++FD
+           1  1721    KGAMIRHRAIAHRLLWQRS---LLGFST-----DDAALFKAP-LGFD 1758 
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   +S+ eif +L++Gg++Vi++++   + +D+++L +++er+++T+++l+ s
+           1  1759 ISINEIFLPLVHGGRVVIAEPG---GERDVDYLLDTVERHRVTFAYLVSS 1805 
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   +l+lll+++      + +++ +sLr+v++GGE L+p+l++r+r+  p  a
+           1  1806 MLDLLLEQD------GFARRAASLRHVWCGGEVLTPELFARFRAVSP--A 1847 
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                      ++++YGP+E+T+ +++   
+           1  1848 --VMYHGYGPAEATIGVSH    1864 
+
+AMP-binding_C: domain 2 of 2, from 2015 to 2062: score 73.9, E = 1.1e-22
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      ++a +R +L++rLP++MVP    + +Lda+PL p+GK+DR+ LPa +
+           1  2015    LPAVIRGWLQERLPEHMVPRT--LTPLDAFPLLPSGKVDRASLPASE 2059 
+
+                   aaa<-*
+                    +a   
+           1  2060 TTA    2062 
+
+//
+
+Query sequence: 2
+Accession:      [none]
+Description:    [none]
+
+Scores for sequence family classification (score includes all domains):
+Model         Description                               Score    E-value  N 
+--------      -----------                               -----    ------- ---
+AMP-binding                                             129.8    1.7e-39   1
+AMP-binding_C                                            81.1    7.7e-25   1
+
+Parsed for domains:
+Model         Domain  seq-f seq-t    hmm-f hmm-t      score  E-value
+--------      ------- ----- -----    ----- -----      -----  -------
+AMP-binding     1/1     629   776 ..     1   166 []   129.8  1.7e-39
+AMP-binding_C   1/1     929   976 ..     1    50 []    81.1  7.7e-25
+
+Alignments of top-scoring domains:
+AMP-binding: domain 1 of 1, from 629 to 776: score 129.8, E = 1.7e-39
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      K+V+v++r++vnl +++  + +  +++ +  g ++r+ +  +  +FD
+           2   629    KAVLVPQRAIVNLYAAHHAALHTPATSAAG-GRPLRIGHAWP-TAFD 673  
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   aS++ +++  ++G+ L++vp+e   +r+Dp+aL+a+++++gi ++ l Ps
+           2   674 ASWQPMLW-MFAGHELHLVPEE---VRRDPDALRAFLAEHGIEFIELSPS 719  
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   ll  l++++         ++ ++L+++ vGGEa++p+l r lr++     
+           2   720 LLAELVAQG--------GDWRADLKVLGVGGEAVPPDLWRILRATE---- 757  
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                   g+  +N+YGPTE+TV++     
+           2   758 GLAAHNLYGPTECTVDSAD    776  
+
+AMP-binding_C: domain 1 of 1, from 929 to 976: score 81.1, E = 7.7e-25
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      +a+ LR+ +aa LPdYMVPsa  fv +d +PLT NGKlD  ALPaP 
+           2   929    TAGLLRRDMAAVLPDYMVPSA--FVTVDGFPLTLNGKLDTGALPAPS 973  
+
+                   aaa<-*
+                   ++a   
+           2   974 RTA    976  
+
+//
+
+Query sequence: 3
+Accession:      [none]
+Description:    [none]
+
+Scores for sequence family classification (score includes all domains):
+Model         Description                               Score    E-value  N 
+--------      -----------                               -----    ------- ---
+AMP-binding                                             107.2    1.1e-32   1
+AMP-binding_C                                            83.7    1.3e-25   1
+
+Parsed for domains:
+Model         Domain  seq-f seq-t    hmm-f hmm-t      score  E-value
+--------      ------- ----- -----    ----- -----      -----  -------
+AMP-binding     1/1     604   748 ..     1   166 []   107.2  1.1e-32
+AMP-binding_C   1/1     898   945 ..     1    50 []    83.7  1.3e-25
+
+Alignments of top-scoring domains:
+AMP-binding: domain 1 of 1, from 604 to 748: score 107.2, E = 1.1e-32
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KGV+ ++r+++n ++w +e   l g++d    ++ + L++s+  sF 
+           3   604    KGVLGTQRALANRLLWGRE---LQGGGD----APGVRLAKSP-VSFI 642  
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                       e++gaL+nG tL +++++      Dp aLaa+  +++ Tv++++Ps
+           3   643 DGLVEVLGALVNGDTLALADDA---ANGDPVALAAVADAHRATVVTAVPS 689  
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   l  +ll+aa        p+ + ++r+ +  GE+L+++la +l +r p  a
+           3   690 LYTALLEAA-------PPDSFGTVRTWISSGEQLPAALAGALTRRWPA-A 731  
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                     rl+N+YG  E++ ++ +   
+           3   732 --RLVNLYGCSEAAADSLV    748  
+
+AMP-binding_C: domain 1 of 1, from 898 to 945: score 83.7, E = 1.3e-25
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      da +LR++La+rLP++ VPsa  +v LdalPLTp+GKlDR+ALPaPd
+           3   898    DALALRRALAERLPGHLVPSA--VVLLDALPLTPSGKLDRNALPAPD 942  
+
+                   aaa<-*
+                    a    
+           3   943 LAR    945  
+
+//

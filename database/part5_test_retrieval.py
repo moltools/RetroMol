@@ -1,1 +1,0 @@
-# test retrieval both ways
