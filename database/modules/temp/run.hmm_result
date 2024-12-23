@@ -4,7 +4,7 @@ Copyright (C) 1992-2003 HHMI/Washington University School of Medicine
 Freely distributed under the GNU General Public License (GPL)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 HMM file:                 /Users/davidmeijer/miniconda3/envs/retromol/lib/python3.9/site-packages/parasect/data/AMP-binding_hmmer2.hmm
-Sequence file:            /Users/davidmeijer/repos/moltools/RetroMol/database/temp/renamed_fasta.txt
+Sequence file:            /Users/davidmeijer/repos/moltools/RetroMol/database/modules/temp/renamed_fasta.txt
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Query sequence: 1
@@ -14,69 +14,125 @@ Description:    [none]
 Scores for sequence family classification (score includes all domains):
 Model         Description                               Score    E-value  N 
 --------      -----------                               -----    ------- ---
-AMP-binding                                             383.2   8.6e-116   2
-AMP-binding_C                                           147.0    1.1e-44   2
+AMP-binding                                             685.3     1e-206   4
+AMP-binding_C                                           385.6   1.7e-116   4
 
 Parsed for domains:
 Model         Domain  seq-f seq-t    hmm-f hmm-t      score  E-value
 --------      ------- ----- -----    ----- -----      -----  -------
-AMP-binding     1/2     669   813 ..     1   166 []   201.7  3.8e-61
-AMP-binding_C   1/2     967  1014 ..     1    50 []    73.1    2e-22
-AMP-binding     2/2    1721  1864 ..     1   166 []   181.5  4.5e-55
-AMP-binding_C   2/2    2015  2062 ..     1    50 []    73.9  1.1e-22
+AMP-binding     1/4     444   580 ..     1   166 []   163.1  1.6e-49
+AMP-binding_C   1/4     729   776 ..     1    50 []    97.2  1.1e-29
+AMP-binding     2/4    1959  2104 ..     1   166 []   182.1  3.1e-55
+AMP-binding_C   2/4    2254  2301 ..     1    50 []    88.0  6.3e-27
+AMP-binding     3/4    3037  3184 ..     1   166 []   169.4    2e-51
+AMP-binding_C   3/4    3337  3384 ..     1    50 []   100.6  1.1e-30
+AMP-binding     4/4    4121  4268 ..     1   166 []   170.7  8.2e-52
+AMP-binding_C   4/4    4421  4468 ..     1    50 []    99.8  1.8e-30
 
 Alignments of top-scoring domains:
-AMP-binding: domain 1 of 2, from 669 to 813: score 201.7, E = 3.8e-61
+AMP-binding: domain 1 of 4, from 444 to 580: score 163.1, E = 1.6e-49
                    *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
-                      KG +v H++++n ++w+++   ++g+++     +drvLq+++  +FD
-           1   669    KGTVVAHQAIANRLLWMQD---AYGLGP-----DDRVLQKTP-AGFD 706  
+                      KGVm eHr++v+l + +++   l++      +e+drvLqf+s +sFD
+           1   444    KGVMLEHRGLVSLKLTFAH--TLHT------TEQDRVLQFAS-LSFD 481  
 
-                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
-                   +Svwe+f++L++G+ LV+++++   +++Dp +La li+++++T+++++Ps
-           1   707 VSVWEFFWPLITGAALVLARPG---GHRDPGYLAGLIREQRVTTAHFVPS 753  
+                   aSvweifgaLLnGgtLVivpkefs.etrlDpeaLaalieregiTvlnltP
+                   aS+we+f aL+ G+tL+i+    s+et+lD + + ++++++ iT+++l+P
+           1   482 ASCWEMFNALYFGATLYIP----StETILDDQLFERFMNEHAITIATLPP 527  
 
-                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
-                   +l+++ld     +p  a ++   Lrrv++ GEaL+++la+r +++ p+ +
-           1   754 MLRVFLD-----DPAAATARGV-LRRVVCSGEALPTDLADRCLALLPG-T 796  
+                   sllnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdr
+                   +++  l             ++l+sL r++++G a+s++ ++++++ +   
+           1   528 TYAAYLNS-----------DRLPSLSRLITAGSAVSAEFVQQWKDKV--- 563  
 
-                   gvrliNaYGPTEtTVcaTi<-*
-                      l+N+YGPTE++V++T+   
-           1   797 --ALHNLYGPTEAAVDVTA    813  
+                   agvrliNaYGPTEtTVcaTi<-*
+                      + +NaYGPTE+++++++   
+           1   564 ---QYYNAYGPTEASIATSV    580  
 
-AMP-binding_C: domain 1 of 2, from 967 to 1014: score 73.1, E = 2e-22
+AMP-binding_C: domain 1 of 4, from 729 to 776: score 97.2, E = 1.1e-29
                    *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
-                      d+ ++R+ L+a+LPd   P+a  +vvLdalPLTpNGKlDR+ALPaPd
-           1   967    DPLQVRQDLRATLPDQLLPAA--VVVLDALPLTPNGKLDRAALPAPD 1011 
-
-                   aaa<-*
-                    +    
-           1  1012 LSG    1014 
-
-AMP-binding: domain 2 of 2, from 1721 to 1864: score 181.5, E = 4.5e-55
-                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
-                      KG m++Hr++++ ++w +    l g++      +d+ L++++ ++FD
-           1  1721    KGAMIRHRAIAHRLLWQRS---LLGFST-----DDAALFKAP-LGFD 1758 
-
-                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
-                   +S+ eif +L++Gg++Vi++++   + +D+++L +++er+++T+++l+ s
-           1  1759 ISINEIFLPLVHGGRVVIAEPG---GERDVDYLLDTVERHRVTFAYLVSS 1805 
-
-                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
-                   +l+lll+++      + +++ +sLr+v++GGE L+p+l++r+r+  p  a
-           1  1806 MLDLLLEQD------GFARRAASLRHVWCGGEVLTPELFARFRAVSP--A 1847 
-
-                   gvrliNaYGPTEtTVcaTi<-*
-                      ++++YGP+E+T+ +++   
-           1  1848 --VMYHGYGPAEATIGVSH    1864 
-
-AMP-binding_C: domain 2 of 2, from 2015 to 2062: score 73.9, E = 1.1e-22
-                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
-                      ++a +R +L++rLP++MVP    + +Lda+PL p+GK+DR+ LPa +
-           1  2015    LPAVIRGWLQERLPEHMVPRT--LTPLDAFPLLPSGKVDRASLPASE 2059 
+                      + +eLR++La++LP YM+P++  fv+L+++PLTpN K+DRkALPaP+
+           1   729    TLGELRSALAQKLPNYMIPAH--FVQLPRMPLTPNDKIDRKALPAPE 773  
 
                    aaa<-*
                     +a   
-           1  2060 TTA    2062 
+           1   774 GNA    776  
+
+AMP-binding: domain 2 of 4, from 1959 to 2104: score 182.1, E = 3.1e-55
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KG ++eH+nvv+l+ +  +   lf +++     sd++++f+s ++FD
+           1  1959    KGTLIEHKNVVRLLFNDKN---LFDFGP-----SDTWTLFHS-FCFD 1996 
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   +Svwe++gaLL+Gg+LVivp+    t+++p+ + al+ re++T+ln+tP+
+           1  1997 FSVWEMYGALLYGGKLVIVPPL---TAKNPADFLALLGREQVTILNQTPT 2043 
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   ++ +ll +  +a   ++p dl+ +r v++GGEaLsp l++ ++  +p+ +
+           1  2044 YFYQLLREV-LA---DHPYDLR-IRNVIFGGEALSPLLLKGFKTKYPE-T 2087 
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                     +liN+YG+TEtTV++T+   
+           1  2088 --KLINMYGITETTVHVTY    2104 
+
+AMP-binding_C: domain 2 of 4, from 2254 to 2301: score 88.0, E = 6.3e-27
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      +++e R+ La+  P+YM+Ps+  fv+L+++PLT+NGK+DRkALP+P 
+           1  2254    TVSEMRTSLAQGMPGYMIPSY--FVQLERMPLTTNGKVDRKALPEPQ 2298 
+
+                   aaa<-*
+                    +    
+           1  2299 GGI    2301 
+
+AMP-binding: domain 3 of 4, from 3037 to 3184: score 169.4, E = 2e-51
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KGVm+eHr++vn+++  ++   ++++++ +   ++r+Lq++s +sFD
+           1  3037    KGVMIEHRSLVNTAAGYRR---EYRLDQ-F---PVRLLQLAS-FSFD 3075 
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   ++v +i  +L+nGgt Vivpk+   +r Dp +L +++ere++T+  +tP+
+           1  3076 VFVGDIARTLYNGGTMVIVPKD---DRIDPSRLHHWMERERVTIFESTPA 3122 
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   l+  +l++  e+       d+s + ++++  + +s+++ r+l+erf++  
+           1  3123 LIVPFLEYVHEQ-----RLDMSWMELLITSSDSCSVADYRTLQERFGS-L 3166 
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                     r+iNaYG TE+++++++   
+           1  3167 F-RIINAYGVTEAAIDSSF    3184 
+
+AMP-binding_C: domain 3 of 4, from 3337 to 3384: score 100.6, E = 1.1e-30
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                       +++LR++La+ LP+YM+Ps+  fv L++lPLTpNGK+DRkALPaP+
+           1  3337    AVNDLRSALAQELPGYMIPSY--FVELERLPLTPNGKIDRKALPAPE 3381 
+
+                   aaa<-*
+                    +a   
+           1  3382 GEA    3384 
+
+AMP-binding: domain 4 of 4, from 4121 to 4268: score 170.7, E = 8.2e-52
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KGVm+eHr++vn+++  ++   ++++++ +   ++r+Lq++s +sFD
+           1  4121    KGVMIEHRSLVNTAAGYRR---EYQLDQ-F---PVRLLQLAS-FSFD 4159 
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   ++v +i  +L+nGgt Vivpk+   +r Dp +L  ++ere++T+  +tP+
+           1  4160 VFVGDIARTLYNGGTMVIVPKD---DRIDPSRLHYWMERERVTIFESTPA 4206 
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   l+  +l++  +    ++  d+s+L ++++  + +s+++ r+l+erf++  
+           1  4207 LIVPFLEYV-H----DQGLDMSRLELLITSSDSCSVADYRTLQERFGS-L 4250 
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                     r+iNaYG TE+++++++   
+           1  4251 F-RIINAYGVTEAAIDSSF    4268 
+
+AMP-binding_C: domain 4 of 4, from 4421 to 4468: score 99.8, E = 1.8e-30
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                       +++LR++La+ LP+YM+Ps+  fv +++lPLTpNGK+DRkALPaP+
+           1  4421    AVNDLRSALAQELPGYMIPSY--FVEMERLPLTPNGKIDRKALPAPE 4465 
+
+                   aaa<-*
+                    +a   
+           1  4466 GEA    4468 
 
 //
 
@@ -87,41 +143,41 @@ Description:    [none]
 Scores for sequence family classification (score includes all domains):
 Model         Description                               Score    E-value  N 
 --------      -----------                               -----    ------- ---
-AMP-binding                                             129.8    1.7e-39   1
-AMP-binding_C                                            81.1    7.7e-25   1
+AMP-binding                                             182.0    3.3e-55   1
+AMP-binding_C                                            98.8    3.6e-30   1
 
 Parsed for domains:
 Model         Domain  seq-f seq-t    hmm-f hmm-t      score  E-value
 --------      ------- ----- -----    ----- -----      -----  -------
-AMP-binding     1/1     629   776 ..     1   166 []   129.8  1.7e-39
-AMP-binding_C   1/1     929   976 ..     1    50 []    81.1  7.7e-25
+AMP-binding     1/1     428   573 ..     1   166 []   182.0  3.3e-55
+AMP-binding_C   1/1     723   770 ..     1    50 []    98.8  3.6e-30
 
 Alignments of top-scoring domains:
-AMP-binding: domain 1 of 1, from 629 to 776: score 129.8, E = 1.7e-39
+AMP-binding: domain 1 of 1, from 428 to 573: score 182.0, E = 3.3e-55
                    *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
-                      K+V+v++r++vnl +++  + +  +++ +  g ++r+ +  +  +FD
-           2   629    KAVLVPQRAIVNLYAAHHAALHTPATSAAG-GRPLRIGHAWP-TAFD 673  
+                      KG ++eH+nvv+l+ +  +   lf +++     sd++++f+s ++FD
+           2   428    KGTLIEHKNVVRLLFNDKN---LFDFGP-----SDTWTLFHS-FCFD 465  
 
                    aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
-                   aS++ +++  ++G+ L++vp+e   +r+Dp+aL+a+++++gi ++ l Ps
-           2   674 ASWQPMLW-MFAGHELHLVPEE---VRRDPDALRAFLAEHGIEFIELSPS 719  
+                   +Svwe++gaLLnGg+LVivp+    t+++p+ + al+ re++T+ln+tP+
+           2   466 FSVWEMYGALLNGGKLVIVPPL---TAKNPADFLALLGREQVTILNQTPT 512  
 
                    llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
-                   ll  l++++         ++ ++L+++ vGGEa++p+l r lr++     
-           2   720 LLAELVAQG--------GDWRADLKVLGVGGEAVPPDLWRILRATE---- 757  
+                   ++ +ll    +a   ++p dl+ +r v++GGEaLsp l++ ++  +p+ +
+           2   513 YFYQLLRKV-LA---DHPYDLR-IRNVIFGGEALSPLLLKGFKTKYPE-T 556  
 
                    gvrliNaYGPTEtTVcaTi<-*
-                   g+  +N+YGPTE+TV++     
-           2   758 GLAAHNLYGPTECTVDSAD    776  
+                     +liN+YG+TEtTV++T+   
+           2   557 --KLINMYGITETTVHVTY    573  
 
-AMP-binding_C: domain 1 of 1, from 929 to 976: score 81.1, E = 7.7e-25
+AMP-binding_C: domain 1 of 1, from 723 to 770: score 98.8, E = 3.6e-30
                    *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
-                      +a+ LR+ +aa LPdYMVPsa  fv +d +PLT NGKlD  ALPaP 
-           2   929    TAGLLRRDMAAVLPDYMVPSA--FVTVDGFPLTLNGKLDTGALPAPS 973  
+                       a+eL++ La++LP+YM+Ps+  +v+L  +PLTpNGK+DRkALPaP+
+           2   723    AANELKEELAKQLPGYMIPSH--LVQLSGMPLTPNGKIDRKALPAPE 767  
 
                    aaa<-*
-                   ++a   
-           2   974 RTA    976  
+                   +aa   
+           2   768 EAA    770  
 
 //
 
@@ -132,40 +188,152 @@ Description:    [none]
 Scores for sequence family classification (score includes all domains):
 Model         Description                               Score    E-value  N 
 --------      -----------                               -----    ------- ---
-AMP-binding                                             107.2    1.1e-32   1
-AMP-binding_C                                            83.7    1.3e-25   1
+AMP-binding                                             880.8   1.4e-265   5
+AMP-binding_C                                           445.6   1.5e-134   5
 
 Parsed for domains:
 Model         Domain  seq-f seq-t    hmm-f hmm-t      score  E-value
 --------      ------- ----- -----    ----- -----      -----  -------
-AMP-binding     1/1     604   748 ..     1   166 []   107.2  1.1e-32
-AMP-binding_C   1/1     898   945 ..     1    50 []    83.7  1.3e-25
+AMP-binding     1/5     627   774 ..     1   166 []   184.3  6.8e-56
+AMP-binding_C   1/5     925   972 ..     1    50 []    87.4  9.9e-27
+AMP-binding     2/5    1679  1824 ..     1   166 []   182.1  3.1e-55
+AMP-binding_C   2/5    1974  2021 ..     1    50 []    88.7  3.9e-27
+AMP-binding     3/5    2790  2937 ..     1   166 []   181.3  5.4e-55
+AMP-binding_C   3/5    3088  3135 ..     1    50 []    83.4  1.6e-25
+AMP-binding     4/5    4348  4495 ..     1   166 []   162.0  3.4e-49
+AMP-binding_C   4/5    4646  4693 ..     1    50 []    91.2    7e-28
+AMP-binding     5/5    5430  5577 ..     1   166 []   171.2  5.7e-52
+AMP-binding_C   5/5    5728  5775 ..     1    50 []    94.9  5.5e-29
 
 Alignments of top-scoring domains:
-AMP-binding: domain 1 of 1, from 604 to 748: score 107.2, E = 1.1e-32
+AMP-binding: domain 1 of 5, from 627 to 774: score 184.3, E = 6.8e-56
                    *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
-                      KGV+ ++r+++n ++w +e   l g++d    ++ + L++s+  sF 
-           3   604    KGVLGTQRALANRLLWGRE---LQGGGD----APGVRLAKSP-VSFI 642  
+                      KGVm+eH ++vn++++ ++   ++++++ +   ++r+Lq++s +sFD
+           3   627    KGVMIEHGSLVNTADAYRR---EYRLDQ-F---PVRLLQLAS-FSFD 665  
 
                    aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
-                       e++gaL+nG tL +++++      Dp aLaa+  +++ Tv++++Ps
-           3   643 DGLVEVLGALVNGDTLALADDA---ANGDPVALAAVADAHRATVVTAVPS 689  
+                   ++v +i  +L+nGgt Vivpk+   +r Dp  L+ +i++++iTv  +tP+
+           3   666 VFVGDIARTLYNGGTMVIVPKD---DRIDPNLLYGWIRDQNITVFESTPA 712  
 
                    llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
-                   l  +ll+aa        p+ + ++r+ +  GE+L+++la +l +r p  a
-           3   690 LYTALLEAA-------PPDSFGTVRTWISSGEQLPAALAGALTRRWPA-A 731  
+                   l+  ++++++e        d+ss++++++  +a+s+++ r l+erf++  
+           3   713 LILPFMQHIYE-----EGLDVSSMQLLITSSDACSVTDYRLLQERFGG-- 755  
 
                    gvrliNaYGPTEtTVcaTi<-*
-                     rl+N+YG  E++ ++ +   
-           3   732 --RLVNLYGCSEAAADSLV    748  
+                     r+iN YG TE+++++++   
+           3   756 QFRIINSYGVTEAAIDSSF    774  
 
-AMP-binding_C: domain 1 of 1, from 898 to 945: score 83.7, E = 1.3e-25
+AMP-binding_C: domain 1 of 5, from 925 to 972: score 87.4, E = 9.9e-27
                    *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
-                      da +LR++La+rLP++ VPsa  +v LdalPLTp+GKlDR+ALPaPd
-           3   898    DALALRRALAERLPGHLVPSA--VVLLDALPLTPSGKLDRNALPAPD 942  
+                        ++L ++L++ LP++MVP++  +v Ld+lPLTpNGK+DRkALP+P 
+           3   925    QLSDLLSQLKQELPAHMVPAR--LVSLDKLPLTPNGKIDRKALPEPT 969  
 
                    aaa<-*
-                    a    
-           3   943 LAR    945  
+                    +    
+           3   970 GEV    972  
+
+AMP-binding: domain 2 of 5, from 1679 to 1824: score 182.1, E = 3.1e-55
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KG ++eH+nvv+l+ +  +   lf +++     sd++++f+s ++FD
+           3  1679    KGTLIEHKNVVRLLFNDKN---LFDFGP-----SDTWTLFHS-FCFD 1716 
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   +Svwe++gaLL+Gg+LVivp+    t+++p+ + al+ re++T+ln+tP+
+           3  1717 FSVWEMYGALLYGGKLVIVPPL---TAKNPADFLALLGREQVTILNQTPT 1763 
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   ++ +ll +  +a   ++p dl+ +r v++GGEaLsp l++ ++  +p+ +
+           3  1764 YFYQLLREV-LA---DHPYDLR-IRNVIFGGEALSPLLLKGFKTKYPE-T 1807 
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                     +liN+YG+TEtTV++T+   
+           3  1808 --KLINMYGITETTVHVTY    1824 
+
+AMP-binding_C: domain 2 of 5, from 1974 to 2021: score 88.7, E = 3.9e-27
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      +++e R+ La+  P+YM+Ps+  fv+L+++PLT+NGK+DRkALP+P 
+           3  1974    TVSEMRTSLAQGMPGYMIPSY--FVQLERMPLTTNGKVDRKALPEPQ 2018 
+
+                   aaa<-*
+                    ++   
+           3  2019 GGL    2021 
+
+AMP-binding: domain 3 of 5, from 2790 to 2937: score 181.3, E = 5.4e-55
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KGVm+eHr++vn+++  ++   ++++++ +   + r+Lq++s +sFD
+           3  2790    KGVMIEHRSLVNTAAGYRR---EYRLDQ-F---PIRLLQLAS-FSFD 2828 
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   ++v +i  +L+nGgt Vivpk+   +r Dp +L+ +i+++ +Tv  +tP+
+           3  2829 VFVGDIARTLYNGGTMVIVPKD---DRIDPTRLYGWIRDYAVTVFESTPA 2875 
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   l+  ++++  +a       dlss++++++  +a+s+++ r+l+erf++  
+           3  2876 LIVPFMEHV-HA----EGLDLSSMQLLITSSDACSVADYRTLQERFGS-- 2918 
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                     r+iN YG TE+++++++   
+           3  2919 QFRIINSYGVTEAAIDSSF    2937 
+
+AMP-binding_C: domain 3 of 5, from 3088 to 3135: score 83.4, E = 1.6e-25
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      d + L ahL a LP++MVPs+  +++Ld+lPLTpNGK+DRkALP P+
+           3  3088    DLEGLVAHLDAALPSHMVPSR--IMRLDQLPLTPNGKIDRKALPVPE 3132 
+
+                   aaa<-*
+                    +    
+           3  3133 GSI    3135 
+
+AMP-binding: domain 4 of 5, from 4348 to 4495: score 162.0, E = 3.4e-49
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KGVm+eHr++vn+++  ++   ++++++ +   ++r+Lq++s +sFD
+           3  4348    KGVMIEHRSLVNTAAGYRR---EYRLNQ-F---PVRLLQLAS-FSFD 4386 
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   ++v +i  +L+nGgt Vivpk+   +r Dp +L  +iere++T+  +tP+
+           3  4387 VFVGDIARTLYNGGTMVIVPKD---DRIDPSRLHYWIEREQVTIFESTPA 4433 
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   l+  +l++  e+       d+s + ++++  + +s+++ r+l+erf +  
+           3  4434 LIVPFLEYVHEQ-----RLDMSWMELLITSSDSCSVADYRTLQERFDS-L 4477 
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                     r+iNaYG TE+++++++   
+           3  4478 F-RIINAYGVTEAAIDSSF    4495 
+
+AMP-binding_C: domain 4 of 5, from 4646 to 4693: score 91.2, E = 7e-28
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      +a +L+++ a  LP+YM+Ps+  fv +++lPLTpNGK+DRkALPaP+
+           3  4646    TALDLKRAIASELPGYMIPSY--FVEMERLPLTPNGKIDRKALPAPE 4690 
+
+                   aaa<-*
+                    +a   
+           3  4691 GGA    4693 
+
+AMP-binding: domain 5 of 5, from 5430 to 5577: score 171.2, E = 5.7e-52
+                   *->KGVmveHrnvvnlvkwlneryflfgeeddllgesdrvLqfssAysFD
+                      KGVm+eHr++vn+++  ++   ++++++ +   ++r+Lq++s +sFD
+           3  5430    KGVMIEHRSLVNTAAGYRR---EYRLDQ-F---PVRLLQLAS-FSFD 5468 
+
+                   aSvweifgaLLnGgtLVivpkefsetrlDpeaLaalieregiTvlnltPs
+                   ++v +i  +L+nGgt Vivpk+   +r Dp +L ++iere++T+  +tP+
+           3  5469 VFVGDIARTLYNGGTMVIVPKD---DRIDPSRLHHWIEREQVTIFESTPA 5515 
+
+                   llnllldaaeeatpdfapedlssLrrvlvGGEaLspslarrlrerfpdra
+                   l+  +l++  e+       d+s + ++++  + +s+++ r+l+erf++  
+           3  5516 LIVPFLEYVHEQ-----GLDMSWMELLITSSDSCSVADYRTLQERFGS-L 5559 
+
+                   gvrliNaYGPTEtTVcaTi<-*
+                     r+iNaYG TE+++++++   
+           3  5560 F-RIINAYGVTEAAIDSSF    5577 
+
+AMP-binding_C: domain 5 of 5, from 5728 to 5775: score 94.9, E = 5.5e-29
+                   *->daaeLRahLaarLPdYMVPsaVkfvvLdalPLTpNGKlDRkALPaPd
+                      +aa+L+++ a  LP+YM+Ps+  fv +++lPLTpNGK+DRkALPaP+
+           3  5728    TAADLKRAIASELPGYMIPSY--FVEMERLPLTPNGKIDRKALPAPE 5772 
+
+                   aaa<-*
+                    +a   
+           3  5773 GGA    5775 
 
 //

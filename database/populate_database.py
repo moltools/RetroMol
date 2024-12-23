@@ -94,6 +94,16 @@ def main():
     count = cur.fetchone()[0]
     print(f"number of protocluster records in the database: {count}")
 
+    # count the number of compound records linked to primary_sequences
+    cur.execute("SELECT COUNT(DISTINCT primary_sequence_id) AS total_linked_sequences FROM compounds_primary_sequences;")
+    count = cur.fetchone()[0]
+    print(f"number of primary_sequences linked to compounds: {count}")
+
+    # count the number of protocluster records linked to primary_sequences
+    cur.execute("SELECT COUNT(DISTINCT primary_sequence_id) AS total_linked_sequences FROM protoclusters_primary_sequences;")
+    count = cur.fetchone()[0]
+    print(f"number of primary_sequences linked to protoclusters: {count}")
+
     cur.close()
     conn.close()
 

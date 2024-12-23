@@ -324,7 +324,10 @@ FOR EACH ROW EXECUTE FUNCTION check_continuity();
 CREATE TABLE protoclusters (
     id SERIAL PRIMARY KEY,
     input_file VARCHAR(255) NOT NULL,
-    mibig_accession VARCHAR(50) -- NULL if not associated to a MIBiG entry
+    mibig_accession VARCHAR(50), -- NULL if not associated to a MIBiG entry
+    start_pos INT NOT NULL,
+    end_pos INT NOT NULL,
+    UNIQUE (input_file, start_pos, end_pos)
 );
 
 -- =====================================
@@ -336,17 +339,6 @@ CREATE TABLE protoclusters_organisms (
     PRIMARY KEY (protocluster_id, organism_id),
     FOREIGN KEY (protocluster_id) REFERENCES protoclusters(id) ON DELETE CASCADE,
     FOREIGN KEY (organism_id) REFERENCES organisms(id) ON DELETE CASCADE
-);
-
--- =====================================
--- Many-to-many: protoclusters_bioactivities, for when MIBiG entry lists bioactivities.
--- =====================================
-CREATE TABLE protoclusters_bioactivities (
-    protocluster_id INT NOT NULL,
-    bioactivity_type VARCHAR(255) NOT NULL,
-    PRIMARY KEY (protocluster_id, bioactivity_type),
-    FOREIGN KEY (protocluster_id) REFERENCES protoclusters(id) ON DELETE CASCADE,
-    FOREIGN KEY (bioactivity_type) REFERENCES bioactivities(bioactivity_type) ON DELETE CASCADE
 );
 
 -- =====================================
@@ -377,4 +369,19 @@ CREATE TABLE protoclusters_primary_sequences (
 -- *********************************************************************************************************************
 -- *********************************************************************************************************************
 
--- No views defined yet.
+-- =====================================
+-- View for retrieving all primary_sequences associated with a compound_id.
+-- Example usage: 
+--      SELECT compound_id, compound_name, primary_sequence
+--      FROM compound_primary_sequences
+--      WHERE compound_id IN ('NPA009987', 'NPA015585');
+-- =====================================
+CREATE VIEW compound_primary_sequences
+AS SELECT 
+    c.compound_id, 
+    c.name AS compound_name, 
+    STRING_AGG(m.motif_name, '|' ORDER BY psm.position) AS primary_sequence 
+FROM compounds c 
+JOIN compounds_primary_sequences cps ON c.compound_id = cps.compound_id 
+JOIN primary_sequences_motifs psm ON cps.primary_sequence_id = psm.primary_sequence_id 
+JOIN motifs m ON psm.motif_id = m.motif_name GROUP BY c.compound_id, c.name;

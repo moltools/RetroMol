@@ -3,9 +3,13 @@ import os
 import re
 import json
 import joblib
+import psycopg2
 from collections import defaultdict
 from Bio.Seq import Seq  # biopython
 from parasect.api import run_parasect # pip install git+https://github.com/BTheDragonMaster/parasect.git@webapp
+from tqdm import tqdm
+from modules.step1_add_npatlas import OrganismRecord
+from modules.step3_add_retromol_results import RETROMOL_VERSION
 
 
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp")
@@ -73,6 +77,8 @@ class ProtoCluster:
                         gene_strand = gene.strand
                         gene_dna = dna[gene_start:gene_end]
                         if gene_strand == "-": gene_dna = str(Seq(gene_dna).reverse_complement())
+                        # check if seq is divisible by 3, otherwise add trailing Ns
+                        if len(gene_dna) % 3 != 0: gene_dna += "N" * (3 - len(gene_dna) % 3)
                         gene_protein = str(Seq(gene_dna).translate())
                         gene_fasta = f">{gene.name}\n{gene_protein}"
                         to_predict.append(gene_fasta)
@@ -249,6 +255,163 @@ def parse_antismash_json(data: ty.Dict[str, ty.Any], predict_specificities: bool
     return queries
 
 
+class MibigRecord:
+    def __init__(self, accession, genus, species, compound_ids) -> None:
+        # make sure compound_ids are in correct NPAtlas format
+        # format is NPA + 6 digits
+        formatted_compound_ids = []
+        for compound_id in compound_ids:
+            suffix = int(compound_id.removeprefix("NPA"))
+            formatted_compound_id = f"NPA{suffix:06d}"
+            formatted_compound_ids.append(formatted_compound_id)
+
+        self.accession = accession
+        self.genus = genus
+        self.species = species
+        self.compound_ids = formatted_compound_ids
+
+
+def parse_mibig_database(path_mibig_database):
+    """Parse MIBiG database files."""
+    file_paths = [os.path.join(path_mibig_database, f) for f in os.listdir(path_mibig_database) if f.endswith(".json")]
+    for file_path in tqdm(file_paths):
+        with open(file_path, "r") as f: data = json.load(f)
+        accession = data["accession"]
+        taxonomy = data["taxonomy"]
+        genus, species = taxonomy["name"].split(" ", 1)
+        compound_ids = []  # list of strings
+        for compound in data["compounds"]:
+            database_ids = [db_id.removeprefix("npatlas:") for db_id in compound.get("databaseIds", []) if db_id.startswith("npatlas:")]
+            compound_ids.extend(database_ids)
+        yield MibigRecord(accession, genus, species, compound_ids)
+
+
+def insert_protocluster_into_database(cur, input_file, mibig_accession, start_pos, end_pos) -> None:
+    """Insert the protocluster record into the database."""
+    try:
+        cur.execute(
+            """
+            INSERT INTO protoclusters (input_file, mibig_accession, start_pos, end_pos)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (input_file, start_pos, end_pos)
+            DO UPDATE SET input_file = protoclusters.input_file
+            RETURNING id
+            """,
+            (input_file, mibig_accession, int(start_pos), int(end_pos))
+        )
+        protocluster_id = cur.fetchone()[0]
+        return protocluster_id
+    except psycopg2.Error as e:
+        raise ValueError(f"error inserting protocluster (input_file={input_file}; mibig_accession={mibig_accession}; start_pos={start_pos}; end_pos={end_pos}) record into database: {e}")
+    
+
+def connect_protocluster_to_primary_sequence(cur, protocluster_id, primary_sequence):
+    """Add primary sequence to database and connect to compound it belongs to."""
+    # add new primary sequence
+    cur.execute(
+        """
+        INSERT INTO primary_sequences (retromol_version)
+        VALUES (%s)
+        RETURNING id;
+        """,
+        (RETROMOL_VERSION,)
+    )
+    primary_sequence_id = cur.fetchone()[0]
+
+    # link primary sequence to compound it originates from
+    cur.execute(
+        """
+        INSERT INTO protoclusters_primary_sequences (protocluster_id, primary_sequence_id)
+        VALUES (%s, %s);
+        """,
+        (protocluster_id, primary_sequence_id)
+    )
+
+    # add primary sequence motifs
+    for position, motif in enumerate(primary_sequence):
+        cur.execute(
+            """
+            INSERT INTO primary_sequences_motifs (primary_sequence_id, position, motif_id)
+            VALUES (%s, %s, %s);
+            """,
+            (primary_sequence_id, position, motif)
+        )
+
+
+def connect_protocluster_to_organism(cur, protocluster_id, organism_id) -> None:
+    """Connect the organism record to a protocluster record in the database."""
+    try:
+        cur.execute(
+            """
+            INSERT INTO protoclusters_organisms (protocluster_id, organism_id)
+            VALUES (%s, %s)
+            ON CONFLICT (protocluster_id, organism_id) DO NOTHING
+            """,
+            (protocluster_id, organism_id)
+        )
+    except psycopg2.Error as e:
+        raise ValueError(f"error connecting organism record to protocluster record in database: {e}")
+    
+
+def connect_protocluster_to_compound(cur, protocluster_id, compound_id) -> None:
+    """Connect the compound record to a protocluster record in the database."""
+    try:
+        cur.execute(
+            """
+            INSERT INTO protoclusters_compounds (protocluster_id, compound_id)
+            VALUES (%s, %s)
+            ON CONFLICT (protocluster_id, compound_id) DO NOTHING
+            """,
+            (protocluster_id, compound_id)
+        )
+    except psycopg2.Error as e:
+        raise ValueError(f"error connecting compound record to protocluster record in database: {e}")
+
+
 def add_mibig(cur, path_mibig_database, path_mibig_jsons):
     """Add MIBiG database to the database."""
-    raise NotImplementedError
+    mibig_records = {r.accession: r for r in parse_mibig_database(path_mibig_database)}
+    
+    # parse AntiSMASH JSONs
+    mibig_antismash_json_paths = [os.path.join(path_mibig_jsons, f) for f in os.listdir(path_mibig_jsons) if f.endswith(".json")]
+    mibig_antismash_json_paths = sorted(mibig_antismash_json_paths)
+    for mibig_antismash_json_path in tqdm(mibig_antismash_json_paths):
+        with open(mibig_antismash_json_path, "r") as f: data = json.load(f)
+        input_file = data["input_file"]
+        accession = input_file.split(".")[0]
+        mibig_record = mibig_records[accession]
+        taxon = "bacterium" if data["taxon"] == "bacteria" else "unknown"
+        annotated_primary_sequences = parse_antismash_json(data, predict_specificities=True)
+
+        for annotated_primary_sequence in annotated_primary_sequences:
+            # add protocluster to database
+            input_file = input_file
+            mibig_accession = accession
+            start_pos = annotated_primary_sequence["meta_data"]["start_proto_cluster"]
+            end_pos = annotated_primary_sequence["meta_data"]["end_proto_cluster"]
+            protocluster_id = insert_protocluster_into_database(cur, input_file, mibig_accession, start_pos, end_pos)
+
+            # data for organism, and link protocluster to organism
+            type_ = taxon
+            genus = mibig_record.genus
+            species = mibig_record.species
+            organism_record = OrganismRecord(type_, genus, species)
+            organism_id = organism_record.insert_into_database(cur)
+            connect_protocluster_to_organism(cur, protocluster_id, organism_id)
+
+            # add primary sequence to database, and link protocluster to primary sequence
+            primary_sequence = annotated_primary_sequence["primary_sequence"]
+            connect_protocluster_to_primary_sequence(cur, protocluster_id, primary_sequence)
+
+            # linked compound_ids
+            compound_ids = mibig_record.compound_ids
+
+            # link protocluster to compounds
+            for compound_id in compound_ids:
+                # first check if compound_id is in compounds table
+                cur.execute("SELECT compound_id FROM compounds WHERE compound_id = %s;", (compound_id,))
+                if cur.fetchone() is None: 
+                    print(f"compound_id {compound_id} linked to {mibig_accession} not in compounds table")
+                    continue
+                connect_protocluster_to_compound(cur, protocluster_id, compound_id)
+
