@@ -5,7 +5,7 @@ import argparse
 from modules.step1_add_npatlas import add_npatlas
 from modules.step2_add_donphan import add_donphan
 from modules.step3_add_retromol_results import add_retromol_results
-from modules.step4_add_mibig import add_mibig
+from database.modules.step4_add_mibig_depr import add_mibig
 
 
 def cli():
