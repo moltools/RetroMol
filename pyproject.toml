@@ -5,6 +5,8 @@ requires-python = ">=3.9"
 
 dependencies = [
     "rdkit",
+    "tqdm",
+    "networkx",
     "numpy<2.0",
 ]
 
@@ -19,3 +21,6 @@ dev = [
 
 [tool.hatch.metadata]
 root = "src"
+
+[project.scripts]
+retromol = "retromol.cli:main"
