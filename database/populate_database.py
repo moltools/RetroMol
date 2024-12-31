@@ -5,6 +5,7 @@ import argparse
 from modules.step1_add_npatlas import add_npatlas
 from modules.step2_add_donphan import add_donphan
 from modules.step3_add_retromol_results import add_retromol_results
+from modules.step4_add_asdb import add_asdb
 
 
 def cli():
@@ -13,6 +14,7 @@ def cli():
     parser.add_argument("--npatlas", required=False, help="path to the NPAtlas database json file")
     parser.add_argument("--donphan", required=False, help="path to the DONPHAN database csv file")
     parser.add_argument("--retromol", required=False, help="path to RetroMol results folder for NPAtlas compounds")
+    parser.add_argument("--asdb", required=False, help="path to the parsed ASDB folder")
     return parser.parse_args()
 
 
@@ -33,8 +35,7 @@ def main():
     path_npatlas = args.npatlas
     path_donphan = args.donphan
     path_retromol = args.retromol
-    path_mibig_database = args.mibig_database
-    path_mibig_jsons = args.mibig_jsons
+    path_asdb = args.asdb
 
     cur, conn = connect_to_database()
 
@@ -52,6 +53,11 @@ def main():
     if path_retromol:
         # NOTE: running this module twice, will add the same primary sequences twice
         add_retromol_results(cur, path_retromol)
+        conn.commit()
+
+    # add the parsed ASDB database to the database
+    if path_asdb:
+        add_asdb(cur, path_asdb)
         conn.commit()
 
     # count the number of compound records in the database
@@ -78,6 +84,11 @@ def main():
     cur.execute("SELECT COUNT(*) FROM primary_sequences")
     count = cur.fetchone()[0]
     print(f"number of primary_sequence records in the database: {count}")
+
+    # count the number of protocluster records in the database
+    cur.execute("SELECT COUNT(*) FROM protoclusters")
+    count = cur.fetchone()[0]
+    print(f"number of protocluster records in the database: {count}")
 
     cur.close()
     conn.close()

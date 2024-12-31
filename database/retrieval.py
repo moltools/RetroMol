@@ -79,6 +79,14 @@ class ProtoCluster:
             for module in modules:
                 if module in ["PKS_KS", "AMP-binding"]:
                     if module == "AMP-binding" and not gene_sequence_added:
+                        
+                        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                        # TODO: make sure parsing is better:
+                        # improvement 1: get AA sequence directly from features list
+                        # improvement 2: sometimes number of predicted domains does not align with number of units we are expecting
+                        #                to mitigate this group number of expected domains per gene
+                        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                         
                         gene_start = gene.start
                         gene_end = gene.end
                         gene_strand = gene.strand
@@ -90,6 +98,9 @@ class ProtoCluster:
                         gene_fasta = f">{gene.name}\n{gene_protein}"
                         to_predict.append(gene_fasta)
                         gene_sequence_added = True
+
+                        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
                     if current_group: groups.append(current_group)
                     current_group = [module]
                 elif (module in ["PKS_DH", "PKS_ER", "PKS_KR"] and current_group and current_group[0] == "PKS_KS"): current_group.append(module)
@@ -105,16 +116,12 @@ class ProtoCluster:
                 results = run_parasect(selected_input=to_predict, selected_input_type="fasta", path_temp_dir=TEMP_DIR, model=PARASECT_MODEL)
                 predicted_specificities = []
                 for j, result in enumerate(results):
-                    print(f"\ndomain {j+1}")
                     result_json = result.to_json()
                     predictions = result_json["predictions"]
                     predictions = sorted(predictions, key=lambda x: x["probability"], reverse=True)
-                    for i, prediction in enumerate(predictions[:3]):
-                        print(i+1, prediction["substrate_name"], prediction["probability"])
                     top_prediction = predictions[0]
                     top_prediction_name = top_prediction["substrate_name"]
                     predicted_specificities.append(top_prediction_name)
-                exit()
             except Exception as e:
                 print(f"Could not predict A-domain specificities: {e}")
                 predicted_specificities = []

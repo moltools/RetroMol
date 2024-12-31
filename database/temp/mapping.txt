@@ -1,3 +1,3 @@
-1	dptA
-2	dptBC
-3	dptD
+1	sesA
+2	sesB
+3	sesC
