@@ -1,3 +1,0 @@
-1	pmxA
-2	pmxB
-3	pmxE

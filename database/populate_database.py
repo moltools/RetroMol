@@ -5,7 +5,6 @@ import argparse
 from modules.step1_add_npatlas import add_npatlas
 from modules.step2_add_donphan import add_donphan
 from modules.step3_add_retromol_results import add_retromol_results
-from database.modules.step4_add_mibig_depr import add_mibig
 
 
 def cli():
@@ -14,8 +13,6 @@ def cli():
     parser.add_argument("--npatlas", required=False, help="path to the NPAtlas database json file")
     parser.add_argument("--donphan", required=False, help="path to the DONPHAN database csv file")
     parser.add_argument("--retromol", required=False, help="path to RetroMol results folder for NPAtlas compounds")
-    parser.add_argument("--mibig-database", required=False, help="path to the MIBiG database json files folder (download from MIBiG website)")
-    parser.add_argument("--mibig-jsons", required=False, help="path to the MIBiG jsons folder (download with 'get_mibig_jsons.py' script)")
     return parser.parse_args()
 
 
@@ -57,13 +54,6 @@ def main():
         add_retromol_results(cur, path_retromol)
         conn.commit()
 
-    # add the MIBiG database to the database
-    if path_mibig_database and path_mibig_jsons:
-        add_mibig(cur, path_mibig_database, path_mibig_jsons)
-        conn.commit()
-    elif path_mibig_database or path_mibig_jsons:
-        raise ValueError("both mibig database and mibig jsons must be provided")
-    
     # count the number of compound records in the database
     cur.execute("SELECT COUNT(*) FROM compounds")
     count = cur.fetchone()[0]
@@ -88,21 +78,6 @@ def main():
     cur.execute("SELECT COUNT(*) FROM primary_sequences")
     count = cur.fetchone()[0]
     print(f"number of primary_sequence records in the database: {count}")
-
-    # count the number of protocluster records in the database
-    cur.execute("SELECT COUNT(*) FROM protoclusters")
-    count = cur.fetchone()[0]
-    print(f"number of protocluster records in the database: {count}")
-
-    # count the number of compound records linked to primary_sequences
-    cur.execute("SELECT COUNT(DISTINCT primary_sequence_id) AS total_linked_sequences FROM compounds_primary_sequences;")
-    count = cur.fetchone()[0]
-    print(f"number of primary_sequences linked to compounds: {count}")
-
-    # count the number of protocluster records linked to primary_sequences
-    cur.execute("SELECT COUNT(DISTINCT primary_sequence_id) AS total_linked_sequences FROM protoclusters_primary_sequences;")
-    count = cur.fetchone()[0]
-    print(f"number of primary_sequences linked to protoclusters: {count}")
 
     cur.close()
     conn.close()
