@@ -3,7 +3,9 @@ import json
 import joblib
 from parasect.api import run_parasect # pip install git+https://github.com/BTheDragonMaster/parasect.git@webapp
 
-from step3_add_retromol_results import RETROMOL_VERSION
+from tqdm import tqdm
+
+from .step3_add_retromol_results import RETROMOL_VERSION
 
 
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "../temp")
@@ -16,7 +18,7 @@ def add_asdb(cur, path_asdb):
     """Add ASDB records to database."""
     # get all json files in asdb directory
     asdb_files = [f for f in os.listdir(path_asdb) if f.endswith('.json')]
-    for file_path in asdb_files:
+    for file_path in tqdm(asdb_files):
         with open(os.path.join(path_asdb, file_path), "r") as file:
             data = json.load(file)
         
@@ -63,28 +65,34 @@ def add_asdb(cur, path_asdb):
         else:
             primary_sequence = data["primary_sequence"]
 
+        # parse organism type_
+        try:
+            organism_type = data["taxonomy"][0].lower()
+            if "bacter" in organism_type: type_ = "bacterium"
+            elif "fung" in organism_type: type_ = "fungus"
+            elif "plant" in organism_type: type_ = "plant"
+            else: type_ = "unknown"
+        except:
+            type_ = "unknown"
 
+        # parse genus and species
+        try:
+            genus, species = data["organism"].split(" ", 1)
+            if species == "sp.": species = "unknown"
+        except:
+            genus, species = "unknown", "unknown"
 
-
-
-
-
-        # TODO: parse out data from parsed file so that can be uploaded to database
-        exit("TMP")
-
-
-
-
-
-
-
+        # parse input_file, start_pos, end_pos
+        input_file = data["input_file"]
+        start_pos = int(data["meta_data"]["start_proto_cluster"])
+        end_pos = int(data["meta_data"]["end_proto_cluster"])
 
         # add record to as protocluster
         cur.execute(
             """
             INSERT INTO protoclusters (input_file, start_pos, end_pos)
             VALUES (%s, %s, %s)
-            ON CONFLICT (input_file, start_pos, end_pos) DO NOTHING
+            ON CONFLICT (input_file, start_pos, end_pos)
             DO UPDATE SET input_file = protoclusters.input_file
             RETURNING id
             """,
