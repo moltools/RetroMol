@@ -85,6 +85,7 @@ class ProtoCluster:
                         # improvement 1: get AA sequence directly from features list
                         # improvement 2: sometimes number of predicted domains does not align with number of units we are expecting
                         #                to mitigate this group number of expected domains per gene
+                        # improvement 3: sometimes we also get "no adenyaltion domain found"; what's up with that?
                         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                          
                         gene_start = gene.start
@@ -298,7 +299,7 @@ def cli() -> argparse.Namespace:
     """Command line interface."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--scoring-matrix", type=str, required=True, help="path to scoring matrix csv file")
-    parser.add_argument("--antismash", type=str, required=True, help="path to antismash output json file")
+    parser.add_argument("--antismash", type=str, required=False, help="path to antismash output json file")
     return parser.parse_args()
 
 
@@ -413,11 +414,21 @@ def main() -> None:
     args = cli()
     scoring_matrix = parse_scoring_matrix(args.scoring_matrix)
     def score_func(a, b) -> int: return scoring_matrix[(str(a.name), str(b.name))]
-    with open(args.antismash, "r") as file: data = json.load(file)
-    queries = parse_antismash_json(data, predict_specificities=True)
+
+    if args.antismash:
+        with open(args.antismash, "r") as file: data = json.load(file)
+        queries = parse_antismash_json(data, predict_specificities=True)
+    else:
+        queries = [
+            {
+                "record_id": "test",
+                "primary_sequence": ["start", "glutamic acid", "leucine", "leucine", "valine", "aspartic acid", "leucine", "isoleucine", "valine", "valine", "end"]
+            }
+        ]
+
     print(f"number of queries: {len(queries)}") 
     organism_types = ["bacterium"]
-    organism_genus = ["Streptomyces"]
+    organism_genus = ["Bacillus"]
     print(f"retrieving targets for organism types {organism_types} and organism genus {organism_genus}")
     targets, primary_sequence_to_compound_ids = get_targets(organism_types if len(organism_types) else None, organism_genus if len(organism_genus) else None)
     print(f"number of database targets: {len(targets)}")
