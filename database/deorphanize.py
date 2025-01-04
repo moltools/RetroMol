@@ -10,6 +10,10 @@ from versalign.sequence import Sequence
 from populate_database import connect_to_database
 from retrieval import SequenceMotif, parse_scoring_matrix
 
+"""
+TODO:
+RUN DEORPHANIZATION AND GET ALIGNMENT SEQUENCES OUT AND NUM OF EXACT MATCHES!!!!
+"""
 
 def cli():
     parser = argparse.ArgumentParser()
