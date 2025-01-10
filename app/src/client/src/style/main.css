@@ -1,0 +1,23 @@
+@import "react-toastify/dist/ReactToastify.css";
+
+* {
+    font-family: "Arial", sans-serif;
+    color: black;
+}
+
+html, body {
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.Toastify__toast {
+    border-radius: 5;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #d6d6d6;
+    padding: 10px;
+    font-family: var(--main-font);
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.3);
+    background-color: white;
+    color: black;
+}

@@ -1,0 +1,28 @@
+version: "3.3"
+
+services:
+  retromol-server:
+    build:
+      context: . 
+      dockerfile: Dockerfile.server
+    image: retromol-server
+    restart: always
+    container_name: retromol-server
+    networks:
+      - retromol-network
+
+  retromol-client:
+    build: 
+      context: . 
+      dockerfile: Dockerfile.client 
+    image: retromol-client
+    ports:
+      - "4005:80"
+    restart: always
+    container_name: retromol-client
+    networks:
+      - retromol-network
+
+networks:
+  retromol-network:
+    driver: bridge

@@ -1,0 +1,6 @@
+python-dotenv
+flask
+gunicorn
+joblib
+apscheduler
+git+https://github.com/moltools/RetroMol

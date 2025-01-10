@@ -11,7 +11,12 @@ from retromol.matching import match_mol_greedily, greedy_max_set_cover
 from retromol.react import preprocess_mol, sequence_mol
 
 
-def run_retromol(name: str, smiles: str, out_folder: str, logger: Optional[logging.Logger] = None) -> float:
+def run_retromol(
+    name: str, 
+    smiles: str, 
+    out_folder: Optional[str] = None, 
+    logger: Optional[logging.Logger] = None
+) -> float:
     """Parse a SMILES string.
     
     :param name: Name of the molecule
@@ -197,6 +202,10 @@ def run_retromol(name: str, smiles: str, out_folder: str, logger: Optional[loggi
             for encoding in unidentified_sequenceable_picked_nodes
         }   
     )
+
+    if out_folder is None:
+        return out_data
+
     out_file = os.path.join(out_folder, f"out.json")
     with open(out_file, 'w') as f:
         json.dump(out_data, f, indent=4)
