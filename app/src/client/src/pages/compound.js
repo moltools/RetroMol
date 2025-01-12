@@ -161,7 +161,7 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                             </List>
                             <Box>
                                 <Typography variant="h6" gutterBottom>
-                                    Selected Encoding: {result ? result.encoding_to_identity[selectedEncoding]: 'None'}
+                                    Selected Encoding: {result ? result.encoding_to_identity[selectedEncoding] : null}
                                 </Typography>
                             </Box>
                         </Box>
@@ -196,8 +196,6 @@ ResultComponent.propTypes = {
 };
 
 const EncodingComponent = ({ result, encoding }) => {
-    console.log(result);
-
     return (
         <Box padding={4} backgroundColor="#ceccca" borderRadius={4}>
             <Grid container spacing={4} alignItems="flex-start">
@@ -205,7 +203,7 @@ const EncodingComponent = ({ result, encoding }) => {
                     <Paper elevation={3}>
                         <Box padding={2}>
                             <Typography variant="h6" gutterBottom>
-                                Encoding: {result.encoding_to_identity[encoding]}
+                                Encoding: {result ? result.encoding_to_identity[encoding] : null}
                             </Typography>
                         </Box>
                     </Paper>
@@ -249,6 +247,8 @@ const Compound = () => {
         setInputCollapsed(false);
         setResultCollapsed(true);
         setResult(null);
+        setEncodingCollapsed(true);
+        setEncoding(null);
     };
 
     // handle for compound submission
