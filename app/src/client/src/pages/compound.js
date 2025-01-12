@@ -117,7 +117,7 @@ SmilesInputComponent.propTypes = {
     busy: PropTypes.bool.isRequired,
 };
 
-const ResultComponent = ({ result }) => {
+const ResultComponent = ({ setForwardedEncoding, result }) => {
     const smiles = result.smiles;
     const encoding_to_atom_list = result.encoding_to_atom_list;
 
@@ -137,6 +137,7 @@ const ResultComponent = ({ result }) => {
     // Handler for encoding selection
     const handleSelect = (encoding) => {
         setSelectedEncoding(encoding);
+        setForwardedEncoding(encoding);
     };
 
     return (
@@ -158,6 +159,11 @@ const ResultComponent = ({ result }) => {
                                     </ListItem>
                                 ))}
                             </List>
+                            <Box>
+                                <Typography variant="h6" gutterBottom>
+                                    Selected Encoding: {result ? result.encoding_to_identity[selectedEncoding]: 'None'}
+                                </Typography>
+                            </Box>
                         </Box>
                     </Paper>
                 </Grid>
@@ -184,14 +190,58 @@ const ResultComponent = ({ result }) => {
     );
 }
 
+ResultComponent.propTypes = {
+    setForwardedEncoding: PropTypes.func.isRequired,
+    result: PropTypes.object.isRequired,
+};
+
+const EncodingComponent = ({ result, encoding }) => {
+    console.log(result);
+
+    return (
+        <Box padding={4} backgroundColor="#ceccca" borderRadius={4}>
+            <Grid container spacing={4} alignItems="flex-start">
+                <Grid item xs={12} md={6}>
+                    <Paper elevation={3}>
+                        <Box padding={2}>
+                            <Typography variant="h6" gutterBottom>
+                                Encoding: {result.encoding_to_identity[encoding]}
+                            </Typography>
+                        </Box>
+                    </Paper>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <Box
+                        display="flex"
+                        justifyContent="center"
+                        alignItems="center"
+                        height="100%"
+                        backgroundColor="#fff"
+                        borderRadius={1}
+                    >
+                        <SmilesDrawerContainer
+                            identifier="encoding-compound"
+                            smilesStr={result ? result.encoding_to_smiles[encoding] : ''}
+                            width={300}
+                            height={300}
+                        />
+                    </Box>
+                </Grid>
+            </Grid>
+        </Box>
+    );
+};
+
 const Compound = () => {
     const [busy, setBusy] = useState(false);
     const [smiles, setSmiles] = useState('');
     const [result, setResult] = useState(null);
+    const [encoding, setEncoding] = useState(null);
 
     // collapsed states input components
     const [inputCollapsed, setInputCollapsed] = useState(false);
     const [resultCollapsed, setResultCollapsed] = useState(true);
+    const [encodingCollapsed, setEncodingCollapsed] = useState(true);
 
     // handle for clearing the input field
     const handleClear = () => {
@@ -274,15 +324,35 @@ const Compound = () => {
                 <Box>
                     {/* Display the result of the compound parsing. */}
                     {!resultCollapsed ? (
-                        <ResultComponent result={result} />
+                        <ResultComponent 
+                            setForwardedEncoding={setEncoding}
+                            result={result} 
+                        />
                     ) : (
                         <SuccessMessage
                             message={result ? 'Parsing result available for display.' : 'No result to display.'}
                             onReopen={() => setResultCollapsed(false)}
-                            showOnReopen={result ? true : false}
+                            showOnReopen={true}
                         />
                     )}
                 </Box>
+
+                <Box>
+                    {/* Display the selected encoding. */}
+                    {encoding ? (
+                        <EncodingComponent
+                            result={result}
+                            encoding={encoding}
+                        />
+                    ) : (
+                        <SuccessMessage
+                            message="No encoding selected."
+                            onReopen={() => setEncodingCollapsed(false)}
+                            showOnReopen={false}
+                        />
+                    )}  
+                </Box>
+                    
             </Stack>
 
         </Box>
