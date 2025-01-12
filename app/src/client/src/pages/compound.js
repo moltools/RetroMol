@@ -157,17 +157,23 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
         <Box padding={4} backgroundColor="#ceccca" borderRadius={4}>
             <Grid container spacing={4} alignItems="flex-start">
                 <Grid item xs={12} md={6}>
-                    <Typography variant="body1" sx={{ height: 50, marginLeft: 1}}>
+                    {/* <Typography variant="body1" sx={{ height: 50, marginLeft: 1}}>
                         Select backbone:
-                    </Typography>
-                    <Paper 
-                        elevation={3}
-                        sx={{
-                            height: 300,
-                            overflow: 'auto',
-                        }}
-                    >
-                        <Box padding={2}>
+                    </Typography> */}
+                    <Paper elevation={3} sx ={{ padding: 0 }}>
+                        <Box padding={0} sx={{ overflow: 'auto' }}>
+                            <Box
+                                sx={{
+                                    borderTopLeftRadius: 4,
+                                    borderTopRightRadius: 4,
+                                    backgroundColor: 'primary.main',
+                                    color: 'common.white',
+                                }}
+                            >
+                                <Box padding={2} sx={{ fontWeight: 'regular', color: 'inherit', textAlign: 'center' }}>
+                                    SELECT BACKBONE
+                                </Box>
+                            </Box>
                             <List component="nav" aria-label="encoding options">
                                 {encodingKeys.map((encoding, index) => (
                                     <ListItem key={encoding} disablePadding>
@@ -260,6 +266,49 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                         highlightAtoms={linear_highlight_atoms}
                                     />
                                 )}
+                            </Box>
+                            <Box sx={{ height: 75, width: '100%' }}>
+                                <Stack direction="column" spacing={0.1}>
+                                    <Typography variant="body1" sx={{ height: 25, paddingLeft: 1}}>
+                                        Primary sequence:
+                                    </Typography>
+                                    <Stack
+                                        direction="row" 
+                                        spacing={0.3}
+                                        sx={{
+                                            display: 'flex',
+                                            justifyContent: 'flex-start',
+                                            alignItems: 'flex-start',
+                                            height: '100%',
+                                            width: '100%',
+                                            overflowX: 'auto',
+                                            flexWrap: 'nowrap',
+                                            paddingLeft: 1,
+                                            paddingBottom: 1,
+                                        }}
+                                    >
+                                        {result.encoding_to_primary_sequence[selectedEncoding].map((motif, index) => (
+                                            <Box 
+                                                key={index} 
+                                                sx={{ 
+                                                    padding: 1,
+                                                    backgroundColor: 'secondary.main',
+                                                    flexShrink: 0,
+                                                    boxShadow: 1,
+                                                    borderRadius: 2,
+                                                }}
+                                            >
+                                                <Typography 
+                                                    variant="body1" 
+                                                    noWrap
+                                                    sx={{ fontWeight: 'bold' }}
+                                                >
+                                                    {motif.name}
+                                                </Typography>
+                                            </Box>
+                                        ))}
+                                    </Stack>
+                                </Stack>
                             </Box>
                         </Stack>
                     </Paper>  

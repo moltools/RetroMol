@@ -248,7 +248,7 @@ def run_retromol(
                     if tag > 0:
                         highlights.append([tag, color])
             encoding_to_highlights[encoding] = highlights
-            encoding_to_primary_sequence[encoding] = primary_sequence
+            encoding_to_primary_sequence[encoding] = primary_sequence[::-1]
     out_data["encoding_to_highlights"] = encoding_to_highlights
     out_data["encoding_to_primary_sequence"] = encoding_to_primary_sequence
 
