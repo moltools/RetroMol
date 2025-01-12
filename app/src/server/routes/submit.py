@@ -27,6 +27,9 @@ def submit_compound() -> Response:
         return ResponseData(status=Status.FAILURE, message="No SMILES provided.").to_dict()
 
     else:
-        smiles = data["smiles"]
-        payload = run_retromol("compound", smiles)
-        return ResponseData(status=Status.SUCCESS, payload=payload, message="Compound parsed.").to_dict()
+        try:
+            smiles = data["smiles"]
+            payload = run_retromol("compound", smiles)
+            return ResponseData(status=Status.SUCCESS, payload=payload, message="Compound successfully parsed.").to_dict()
+        except Exception as e:
+            return ResponseData(status=Status.FAILURE, message="Failed to parse compound.").to_dict()
