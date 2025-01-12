@@ -203,6 +203,16 @@ def run_retromol(
         }   
     )
 
+    # add edge list per identified node
+    encoding_to_atom_list = {}
+    for encoding, smiles in out_data["encoding_to_smiles"].items():
+        mol = Chem.MolFromSmiles(smiles)
+        atom_list = []
+        for atom in mol.GetAtoms():
+            atom_list.append(atom.GetIsotope())
+        encoding_to_atom_list[encoding] = atom_list
+    out_data["encoding_to_atom_list"] = encoding_to_atom_list
+
     if out_folder is None:
         return out_data
 

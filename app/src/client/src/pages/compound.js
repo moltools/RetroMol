@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Typography, Button, TextField, Grid, Stack, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Button, TextField, Grid, Stack, IconButton, Tooltip, Paper, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
 import PropTypes from 'prop-types';
 import SmilesDrawerContainer from '../components/SmilesDrawer';
 import { toast } from 'react-toastify';
 import ReplayIcon from '@mui/icons-material/Replay';
-import { Graph, VF2Matcher } from '../components/VF2Matcher';
 
 const SuccessMessage = ({ message, onReopen, showOnReopen }) => (
     <Box
@@ -119,18 +118,48 @@ SmilesInputComponent.propTypes = {
 };
 
 const ResultComponent = ({ result }) => {
+    const smiles = result.smiles;
+    const encoding_to_atom_list = result.encoding_to_atom_list;
+
+    // Extract all encoding keys
+    const encodingKeys = Object.keys(encoding_to_atom_list);
+
+    // State to manage selected encoding
+    const [selectedEncoding, setSelectedEncoding] = useState(
+        encodingKeys.length > 0 ? encodingKeys[0] : null
+    );
+
+    // Get the corresponding atom list for the selected encoding
+    const highlight_atoms = selectedEncoding
+        ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, 'blue'])
+        : [];
+
+    // Handler for encoding selection
+    const handleSelect = (encoding) => {
+        setSelectedEncoding(encoding);
+    };
+
     return (
         <Box padding={4} backgroundColor="#ceccca" borderRadius={4}>
             <Grid container spacing={4} alignItems="flex-start">
                 <Grid item xs={12} md={6}>
-                    <Stack
-                        direction="column"
-                        spacing={2}
-                    >
-                        <Typography variant="body1">
-                            {JSON.stringify(result.encoding_to_identity, null, 2)}
-                        </Typography>
-                    </Stack>
+                    <Paper elevation={3}>
+                        <Box padding={2}>
+                            <List component="nav" aria-label="encoding options">
+                                {encodingKeys.map((encoding) => (
+                                    <ListItem key={encoding} disablePadding>
+                                        <ListItemButton
+                                            selected={selectedEncoding === encoding}
+                                            onClick={() => handleSelect(encoding)}
+                                        >
+                                            {/* <ListItemText primary={encoding} /> */}
+                                            <ListItemText primary={result.encoding_to_identity[encoding]} />
+                                        </ListItemButton>
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Box>
+                    </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Box
@@ -142,10 +171,11 @@ const ResultComponent = ({ result }) => {
                         borderRadius={1}
                     >
                         <SmilesDrawerContainer
-                            identifier="input-compound"
-                            smilesStr={result.smiles}
+                            identifier="result-compound"
+                            smilesStr={smiles}
                             width={300}
                             height={300}
+                            highlightAtoms={highlight_atoms}
                         />
                     </Box>
                 </Grid>
@@ -154,54 +184,7 @@ const ResultComponent = ({ result }) => {
     );
 }
 
-function createMolecule(bonds) {
-    const graph = new Graph();
-    // Add all bonds to the graph
-    bonds.forEach(bond => graph.addEdge(bond.source, bond.target, bond.bond));
-    return graph;
-}
-
 const Compound = () => {
-
-    // Define atoms and bonds for the first ethanol molecule
-    const bonds1 = [
-        { source: 'C1', target: 'C2', bond: 'single' },
-        { source: 'C2', target: 'O1', bond: 'single' },
-        { source: 'C1', target: 'H1', bond: 'single' },
-        { source: 'C1', target: 'H2', bond: 'single' },
-        { source: 'C1', target: 'H3', bond: 'single' },
-        { source: 'C2', target: 'H4', bond: 'single' },
-        { source: 'C2', target: 'H5', bond: 'single' },
-        { source: 'O1', target: 'H6', bond: 'single' }
-    ];
-
-    // Define atoms and bonds for the second ethanol molecule (different indexing)
-    const bonds2 = [
-        { source: 'A', target: 'B', bond: 'single' },
-        { source: 'B', target: 'C', bond: 'single' },
-        { source: 'A', target: 'D', bond: 'single' },
-        { source: 'A', target: 'E', bond: 'single' },
-        { source: 'A', target: 'F', bond: 'single' },
-        { source: 'B', target: 'G', bond: 'single' },
-        { source: 'B', target: 'H', bond: 'single' },
-        { source: 'C', target: 'I', bond: 'single' }
-    ];
-
-    // Create molecular graphs
-    const mol1 = createMolecule(bonds1);
-    const mol2 = createMolecule(bonds2);
-
-    // Initialize VF2 Matcher
-    const matcher = new VF2Matcher(mol1, mol2);
-
-    // Check isomorphism
-    if (matcher.isIsomorphic()) {
-        console.log("Graphs are isomorphic.");
-        console.log("Mapping:", matcher.getMapping());
-    } else {
-        console.log("Graphs are not isomorphic.");
-    }
-
     const [busy, setBusy] = useState(false);
     const [smiles, setSmiles] = useState('');
     const [result, setResult] = useState(null);

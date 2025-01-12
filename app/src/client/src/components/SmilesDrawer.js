@@ -20,8 +20,12 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
 
             for (var j = 0; j < preprocessor.highlight_atoms.length; j++) {
                 let highlight = preprocessor.highlight_atoms[j]
-                if (atom.idx === highlight[0]) {
-                    svgWrapper.drawAtomHighlight(vertex.position.x, vertex.position.y, highlight[1]);
+
+                // if atom.bracket !== null, then it is a bracket atom, and we continue
+                if (atom.bracket !== null) {
+                    if (atom.bracket.isotope === highlight[0]) {
+                        svgWrapper.drawAtomHighlight(vertex.position.x, vertex.position.y, highlight[1]);
+                    }
                 }
             }
         }
@@ -50,7 +54,7 @@ const SmilesDrawerContainer = ({ identifier, smilesStr, width, height, highlight
         SmilesDrawer.parse(smilesStr, function (tree) {
             drawer.draw(tree, target, themeName, weights, infoOnly, highlightAtoms, weightsNormalized);
         });
-    }, [smilesStr]); // re-draw the molecule when the SMILES string changes
+    }, [smilesStr, highlightAtoms]); // re-draw the molecule when the SMILES string changes
 
     return (
         <Box key={identifier} sx={{ width: width, height: height }}>
