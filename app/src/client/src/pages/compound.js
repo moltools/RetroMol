@@ -21,7 +21,7 @@ const SuccessMessage = ({ message, onReopen, showOnReopen }) => (
             {message}
         </Typography>
         {showOnReopen && (
-            <Tooltip title="Reopen Input">
+            <Tooltip title="Reopen input box" arrow>
                 <IconButton color="primary" onClick={onReopen} aria-label="Reopen Input">
                     <ReplayIcon />
                 </IconButton>
@@ -89,13 +89,15 @@ const SmilesInputComponent = ({
                     </Stack>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                    <Box
-                        display="flex"
-                        justifyContent="center"
-                        alignItems="center"
-                        height="100%"
+                    <Paper
                         backgroundColor="#fff"
                         borderRadius={1}
+                        elevation={3}
+                        sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
                     >
                         <SmilesDrawerContainer
                             identifier="input-compound"
@@ -103,7 +105,7 @@ const SmilesInputComponent = ({
                             width={300}
                             height={300}
                         />
-                    </Box>
+                    </Paper>
                 </Grid>
             </Grid>
         </Box>
@@ -121,69 +123,146 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
     const smiles = result.smiles;
     const encoding_to_atom_list = result.encoding_to_atom_list;
 
-    // Extract all encoding keys
-    const encodingKeys = Object.keys(encoding_to_atom_list);
+    const [molviewTab, setMolviewTab] = useState('overview');
+
+    // Extract all encoding keys, but only if 'result.encoding_to_identity[encoding]' is equal to _backbone
+    const encodingKeys= Object.keys(encoding_to_atom_list).filter((encoding) => result.encoding_to_identity[encoding] === '_backbone');
 
     // State to manage selected encoding
     const [selectedEncoding, setSelectedEncoding] = useState(
         encodingKeys.length > 0 ? encodingKeys[0] : null
     );
 
+    const [linearSmiles, setLinearSmiles] = useState(
+        selectedEncoding ? result.encoding_to_smiles[selectedEncoding] : null
+    );
+
     // Get the corresponding atom list for the selected encoding
     const highlight_atoms = selectedEncoding
-        ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, 'blue'])
+        ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, '#3d7dca'])
+        : [];
+
+    const linear_highlight_atoms = selectedEncoding
+        ? result.encoding_to_highlights[selectedEncoding]
         : [];
 
     // Handler for encoding selection
     const handleSelect = (encoding) => {
         setSelectedEncoding(encoding);
         setForwardedEncoding(encoding);
+        setLinearSmiles(result.encoding_to_smiles[encoding]);
     };
 
     return (
         <Box padding={4} backgroundColor="#ceccca" borderRadius={4}>
             <Grid container spacing={4} alignItems="flex-start">
                 <Grid item xs={12} md={6}>
-                    <Paper elevation={3}>
+                    <Typography variant="body1" sx={{ height: 50, marginLeft: 1}}>
+                        Select backbone:
+                    </Typography>
+                    <Paper 
+                        elevation={3}
+                        sx={{
+                            height: 300,
+                            overflow: 'auto',
+                        }}
+                    >
                         <Box padding={2}>
                             <List component="nav" aria-label="encoding options">
-                                {encodingKeys.map((encoding) => (
+                                {encodingKeys.map((encoding, index) => (
                                     <ListItem key={encoding} disablePadding>
                                         <ListItemButton
                                             selected={selectedEncoding === encoding}
                                             onClick={() => handleSelect(encoding)}
                                         >
-                                            {/* <ListItemText primary={encoding} /> */}
-                                            <ListItemText primary={result.encoding_to_identity[encoding]} />
+                                            {/* <ListItemText primary={result.encoding_to_identity[encoding]} /> */}
+                                            <ListItemText primary={`Backbone ${index + 1}`} />
                                         </ListItemButton>
                                     </ListItem>
                                 ))}
                             </List>
-                            <Box>
-                                <Typography variant="h6" gutterBottom>
-                                    Selected Encoding: {result ? result.encoding_to_identity[selectedEncoding] : null}
-                                </Typography>
-                            </Box>
                         </Box>
                     </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                    <Box
-                        display="flex"
-                        justifyContent="center"
-                        alignItems="center"
-                        height="100%"
+                    <Paper
                         backgroundColor="#fff"
                         borderRadius={1}
+                        elevation={3}
                     >
-                        <SmilesDrawerContainer
-                            identifier="result-compound"
-                            smilesStr={smiles}
-                            width={300}
-                            height={300}
-                            highlightAtoms={highlight_atoms}
-                        />
-                    </Box>
+                        <Stack direction="column">
+                            {/* box on top has two tabs left and right */}
+                            <Box sx={{ height: 50, width: '100%' }}>
+                                <Stack
+                                    direction="row"
+                                    spacing={0.1}
+                                    sx={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '100%',
+                                        width: '100%',
+                                    }}
+                                >
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => setMolviewTab('overview')}
+                                        sx={{
+                                            borderTopLeftRadius: '4px',
+                                            borderTopRightRadius: 0,
+                                            borderBottomLeftRadius: 0,
+                                            borderBottomRightRadius: 0,
+                                            flex: 1,
+                                            height: '50px',
+                                        }}
+                                    >
+                                        Overview
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => setMolviewTab('linear')}
+                                        sx={{
+                                            borderTopLeftRadius: 0,
+                                            borderTopRightRadius: '4px',
+                                            borderBottomLeftRadius: 0,
+                                            borderBottomRightRadius: 0,
+                                            flex: 1,
+                                            height: '50px',
+                                        }}
+                                    >
+                                        Backbone 
+                                    </Button>
+                                </Stack>
+                            </Box>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                {molviewTab === 'overview' ? (
+                                    <SmilesDrawerContainer
+                                        identifier="result-compound"
+                                        smilesStr={smiles}
+                                        width={300}
+                                        height={300}
+                                        highlightAtoms={highlight_atoms}
+                                    />
+                                ) : (
+                                    <SmilesDrawerContainer
+                                        identifier="result-compound"
+                                        smilesStr={linearSmiles}
+                                        width={300}
+                                        height={300}
+                                        highlightAtoms={linear_highlight_atoms}
+                                    />
+                                )}
+                            </Box>
+                        </Stack>
+                    </Paper>  
                 </Grid>
             </Grid>
         </Box>
@@ -193,41 +272,6 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
 ResultComponent.propTypes = {
     setForwardedEncoding: PropTypes.func.isRequired,
     result: PropTypes.object.isRequired,
-};
-
-const EncodingComponent = ({ result, encoding }) => {
-    return (
-        <Box padding={4} backgroundColor="#ceccca" borderRadius={4}>
-            <Grid container spacing={4} alignItems="flex-start">
-                <Grid item xs={12} md={6}>
-                    <Paper elevation={3}>
-                        <Box padding={2}>
-                            <Typography variant="h6" gutterBottom>
-                                Encoding: {result ? result.encoding_to_identity[encoding] : null}
-                            </Typography>
-                        </Box>
-                    </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Box
-                        display="flex"
-                        justifyContent="center"
-                        alignItems="center"
-                        height="100%"
-                        backgroundColor="#fff"
-                        borderRadius={1}
-                    >
-                        <SmilesDrawerContainer
-                            identifier="encoding-compound"
-                            smilesStr={result ? result.encoding_to_smiles[encoding] : ''}
-                            width={300}
-                            height={300}
-                        />
-                    </Box>
-                </Grid>
-            </Grid>
-        </Box>
-    );
 };
 
 const Compound = () => {
@@ -335,22 +379,6 @@ const Compound = () => {
                             showOnReopen={true}
                         />
                     )}
-                </Box>
-
-                <Box>
-                    {/* Display the selected encoding. */}
-                    {encoding ? (
-                        <EncodingComponent
-                            result={result}
-                            encoding={encoding}
-                        />
-                    ) : (
-                        <SuccessMessage
-                            message="No encoding selected."
-                            onReopen={() => setEncodingCollapsed(false)}
-                            showOnReopen={false}
-                        />
-                    )}  
                 </Box>
                     
             </Stack>

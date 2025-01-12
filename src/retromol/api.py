@@ -213,6 +213,45 @@ def run_retromol(
         encoding_to_atom_list[encoding] = atom_list
     out_data["encoding_to_atom_list"] = encoding_to_atom_list
 
+    color_pallette = [
+        "#e69f00",
+        "#56b4e9",
+        "#039e73",
+        "#f0e442",
+        "#0072b2",
+        "#d55f00",
+        "#cc79a7",
+        "#ceccca",
+    ]
+
+    # get encoding to highlights 
+    encoding_to_highlights = {}
+    encoding_to_primary_sequence = {}
+    for encoding, identity in out_data["encoding_to_identity"].items():
+        if identity == "_backbone":
+            motif_codes = out_data["encoding_to_motif_codes"][encoding].values()
+            # every item in motif_code has 'identity', pick the one that has most items with identity not None
+            best_motif_code = max(motif_codes, key=lambda x: sum(1 for motif in x if motif["identity"] is not None))
+            highlights = []
+            primary_sequence = []
+            for i, motif in enumerate(best_motif_code):
+                color = color_pallette[i % len(color_pallette)]
+                primary_sequence.append({
+                    "name": motif["identity"],
+                    "smiles": motif["smiles"],
+                    "color": color
+                })
+                motif_smiles = motif["smiles"]
+                mol = Chem.MolFromSmiles(motif_smiles)
+                for atom in mol.GetAtoms():
+                    tag = atom.GetIsotope()
+                    if tag > 0:
+                        highlights.append([tag, color])
+            encoding_to_highlights[encoding] = highlights
+            encoding_to_primary_sequence[encoding] = primary_sequence
+    out_data["encoding_to_highlights"] = encoding_to_highlights
+    out_data["encoding_to_primary_sequence"] = encoding_to_primary_sequence
+
     if out_folder is None:
         return out_data
 
