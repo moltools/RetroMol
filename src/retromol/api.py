@@ -224,6 +224,9 @@ def run_retromol(
         "#ceccca",
     ]
 
+    polyketide_smarts = Chem.MolFromSmarts("[OH]SC~CC(=O)[OH]")
+    cooh_smarts = Chem.MolFromSmarts("C(=O)[OH]")
+
     # get encoding to highlights 
     encoding_to_highlights = {}
     encoding_to_primary_sequence = {}
@@ -244,7 +247,21 @@ def run_retromol(
                 })
                 motif_smiles = motif["smiles"]
                 mol = Chem.MolFromSmiles(motif_smiles)
+
+                # make sure carboxyl group is not included in highlight for output
+                # only for last motif (so first in this sequence):
+                cooh_inds = []
+                # check if mol is polyketide motif:
+                if mol.HasSubstructMatch(polyketide_smarts):
+                    # see which atoms match the cooh_smarts:
+                    matches = mol.GetSubstructMatches(cooh_smarts)
+                    if matches:
+                        for ind in matches[0]:
+                            cooh_inds.append(ind)   
+
                 for atom in mol.GetAtoms():
+                    if atom.GetIdx() in cooh_inds:
+                        continue
                     tag = atom.GetIsotope()
                     if tag > 0:
                         motif_highlights.append(tag)

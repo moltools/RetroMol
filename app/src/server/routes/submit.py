@@ -32,4 +32,4 @@ def submit_compound() -> Response:
             payload = run_retromol("compound", smiles)
             return ResponseData(status=Status.SUCCESS, payload=payload, message="Compound successfully parsed.").to_dict()
         except Exception as e:
-            return ResponseData(status=Status.FAILURE, message="Failed to parse compound.").to_dict()
+            return ResponseData(status=Status.FAILURE, message=f"Failed to parse compound: {e}").to_dict()
