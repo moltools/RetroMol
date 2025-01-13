@@ -23,10 +23,10 @@ LINEARIZATION_RULES = [
         "name": "glycosyltransferase", 
         "reaction_smarts": r"[C:1][O:2][C:3]1[O:4][C:5][C:6][C:7][C:8]1>>[C:1][OH:2].[OH][C:3]1[O:4][C:5][C:6][C:7][C:8]1"
     },
-    # {
-    #     "name": "etherification 1",
-    #     "reaction_smarts": r"[*:1]-[CH0:2]1(-[OH:3])-[O:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1>>([*:1]-[CH0:2]1=[OH0:3].[OH1:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)",
-    # },
+    {
+        "name": "etherification 1",
+        "reaction_smarts": r"[*:1]-[CH0:2]1(-[OH:3])-[O:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1>>([*:1]-[CH0:2]1=[OH0:3].[OH1:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)",
+    },
     # {
     #     "name": "etherification 2",
     #     "reaction_smarts": r"[*&D2,D3:3]-[CH1:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:8][C:9]1>>([*&D2,D3:3]-[CH0:1]=[C:2]1.[OH:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)",
@@ -240,11 +240,11 @@ SEQUENCING_RULES = [
     },
     {
         "name": "pks (ether-5)",
-        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C:9]1>>[O][C](=[O])[C:7][C:8][C:9][OH:6].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]"
+        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C&D3:9]1[C:10]>>[O][C](=[O])[C:7][C:8][C:9]([OH:6])[C:10].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]"
     },
     {
         "name": "pks (ether-6)",
-        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C:9][C:10]1>>[O][C](=[O])[C:7][C:8][C:9][C:10][OH:6].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]"
+        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C:9][C&D3:10]1[C:11]>>[O][C](=[O])[C:7][C:8][C:9][C:10]([OH:6])[C:11].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]"
     },
     {
         "name": "adenylation domain (alpha amino acid proline-like)", 
