@@ -88,7 +88,7 @@ const SmilesInputComponent = ({
                             <Button
                                 variant="contained"
                                 color="secondary"
-                                onClick={() => setSmiles('CCC[C@@H]1C[C@@H](C[C@@H](C[C@@H]2C[C@H](C[C@@H](O2)CC(=O)O1)OC(=O)C=CCCC3=COC(=N3)C=CCNC(=O)OC)C)OC')}
+                                onClick={() => setSmiles("CCC[C@@H]1C[C@@H](C[C@@H](C[C@@H]2C[C@H](C[C@@H](O2)CC(=O)O1)OC(=O)/C=C\\CCC3=COC(=N3)/C=C\\CNC(=O)OC)C)OC")}
                             >
                                 <Typography variant="body1" sx={{ color: 'common.black' }}>
                                     Example: neopeltolide
