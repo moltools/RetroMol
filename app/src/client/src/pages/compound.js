@@ -4,24 +4,27 @@ import PropTypes from 'prop-types';
 import SmilesDrawerContainer from '../components/SmilesDrawer';
 import { toast } from 'react-toastify';
 import ReplayIcon from '@mui/icons-material/Replay';
+import ExitIcon from '@mui/icons-material/ExitToApp';
 
 const SuccessMessage = ({ message, onReopen, showOnReopen }) => (
     <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        paddingTop={2}
-        paddingBottom={2}
-        paddingLeft={4}
-        paddingRight={4}
-        borderRadius={4}
-        backgroundColor="#ceccca"
+        sx={{
+            backgroundColor:"#ceccca",
+            borderRadius: 4,
+            paddingTop: 2,
+            paddingBottom: 2,
+            paddingLeft: 4,
+            paddingRight: 4,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            display: 'flex',
+        }}
     >
         <Typography variant="body1">
             {message}
         </Typography>
         {showOnReopen && (
-            <Tooltip title="Reopen input box" arrow>
+            <Tooltip title="Reopen input form." arrow>
                 <IconButton color="primary" onClick={onReopen} aria-label="Reopen Input">
                     <ReplayIcon />
                 </IconButton>
@@ -43,7 +46,7 @@ const SmilesInputComponent = ({
     busy,
 }) => {
     return (
-        <Box padding={4} backgroundColor="#ceccca" borderRadius={4}>
+        <Box padding={4} sx={{backgroundColor: "#ceccca", borderRadius: 4}}>
             <Grid container spacing={4} alignItems="flex-start">
                 <Grid item xs={12} md={6}>
                     <Stack
@@ -68,42 +71,48 @@ const SmilesInputComponent = ({
                                 color="primary"
                                 onClick={handleSubmitCompound}
                                 disabled={busy}
-                            >
-                                {busy ? 'Parsing...' : 'Parse'}
+                            >   
+                                <Typography variant="body1" sx={{ color: 'common.white' }}>
+                                    {busy ? 'Parsing...' : 'Parse'}
+                                </Typography>
                             </Button>
                             <Button
                                 variant="contained"
                                 color="secondary"
                                 onClick={handleClear}
                             >
-                                Clear
+                                <Typography variant="body1" sx={{ color: 'common.black' }}>
+                                    Clear
+                                </Typography>
                             </Button>
                             <Button
                                 variant="contained"
                                 color="secondary"
                                 onClick={() => setSmiles('CCC[C@@H]1C[C@@H](C[C@@H](C[C@@H]2C[C@H](C[C@@H](O2)CC(=O)O1)OC(=O)C=CCCC3=COC(=N3)C=CCNC(=O)OC)C)OC')}
                             >
-                                Example: neopeltolide
+                                <Typography variant="body1" sx={{ color: 'common.black' }}>
+                                    Example: neopeltolide
+                                </Typography>
                             </Button>
                         </Stack>
                     </Stack>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Paper
-                        backgroundColor="#fff"
-                        borderRadius={1}
                         elevation={3}
                         sx={{
+                            backgroundColor: "#fff",
                             display: 'flex',
                             justifyContent: 'center',
                             alignItems: 'center',
+                            borderRadius: 1
                         }}
                     >
                         <SmilesDrawerContainer
                             identifier="input-compound"
                             smilesStr={smiles}
-                            width={300}
-                            height={300}
+                            width={500}
+                            height={500}
                         />
                     </Paper>
                 </Grid>
@@ -139,61 +148,96 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
 
     // Get the corresponding atom list for the selected encoding
     const highlight_atoms = selectedEncoding
-        ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, '#3d7dca'])
+        // ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, '#3d7dca'])
+        ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, '#ceccca'])
         : [];
 
-    const linear_highlight_atoms = selectedEncoding
-        ? result.encoding_to_highlights[selectedEncoding]
-        : [];
+    // const linear_highlight_atoms = selectedEncoding
+    //     ? result.encoding_to_highlights[selectedEncoding]
+    //     : [];
+
+    const [linearHighlightsAtoms, setLinearHighlightsAtoms] = useState([]);
+    const [selectedMotifIndex, setSelectedMotifIndex] = useState(null);
 
     // Handler for encoding selection
     const handleSelect = (encoding) => {
         setSelectedEncoding(encoding);
         setForwardedEncoding(encoding);
         setLinearSmiles(result.encoding_to_smiles[encoding]);
+        setSelectedMotifIndex(null);
+        setLinearHighlightsAtoms([]);
     };
 
     return (
-        <Box padding={4} backgroundColor="#ceccca" borderRadius={4}>
+        <Box padding={4} sx={{backgroundColor: "#ceccca", borderRadius: 4}}> 
             <Grid container spacing={4} alignItems="flex-start">
                 <Grid item xs={12} md={6}>
                     {/* <Typography variant="body1" sx={{ height: 50, marginLeft: 1}}>
                         Select backbone:
                     </Typography> */}
-                    <Paper elevation={3} sx ={{ padding: 0 }}>
-                        <Box padding={0} sx={{ overflow: 'auto' }}>
-                            <Box
+                    <Stack
+                        direction="column"
+                        spacing={2}
+                    >
+                        <Paper elevation={3} sx ={{ padding: 0 }}>
+                            <Box padding={0} sx={{ overflow: 'auto' }}>
+                                <Box
+                                    sx={{
+                                        borderTopLeftRadius: 4,
+                                        borderTopRightRadius: 4,
+                                        backgroundColor: 'primary.main',
+                                        color: 'common.white',
+                                    }}
+                                >
+                                    <Box padding={2} sx={{ fontWeight: 'regular', color: 'inherit', textAlign: 'center' }}>
+                                        SELECT PRIMARY SEQUENCE
+                                    </Box>
+                                </Box>
+                                <List component="nav" aria-label="encoding options">
+                                    {encodingKeys.map((encoding, index) => (
+                                        <ListItem key={encoding} disablePadding>
+                                            <ListItemButton
+                                                selected={selectedEncoding === encoding}
+                                                onClick={() => handleSelect(encoding)}
+                                            >
+                                                {/* <ListItemText primary={result.encoding_to_identity[encoding]} /> */}
+                                                <ListItemText primary={`Primary sequence ${index + 1}`} />
+                                            </ListItemButton>
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            </Box>
+                        </Paper>
+                        <Tooltip
+                            title="Forward primary sequence to query page."
+                            arrow
+                        >
+                            <Button
+                                variant="contained"
+                                color="secondary"
                                 sx={{
-                                    borderTopLeftRadius: 4,
-                                    borderTopRightRadius: 4,
-                                    backgroundColor: 'primary.main',
-                                    color: 'common.white',
+                                    width: '100%',
+                                    height: 50,
+                                    center: 'center',
+                                    alignItems: 'center',
+                                }}
+                                onClick={() => {
+                                    // open /query/:query? page with selected primary sequence
+                                    const query = result.encoding_to_primary_sequence[selectedEncoding].map((motif) => motif.name).join('>');
+                                    window.open(`/query/${query}`, '_blank');
                                 }}
                             >
-                                <Box padding={2} sx={{ fontWeight: 'regular', color: 'inherit', textAlign: 'center' }}>
-                                    SELECT BACKBONE
-                                </Box>
-                            </Box>
-                            <List component="nav" aria-label="encoding options">
-                                {encodingKeys.map((encoding, index) => (
-                                    <ListItem key={encoding} disablePadding>
-                                        <ListItemButton
-                                            selected={selectedEncoding === encoding}
-                                            onClick={() => handleSelect(encoding)}
-                                        >
-                                            {/* <ListItemText primary={result.encoding_to_identity[encoding]} /> */}
-                                            <ListItemText primary={`Backbone ${index + 1}`} />
-                                        </ListItemButton>
-                                    </ListItem>
-                                ))}
-                            </List>
-                        </Box>
-                    </Paper>
+                                <Typography variant="body1" sx={{ color: 'common.black', fontWeight: 'bold' }}>
+                                        Forward primary sequence
+                                </Typography>
+                                <ExitIcon sx={{ marginLeft: 1 }} />
+                            </Button>
+                        </Tooltip>
+                    </Stack>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Paper
-                        backgroundColor="#fff"
-                        borderRadius={1}
+                        sx={{backgroundColor:"#fff", borderRadius: 1}}  
                         elevation={3}
                     >
                         <Stack direction="column">
@@ -201,7 +245,7 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                             <Box sx={{ height: 50, width: '100%' }}>
                                 <Stack
                                     direction="row"
-                                    spacing={0.1}
+                                    spacing={0}
                                     sx={{
                                         display: 'flex',
                                         justifyContent: 'center',
@@ -221,9 +265,17 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                             borderBottomRightRadius: 0,
                                             flex: 1,
                                             height: '50px',
+                                            boxShadow: molviewTab === 'overview' ? 'inset 0px 2px 5px rgba(0,0,0,1)' : undefined,
+                                            transition: 'all 0.3s ease-in-out',
+                                            '&:active': {
+                                                boxShadow: molviewTab === 'overview' ? 'inset 0px 2px 5px rgba(0,0,0,1)' : undefined,
+                                                transform: molviewTab === 'overview' ? 'translateY(2px)' : 'none',
+                                            },
                                         }}
                                     >
-                                        Overview
+                                        <Typography variant="body1" sx={{ color: 'common.white' }}>
+                                            Overview
+                                        </Typography>
                                     </Button>
                                     <Button
                                         variant="contained"
@@ -236,9 +288,17 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                             borderBottomRightRadius: 0,
                                             flex: 1,
                                             height: '50px',
+                                            boxShadow: molviewTab === 'linear' ? 'inset 0px 2px 5px rgba(0,0,0,1)' : undefined,
+                                            transition: 'all 0.2s ease-in-out',
+                                            '&:active': {
+                                                boxShadow: molviewTab === 'linear' ? 'inset 0px 2px 5px rgba(0,0,0,1)' : undefined,
+                                                transform: molviewTab === 'linear' ? 'translateY(2px)' : 'none',
+                                            },
                                         }}
                                     >
-                                        Backbone 
+                                        <Typography variant="body1" sx={{ color: 'common.white' }}>
+                                            Linear view
+                                        </Typography>
                                     </Button>
                                 </Stack>
                             </Box>
@@ -253,23 +313,23 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                     <SmilesDrawerContainer
                                         identifier="result-compound"
                                         smilesStr={smiles}
-                                        width={300}
-                                        height={300}
+                                        width={500}
+                                        height={500}
                                         highlightAtoms={highlight_atoms}
                                     />
                                 ) : (
                                     <SmilesDrawerContainer
                                         identifier="result-compound"
                                         smilesStr={linearSmiles}
-                                        width={300}
-                                        height={300}
-                                        highlightAtoms={linear_highlight_atoms}
+                                        width={500}
+                                        height={500}
+                                        highlightAtoms={linearHighlightsAtoms}
                                     />
                                 )}
                             </Box>
-                            <Box sx={{ height: 75, width: '100%' }}>
+                            <Box sx={{ height: 90, paddingBottom: 1.5 }}>
                                 <Stack direction="column" spacing={0.1}>
-                                    <Typography variant="body1" sx={{ height: 25, paddingLeft: 1}}>
+                                    <Typography variant="body1" sx={{ height: 25, paddingLeft: 2.5, paddingBottom: 1 }}>
                                         Primary sequence:
                                     </Typography>
                                     <Stack
@@ -280,15 +340,17 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                             justifyContent: 'flex-start',
                                             alignItems: 'flex-start',
                                             height: '100%',
-                                            width: '100%',
                                             overflowX: 'auto',
+                                            overflowY: 'hidden',
                                             flexWrap: 'nowrap',
                                             paddingLeft: 1,
-                                            paddingBottom: 1,
+                                            paddingBottom: 2.5,
+                                            paddingRight: 1,
                                         }}
                                     >
                                         {result.encoding_to_primary_sequence[selectedEncoding].map((motif, index) => (
-                                            <Box 
+                                            <Tooltip key={index} title="Highlight motif in linear view." arrow enterDelay={500}>
+                                            <Button 
                                                 key={index} 
                                                 sx={{ 
                                                     padding: 1,
@@ -296,6 +358,25 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                                     flexShrink: 0,
                                                     boxShadow: 1,
                                                     borderRadius: 2,
+                                                    boxShadow: selectedMotifIndex === index ? 'inset 0px 2px 5px rgba(0,0,0,1)' : undefined,
+                                                    transition: 'all 0.2s ease-in-out',
+                                                    '&:active': {
+                                                        boxShadow: selectedMotifIndex === index ? 'inset 0px 2px 5px rgba(0,0,0,1)' : undefined,
+                                                        transform: selectedMotifIndex === index ? 'translateY(2px)' : 'none',
+                                                    },
+                                                }}
+                                                onClick={() => {
+                                                    // if it is already selected, deselect it
+                                                    if (selectedMotifIndex === index) {
+                                                        setLinearHighlightsAtoms([]);
+                                                        setSelectedMotifIndex(null);
+                                                        return;
+                                                    }
+
+                                                    const atomsToHighlight = result.encoding_to_highlights[selectedEncoding][index];
+                                                    const newAtomsToHighlight = atomsToHighlight.map((atom) => [atom, '#ceccca']);
+                                                    setLinearHighlightsAtoms(newAtomsToHighlight);
+                                                    setSelectedMotifIndex(index);
                                                 }}
                                             >
                                                 <Typography 
@@ -305,7 +386,8 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                                 >
                                                     {motif.name}
                                                 </Typography>
-                                            </Box>
+                                            </Button>
+                                            </Tooltip>
                                         ))}
                                     </Stack>
                                 </Stack>
@@ -366,6 +448,13 @@ const Compound = () => {
             const json = await response.json();
 
             if (json.status === 'success') {
+                // check if any json.payload.encoding_to_identity value is equal to _backbone
+                const backbone = Object.values(json.payload.encoding_to_identity).includes('_backbone');
+                if (!backbone) {
+                    toast.warn('No backbone found in the compound. If the compound is a modular natural product, the rule set is likely insufficient to parse this compound.');
+                    setBusy(false);
+                    return;
+                }
                 toast.success(json.message);
                 setResult(json.payload);
                 setInputCollapsed(true);
@@ -425,7 +514,7 @@ const Compound = () => {
                         <SuccessMessage
                             message={result ? 'Parsing result available for display.' : 'No result to display.'}
                             onReopen={() => setResultCollapsed(false)}
-                            showOnReopen={true}
+                            showOnReopen={false}
                         />
                     )}
                 </Box>

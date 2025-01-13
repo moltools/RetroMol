@@ -5,6 +5,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem } from '@mui/material';
 import { MdMenu } from 'react-icons/md';
 import HomeIcon from '@mui/icons-material/Home';
+import LocationSearchingIcon from '@mui/icons-material/LocationSearching';
 import HexagonIcon from '@mui/icons-material/Hexagon';
 import GitHubIcon from '@mui/icons-material/GitHub';
 
@@ -12,6 +13,7 @@ import './style/main.css';
 
 import Toast from './components/Toast';
 import Home from './pages/home';
+import Query from './pages/query';
 import Compound from './pages/compound';
 import NotFound from './pages/not_found';
 
@@ -105,6 +107,10 @@ const CustomToolbar = () => {
                         <HomeIcon sx={{ marginRight: '10px' }} />
                         Home
                     </MenuItem>
+                    <MenuItem onClick={() => handleMenuItemClick('/query')}>
+                        <LocationSearchingIcon sx={{ marginRight: '10px' }} />
+                        Manual query
+                    </MenuItem>
                     <MenuItem onClick={() => handleMenuItemClick('/compound')}>
                         <HexagonIcon sx={{ marginRight: '10px' }} />
                         Parse compound
@@ -145,6 +151,10 @@ function AppRoutes () {
                 <Route 
                     path='/compound' 
                     element={<Compound />}
+                />
+                <Route 
+                    path='/query/:query?' // optional query parameter, allows for query to be passed in URL, or not
+                    element={<Query />}
                 />
                 <Route 
                     path='*' 

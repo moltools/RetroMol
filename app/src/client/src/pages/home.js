@@ -68,9 +68,8 @@ const Home = () => {
                         variant='contained'
                         color='primary'
                         size='large'
-                        href='/manual'
+                        href='/query'
                         sx={{ width: 200 }}
-                        disabled
                     >
                         <Typography sx={{ color: 'white.main'}}>
                             manual query

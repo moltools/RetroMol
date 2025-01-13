@@ -11,7 +11,7 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         let ball = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         ball.setAttributeNS(null, 'cx', x);
         ball.setAttributeNS(null, 'cy', y);
-        ball.setAttributeNS(null, 'r', this.opts.bondLength / 4);
+        ball.setAttributeNS(null, 'r', this.opts.bondLength / 3);
         ball.setAttributeNS(null, 'fill', color);
 
         this.svgWrapper.highlights.push(ball);
@@ -76,7 +76,19 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
             let vertex = graph.vertices[i];
             let atom = vertex.value;
             atom.bracket = null;
+            
+            // make sure COOH is drawn fully instead of displayed with text
+            if (atom.element === "C") {
+                if (atom.hasAttachedPseudoElements) {
+                }
+                atom.hasAttachedPseudoElements = false;
+            }
+
+            if (atom.element === "O") {
+                atom.isDrawn = true;
+            }
         }
+
     }
 }
 

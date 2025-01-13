@@ -235,9 +235,10 @@ def run_retromol(
             highlights = []
             primary_sequence = []
             for i, motif in enumerate(best_motif_code):
+                motif_highlights = []
                 color = color_pallette[i % len(color_pallette)]
                 primary_sequence.append({
-                    "name": motif["identity"],
+                    "name": motif["identity"] if motif["identity"] is not None else "XX",
                     "smiles": motif["smiles"],
                     "color": color
                 })
@@ -246,8 +247,9 @@ def run_retromol(
                 for atom in mol.GetAtoms():
                     tag = atom.GetIsotope()
                     if tag > 0:
-                        highlights.append([tag, color])
-            encoding_to_highlights[encoding] = highlights
+                        motif_highlights.append(tag)
+                highlights.append(motif_highlights)
+            encoding_to_highlights[encoding] = highlights[::-1]
             encoding_to_primary_sequence[encoding] = primary_sequence[::-1]
     out_data["encoding_to_highlights"] = encoding_to_highlights
     out_data["encoding_to_primary_sequence"] = encoding_to_primary_sequence
