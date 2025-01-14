@@ -76,7 +76,7 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
             let vertex = graph.vertices[i];
             let atom = vertex.value;
             atom.bracket = null;
-            
+
             // make sure COOH is drawn fully instead of displayed with text
             if (atom.element === "C") {
                 if (atom.hasAttachedPseudoElements) {
@@ -86,6 +86,16 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
 
             if (atom.element === "O") {
                 atom.isDrawn = true;
+            }
+        }
+
+        // loop over all bonds
+        for (var i = 0; i < graph.edges.length; i++) {
+            let edge = graph.edges[i];
+            // if aromatic bond
+            if (edge.isPartOfAromaticRing) {
+                // set to false to prevent drawing of double bond rings in ring
+                edge.isPartOfAromaticRing = false;
             }
         }
 

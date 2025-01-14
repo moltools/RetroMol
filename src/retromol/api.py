@@ -9,6 +9,7 @@ from rdkit import Chem
 from retromol.chem import Reactant, get_default_linearization_rules, get_default_sequencing_rules
 from retromol.matching import match_mol_greedily, greedy_max_set_cover
 from retromol.react import preprocess_mol, sequence_mol
+from retromol.forward import forward_generation
 
 
 def run_retromol(
@@ -270,6 +271,19 @@ def run_retromol(
             encoding_to_primary_sequence[encoding] = primary_sequence[::-1]
     out_data["encoding_to_highlights"] = encoding_to_highlights
     out_data["encoding_to_primary_sequence"] = encoding_to_primary_sequence
+
+    for encoding, motifs in out_data["encoding_to_primary_sequence"].items():
+        motif_smiles = []
+        for motif in motifs:
+            # print(motif["smiles"])
+            motif_smiles.append(motif["smiles"])
+        try:
+            linear_smiles = forward_generation(motif_smiles)
+        except:
+            continue
+        print(linear_smiles)
+        out_data["encoding_to_smiles"][encoding] = linear_smiles
+        
 
     if out_folder is None:
         return out_data

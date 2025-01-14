@@ -27,38 +27,6 @@ LINEARIZATION_RULES = [
         "name": "etherification 1",
         "reaction_smarts": r"[*:1]-[CH0:2]1(-[OH:3])-[O:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1>>([*:1]-[CH0:2]1=[OH0:3].[OH1:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)",
     },
-    # {
-    #     "name": "etherification 2",
-    #     "reaction_smarts": r"[*&D2,D3:3]-[CH1:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:8][C:9]1>>([*&D2,D3:3]-[CH0:1]=[C:2]1.[OH:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)",
-    # },
-    # {
-    #     "name": "etherification 3",
-    #     "reaction_smarts": r"[*&D2,D3:3]-[CH2:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:8][C:9]1>>([*&D2,D3:3]-[CH1:1]=[C:2]1.[O:4]=[CH0:5](-[*:6])-[C:7][C:8][C:9]1)",
-    # },
-    # {
-    #     "name": "etherification 4",
-    #     "reaction_smarts": r"[*:1]-[CH1:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH2:8]-[*:9]>>[*:1]-[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH1:8]-[*:9]",
-    # },
-    # {
-    #     "name": "etherification 5",
-    #     "reaction_smarts": r"[*:1]-[CH1:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH1:8]-[*:9]>>[*:1]-[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH0:8]-[*:9]",
-    # },
-    # {
-    #     "name": "etherification 6",
-    #     "reaction_smarts": r"[CH2:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH1:8]-[*:9]>>[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH0:8]-[*:9]",
-    # },
-    # {
-    #     "name": "etherification 7",
-    #     "reaction_smarts": r"[CH2:2]([C:3]~[C:4]~[C:5]1)-[O:6]-[CH1:7]1-[CH2:8]-[*:9]>>[C:2](-[OH:6])[C:3]~[C:4]~[C:5][CH0:7]=[CH1:8]-[*:9]",
-    # },
-    # {
-    #     "name": "etherification 8",
-    #     "reaction_smarts": r"[*&D2,D3:3]-[CH1:1]-[C&D3:2]1-[O:4]-[CH1&D3:5](-[*:6])-[C:7][C:9]1>>([*&D2,D3:3]-[CH0:1]=[C:2]1.[OH:4]-[CH1:5](-[*:6])-[C:7][C:9]1)",
-    # },
-    # {
-    #     "name": "etherification 9",
-    #     "reaction_smarts": r"[*:3]-[CH1:1]-[C&D3:2]1-[O:4]-[C:5](-[*:6])-[C:7][C:9]1>>([*:3]-[CH0:1]=[C:2]1.[OH:4]-[C:5](-[*:6])-[C:7][C:9]1)",
-    # },
     {
         "name": "macrolactonization", 
         "reaction_smarts": r"[C;R:1][C;R:2](=[O:3])[O;R:4][C;R:5]>>([C:1][C:2](=[O:3])[OH].[OH:4][C:5])"
@@ -220,46 +188,80 @@ LINEARIZATION_RULES = [
 SEQUENCING_RULES = [
     {
         "name": "pks (saturated)", 
-        "reaction_smarts": r"[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH:6]"
+        "reaction_smarts": r"[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH:6]",
+        "props": {
+            "include_in_forward": True,
+        }
     },
     {
         "name": "pks (saturated anhydride)", 
-        "reaction_smarts": r"[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[CH2:6][CH3:7]>>[C:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH].[C:6][C:7]"
+        "reaction_smarts": r"[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[CH2:6][CH3:7]>>[C:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH].[C:6][C:7]",
+        "props": {
+            "include_in_forward": False,
+        }
     },
     {
         "name": "pks (unsaturated)", 
-        "reaction_smarts": r"[C,c:1][C;!R:2]=[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]"
+        "reaction_smarts": r"[C,c:1][C;!R:2]=[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]",
+        "props": {
+            "include_in_forward": True,
+        }
     },
     {
         "name": "pks (unsaturated and shifted)", 
-        "reaction_smarts": r"[C,c:1]=[C;!R:2]-[C&D2,C&D3;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]"
+        "reaction_smarts": r"[C,c:1]=[C;!R:2]-[C&D2,C&D3;!R:3]-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]",
+        "props": {
+            "include_in_forward": False,
+        }
     },
+    # NOTE: rule below cannot be used in forward reaction as it results in 3!!! products, for forward we have always 2
     {
         "name": "pks (shifted and late stage oxidation)", 
-        "reaction_smarts": r"[C,c:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]"
+        "reaction_smarts": r"[C,c:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[C:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]",
+        "props": {
+            "include_in_forward": False,
+        }
     },
     {
         "name": "pks (ether-5)",
-        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C&D3:9]1[C:10]>>[O][C](=[O])[C:7][C:8][C:9]([OH:6])[C:10].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]"
+        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C&D3:9]1[C:10]>>[O][C](=[O])[C:7][C:8][C:9]([OH:6])[C:10].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]",
+        "props": {
+            "include_in_forward": False,
+        }
     },
     {
         "name": "pks (ether-6)",
-        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C:9][C&D3:10]1[C:11]>>[O][C](=[O])[C:7][C:8][C:9][C:10]([OH:6])[C:11].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]"
+        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C:9][C&D3:10]1[C:11]>>[O][C](=[O])[C:7][C:8][C:9][C:10]([OH:6])[C:11].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]",
+        "props": {
+            "include_in_forward": False,
+        }
     },
     {
         "name": "adenylation domain (alpha amino acid proline-like)", 
-        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH0:4][C:5][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH1:4][C:5][C:6](=[O:7])[OH:8]"
+        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH0:4][C:5][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH1:4][C:5][C:6](=[O:7])[OH:8]",
+        "props": {
+            "include_in_forward": True,
+        }
     },
     {
         "name": "adenylation domain (alpha amino acid)", 
-        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C:6](=[O:7])[OH:8]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O:7])[OH:8]"
+        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C:6](=[O:7])[OH:8]>>[*:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O:7])[OH:8]",
+        "props": {
+            "include_in_forward": True,
+        }
     },
     {
         "name": "adenylation domain (reduced alpha amino acid)", 
-        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C&D2:6][OH:7]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O])[OH:7]"
+        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][C&D2:6][OH:7]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][C:6](=[O])[OH:7]",
+        "props": {
+            "include_in_forward": False,
+        }
     },
     {
         "name": "adenylation domain (beta amino acid)", 
-        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][CH2:6][C:7](=[O:8])[OH:9]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][CH2:6][C:7](=[O:8])[OH:9]"
+        "reaction_smarts": r"[*:1][C:2](=[O:3])[NH1:4][C:5][CH2:6][C:7](=[O:8])[OH:9]>>[C:1][C:2](=[O:3])[OH].[NH2:4][C:5][CH2:6][C:7](=[O:8])[OH:9]",
+        "props": {
+            "include_in_forward": True,
+        }
     }
 ]

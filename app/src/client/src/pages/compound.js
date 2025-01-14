@@ -146,15 +146,9 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
         selectedEncoding ? result.encoding_to_smiles[selectedEncoding] : null
     );
 
-    // Get the corresponding atom list for the selected encoding
-    const highlight_atoms = selectedEncoding
-        // ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, '#3d7dca'])
-        ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, '#ceccca'])
-        : [];
-
-    // const linear_highlight_atoms = selectedEncoding
-    //     ? result.encoding_to_highlights[selectedEncoding]
-    //     : [];
+    const [highlightAtoms, setHighlightAtoms] = useState(
+        selectedEncoding ? encoding_to_atom_list[selectedEncoding].map((atom) => [atom, '#ceccca']) : []
+    );
 
     const [linearHighlightsAtoms, setLinearHighlightsAtoms] = useState([]);
     const [selectedMotifIndex, setSelectedMotifIndex] = useState(null);
@@ -166,6 +160,7 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
         setLinearSmiles(result.encoding_to_smiles[encoding]);
         setSelectedMotifIndex(null);
         setLinearHighlightsAtoms([]);
+        setHighlightAtoms(encoding_to_atom_list[encoding].map((atom) => [atom, '#ceccca']));
     };
 
     return (
@@ -315,7 +310,7 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                         smilesStr={smiles}
                                         width={500}
                                         height={500}
-                                        highlightAtoms={highlight_atoms}
+                                        highlightAtoms={highlightAtoms}
                                     />
                                 ) : (
                                     <SmilesDrawerContainer
@@ -343,9 +338,9 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                             overflowX: 'auto',
                                             overflowY: 'hidden',
                                             flexWrap: 'nowrap',
-                                            paddingLeft: 1,
+                                            paddingLeft: 2,
                                             paddingBottom: 2.5,
-                                            paddingRight: 1,
+                                            paddingRight: 2,
                                         }}
                                     >
                                         {result.encoding_to_primary_sequence[selectedEncoding].map((motif, index) => (
@@ -370,12 +365,24 @@ const ResultComponent = ({ setForwardedEncoding, result }) => {
                                                     if (selectedMotifIndex === index) {
                                                         setLinearHighlightsAtoms([]);
                                                         setSelectedMotifIndex(null);
+                                                        // make selection all grey
+                                                        setHighlightAtoms(encoding_to_atom_list[selectedEncoding].map((atom) => [atom, '#ceccca']));
                                                         return;
                                                     }
 
                                                     const atomsToHighlight = result.encoding_to_highlights[selectedEncoding][index];
-                                                    const newAtomsToHighlight = atomsToHighlight.map((atom) => [atom, '#ceccca']);
+                                                    const newAtomsToHighlight = atomsToHighlight.map((atom) => [atom, '#808285']);
                                                     setLinearHighlightsAtoms(newAtomsToHighlight);
+                                                    
+                                                    // also change highlights in overview, get the atoms and change to color to red, but keep the other highlights
+                                                    const atoms = result.encoding_to_atom_list[selectedEncoding];
+                                                    const newAtoms = atoms.map((atom) => [atom, '#ceccca']);
+                                                    atomsToHighlight.forEach((atom) => {
+                                                        const index = newAtoms.findIndex((a) => a[0] === atom);
+                                                        newAtoms[index][1] = '#808285';
+                                                    });
+                                                    setHighlightAtoms(newAtoms);
+
                                                     setSelectedMotifIndex(index);
                                                 }}
                                             >
