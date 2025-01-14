@@ -5,6 +5,8 @@ import SmilesDrawerContainer from '../components/SmilesDrawer';
 import { toast } from 'react-toastify';
 import ReplayIcon from '@mui/icons-material/Replay';
 import ExitIcon from '@mui/icons-material/ExitToApp';
+import { MdSettings } from 'react-icons/md';
+import RulesModal from '../components/RulesModal';
 
 const SuccessMessage = ({ message, onReopen, showOnReopen }) => (
     <Box
@@ -44,6 +46,7 @@ const SmilesInputComponent = ({
     handleClear,
     handleSubmitCompound,
     busy,
+    handleOpenRulesModal,
 }) => {
     return (
         <Box padding={4} sx={{backgroundColor: "#ceccca", borderRadius: 4}}>
@@ -78,13 +81,18 @@ const SmilesInputComponent = ({
                             </Button>
                             <Button
                                 variant="contained"
-                                color="secondary"
+                                color="primary"
                                 onClick={handleClear}
                             >
-                                <Typography variant="body1" sx={{ color: 'common.black' }}>
+                                <Typography variant="body1" sx={{ color: 'common.white' }}>
                                     Clear
                                 </Typography>
                             </Button>
+                        </Stack>
+                        <Stack
+                            direction="row"
+                            spacing={2}
+                        >
                             <Button
                                 variant="contained"
                                 color="secondary"
@@ -92,6 +100,20 @@ const SmilesInputComponent = ({
                             >
                                 <Typography variant="body1" sx={{ color: 'common.black' }}>
                                     Example: neopeltolide
+                                </Typography>
+                            </Button>
+                        </Stack>
+                        <Stack
+                            direction="row"
+                            spacing={2}
+                        >
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                onClick={handleOpenRulesModal}
+                            >
+                                <Typography variant="body1" sx={{ color: 'common.black' }}>
+                                    View reaction rule set
                                 </Typography>
                             </Button>
                         </Stack>
@@ -423,6 +445,11 @@ const Compound = () => {
     const [resultCollapsed, setResultCollapsed] = useState(true);
     const [encodingCollapsed, setEncodingCollapsed] = useState(true);
 
+    // rules modal
+    const [openRulesModal, setOpenRulesModal] = useState(false);
+    const handleOpenRulesModal = () => setOpenRulesModal(true);
+    const handleCloseRulesModal = () => setOpenRulesModal(false);
+
     // handle for clearing the input field
     const handleClear = () => {
         setSmiles('');
@@ -480,55 +507,65 @@ const Compound = () => {
     };
 
     return (
-        <Box
-            display='flex'
-            flexDirection='column'
-            justifyContent='left'
-            padding={4}
-            margin='auto'
-        >
-            <Stack
-                direction="column"
-                spacing={2}
+        <>
+            <Box
+                display='flex'
+                flexDirection='column'
+                justifyContent='left'
+                padding={4}
+                margin='auto'
             >
-                <Box>
-                    {/* Input container for SMILES string. */}
-                    {!inputCollapsed ? (
-                        <SmilesInputComponent
-                            smiles={smiles}
-                            setSmiles={setSmiles}
-                            handleClear={handleClear}
-                            handleSubmitCompound={handleSubmitCompound}
-                            busy={busy} 
-                        />
-                    ) : (
-                        <SuccessMessage
-                            message="Compound successfully parsed."
-                            onReopen={() => setInputCollapsed(false)}
-                            showOnReopen={true}
-                        />
-                    )}
-                </Box>
-                
-                <Box>
-                    {/* Display the result of the compound parsing. */}
-                    {!resultCollapsed ? (
-                        <ResultComponent 
-                            setForwardedEncoding={setEncoding}
-                            result={result} 
-                        />
-                    ) : (
-                        <SuccessMessage
-                            message={result ? 'Parsing result available for display.' : 'No result to display.'}
-                            onReopen={() => setResultCollapsed(false)}
-                            showOnReopen={false}
-                        />
-                    )}
-                </Box>
+                <Stack
+                    direction="column"
+                    spacing={2}
+                >
+                    <Box>
+                        {/* Input container for SMILES string. */}
+                        {!inputCollapsed ? (
+                            <SmilesInputComponent
+                                smiles={smiles}
+                                setSmiles={setSmiles}
+                                handleClear={handleClear}
+                                handleSubmitCompound={handleSubmitCompound}
+                                busy={busy} 
+                                handleOpenRulesModal={handleOpenRulesModal}
+                            />
+                        ) : (
+                            <SuccessMessage
+                                message="Compound successfully parsed."
+                                onReopen={() => setInputCollapsed(false)}
+                                showOnReopen={true}
+                            />
+                        )}
+                    </Box>
                     
-            </Stack>
+                    <Box>
+                        {/* Display the result of the compound parsing. */}
+                        {!resultCollapsed ? (
+                            <ResultComponent 
+                                setForwardedEncoding={setEncoding}
+                                result={result} 
+                            />
+                        ) : (
+                            <SuccessMessage
+                                message={result ? 'Parsing result available for display.' : 'No result to display.'}
+                                onReopen={() => setResultCollapsed(false)}
+                                showOnReopen={false}
+                            />
+                        )}
+                    </Box>
+                        
+                </Stack>
 
-        </Box>
+            </Box>
+            
+            
+            <RulesModal
+                openRulesModal={openRulesModal}
+                handleCloseRulesModal={handleCloseRulesModal}
+            />
+
+        </>
     );
 };
 

@@ -5,10 +5,12 @@
 from flask import Response
 from routes.app import app
 from routes.submit import blueprint_submit_compound
+from routes.rules import blueprint_get_reaction_rules
 
 
 # Register routes
 app.register_blueprint(blueprint_submit_compound)
+app.register_blueprint(blueprint_get_reaction_rules)
 
 
 @app.errorhandler(404)
