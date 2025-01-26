@@ -1,7 +1,7 @@
 from typing import List, Optional, Set
 import logging
 
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from rdkit.Chem import rdFingerprintGenerator
 from rdkit.Chem.rdChemReactions import ReactionFromSmarts
 import numpy as np
@@ -215,8 +215,9 @@ class Reaction:
                     for atom in product.GetAtoms():
                         if atom.GetAtomicNum() == 0:
                             raise ValueError(f"after using reaction {self.name}: atom has atomic num 0")
-    
+
                 for atom in product.GetAtoms():
+
                     # check if there is aromaticity, don't touch these atoms
                     if atom.GetIsAromatic():
                         continue

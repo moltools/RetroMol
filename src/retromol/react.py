@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 import itertools
 import logging
 
@@ -14,7 +14,7 @@ def preprocess_mol(
     reactant: Reactant, 
     reaction_rules: List[Reaction],
     logger: logging.Logger
-) -> Tuple[Dict[int, Chem.Mol], Dict[int, Reaction], Dict[int, Dict[int, List[int]]]]:
+) -> Tuple[Dict[int, Chem.Mol], Dict[int, Reaction], Dict[int, Dict[int, List[int]]], Set[str]]:
     """Apply custom rules to linearize a SMILES string.
     
     :param reactant: Reactant object
@@ -27,7 +27,10 @@ def preprocess_mol(
         - A dictionary mapping molecule encodings to RDKit molecules.
         - A dictionary mapping reaction encodings to Reaction objects.
         - A dictionary representing the reaction graph.
+        - A set of applied reaction names.
     """
+    applied_reactions = set()
+
     # sort reaction rules based on number of heavy atoms in reactants
     # reactions with less heavy atoms should be applied first
     reaction_rule_sizes = []
@@ -166,6 +169,7 @@ def preprocess_mol(
                 if len(results) > 1:
                     raise ValueError(f"more than one product from uncontested reaction {reaction_rule.name}")
                 result = results[0]
+                applied_reactions.add(reaction_rule.name)  # keep track of successfully applied reactions
 
                 # reset atom tags in products for atoms not in original reactant
                 for product in result:
@@ -191,6 +195,7 @@ def preprocess_mol(
         for reaction_rule in sorted_reaction_rules:
             results = reaction_rule(parent, logger=logger)
             for result in results:
+                applied_reactions.add(reaction_rule.name)  # keep track of successfully applied reactions
 
                 # encode reaction node
                 num_rxn_nodes += 1
@@ -211,7 +216,7 @@ def preprocess_mol(
                     reaction_graph[parent_encoding][num_rxn_nodes].add(child_encoding)
 
     # return data structures
-    return encoding_to_mol, encoding_to_rxn, reaction_graph
+    return encoding_to_mol, encoding_to_rxn, reaction_graph, applied_reactions
 
 
 def sequence_mol(

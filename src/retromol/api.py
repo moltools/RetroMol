@@ -3,11 +3,12 @@ from typing import Optional
 import json
 import logging
 import os
+import typing as ty
 
 from rdkit import Chem
 
-from retromol.chem import Reactant, get_default_linearization_rules, get_default_sequencing_rules
-from retromol.matching import match_mol_greedily, greedy_max_set_cover
+from retromol.chem import Reaction, Reactant, get_default_linearization_rules, get_default_sequencing_rules
+from retromol.matching import Motif, match_mol_greedily, greedy_max_set_cover
 from retromol.react import preprocess_mol, sequence_mol
 from retromol.forward import forward_generation
 
@@ -15,43 +16,64 @@ from retromol.forward import forward_generation
 def run_retromol(
     name: str, 
     smiles: str, 
+    user_supplied_linearization_rules: Optional[list] = None,
+    user_supplied_sequencing_rules: Optional[list] = None,
+    user_supplied_motfs: Optional[list] = None,
+    use_default_linearization_rules: bool = True,
+    use_default_sequencing_rules: bool = True,
+    use_default_motifs: bool = True,
     out_folder: Optional[str] = None, 
     logger: Optional[logging.Logger] = None
-) -> float:
+) -> ty.Union[float, dict]:
     """Parse a SMILES string.
-    
-    :param name: Name of the molecule
-    :type name: str
-    :param smiles: SMILES string
-    :type smiles: str
-    :param out_folder: Output folder
-    :type out_folder: str
-    :param logger: Logger object
-    :type logger: Optional[logging.Logger]
-    :return: coverage score
-    :rtype: float
     """
     # parse the molecule
     reactant = Reactant(name, smiles)
     if logger: logger.debug(f"parsing molecule {reactant.name} with SMILES {Chem.MolToSmiles(reactant.mol)}")
 
+    # parse user supplied rules
+    if user_supplied_linearization_rules:
+        if logger: logger.debug("loading user supplied linearization rules")
+        user_supplied_linearization_rules = [Reaction(rule["name"], rule["reaction_smarts"]) for rule in user_supplied_linearization_rules]
+        if logger: logger.debug(f"loaded {len(user_supplied_linearization_rules)} linearization reaction rules")
+
+    if user_supplied_sequencing_rules:
+        if logger: logger.debug("loading user supplied sequencing rules")
+        user_supplied_sequencing_rules = [Reaction(rule["name"], rule["reaction_smarts"]) for rule in user_supplied_sequencing_rules]
+        if logger: logger.debug(f"loaded {len(user_supplied_sequencing_rules)} sequencing reaction rules")
+
+    # parse user supplied motifs
+    if user_supplied_motfs:
+        if logger: logger.debug("loading user supplied motifs")
+        user_supplied_motfs = [Motif(motif["name"], motif["smiles"]) for motif in user_supplied_motfs]
+        if logger: logger.debug(f"loaded {len(user_supplied_motfs)} motifs")
+    
     # retrieve reaction rules
     if logger: logger.debug("loading default reaction rules")
-    linearization_rules = get_default_linearization_rules()
-    if logger: logger.debug(f"loaded {len(linearization_rules)} linearization reaction rules")
-    sequencing_rules = get_default_sequencing_rules()
-    if logger: logger.debug(f"loaded {len(sequencing_rules)} sequencing reaction rules")
+    if use_default_linearization_rules:
+        linearization_rules = get_default_linearization_rules()
+        if logger: logger.debug(f"loaded {len(linearization_rules)} linearization reaction rules")
+        linearization_rules += user_supplied_linearization_rules if user_supplied_linearization_rules else []
+    else:
+        linearization_rules = user_supplied_linearization_rules if user_supplied_linearization_rules else []
+    
+    if use_default_sequencing_rules:
+        sequencing_rules = get_default_sequencing_rules()
+        if logger: logger.debug(f"loaded {len(sequencing_rules)} sequencing reaction rules")
+        sequencing_rules += user_supplied_sequencing_rules if user_supplied_sequencing_rules else []
+    else:
+        sequencing_rules = user_supplied_sequencing_rules if user_supplied_sequencing_rules else []
 
     # preprocess the molecule
     if logger: logger.debug(f"preprocessing molecule {name} with linearization rules")
-    encoding_to_mol, encoding_to_rxn, reaction_graph = preprocess_mol(reactant, linearization_rules, logger)
+    encoding_to_mol, encoding_to_rxn, reaction_graph, applied_reactions = preprocess_mol(reactant, linearization_rules, logger)
     leaf_nodes = [parent for parent, rxns in reaction_graph.items() if not rxns]
     if logger: logger.debug(f"found {len(leaf_nodes)} leaf nodes")
 
     # find identities for nodes
     encoding_to_identity = {}
     for encoding, mol in encoding_to_mol.items():
-        mol_identity = match_mol_greedily(mol, logger)
+        mol_identity = match_mol_greedily(mol, user_supplied_motfs, use_default_motifs, logger)
         if mol_identity is not None:
             encoding_to_identity[encoding] = mol_identity
             continue
@@ -162,7 +184,7 @@ def run_retromol(
         for motif_code in motif_codes:
             tags_identified_motifs_motif_code = set()
             for motif in motif_code:
-                motif_identity = match_mol_greedily(motif, logger)
+                motif_identity = match_mol_greedily(motif, user_supplied_motfs, use_default_motifs, logger)
                 if motif_identity is not None:
                     motif_tags = [atom.GetIsotope() for atom in motif.GetAtoms() if atom.GetIsotope() != 0]
                     tags_identified_motifs_motif_code.update(motif_tags)
@@ -187,13 +209,19 @@ def run_retromol(
         name=name,
         smiles=Chem.MolToSmiles(reactant.mol),
         coverage_score=coverage_score,
+        applied_preprocessin_rules=list(applied_reactions),
         encoding_to_smiles={encoding: Chem.MolToSmiles(encoding_to_mol[encoding]) for encoding in picked_nodes},
         encoding_to_identity={encoding: encoding_to_identity.get(encoding, None) for encoding in picked_nodes},
         encoding_to_motif_codes={
             encoding: {
                 i: [
                     {
-                        "identity": match_mol_greedily(motif, logger),  # TODO: now identifying twice, once here and once in the loop above
+                        "identity": match_mol_greedily(
+                            motif, 
+                            user_supplied_motfs,
+                            use_default_motifs,
+                            logger
+                        ),  # TODO: now identifying twice, once here and once in the loop above
                         "smiles": Chem.MolToSmiles(motif)
                     }
                     for motif in motif_code
@@ -275,13 +303,11 @@ def run_retromol(
     for encoding, motifs in out_data["encoding_to_primary_sequence"].items():
         motif_smiles = []
         for motif in motifs:
-            # print(motif["smiles"])
             motif_smiles.append(motif["smiles"])
         try:
             linear_smiles = forward_generation(motif_smiles)
         except:
             continue
-        print(linear_smiles)
         out_data["encoding_to_smiles"][encoding] = linear_smiles
         
 

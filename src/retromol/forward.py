@@ -12,7 +12,13 @@ def get_motif(name, as_mol = True):
             return motif
         
 def get_rules():
-    backward_rules = [r["reaction_smarts"] for r in SEQUENCING_RULES if r["props"]["include_in_forward"] == True]
+    # backward_rules = [r["reaction_smarts"] for r in SEQUENCING_RULES if r["props"]["include_in_forward"] == True]
+    backward_rules = []
+    for rule in SEQUENCING_RULES:
+        if props := rule.get("props"):
+            if props.get("include_in_forward"):
+                backward_rules.append(rule["reaction_smarts"])
+
     forward_rules = []
     for rule in backward_rules:
         reactants, products = rule.split(">>")
@@ -51,7 +57,9 @@ def forward_generation(motifs: ty.List[str], as_name = False):
         for rule in rules:
             result = rule.RunReactants((mol, motif))
             if result:
-                results.append(result[0][0])
+                product = result[0][0]
+                Chem.SanitizeMol(product)
+                results.append(product)
         assert len(results) == 1, f"More than one rule can be applied to {Chem.MolToSmiles(mol)} + {Chem.MolToSmiles(motif)}"
         mol = results[0]
     # mol = cap_forward_generated(mol)    

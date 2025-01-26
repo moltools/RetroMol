@@ -6,6 +6,8 @@ import logging
 import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import multiprocessing
+multiprocessing.set_start_method('fork')
 from typing import Callable, Any, Dict, Optional, Tuple
 
 from tqdm import tqdm
@@ -16,14 +18,18 @@ from retromol.api import run_retromol
 class Item:
     """Item for processing."""
 
-    def __init__(self, name: str, smiles: str) -> None:
-        """Initialize an Item instance.
-
-        :param name: Item name.
-        :type name: str
-        :param smiles: Item SMILES.
-        :type smiles: str
-        """
+    def __init__(
+        self, 
+        name: str, 
+        smiles: str,
+        preprocessing_rules: Optional[str] = None,
+        sequencing_rules: Optional[str] = None,
+        motifs: Optional[str] = None,
+        only_user_preprocessing_rules: bool = False,
+        only_user_sequencing_rules: bool = False,
+        only_user_motifs: bool = False
+    ) -> None:
+        """Initialize an Item instance."""
         # replace forbidden characters in the name
         forbidden_chars = ["<", ">", ":", '"', "/", "\\", "|", "?", "*"]
         for char in forbidden_chars:
@@ -31,6 +37,12 @@ class Item:
 
         self._name = name
         self._smiles = smiles
+        self._preprocessing_rules = preprocessing_rules
+        self._sequencing_rules = sequencing_rules
+        self._motifs = motifs
+        self._only_user_preprocessing_rules = only_user_preprocessing_rules
+        self._only_user_sequencing_rules = only_user_sequencing_rules
+        self._only_user_motifs = only_user_motifs
 
     @property
     def name(self) -> str:
@@ -41,6 +53,36 @@ class Item:
     def smiles(self) -> str:
         """Item SMILES."""
         return self._smiles
+    
+    @property
+    def preprocessing_rules(self) -> Optional[str]:
+        """Path to the preprocessing rules file."""
+        return self._preprocessing_rules
+    
+    @property
+    def sequencing_rules(self) -> Optional[str]:
+        """Path to the sequencing rules file."""
+        return self._sequencing_rules
+    
+    @property
+    def motifs(self) -> Optional[str]:
+        """Path to the motifs file."""
+        return self._motifs
+    
+    @property
+    def only_user_preprocessing_rules(self) -> bool:
+        """Whether to use only user-defined preprocessing rules."""
+        return self._only_user_preprocessing_rules
+    
+    @property
+    def only_user_sequencing_rules(self) -> bool:
+        """Whether to use only user-defined sequencing rules."""
+        return self._only_user_sequencing_rules
+    
+    @property
+    def only_user_motifs(self) -> bool: 
+        """Whether to use only user-defined motifs."""
+        return self._only_user_motifs
     
     def __str__(self) -> str:
         """String representation of the item."""
@@ -162,7 +204,18 @@ def parse_item(item: Item, item_folder: str, logger: logging.Logger) -> float:
     if logger: logger.info(f"starting task for item {item.name} at {start_time}")
 
     # run RetroMol on item
-    coverage_score = run_retromol(item.name, item.smiles, item_folder, logger)
+    coverage_score = run_retromol(
+        item.name, 
+        item.smiles, 
+        item.preprocessing_rules,
+        item.sequencing_rules,
+        item.motifs,
+        not item.only_user_preprocessing_rules,
+        not item.only_user_sequencing_rules,
+        not item.only_user_motifs,
+        item_folder, 
+        logger
+    )
     if logger: logger.info(f"coverage score for item {item.name}: {coverage_score}")
 
     # log end of task
@@ -199,7 +252,16 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5, logger_l
 
     try:
         # Run the task with a timeout, pass all required arguments
-        coverage_score = run_with_timeout(parse_item, args=(item, item_folder, logger), timeout=timeout, logger=logger)
+        coverage_score = run_with_timeout(
+            parse_item, 
+            args=(
+                item, 
+                item_folder, 
+                logger
+            ), 
+            timeout=timeout, 
+            logger=logger
+        )
         logger.info(f"item {item} processed successfully")
         return None, None, coverage_score
     except TimeoutError:
@@ -231,9 +293,17 @@ def cli() -> argparse.Namespace:
     parser.add_argument("-i", "--input", type=str, required=True, help="input file with with IDs and SMILES (csv)")
     parser.add_argument("-o", "--output", type=str, required=True, help="output folder")
     parser.add_argument("-m", "--max-cpus", type=int, default=1, help="maximum number of CPUs to use")
-    parser.add_argument("-t", "--timeout", type=int, default=5, help="timeout for each item in seconds")
+    parser.add_argument("-t", "--timeout", type=int, default=30, help="timeout for each item in seconds")
     parser.add_argument("-l", "--log-level", type=str, default="INFO", help="logging level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
     parser.add_argument("-v", "--verbose", action="store_true", help="enable verbose logging by also logging to stdout")
+
+    parser.add_argument("-pr", "--preprocessing-rules", type=str, required=False, help="path to json file with preprocessing rules")
+    parser.add_argument("-sr", "--sequencing-rules", type=str, required=False, help="path to json file with sequencing rules")
+    parser.add_argument("-mo", "--motifs", type=str, required=False, help="path to json file with motifs")
+    parser.add_argument("-oupr", "--only-user-preprocessing-rules", action="store_true", help="use only user-defined preprocessing rules")
+    parser.add_argument("-ousr", "--only-user-sequencing-rules", action="store_true", help="use only user-defined sequencing rules")
+    parser.add_argument("-oumo", "--only-user-motifs", action="store_true", help="use only user-defined motifs")
+
     return parser.parse_args()
 
 
@@ -252,6 +322,12 @@ def main() -> None:
     logger_level = args.log_level
     log_file_name = "retromol.log"
     verbose = args.verbose
+    preprocessing_rules = args.preprocessing_rules
+    sequencing_rules = args.sequencing_rules
+    motifs = args.motifs
+    only_user_preprocessing_rules = args.only_user_preprocessing_rules
+    only_user_sequencing_rules = args.only_user_sequencing_rules
+    only_user_motifs = args.only_user_motifs
 
     # configure logging
     logger = setup_logger(base_output_dir, logger_level, log_file_name)
@@ -267,6 +343,12 @@ def main() -> None:
     logger.info(f"* timeout per item: {timeout} second(s)")
     logger.info(f"* logging level: {logger_level}")
     logger.info(f"* verbose logging: {'enabled' if verbose else 'disabled'}")
+    logger.info(f"* preprocessing rules: {preprocessing_rules}")
+    logger.info(f"* sequencing rules: {sequencing_rules}")
+    logger.info(f"* motifs: {motifs}")
+    logger.info(f"* only user-defined preprocessing rules: {only_user_preprocessing_rules}")
+    logger.info(f"* only user-defined sequencing rules: {only_user_sequencing_rules}")
+    logger.info(f"* only user-defined motifs: {only_user_motifs}")
 
     # read input file
     items = []
@@ -276,7 +358,18 @@ def main() -> None:
             fo.readline()  # skip header
             for line in fo:
                 name, smiles, *_ = line.strip().split(",")
-                items.append(Item(name, smiles))
+                items.append(
+                    Item(
+                        name, 
+                        smiles,
+                        preprocessing_rules,
+                        sequencing_rules,
+                        motifs,
+                        only_user_preprocessing_rules,
+                        only_user_sequencing_rules,
+                        only_user_motifs
+                    )
+                )
 
         # check if all names are unique
         names = [item.name for item in items]
@@ -322,6 +415,9 @@ def main() -> None:
                 finally:
                     # update the progress bar
                     pbar.update(1)
+
+    # clean thread pool
+    executor.shutdown(wait=True)
 
     # sort results by item name
     results = sorted(results, key=lambda x: x["item"])

@@ -62,7 +62,12 @@ def get_default_motifs() -> List[Motif]:
     return LOADED_MOTIFS
 
 
-def match_mol_greedily(mol: Chem.Mol, logger: Optional[logging.Logger] = None) -> Optional[str]:
+def match_mol_greedily(
+    mol: Chem.Mol, 
+    user_supplied_motifs: Optional[List[Motif]] = None,
+    use_default_motifs: bool = True,
+    logger: Optional[logging.Logger] = None
+) -> Optional[str]:
     """Match a molecule to a motif.
     
     :param mol: RDKit molecule
@@ -74,7 +79,14 @@ def match_mol_greedily(mol: Chem.Mol, logger: Optional[logging.Logger] = None) -
 
     .. note:: This function uses a greedy approach to match a molecule to a motif.
     """
-    motifs = get_default_motifs()
+    if use_default_motifs:
+        motifs = get_default_motifs()
+    else:
+        motifs = []
+
+    if user_supplied_motifs:
+        motifs.extend(user_supplied_motifs)
+    
     for motif in motifs:
         if motif.is_match(mol):
             if logger: logger.debug(f"matched motif {motif.name} to molecule {Chem.MolToSmiles(mol)}")
