@@ -92,13 +92,14 @@ const RulesModal = ({
     return (
         <Modal open={openRulesModal} onClose={handleCloseRulesModal}>
             <Box
-                width='90%'
+                width='80%'
                 bgcolor='white.main'
                 mx='auto'
-                my={10}
+                mt={5}
                 borderRadius={4}
                 boxShadow={3}
                 maxHeight='90%'
+                overflow='auto'
             >
                 <Box
                     sx={{
