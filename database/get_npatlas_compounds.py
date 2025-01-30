@@ -25,6 +25,7 @@ class_list = [
 def cli() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=str, required=True, help="path to output csv file")
+    parser.add_argument("--all", action="store_true", help="retrieve all compounds")
     return parser.parse_args()
 
 
@@ -50,10 +51,30 @@ def retrieve_compounds(cur, return_inchikey=False) -> ty.List[ty.Tuple[str, str]
     return npatlas_compounds
 
 
+def retrieve_all_compounds(cur, return_inchikey=False) -> ty.List[ty.Tuple[str, str]]:
+    """Retrieve all NPAtlas compounds from the database"""
+    if return_inchikey: return_type = "c.inchikey"
+    else: return_type = "c.smiles"
+    cur.execute(
+        f"""
+        SELECT DISTINCT c.compound_id, {return_type}
+        FROM compounds c 
+        """
+    )
+    npatlas_compounds = cur.fetchall()
+    return npatlas_compounds
+
+
 def main() -> None:
     args = cli()
     cur, conn = connect_to_database()
-    npatlas_compounds = retrieve_compounds(cur)
+    if args.all:
+        npatlas_compounds = retrieve_all_compounds(cur)
+    else:
+        npatlas_compounds = retrieve_compounds(cur)
+    
+    # sort on pid
+    npatlas_compounds = sorted(npatlas_compounds, key=lambda x: x[0])
 
     # write to file
     with open(args.output, "w") as f:
