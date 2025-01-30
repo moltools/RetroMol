@@ -318,6 +318,9 @@ def run_retromol(
     with open(out_file, 'w') as f:
         json.dump(out_data, f, indent=4)
 
+    # make sure no files are open anymore
+    f.close()
+
     # TODO: generate output files
     # 1) data structure that shows the monomers that the reactant molecule is composed of
     # 2) data structure that allows reconstruction of the reactant molecule

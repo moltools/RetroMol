@@ -7,7 +7,7 @@ import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import multiprocessing
-multiprocessing.set_start_method('fork')
+# multiprocessing.set_start_method('fork')
 from typing import Callable, Any, Dict, Optional, Tuple
 
 from tqdm import tqdm
@@ -128,12 +128,12 @@ def setup_logger(item_folder: str, logger_level: str = "DEBUG", log_file_name: s
         stream_handler.setFormatter(formatter)
         logger.addHandler(stream_handler)
 
-    # ensure the handler is closed properly when exiting
-    def close_handler_on_exit():
-        for handler in logger.handlers:
-            handler.close()
+    # # ensure the handler is closed properly when exiting
+    # def close_handler_on_exit():
+    #     for handler in logger.handlers:
+    #         handler.close()
 
-    atexit.register(close_handler_on_exit)
+    # atexit.register(close_handler_on_exit)
 
     return logger
 
@@ -263,11 +263,17 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5, logger_l
             logger=logger
         )
         logger.info(f"item {item} processed successfully")
+        # explicitly close the log file
+        for handler in logger.handlers:
+            handler.close()
         return None, None, coverage_score
     except TimeoutError:
         error_type = "TimeoutError"
         error_message = f"processing item {item} timed out"
         logger.warning(error_message)
+        # explicitly close the log file
+        for handler in logger.handlers:
+            handler.close()
         return error_type, error_message, None
     except Exception as e:
         # get the last traceback
@@ -280,6 +286,9 @@ def process_item(item: Item, base_output_folder: str, timeout: int = 5, logger_l
         error_type = type(e).__name__
         error_message = str(e)
         logger.error(f"error with item {item}: {error_type} - {error_message}")
+        # explicitly close the log file
+        for handler in logger.handlers:
+            handler.close()
         return error_type, error_message, None
 
 

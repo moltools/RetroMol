@@ -31,7 +31,7 @@ iriomoteolide_3a,C/C=C/C/C=C/[C@H](C)C[C@@H]([C@@H]1C[C@H]2[C@@H](O2)/C=C/[C@@H]
 jerangolid_A,CC[C@@H]1C(=CC[C@@H](O1)/C(=C/[C@H](C)/C=C/[C@H]2CC(=C(C(=O)O2)CO)OC)/C)C
 kirromycin,CC[C@H](C(=O)NC/C=C/C=C(\C)/[C@H]([C@@H](C)[C@H]1[C@H]([C@H]([C@H](O1)/C=C/C=C/C=C(\C)/C(=O)C2=C(C=CNC2=O)O)O)O)OC)[C@@]3([C@@H]([C@@H](C([C@@H](O3)/C=C/C=C/C)(C)C)O)O)O
 lactimidomycin,C[C@H]1/C=C\C=C\CC/C=C/C(=O)O[C@H]1/C(=C/[C@H](C)C(=O)C[C@@H](CC2CC(=O)NC(=O)C2)O)/C
-lankamycin,C[C@@H]1C[C@@H]([C@H]([C@@H](O1)O[CC[C@@H]1C(=CC[C@@H](O1)/C(=C/[C@H](C)/C=C/[C@H]2CC(=C(C(=O)O2)CO)OC)/C)CC@H]2[C@H](C[C@](C(=O)[C@@H]([C@H]([C@H]([C@H](OC(=O)[C@@H]([C@H]([C@@H]2C)O[C@H]3C[C@@]([C@@H]([C@@H](O3)C)OC(=O)C)(C)OC)C)[C@@H](C)[C@H](C)O)C)OC(=O)C)C)(C)O)C)O)OC
+lankamycin,C[C@@H]1C[C@@H]([C@H]([C@@H](O1)O[C@H]2[C@H](C[C@](C(=O)[C@@H]([C@H]([C@H]([C@H](OC(=O)[C@@H]([C@H]([C@@H]2C)O[C@H]3C[C@@]([C@@H]([C@@H](O3)C)OC(=O)C)(C)OC)C)[C@@H](C)[C@H](C)O)C)OC(=O)C)C)(C)O)C)O)OC
 latrunculin,C[C@H]/1CC[C@@H]2C[C@H](C[C@@](O2)([C@@H]3CSC(=O)N3)O)OC(=O)/C=C(\CC/C=C/C=C1)/C
 leiodermatolide,CC[C@H]1[C@@H]([C@@](CC(=O)O1)(C/C=C/C=C(\C)/[C@@H]2[C@H](/C=C\C=C/[C@@H]([C@H]([C@H]([C@@H](/C(=C/CCC(=O)O2)/C)C)O)C)OC(=O)N)C)O)C
 lovastatin,CC[C@H](C)C(=O)O[C@H]1C[C@H](C=C2[C@H]1[C@H]([C@H](C=C2)C)CC[C@@H]3C[C@H](CC(=O)O3)O)C
