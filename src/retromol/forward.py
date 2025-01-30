@@ -51,14 +51,17 @@ def forward_generation(motifs: ty.List[str], as_name = False):
     rules = get_rules()
     # assemble seq into mol
     mol = seq[0]
+
     for motif in seq[1:]:
         # check for every rule if we can combine motif with mol
         results = []
         for rule in rules:
             result = rule.RunReactants((mol, motif))
             if result:
+                # print(result)
                 product = result[0][0]
                 Chem.SanitizeMol(product)
+                # print(product)
                 results.append(product)
         assert len(results) == 1, f"More than one rule can be applied to {Chem.MolToSmiles(mol)} + {Chem.MolToSmiles(motif)}"
         mol = results[0]

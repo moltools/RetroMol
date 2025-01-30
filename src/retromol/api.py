@@ -18,7 +18,7 @@ def run_retromol(
     smiles: str, 
     user_supplied_linearization_rules: Optional[list] = None,
     user_supplied_sequencing_rules: Optional[list] = None,
-    user_supplied_motfs: Optional[list] = None,
+    user_supplied_motifs: Optional[list] = None,
     use_default_linearization_rules: bool = True,
     use_default_sequencing_rules: bool = True,
     use_default_motifs: bool = True,
@@ -43,10 +43,10 @@ def run_retromol(
         if logger: logger.debug(f"loaded {len(user_supplied_sequencing_rules)} sequencing reaction rules")
 
     # parse user supplied motifs
-    if user_supplied_motfs:
+    if user_supplied_motifs:
         if logger: logger.debug("loading user supplied motifs")
-        user_supplied_motfs = [Motif(motif["name"], motif["smiles"]) for motif in user_supplied_motfs]
-        if logger: logger.debug(f"loaded {len(user_supplied_motfs)} motifs")
+        user_supplied_motifs = [Motif(motif["name"], motif["smiles"]) for motif in user_supplied_motifs]
+        if logger: logger.debug(f"loaded {len(user_supplied_motifs)} motifs")
     
     # retrieve reaction rules
     if logger: logger.debug("loading default reaction rules")
@@ -73,7 +73,7 @@ def run_retromol(
     # find identities for nodes
     encoding_to_identity = {}
     for encoding, mol in encoding_to_mol.items():
-        mol_identity = match_mol_greedily(mol, user_supplied_motfs, use_default_motifs, logger)
+        mol_identity = match_mol_greedily(mol, user_supplied_motifs, use_default_motifs, logger)
         if mol_identity is not None:
             encoding_to_identity[encoding] = mol_identity
             continue
@@ -184,7 +184,7 @@ def run_retromol(
         for motif_code in motif_codes:
             tags_identified_motifs_motif_code = set()
             for motif in motif_code:
-                motif_identity = match_mol_greedily(motif, user_supplied_motfs, use_default_motifs, logger)
+                motif_identity = match_mol_greedily(motif, user_supplied_motifs, use_default_motifs, logger)
                 if motif_identity is not None:
                     motif_tags = [atom.GetIsotope() for atom in motif.GetAtoms() if atom.GetIsotope() != 0]
                     tags_identified_motifs_motif_code.update(motif_tags)
@@ -218,7 +218,7 @@ def run_retromol(
                     {
                         "identity": match_mol_greedily(
                             motif, 
-                            user_supplied_motfs,
+                            user_supplied_motifs,
                             use_default_motifs,
                             logger
                         ),  # TODO: now identifying twice, once here and once in the loop above

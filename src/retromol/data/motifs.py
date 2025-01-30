@@ -2244,4 +2244,8 @@ MOTIFS = [
         "name": "pubchem_id_19",
         "smiles": "C1=CC(=C(C(=C1)O)O)C(=O)O",
     },
+    {
+        "name": "propanedioic_acid",
+        "smiles": "O=C(O)CC(O)=O",
+    }
 ]

@@ -224,14 +224,14 @@ SEQUENCING_RULES = [
     },
     {
         "name": "pks (ether-5)",
-        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C&D3:9]1[C:10]>>[O][C](=[O])[C:7][C:8][C:9]([OH:6])[C:10].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]",
+        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)~[C:7]~[C:8]-[C&D3:9]1[C:10]>>[O][C](=[O])[C:7][C:8][C:9]([OH:6])[C:10].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]",
         "props": {
             "include_in_forward": False,
         }
     },
     {
         "name": "pks (ether-6)",
-        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)[C:7][C:8][C:9][C&D3:10]1[C:11]>>[O][C](=[O])[C:7][C:8][C:9][C:10]([OH:6])[C:11].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]",
+        "reaction_smarts": r"[O:1][C:2](=[O:3])[C:4]-[C:5]([O:6]1)-[C:7]~[C:8]~[C:9][C&D3:10]1[C:11]>>[O][C](=[O])[C:7][C:8][C:9][C:10]([OH:6])[C:11].[O:1][C:2](=[O:3])[C:4]=[C:5][S][OH]",
         "props": {
             "include_in_forward": False,
         }
