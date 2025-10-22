@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-
 """This module contains functions for chemical operations using RDKit."""
-
-from typing import List, Set
 
 import numpy as np
 from numpy.typing import NDArray
@@ -253,27 +249,27 @@ def get_default_valence(anr: int) -> int:
     return get_periodic_table().GetDefaultValence(anr)
 
 
-def get_tags_mol(mol: Mol) -> List[int]:
+def get_tags_mol(mol: Mol) -> list[int]:
     """Get the atom tags from a molecule.
 
     :param mol: the molecule
     :return: unordered set of atom tags
     """
-    tags: List[int] = []
+    tags: list[int] = []
     for atom in mol.GetAtoms():
         if atom.GetIsotope() != 0:
             tags.append(atom.GetIsotope())
     return tags
 
 
-def get_tags_mols(mols: List[Mol]) -> Set[int]:
+def get_tags_mols(mols: list[Mol]) -> set[int]:
     """
     Get the atom tags from a list of molecules.
 
     :param mols: the list of molecules
     :return: unordered set of atom tags
     """
-    tags: Set[int] = set()
+    tags: set[int] = set()
     for mol in mols:
         tags.update(get_tags_mol(mol))
     return tags
@@ -331,7 +327,7 @@ def stereo_summary(mol: Mol, one_based: bool = True) -> str:
     mol = prepare_stereo(mol)
 
     # Chiral centers (R/S or '?')
-    chiral_bits: List[str] = []
+    chiral_bits: list[str] = []
     for idx, _ in Chem.FindMolChiralCenters(mol, includeUnassigned=True, useLegacyImplementation=False):
         # RDKit stores CIP on atom property "_CIPCode" when defined
         atom: Atom = mol.GetAtomWithIdx(idx)
@@ -341,7 +337,7 @@ def stereo_summary(mol: Mol, one_based: bool = True) -> str:
         chiral_bits.append(f"C@{aid}={lbl}")
 
     # Double bond stereo (E/Z, cis/trans, or '?')
-    dbits: List[str] = []
+    dbits: list[str] = []
     for b in mol.GetBonds():
         if b.GetBondType() != BondType.DOUBLE:
             continue

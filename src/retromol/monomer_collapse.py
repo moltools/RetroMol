@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 """Collapse monomers into structural (and optionally name-based) groups, deterministically."""
 
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Iterable, List, Mapping, Tuple
 
 from retromol.chem import (
     ExplicitBitVect,
@@ -20,7 +18,7 @@ from retromol.chem import (
 from retromol.helpers import blake64_hex
 
 
-def inchikeys(mol: Mol) -> Tuple[str, str]:
+def inchikeys(mol: Mol) -> tuple[str, str]:
     """
     Get the InChIKeys for a molecule.
 
@@ -73,7 +71,7 @@ class Group:
 
     gid: int
     rep_idx: int  # index of the representative monomer
-    members: List[int] = field(default_factory=list)
+    members: list[int] = field(default_factory=list)
     kind: str = "struct"  # "struct" or "name"
     token_fine: str = ""  # 64-bit hex over canonical SMILES (struct) OR name (for name-groups)
     rep_can_smi: str = ""  # canonical SMILES for the representative
@@ -150,11 +148,11 @@ class DSU:
 
 
 def collapse_monomers_order_invariant(
-    records: Iterable[Tuple[str, str]],
+    records: Iterable[tuple[str, str]],
     keep_stereo: bool = False,
     tanimoto_thresh: float = 0.85,
     collapse_by_name: Iterable[str] | None = None,
-) -> Tuple[List[Group], List[Monomer]]:
+) -> tuple[list[Group], list[Monomer]]:
     """
     Deterministic grouping independent of input order (but still RDKit/version dependent).
 
@@ -178,7 +176,7 @@ def collapse_monomers_order_invariant(
     collapse_set = set(collapse_by_name or [])
 
     # Build Monomer table (skip invalid SMILES unless in name-collapsed)
-    monomers: List[Monomer] = []
+    monomers: list[Monomer] = []
     for i, (name, smi) in enumerate(records):
         mol = standardize_from_smiles(smi, keep_stereo=keep_stereo) if smi else None
         if mol is None and name not in collapse_set:
@@ -203,17 +201,17 @@ def collapse_monomers_order_invariant(
         )
 
     # Stable key used globally to kill order effects
-    def mkey(m: Monomer) -> Tuple[str, str, str, int]:
+    def mkey(m: Monomer) -> tuple[str, str, str, int]:
         """
         Stable key for monomer sorting and representative selection.
-        
+
         :param m: Monomer object
         :return: tuple key
         """
         return (m.can_smi or "", m.name or "", m.input_smiles or "", m.idx)
 
     # Helper: get Monomer by original idx quickly
-    by_idx: Dict[int, Monomer] = {m.idx: m for m in monomers}
+    by_idx: dict[int, Monomer] = {m.idx: m for m in monomers}
 
     # Partition into name vs structural pools
     name_idxs = [m.idx for m in monomers if m.name in collapse_set]
@@ -224,8 +222,8 @@ def collapse_monomers_order_invariant(
     dsu = DSU(len(struct_pos))
 
     # Tier 1: exact unions by InChIKeys (full, then connectivity)
-    by_full: Dict[str, List[int]] = defaultdict(list)
-    by_conn: Dict[str, List[int]] = defaultdict(list)
+    by_full: dict[str, list[int]] = defaultdict(list)
+    by_conn: dict[str, list[int]] = defaultdict(list)
     for i in struct_idxs:
         m = by_idx[i]
         if m.ik_full:
@@ -250,7 +248,7 @@ def collapse_monomers_order_invariant(
         """
         return int(fp.GetNumOnBits()) if fp is not None else 0
 
-    blocks: Dict[Tuple[str, int], List[int]] = defaultdict(list)
+    blocks: dict[tuple[str, int], list[int]] = defaultdict(list)
     for i in struct_idxs:
         m: Monomer = by_idx[i]
         # Single "no scaffold" channel: bucket by rough size (per 16 bits set)
@@ -273,7 +271,7 @@ def collapse_monomers_order_invariant(
                     dsu.union(struct_pos[ma.idx], struct_pos[mb.idx])
 
     # Emit groups deterministically
-    groups: List[Group] = []
+    groups: list[Group] = []
 
     # Name groups: emit in sorted (name) order; members sorted by mkey
     names_sorted = sorted({by_idx[i].name for i in name_idxs})
@@ -294,12 +292,12 @@ def collapse_monomers_order_invariant(
         )
 
     # Structural components: gather, choose representative by mkey, and sort components by rep key
-    comps: Dict[int, List[int]] = defaultdict(list)
+    comps: dict[int, list[int]] = defaultdict(list)
     for i in struct_idxs:
         root = dsu.find(struct_pos[i])
         comps[root].append(i)
 
-    comp_infos: List[Tuple[Tuple[str, str, str, int], List[int]]] = []
+    comp_infos: list[tuple[tuple[str, str, str, int], list[int]]] = []
     for comp in comps.values():
         comp_sorted = sorted(comp, key=lambda i: mkey(by_idx[i]))
         rep = by_idx[comp_sorted[0]]
@@ -325,11 +323,11 @@ def collapse_monomers_order_invariant(
 
 
 def tokens_for_groups(
-    groups: List[Group],
+    groups: list[Group],
     weight_fine: float = 1.0,
     weight_coarse: float = 0.4,
-    extra_bags: Iterable[Dict[str, float]] | None = None,
-) -> Dict[str, float]:
+    extra_bags: Iterable[dict[str, float]] | None = None,
+) -> dict[str, float]:
     """
     Build a determinisitc token bag (fine/coarse), sorting to keep stable accumulation order.
 
@@ -339,7 +337,7 @@ def tokens_for_groups(
     :param extra_bags: optional coarse tokens (e.g., scaffold/family) if present in Group
     :return: dictionary mapping tokens to their accumulated weights
     """
-    bag: Dict[str, float] = {}
+    bag: dict[str, float] = {}
 
     # Stable accumulation order
     for g in sorted(groups, key=lambda g: (g.kind, g.rep_can_smi, g.gid)):
@@ -362,8 +360,8 @@ def tokens_for_groups(
 
 def assign_to_existing_groups(
     smi: str,
-    groups: List[Group],
-    monomers: List[Monomer],
+    groups: list[Group],
+    monomers: list[Monomer],
     keep_stereo: bool = False,
     tanimoto_thresh: float = 0.85,
 ) -> int | None:

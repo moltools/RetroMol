@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
-
 """Module for matching reaction graph nodes to motifs."""
 
 import logging
+from collections.abc import Iterable
 from copy import deepcopy
-from typing import Any, Dict, Iterable, List, Set, Tuple
+from typing import Any
 
 from retromol import chem, config, rules
 
 
 def match_mol_greedily(
-    mol: chem.Mol, rls: List[rules.MatchingRule], sch: bool = False
-) -> Tuple[str, Dict[str, Any]] | None:
+    mol: chem.Mol, rls: list[rules.MatchingRule], sch: bool = False
+) -> tuple[str, dict[str, Any]] | None:
     """
     Match a molecule to a motif.
 
@@ -28,7 +27,7 @@ def match_mol_greedily(
     return None
 
 
-def greedy_max_set_cover(enc_to_mol: Dict[int, chem.Mol], nodes: List[int]) -> List[int]:
+def greedy_max_set_cover(enc_to_mol: dict[int, chem.Mol], nodes: list[int]) -> list[int]:
     """
     Find biggest non-overlapping set of mol nodes in the reaction graph.
 
@@ -37,7 +36,7 @@ def greedy_max_set_cover(enc_to_mol: Dict[int, chem.Mol], nodes: List[int]) -> L
     :return: list of selected node encodings
     """
     # Create subsets of atom mappings per node.
-    subsets: List[Tuple[int, Set[int]]] = list()
+    subsets: list[tuple[int, set[int]]] = list()
     for node in nodes:
         mol = enc_to_mol[node]
         tags = {atom.GetIsotope() for atom in mol.GetAtoms() if atom.GetIsotope() != 0}
@@ -47,8 +46,8 @@ def greedy_max_set_cover(enc_to_mol: Dict[int, chem.Mol], nodes: List[int]) -> L
     sorted_subsets = sorted(subsets, key=lambda x: len(x[1]), reverse=True)
 
     # Perform greedy set cover algorithm.
-    selected_subsets: List[int] = []
-    covered_elements: Set[int] = set()
+    selected_subsets: list[int] = []
+    covered_elements: set[int] = set()
     for node, subset in sorted_subsets:
         uncovered_elements = subset - covered_elements
 
@@ -64,11 +63,11 @@ def greedy_max_set_cover(enc_to_mol: Dict[int, chem.Mol], nodes: List[int]) -> L
 
 
 def solve_exact_cover_with_priority(
-    enc_to_mol: Dict[str, "chem.Mol"],
-    nodes_A: List[str],
-    nodes_B: List[str],
+    enc_to_mol: dict[str, "chem.Mol"],
+    nodes_A: list[str],
+    nodes_B: list[str],
     required_tags: Iterable[int],
-) -> Tuple[List[int], List[int]]:
+) -> tuple[list[int], list[int]]:
     """
     Partition `required_tags` into disjoint node-tag sets drawn from nodes_A ∪ nodes_B.
 
@@ -86,9 +85,9 @@ def solve_exact_cover_with_priority(
     """
     logger = logging.getLogger(config.LOGGER_NAME)
 
-    req: Set[int] = set(required_tags)
+    req: set[int] = set(required_tags)
 
-    def node_tags(node: str) -> Set[int]:
+    def node_tags(node: str) -> set[int]:
         mol = enc_to_mol[node]
         return set(chem.get_tags_mol(mol))
 
@@ -99,7 +98,7 @@ def solve_exact_cover_with_priority(
     candB = [(n, ts) for (n, ts) in candB if ts and ts.issubset(req)]
 
     # Quick impossibility check: every required tag must appear in at least one candidate
-    tag_to_candidates: Dict[int, List[Tuple[str, str, Set[int]]]] = {t: [] for t in req}
+    tag_to_candidates: dict[int, list[tuple[str, str, set[int]]]] = {t: [] for t in req}
     for src, pool in (("A", candA), ("B", candB)):
         for n, ts in pool:
             for t in ts:
@@ -131,13 +130,13 @@ def solve_exact_cover_with_priority(
         )
 
     # Greedy optimistic bound: how many tags can A at most still claim disjointly?
-    def optimistic_A_tag_gain(remaining_tags: Set[int], used_tags: Set[int]) -> int:
-        compat: List[Tuple[str, Set[int]]] = []
+    def optimistic_A_tag_gain(remaining_tags: set[int], used_tags: set[int]) -> int:
+        compat: list[tuple[str, set[int]]] = []
         for n, ts in candA:
             if ts and ts <= remaining_tags and ts.isdisjoint(used_tags):
                 compat.append((n, ts))
         compat.sort(key=lambda x: -len(x[1]))  # larger tag-sets first
-        covered: Set[int] = set()
+        covered: set[int] = set()
         for _, ts in compat:
             if ts.isdisjoint(covered):
                 covered |= ts
@@ -146,7 +145,7 @@ def solve_exact_cover_with_priority(
         return len(covered)
 
     # Choose the "most constrained" remaining tag (fewest compatible candidates)
-    def pick_most_constrained_tag(remaining: Set[int], used: Set[int]) -> int:
+    def pick_most_constrained_tag(remaining: set[int], used: set[int]) -> int:
         best_t = None
         best_count = None
         for t in remaining:
@@ -161,16 +160,16 @@ def solve_exact_cover_with_priority(
                     break  # can't get more constrained than 1
         return best_t
 
-    best_solution: Tuple[List[str], List[str]] | None = None
+    best_solution: tuple[list[str], list[str]] | None = None
     best_A_tags = -1  # maximize
     best_A_nodes = 10**9  # minimize
     best_total = 10**9  # minimize
 
     def recurse(
-        used_tags: Set[int],
-        used_A_tags: Set[int],
-        chosen_A: List[str],
-        chosen_B: List[str],
+        used_tags: set[int],
+        used_A_tags: set[int],
+        chosen_A: list[str],
+        chosen_B: list[str],
     ):
         nonlocal best_solution, best_A_tags, best_A_nodes, best_total
 
@@ -239,10 +238,10 @@ def solve_exact_cover_with_priority(
 
 
 def identify_nodes(
-    encoding_to_mol: Dict[str, chem.Mol],
-    matching_rules: List[rules.MatchingRule],
+    encoding_to_mol: dict[str, chem.Mol],
+    matching_rules: list[rules.MatchingRule],
     match_stereochemistry: bool = False,
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """
     Identify nodes in a reaction graph that match given motifs.
 
@@ -252,7 +251,7 @@ def identify_nodes(
     :return: a dictionary mapping node encodings to motif IDs
     """
     # Try to identify nodes, keep those that match
-    identity_mapping: Dict[str, Dict[str, Any]] = {}
+    identity_mapping: dict[str, dict[str, Any]] = {}
     for node in encoding_to_mol.keys():
         mol = encoding_to_mol[node]
         matched = match_mol_greedily(mol, matching_rules, match_stereochemistry)

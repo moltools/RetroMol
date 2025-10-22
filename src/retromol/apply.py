@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 """This module contains functions for applying custom rules to molecules."""
 
 import itertools
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, FrozenSet, List, Set, Tuple
+from typing import Any
 
 from networkx import Graph
 
@@ -27,7 +25,7 @@ from retromol.io import Input as RetroMolInput
 from retromol.rules import DummyReactionRule, ReactionRule
 
 
-def _reactive_template_atoms(rxn: ChemicalReaction) -> List[Set[int]]:
+def _reactive_template_atoms(rxn: ChemicalReaction) -> list[set[int]]:
     """
     For each reactant-template in rxn, return the set of template-atom-indices
     that actually change (i.e. have a broken/formed bond or disappear/appear).
@@ -37,8 +35,8 @@ def _reactive_template_atoms(rxn: ChemicalReaction) -> List[Set[int]]:
     :return: List of sets, each set contains indices of reactive atoms in the corresponding reactant template
     """
     # First, build a map from map‐no -> (reactant_template_idx, reactant_atom_idx)
-    reactant_maps: Dict[
-        int, Tuple[int, int]
+    reactant_maps: dict[
+        int, tuple[int, int]
     ] = {}  # map_no -> (which reactant‐template, which atom‐idx in that template)
     for ri in range(rxn.GetNumReactantTemplates()):
         templ = rxn.GetReactantTemplate(ri)
@@ -48,7 +46,7 @@ def _reactive_template_atoms(rxn: ChemicalReaction) -> List[Set[int]]:
                 reactant_maps[mnum] = (ri, atom.GetIdx())
 
     # Next, build a map from map‐no -> (which product_template_idx, product_atom_idx)
-    product_maps: Dict[int, Tuple[int, int]] = {}
+    product_maps: dict[int, tuple[int, int]] = {}
     for pi in range(rxn.GetNumProductTemplates()):
         templ_p = rxn.GetProductTemplate(pi)
         for atom in templ_p.GetAtoms():
@@ -58,12 +56,12 @@ def _reactive_template_atoms(rxn: ChemicalReaction) -> List[Set[int]]:
 
     # Now we scan each reactant‐template atom and see if it "persists" into product with the same adjacency,
     # or if its bonding pattern changes, or if it disappears entirely. If any of those are true -> it's reactive.
-    reactive_sets: List[Set[int]] = [set() for _ in range(rxn.GetNumReactantTemplates())]
+    reactive_sets: list[set[int]] = [set() for _ in range(rxn.GetNumReactantTemplates())]
 
     # Pre‐compute adjacency‐lists (by map‐number) for reactant vs. product
     #  – build map_no -> set(of neighbor‐map_numbers) in reactant and product
-    react_adj: Dict[int, Set[int]] = {}
-    prod_adj: Dict[int, Set[int]] = {}
+    react_adj: dict[int, set[int]] = {}
+    prod_adj: dict[int, set[int]] = {}
 
     # Build reactant adjacency by map‐num
     for ri in range(rxn.GetNumReactantTemplates()):
@@ -119,9 +117,9 @@ def _reactive_template_atoms(rxn: ChemicalReaction) -> List[Set[int]]:
 
 def _index_uncontested(
     mol: Mol,
-    rls: List[ReactionRule],
-    failed_combos: Set[Tuple[int, FrozenSet[int]]],
-) -> List[Tuple[ReactionRule, Set[int]]]:
+    rls: list[ReactionRule],
+    failed_combos: set[tuple[int, frozenset[int]]],
+) -> list[tuple[ReactionRule, set[int]]]:
     """
     Index uncontested reactions for applying preprocessing rules in bulk.
 
@@ -130,19 +128,19 @@ def _index_uncontested(
     :param failed_combos: Set of failed combinations to avoid infinite loops
     :return: Uncontested reactions
     """
-    up_for_election: List[Tuple[ReactionRule, Set[int], Set[int]]] = []
+    up_for_election: list[tuple[ReactionRule, set[int], set[int]]] = []
     for rl in rls:
         if not rl.rxn:
             continue  # skip rules without a reaction template
 
         reactive_inds = _reactive_template_atoms(rl.rxn)[0]
-        all_reactant_matches: List[Tuple[Tuple[int, ...], ...]] = []
-        all_reactant_matches_reactive_items: List[List[List[int]]] = []
+        all_reactant_matches: list[tuple[tuple[int, ...], ...]] = []
+        all_reactant_matches_reactive_items: list[list[list[int]]] = []
         for template_idx in range(rl.rxn.GetNumReactantTemplates()):
             reactant_template = rl.rxn.GetReactantTemplate(template_idx)
-            reactant_matches: Tuple[Tuple[int, ...], ...] = mol.GetSubstructMatches(reactant_template)
+            reactant_matches: tuple[tuple[int, ...], ...] = mol.GetSubstructMatches(reactant_template)
             all_reactant_matches.append(reactant_matches)
-            new_reactant_matches: List[List[int]] = []
+            new_reactant_matches: list[list[int]] = []
             for reactant_match in reactant_matches:
                 new_reactant_matches.append([reactant_match[idx] for idx in reactive_inds])
             all_reactant_matches_reactive_items.append(new_reactant_matches)
@@ -156,7 +154,7 @@ def _index_uncontested(
             up_for_election.append((rl, match_set, match_set_reactive_items))
 
     # Check which reactions with matched templates are uncontested and which are contested
-    uncontested: List[Tuple[ReactionRule, Set[int]]] = []
+    uncontested: list[tuple[ReactionRule, set[int]]] = []
     for i, (rl, match_set, match_set_reactive_items) in enumerate(up_for_election):
         # Rules with ring matching conditions are always contested
         if rl.has_ring_matching_condition():
@@ -180,9 +178,9 @@ def _index_uncontested(
 
 def _apply_uncontested(
     parent: Mol,
-    uncontested: List[Tuple[rules.ReactionRule, Set[int]]],
-    original_taken_tags: List[int],
-) -> Tuple[List[Mol], Set[str], Set[Tuple[int, FrozenSet[int]]]]:
+    uncontested: list[tuple[rules.ReactionRule, set[int]]],
+    original_taken_tags: list[int],
+) -> tuple[list[Mol], set[str], set[tuple[int, frozenset[int]]]]:
     """
     Apply uncontested reactions in bulk.
 
@@ -191,9 +189,9 @@ def _apply_uncontested(
     :param original_taken_tags: List of atom tags from original reactant
     :return: List of trtue products, a set of applied reaction ids,  and a set of failed combinations
     """
-    applied_reactions: Set[str] = set()
+    applied_reactions: set[str] = set()
 
-    tags_in_parent: Set[int] = set(get_tags_mol(parent))
+    tags_in_parent: set[int] = set(get_tags_mol(parent))
 
     # We make sure all atoms, even the ones not from original reactant, have a
     # unique isotope number, so we can track them through consecutive reactions
@@ -215,8 +213,8 @@ def _apply_uncontested(
     idx_to_tag = {a.GetIdx(): a.GetIsotope() for a in parent.GetAtoms()}
 
     # All uncontested reactions become a single node in the reaction_graph
-    products: List[Mol] = []
-    failed_combos: Set[Tuple[int, FrozenSet[int]]] = set()  # keep track of failed combinations to avoid infinite loops
+    products: list[Mol] = []
+    failed_combos: set[tuple[int, frozenset[int]]] = set()  # keep track of failed combinations to avoid infinite loops
 
     for rl, match_set in uncontested:
         msk = set([idx_to_tag[idx] for idx in match_set])  # create mask for reaction
@@ -306,10 +304,10 @@ class ProcessingResult:
     :param applied_rxns: Set of successfully applied reaction ids
     """
 
-    enc_to_mol: Dict[str, Mol]  # encoding is a canonical SMILES with isotopic tags
-    enc_to_rxn: Dict[int, rules.ReactionRule]
-    rxn_graph: Dict[str, Dict[int, List[str]]]
-    applied_rxns: Set[str]
+    enc_to_mol: dict[str, Mol]  # encoding is a canonical SMILES with isotopic tags
+    enc_to_rxn: dict[int, rules.ReactionRule]
+    rxn_graph: dict[str, dict[int, list[str]]]
+    applied_rxns: set[str]
 
 
 class Input:
@@ -339,7 +337,7 @@ class Input:
         # store SMILES representation with tags
         self._smi = mol_to_smiles(self.mol)
 
-    def get_tags(self) -> List[int]:
+    def get_tags(self) -> list[int]:
         """
         Get the atom tags.
 
@@ -348,7 +346,7 @@ class Input:
         return get_tags_mol(self.mol)
 
 
-def process_mol(inp: RetroMolInput, reaction_rules: List[rules.ReactionRule]) -> ProcessingResult:
+def process_mol(inp: RetroMolInput, reaction_rules: list[rules.ReactionRule]) -> ProcessingResult:
     """
     Apply custom rules to linearize a SMILES string.
 
@@ -366,7 +364,7 @@ def process_mol(inp: RetroMolInput, reaction_rules: List[rules.ReactionRule]) ->
     mols = [deepcopy(inp.mol)]  # queue of molecules to process
 
     # Set of (rule id, frozenset of match_set) tuples to track failed combinations
-    failed_combos: Set[Tuple[int, FrozenSet[int]]] = set()  # keep track of failed combinations to avoid infinite loops
+    failed_combos: set[tuple[int, frozenset[int]]] = set()  # keep track of failed combinations to avoid infinite loops
 
     # Process queue
     while mols:
@@ -456,11 +454,11 @@ def process_mol(inp: RetroMolInput, reaction_rules: List[rules.ReactionRule]) ->
 
 def resolve_mol(
     mol: Mol,
-    reserved_tags: Set[int],
-    reaction_rules: List[rules.ReactionRule],
-    matching_rules: List[rules.MatchingRule],
+    reserved_tags: set[int],
+    reaction_rules: list[rules.ReactionRule],
+    matching_rules: list[rules.MatchingRule],
     match_stereochemistry: bool,
-    wave_config: Dict[str, Any],
+    wave_config: dict[str, Any],
 ) -> "Graph[int | str]":
     """
     Apply custom rules to sequence a molecule into motif codes.

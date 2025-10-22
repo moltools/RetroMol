@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """This module contains the command line interface for RetroMol."""
 
 import argparse
@@ -9,7 +7,7 @@ import os
 import os.path as osp
 from collections import Counter
 from datetime import datetime
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import yaml
 from tqdm import tqdm
@@ -205,13 +203,13 @@ def setup_logger(log_file_path: str, verbose: bool) -> logging.Logger:
     return logger
 
 
-def _open_jsonl(outdir: str, jsonl_path: str | None) -> Tuple[Any, str]:
+def _open_jsonl(outdir: str, jsonl_path: str | None) -> tuple[Any, str]:
     path = jsonl_path or os.path.join(outdir, "results.jsonl")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return open(path, "a", buffering=1), path  # line-buffered
 
 
-def _write_result_file(outdir: str, inchikey: str, payload: Dict[str, Any] | None) -> None:
+def _write_result_file(outdir: str, inchikey: str, payload: dict[str, Any] | None) -> None:
     with open(os.path.join(outdir, f"result_{inchikey}.json"), "w") as f:
         json.dump(payload, f, indent=0)  # indent=0 faster than 4
 

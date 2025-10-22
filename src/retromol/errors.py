@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """This module defines custom exceptions for the RetroMol package."""
 
 

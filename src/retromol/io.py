@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """This module describes the basic output class for RetroMol."""
 
 import json
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 from networkx import Graph, node_link_data, node_link_graph
 
@@ -28,9 +26,9 @@ class Input:
         self,
         cid: str,
         repr: Mol | str,
-        props: Dict[str, Any] | None = None,
+        props: dict[str, Any] | None = None,
         tag_compound: bool = True,
-        reserved_tags: Set[int] | None = None,
+        reserved_tags: set[int] | None = None,
     ) -> None:
         """
         Initialize the input compound.
@@ -90,7 +88,7 @@ class Input:
             # Store SMILES representation with tags
             self.smi = mol_to_smiles(self.mol)
 
-    def get_tags(self) -> List[int]:
+    def get_tags(self) -> list[int]:
         """
         Get the atom tags.
 
@@ -105,7 +103,7 @@ class Result:
     A class representing the result of a RetroMol operation.
 
     :param input_id: a unique identifier for the input molecule
-    :param graph: a networkx Graph representing the motif graph of the input molecule. Nodes of this graph may have 
+    :param graph: a networkx Graph representing the motif graph of the input molecule. Nodes of this graph may have
         a “graph” attribute which is itself another nx.Graph (or None), arbitrarily nested
     :param props: additional properties associated with the input molecule.
     :param sha256_reaction_rules: SHA256 hash of the reaction rules used (optional)
@@ -114,11 +112,11 @@ class Result:
 
     input_id: str
     graph: "Graph[int | str]"
-    props: Dict[str, Any] | None
+    props: dict[str, Any] | None
     sha256_reaction_rules: str | None
     sha256_matching_rules: str | None
 
-    def serialize(self) -> Dict[str, Any]:
+    def serialize(self) -> dict[str, Any]:
         """
         Serialize this Result to a JSON-friendly dict, including any nested graphs.
 
@@ -152,7 +150,7 @@ class Result:
         # Bit unsafe, but we trust our own data structure here
         return smiles
 
-    def get_props(self) -> Dict[str, Any]:
+    def get_props(self) -> dict[str, Any]:
         """
         Get the additional properties associated with the input molecule.
 
@@ -161,7 +159,7 @@ class Result:
         return self.props if self.props is not None else {}
 
     @staticmethod
-    def _serialize_graph(g: "Graph[int | str]") -> Dict[str, Any]:
+    def _serialize_graph(g: "Graph[int | str]") -> dict[str, Any]:
         # First use node_link_data to turn the graph structure into primitives + attrs
         data = node_link_data(g)
 
@@ -181,7 +179,7 @@ class Result:
         return data
 
     @staticmethod
-    def from_serialized(data: Dict[str, Any]) -> "Result":
+    def from_serialized(data: dict[str, Any]) -> "Result":
         """
         Reconstruct a Result from the dict form produced by serialize().
 
@@ -202,7 +200,7 @@ class Result:
         )
 
     @staticmethod
-    def _deserialize_graph(data: Dict[str, Any]) -> "Graph[int | str]":
+    def _deserialize_graph(data: dict[str, Any]) -> "Graph[int | str]":
         # Convert string IDs back to integers
         for node in data["nodes"]:
             node["id"] = node["id"]
@@ -242,7 +240,7 @@ class Result:
         data = json.loads(s)
         return Result.from_serialized(data)
 
-    def summarize_by_depth(self, propagate_through_identified: bool = True) -> Dict[int, Dict[str, Any]]:
+    def summarize_by_depth(self, propagate_through_identified: bool = True) -> dict[int, dict[str, Any]]:
         """
         For each depth d (root children are depth 1), accumulate UNIQUE input tags
         from all identified nodes seen at depths <= d.
@@ -261,7 +259,7 @@ class Result:
             "wave_name": Optional[str],    # first seen at that depth
         }, ...}
         """
-        # Input tag universe 
+        # Input tag universe
         root_tags = self.graph.graph.get("tags")
         if isinstance(root_tags, (list, tuple, set)):
             T0 = {int(t) for t in root_tags}
@@ -273,12 +271,12 @@ class Result:
         denom = len(T0) if T0 else 0
 
         # Per-depth accumulators
-        tags_at_depth: Dict[int, Set[int]] = defaultdict(set)  # ONLY from identified nodes
-        monomers_by_depth: Dict[int, Counter[str]] = defaultdict(Counter)
-        nodes_by_depth: Dict[int, int] = defaultdict(int)
-        identified_by_depth: Dict[int, int] = defaultdict(int)
-        unidentified_by_depth: Dict[int, int] = defaultdict(int)
-        wave_name_by_depth: Dict[int, str] = {}
+        tags_at_depth: dict[int, set[int]] = defaultdict(set)  # ONLY from identified nodes
+        monomers_by_depth: dict[int, Counter[str]] = defaultdict(Counter)
+        nodes_by_depth: dict[int, int] = defaultdict(int)
+        identified_by_depth: dict[int, int] = defaultdict(int)
+        unidentified_by_depth: dict[int, int] = defaultdict(int)
+        wave_name_by_depth: dict[int, str] = {}
 
         def _walk(g, depth: int):
             nd = depth + 1
@@ -316,9 +314,9 @@ class Result:
         _walk(self.graph, depth=0)
 
         # Cumulative union across depths
-        depths: List[int] = sorted(set(nodes_by_depth) | set(tags_at_depth))
-        cumulative: Set[int] = set()
-        summary: Dict[int, Dict[str, Any]] = {}
+        depths: list[int] = sorted(set(nodes_by_depth) | set(tags_at_depth))
+        cumulative: set[int] = set()
+        summary: dict[int, dict[str, Any]] = {}
         for d in depths:
             cumulative |= tags_at_depth.get(d, set())
             covered = len(cumulative)
@@ -337,7 +335,7 @@ class Result:
     def max_depth(self) -> int:
         """
         Return the deepest nesting level (wave index). Root is 0
-        
+
         :return: Maximum depth of the nested motif graph
         """
         max_d = 0
@@ -366,7 +364,7 @@ class Result:
         total = max(0.0, min(1.0, total))
         return round(total, round_to)
 
-    def get_unidentified_nodes(self) -> List[Tuple[str, str]]:
+    def get_unidentified_nodes(self) -> list[tuple[str, str]]:
         """
         Return all unidentified nodes as a list of (SMILES_without_tags, InChIKey).
 
@@ -378,8 +376,8 @@ class Result:
 
         :return: list of tuples (SMILES_without_tags, InChIKey)
         """
-        results: List[Tuple[str, str]] = []
-        seen: Set[Tuple[str, str]] = set()
+        results: list[tuple[str, str]] = []
+        seen: set[tuple[str, str]] = set()
 
         def _untag_smiles(tagged_smi: str) -> str:
             # Convert to RDKit mol, strip isotopes & atom map numbers, then re-SMILES
@@ -398,7 +396,7 @@ class Result:
         def _inchikey_from_smiles(smi: str) -> str:
             """
             Get InChIKey from SMILES string.
-            
+
             :param smi: SMILES string
             """
             mol = smiles_to_mol(smi)
@@ -407,7 +405,7 @@ class Result:
         def _walk(g: "Graph[int | str]") -> None:
             """
             Recursive walker to find unidentified nodes.
-            
+
             :param g: current graph to walk
             """
             for _, attrs in g.nodes(data=True):
@@ -436,13 +434,13 @@ class Result:
         results.sort(key=lambda x: (x[0], x[1]))
         return results
 
-    def get_identified_nodes(self) -> Set[Tuple[str, str, Tuple[int, ...]]]:
+    def get_identified_nodes(self) -> set[tuple[str, str, tuple[int, ...]]]:
         """
         Traverse the nested motif graph and return all identified nodes.
 
         :return: each entry is (identity, tags)
         """
-        results: Dict[Tuple[str, Tuple[int, ...]], str] = {}  # SMILES might vary for same identity+tags
+        results: dict[tuple[str, tuple[int, ...]], str] = {}  # SMILES might vary for same identity+tags
 
         def _walk(g: "Graph[int | str]") -> None:
             for _, attrs in g.nodes(data=True):
@@ -453,9 +451,9 @@ class Result:
                     mol = smiles_to_mol(smiles)
                     smiles = mol_to_smiles(mol, remove_tags=True)
 
-                    tags_list: List[int] = attrs.get("tags", [])
+                    tags_list: list[int] = attrs.get("tags", [])
                     tags_list.sort()
-                    tags: Tuple[int, ...] = tuple(tags_list)
+                    tags: tuple[int, ...] = tuple(tags_list)
                     results[(identity, tags)] = smiles
 
                 sub = attrs.get("graph")

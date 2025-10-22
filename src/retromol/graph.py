@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """This module contains functions for graph operations with networkx."""
 
+from collections.abc import Generator
 from copy import deepcopy
-from typing import Any, Dict, Generator, List, Set, Tuple
+from typing import Any
 
 import networkx as nx
 from networkx import Graph
@@ -58,8 +57,8 @@ def mol_to_graph(mol: chem.Mol, use_tags: bool = False) -> "Graph[int | str]":
 def merge_nodes(
     graph: "Graph[int | str]",
     merged_node_id: int | str,
-    nodes: List[int],
-    props: Dict[str, Any] | None = None,
+    nodes: list[int],
+    props: dict[str, Any] | None = None,
 ) -> None:
     """
     Merge `nodes` into a single node `merged_node_id`.
@@ -85,10 +84,10 @@ def merge_nodes(
     if missing:
         raise ValueError(f"Cannot merge {missing} - they are not in the graph.")
 
-    nodes_set: Set[int | str] = set(nodes)
+    nodes_set: set[int | str] = set(nodes)
 
     # Collect outside neighbors
-    outside_neighbors: Set[int | str] = set()
+    outside_neighbors: set[int | str] = set()
     for n in nodes:
         for nbr in graph.neighbors(n):
             if nbr not in nodes_set:
@@ -154,8 +153,8 @@ def is_linear_graph(g: "Graph[int | str]") -> bool:
         return False
 
     # Count degrees
-    degrees: Dict[int | str, int] = dict(g.degree())
-    degs: List[int] = list(degrees.values())
+    degrees: dict[int | str, int] = dict(g.degree())
+    degs: list[int] = list(degrees.values())
     num_deg1 = sum(1 for d in degs if d == 1)
     num_deg2 = sum(1 for d in degs if d == 2)
 
@@ -163,7 +162,7 @@ def is_linear_graph(g: "Graph[int | str]") -> bool:
     return (num_deg1 == 2) and (num_deg2 == n - 2)
 
 
-def get_linear_path(g: "Graph[int | str]") -> List[int | str] | None:
+def get_linear_path(g: "Graph[int | str]") -> list[int | str] | None:
     """
     If `g` is a linear graph (as per is_linear_graph), return the list
     of nodes in path order; otherwise return None.
@@ -184,7 +183,7 @@ def get_linear_path(g: "Graph[int | str]") -> List[int | str] | None:
         return nx.shortest_path(g, source=start, target=end)
 
 
-def iter_kmers(G: "Graph[int | str]", k: int) -> Generator[Tuple[int | str, ...], None, None]:
+def iter_kmers(G: "Graph[int | str]", k: int) -> Generator[tuple[int | str, ...], None, None]:
     """
     Generate all length-k node walks (k-mers) from graph G, returning node identifiers.
 
@@ -206,7 +205,7 @@ def iter_kmers(G: "Graph[int | str]", k: int) -> Generator[Tuple[int | str, ...]
         return
 
     # Build paths as lists of NodeT; convert to tuple only when yielding.
-    stack: List[Tuple[int | str, List[int | str]]] = [(start, [start]) for start in G.nodes(data=False)]
+    stack: list[tuple[int | str, list[int | str]]] = [(start, [start]) for start in G.nodes(data=False)]
 
     while stack:
         node, path = stack.pop()

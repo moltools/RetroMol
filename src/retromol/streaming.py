@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
-
 """Streaming RetroMol runs with multiprocessing."""
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from multiprocessing import Pool
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Tuple
+from typing import Any
 
 import yaml
 from pandas import DataFrame, read_csv
@@ -22,7 +21,7 @@ _G_WAVE_CONFIGS = None
 _G_MATCH_STEREO = None
 
 
-def _init_worker(rule_set: Rules, wave_configs: List[Dict[str, Any]] | None, match_stereo: bool) -> None:
+def _init_worker(rule_set: Rules, wave_configs: list[dict[str, Any]] | None, match_stereo: bool) -> None:
     """
     Initialize worker process with necessary global variables.
 
@@ -37,8 +36,8 @@ def _init_worker(rule_set: Rules, wave_configs: List[Dict[str, Any]] | None, mat
 
 
 def _process_compound(
-    args_tuple: Tuple[str, str, Dict[str, Any]],
-) -> Tuple[str, Dict[str, Any] | None, str | None]:
+    args_tuple: tuple[str, str, dict[str, Any]],
+) -> tuple[str, dict[str, Any] | None, str | None]:
     """
     Process a single compound in a worker process.
 
@@ -75,17 +74,17 @@ class ResultEvent:
     """
 
     inchikey: str
-    result: Dict[str, Any] | None  # serialized result or None on error
+    result: dict[str, Any] | None  # serialized result or None on error
     error: str | None  # error message or None on success
 
 
 def _task_buffered_iterator(
-    source_iter: Iterable[Dict[str, Any]],
+    source_iter: Iterable[dict[str, Any]],
     *,
     id_col: str,
     smiles_col: str,
     batch_size: int,
-) -> Iterator[List[Tuple[str, str, Dict[str, Any]]]]:
+) -> Iterator[list[tuple[str, str, dict[str, Any]]]]:
     """
     Convert row dicts into (inchikey, smiles, props) tuples and yield in batches.
 
@@ -95,7 +94,7 @@ def _task_buffered_iterator(
     :param batch_size: number of compounds per batch
     :return: iterator over lists of (inchikey, smiles, props) tuples
     """
-    buf: List[Tuple[str, str, Dict[str, Any]]] = []
+    buf: list[tuple[str, str, dict[str, Any]]] = []
     for rec in source_iter:
         if id_col not in rec or smiles_col not in rec:
             continue
@@ -113,14 +112,14 @@ def run_retromol_stream(
     *,
     # Either provide loaded objects...
     rule_set: Rules | None = None,
-    wave_configs: List[Dict[str, Any]] | None = None,
+    wave_configs: list[dict[str, Any]] | None = None,
     # ...or point to files (if provided, they override the loaded objects)
     reaction_rules_path: str | None = None,
     matching_rules_path: str | None = None,
     wave_config_path: str | None = None,
     match_stereo: bool = False,
     # Data source: an iterable of row dicts containing id_col and smiles_col
-    row_iter: Iterable[Dict[str, Any]],
+    row_iter: Iterable[dict[str, Any]],
     id_col: str = "inchikey",
     smiles_col: str = "smiles",
     # Concurrency knobs (match CLI defaults)
@@ -185,7 +184,7 @@ def stream_table_rows(
     *,
     sep: str = ",",
     chunksize: int = 20_000,
-) -> Iterator[Dict[str, Any]]:
+) -> Iterator[dict[str, Any]]:
     """
     Stream CSV/TSV rows as dicts. Keeps memory usage low (chunked).
 
@@ -212,7 +211,7 @@ def stream_sdf_records(
     sdf_path: str,
     *,
     fast: bool = False,
-) -> Iterator[Dict[str, Any]]:
+) -> Iterator[dict[str, Any]]:
     """
     Stream SDF as dict rows: {'inchikey': <IK>, 'smiles': <SMI>, ...props}
     Matches CLI behavior including opportunistic sanitize for IK/SMILES.
@@ -247,7 +246,7 @@ def stream_json_records(
     path: str,
     *,
     jsonl: bool = False,
-) -> Iterator[Dict[str, Any]]:
+) -> Iterator[dict[str, Any]]:
     """
     Stream JSON or JSONL records as dicts.
 

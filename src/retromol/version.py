@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Version information for RetroMol."""
 
 from importlib.metadata import PackageNotFoundError, version

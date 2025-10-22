@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """This module contains functions for parsing RetroMol rules."""
 
 import logging
@@ -7,7 +5,7 @@ from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
 from importlib.resources import files
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 import yaml
 from rdkit.Chem.rdchem import PeriodicTable
@@ -53,7 +51,7 @@ def check_tags_are_nonzero(mol: Mol) -> None:
         raise ValueError("molecule contains atom tag 0")
 
 
-def apply_mask(mol: Mol, msk: Set[int]) -> Dict[int, int]:
+def apply_mask(mol: Mol, msk: set[int]) -> dict[int, int]:
     """
     Set atom numbers of atoms not in mask to 0 based on atom tags.
 
@@ -89,7 +87,7 @@ def check_atomic_nums_are_nonzero(mol: Mol) -> None:
         raise ValueError("molecule contains atomic number 0")
 
 
-def reset_atomic_nums(mol: Mol, tag_to_anr: Dict[int, int]) -> None:
+def reset_atomic_nums(mol: Mol, tag_to_anr: dict[int, int]) -> None:
     """
     Reset atomic numbers of atoms based on atom tags.
 
@@ -138,14 +136,14 @@ def correct_hydrogens(mol: Mol) -> None:
             atom.SetNumExplicitHs(new_valence)
 
 
-def _collect_map_to_atomicnums(mols: List[Mol]) -> Dict[int, List[int]]:
+def _collect_map_to_atomicnums(mols: list[Mol]) -> dict[int, list[int]]:
     """
     Return map_number -> list of atomic numbers (with multiplicity).
-    
+
     :param mols: list of molecules
     :return: mapping of map numbers to list of atomic numbers
     """
-    out: Dict[int, List[int]] = defaultdict(list)
+    out: dict[int, list[int]] = defaultdict(list)
     for mol in mols:
         for atom in mol.GetAtoms():
             m = atom.GetAtomMapNum()
@@ -154,10 +152,10 @@ def _collect_map_to_atomicnums(mols: List[Mol]) -> Dict[int, List[int]]:
     return out
 
 
-def summarize_atomicnums(nums: List[int]) -> str:
+def summarize_atomicnums(nums: list[int]) -> str:
     """
     Compact helper for error messages, e.g., [6,6,8] -> Cx2,O.
-    
+
     :param nums: list of atomic numbers
     :return: compact string representation
     """
@@ -176,7 +174,7 @@ def summarize_atomicnums(nums: List[int]) -> str:
 class _CompiledConds:
     """
     Compiled conditions for reaction rules.
-    
+
     :param requires_any: list of required substructures (any)
     :param requires_all: list of required substructures (all)
     :param forbids_any: list of forbidden substructures (any)
@@ -192,11 +190,11 @@ class _CompiledConds:
     :param is_macrocycle: whether the molecule must be a macrocycle
     """
 
-    requires_any: List[Mol]
-    requires_all: List[Mol]
-    forbids_any: List[Mol]
-    min_counts: List[Tuple[Mol, int]]
-    max_counts: List[Tuple[Mol, int]]
+    requires_any: list[Mol]
+    requires_all: list[Mol]
+    forbids_any: list[Mol]
+    min_counts: list[tuple[Mol, int]]
+    max_counts: list[tuple[Mol, int]]
     ring_min: int | None
     ring_max: int | None
     atom_min: int | None
@@ -207,26 +205,26 @@ class _CompiledConds:
     is_macrocycle: bool | None
 
 
-def _compile_smarts_list(lst: List[str] | None) -> List[Mol]:
+def _compile_smarts_list(lst: list[str] | None) -> list[Mol]:
     """
     Compile a list of SMARTS strings into RDKit Mol objects.
-    
+
     :param lst: list of SMARTS strings
     :return: list of RDKit Mol objects
     """
     if not lst:
         return []
-    out: List[Mol] = []
+    out: list[Mol] = []
     for s in lst:
         m = smarts_to_mol(s)
         out.append(m)
     return out
 
 
-def _compile_counts(d: Dict[str, int] | None) -> List[Tuple[Mol, int]]:
+def _compile_counts(d: dict[str, int] | None) -> list[tuple[Mol, int]]:
     """
     Compile a dictionary of SMARTS strings to counts into a list of (Mol, count) tuples.
-    
+
     :param d: dictionary of SMARTS strings to counts
     :return: list of (Mol, count) tuples
     """
@@ -267,7 +265,7 @@ _METALS = {
 def _has_metal(mol: Mol) -> bool:
     """
     Check if the molecule contains any metal atoms.
-    
+
     :param mol: molecule
     :return: True if the molecule contains metal atoms, otherwise False
     """
@@ -277,7 +275,7 @@ def _has_metal(mol: Mol) -> bool:
 def _has_macrocycle(mol: Mol, min_size: int = 12) -> bool:
     """
     Check if the molecule contains a macrocycle (ring of at least min_size).
-    
+
     :param mol: molecule
     :param min_size: minimum size of the ring to be considered a macrocycle
     :return: True if the molecule contains a macrocycle, otherwise False
@@ -291,7 +289,7 @@ def _has_macrocycle(mol: Mol, min_size: int = 12) -> bool:
 def _passes_global(mol: Mol, C: _CompiledConds) -> bool:
     """
     Check if a molecule passes the global conditions.
-    
+
     :param mol: molecule
     :param C: compiled conditions
     :return: True if the molecule passes the conditions, otherwise False
@@ -356,8 +354,8 @@ class ReactionRule:
     rid: str
     rxn: ChemicalReaction | None
     smarts: str
-    groups: List[str]
-    props: Dict[str, Any]
+    groups: list[str]
+    props: dict[str, Any]
 
     def __post_init__(self) -> None:
         # Allow constructing rxn from smarts in a frozen class
@@ -385,7 +383,7 @@ class ReactionRule:
         if maps_react != maps_prod:
             missing_in_prod = sorted(maps_react - maps_prod)
             missing_in_reac = sorted(maps_prod - maps_react)
-            msgs: List[str] = []
+            msgs: list[str] = []
             if missing_in_prod:
                 msgs.append(f"map nums only on reactant side: {missing_in_prod}")
             if missing_in_reac:
@@ -393,7 +391,7 @@ class ReactionRule:
             raise ValueError(f"[{self.rid}] Mapped atoms don't add up: " + "; ".join(msgs))
 
         # For every map number, multiplicity and atomic numbers must match
-        errors: List[str] = []
+        errors: list[str] = []
         for m in sorted(maps_react):
             r_list = sorted(reactant_maps[m])
             p_list = sorted(product_maps[m])
@@ -451,7 +449,7 @@ class ReactionRule:
             ),
         )
 
-    def to_json_serializable_dict(self) -> Dict[str, Any]:
+    def to_json_serializable_dict(self) -> dict[str, Any]:
         """
         Convert the reaction rule to a JSON serializable dictionary.
 
@@ -465,7 +463,7 @@ class ReactionRule:
         }
 
     @classmethod
-    def from_json_serializable_dict(cls, internal_identifier: int, d: Dict[str, Any]) -> "ReactionRule":
+    def from_json_serializable_dict(cls, internal_identifier: int, d: dict[str, Any]) -> "ReactionRule":
         """
         Convert a JSON serializable dictionary to a ReactionRule.
 
@@ -501,7 +499,7 @@ class ReactionRule:
 
         return self.rxn.GetNumProductTemplates()
 
-    def __call__(self, rea: Mol, msk: Set[int] | None = None) -> List[List[Mol]]:
+    def __call__(self, rea: Mol, msk: set[int] | None = None) -> list[list[Mol]]:
         """
         Apply the reaction, sanitize, preserve/reassign stereochemistry,
         enforce mask WITHOUT mutating atomic numbers, and dereplicate results
@@ -536,18 +534,18 @@ class ReactionRule:
             except ValueError:
                 return False
 
-        def _tag_to_idx(m: Mol) -> Dict[int, int]:
+        def _tag_to_idx(m: Mol) -> dict[int, int]:
             # "atom tags" live in Isotope; ignore zeros
-            d: Dict[int, int] = {}
+            d: dict[int, int] = {}
             for a in m.GetAtoms():
                 t = a.GetIsotope()
                 if t:
                     d[t] = a.GetIdx()
             return d
 
-        def _neighbor_sig(m: Mol, ai: int) -> List[Tuple[int, float]]:
+        def _neighbor_sig(m: Mol, ai: int) -> list[tuple[int, float]]:
             # Neighbor signature by (neighbor tag or neighbor atomicnum if untagged, bond order)
-            out: List[Tuple[int, float]] = []
+            out: list[tuple[int, float]] = []
             a = m.GetAtomWithIdx(ai)
             for b in a.GetBonds():
                 nb = b.GetOtherAtomIdx(ai)
@@ -558,7 +556,7 @@ class ReactionRule:
             out.sort()
             return out
 
-        def _mapped_tags_changed(r: Mol, p: Mol) -> Set[int]:
+        def _mapped_tags_changed(r: Mol, p: Mol) -> set[int]:
             """
             Heuristic diff between reactant and product by tags.
             A tag is considered 'changed' if:
@@ -569,7 +567,7 @@ class ReactionRule:
             :param p: product molecule
             :return: set of changed atom tags
             """
-            changed: Set[int] = set()
+            changed: set[int] = set()
             rmap = _tag_to_idx(r)
             pmap = _tag_to_idx(p)
             for t in set(rmap).intersection(pmap):
@@ -582,10 +580,10 @@ class ReactionRule:
                     changed.add(t)
             return changed
 
-        def _preserves_mask(reactant: Mol, products: List[Mol], allowed: Set[int]) -> bool:
+        def _preserves_mask(reactant: Mol, products: list[Mol], allowed: set[int]) -> bool:
             """
             Check that only tags in `allowed` are changed across all products.
-            
+
             :param reactant: reactant molecule
             :param products: list of product molecules
             :param allowed: set of allowed changed tags
@@ -593,7 +591,7 @@ class ReactionRule:
             """
             if not allowed:
                 return True
-            changed: Set[int] = set()
+            changed: set[int] = set()
             for pr in products:
                 changed |= _mapped_tags_changed(reactant, pr)
             return changed.issubset(allowed)
@@ -601,7 +599,7 @@ class ReactionRule:
         def _product_key(m: Mol) -> str:
             """
             Stereo-aware, mapping-/tag-invariant canonical key for a product.
-            - Clears molAtomMapNumber props (if present) and strips isotope tags ONLY on the copy 
+            - Clears molAtomMapNumber props (if present) and strips isotope tags ONLY on the copy
                 so symmetric mappings don't duplicate results.
             - Uses isomeric canonical SMILES to preserve R/S and E/Z.
 
@@ -618,10 +616,10 @@ class ReactionRule:
             # Important: isomericSmiles preserves stereo
             return mol_to_smiles(mm, isomeric=True, canonical=True)
 
-        def _result_key(products: List[Mol]) -> Tuple[Tuple[str, int], ...]:
+        def _result_key(products: list[Mol]) -> tuple[tuple[str, int], ...]:
             """
             Stereo-aware, order-insensitive,
-            
+
             multiplicity-preserving key for a product tuple.
             :param products: list of product molecules
             :return: result key tuple
@@ -646,12 +644,12 @@ class ReactionRule:
             return []
 
         # Sanitize, filter invalids, product-conditions
-        kept: List[List[Mol]] = []
+        kept: list[list[Mol]] = []
         for tup in results:
-            products: List[Mol] = []
+            products: list[Mol] = []
 
             # Quick shape check + sanitize
-            atom_tag_sets: List[Set[int]] = []
+            atom_tag_sets: list[set[int]] = []
             ok_tuple = True
             for prod in tup:
                 if not _single_component(prod):
@@ -702,8 +700,8 @@ class ReactionRule:
             return kept
 
         # Stereo-aware derep (order-insensitive, multiplicity-preserving)
-        seen: Dict[Tuple[Tuple[str, int], ...], int] = {}
-        unique: List[List[Mol]] = []
+        seen: dict[tuple[tuple[str, int], ...], int] = {}
+        unique: list[list[Mol]] = []
         for res in kept:
             key = _result_key(res)
             if key in seen:
@@ -717,7 +715,7 @@ class ReactionRule:
 def DummyReactionRule(rid: str) -> ReactionRule:
     """
     Create a dummy reaction rule for testing purposes.
-    
+
     :param rid: rule identifier
     :return: ReactionRule
     """
@@ -748,10 +746,10 @@ class MatchingRule:
     rid: str
     smiles: str
     mol: Mol
-    groups: List[str]
-    props: Dict[str, Any]
+    groups: list[str]
+    props: dict[str, Any]
 
-    def to_json_serializable_dict(self) -> Dict[str, Any]:
+    def to_json_serializable_dict(self) -> dict[str, Any]:
         """Convert the matching rule to a JSON serializable dictionary.
 
         :return: JSON serializable dictionary
@@ -764,7 +762,7 @@ class MatchingRule:
         }
 
     @classmethod
-    def from_json_serializable_dict(cls, internal_identifier: int, d: Dict[str, Any]) -> "MatchingRule":
+    def from_json_serializable_dict(cls, internal_identifier: int, d: dict[str, Any]) -> "MatchingRule":
         """
         Convert a JSON serializable dictionary to a MatchingRule.
 
@@ -805,8 +803,8 @@ class MatchingRule:
 class Rules:
     def __init__(
         self,
-        reaction_rules: List[ReactionRule],
-        matching_rules: List[MatchingRule],
+        reaction_rules: list[ReactionRule],
+        matching_rules: list[MatchingRule],
         sha256_reaction_rules: str | None = None,
         sha256_matching_rules: str | None = None,
     ) -> None:
@@ -827,7 +825,7 @@ class Rules:
     def __repr__(self) -> str:
         return f"<Rules: {len(self._reaction_rules)} reaction rules, {len(self._matching_rules)} matching rules>"
 
-    def get_reaction_rules(self, group_names: List[str] | None = None) -> List[ReactionRule]:
+    def get_reaction_rules(self, group_names: list[str] | None = None) -> list[ReactionRule]:
         """
         Get the reaction rules.
 
@@ -841,7 +839,7 @@ class Rules:
 
         return self._reaction_rules
 
-    def get_matching_rules(self) -> List[MatchingRule]:
+    def get_matching_rules(self) -> list[MatchingRule]:
         """
         Get the matching rules sorted by priori
 
@@ -861,7 +859,7 @@ class Rules:
 
         errors_seen = 0
 
-        seen: Dict[str, MatchingRule] = {}
+        seen: dict[str, MatchingRule] = {}
         for rule in tqdm(self._matching_rules, desc="checking for duplicate matching rules"):
             curr_rid = rule.rid
             curr_mol = rule.mol

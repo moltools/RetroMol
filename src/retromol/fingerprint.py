@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """This module contains functions for generating hashed fingerprints from k-mers."""
 
 import hashlib
@@ -7,9 +5,10 @@ import os
 import pickle
 import re
 import struct
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from itertools import combinations
-from typing import Any, Callable, Dict, Iterable, List, Sequence, Tuple, TypeVar
+from typing import Any, TypeVar
 
 import numpy as np
 import yaml
@@ -51,7 +50,7 @@ def _norm_token(tok: object, none_sentinel: str = "<NONE>") -> bytes:
 def _family_token(fam: str) -> str:
     """
     Generate a family token.
-    
+
     :param fam: family name
     :return: family token string
     """
@@ -62,7 +61,7 @@ def _family_token(fam: str) -> str:
 def _pair_token(a: str, b: str) -> str:
     """
     Generate a pairwise token for two names.
-    
+
     :param a: first name
     :param b: second name
     :return: pairwise token string
@@ -77,7 +76,7 @@ def _hash_kmer_tokens(
     n_hashes: int,
     seed: int = 0,
     k_salt: int = 0,
-) -> List[int]:
+) -> list[int]:
     """
     Map a tokenized k-mer (as bytes) to n_hashes bit indices in [0, n_bits).
 
@@ -92,7 +91,7 @@ def _hash_kmer_tokens(
     """
     data = b"\x1f".join(tokens)  # unit separator
 
-    idxs: List[int] = []
+    idxs: list[int] = []
     for i in range(n_hashes):
         # Include both global seed and per-hash index, plus a per-k salt
         salted = data + struct.pack(">III", seed, i, k_salt)
@@ -151,7 +150,7 @@ def kmers_to_fingerprint(
             continue
 
         # Normalize per token
-        normd: List[bytes] = []
+        normd: list[bytes] = []
         for t in kmer:
             if t is None:
                 if none_policy == "skip-token":
@@ -219,7 +218,7 @@ def cosine_similarity(fp1: NDArray[np.int8], fp2: NDArray[np.int8]) -> float:
     return dot / (na * nb)
 
 
-def get_kmers(seq: Tuple[T, ...], k: int) -> List[Tuple[T, ...]]:
+def get_kmers(seq: tuple[T, ...], k: int) -> list[tuple[T, ...]]:
     """
     Return all contiguous, bidirectional k-mers (subtuples of length k) from a tuple.
 
@@ -245,7 +244,7 @@ class FingerprintGenerator:
         matching_rules_yaml: str | None,
         keep_stereo: bool = False,
         tanimoto_threshold: float = 0.85,
-        collapse_by_name: List[str] | None = None,
+        collapse_by_name: list[str] | None = None,
         name_similarity: NameSimilarityConfig | None = None,
     ) -> None:
         """
@@ -290,8 +289,8 @@ class FingerprintGenerator:
         self.tanimoto_threshold = tanimoto_threshold
 
         # For speedup
-        self._assign_cache: Dict[Tuple[str | None, str], Group | None] = {}
-        self._token_bytes_cache: Dict[object, bytes] = {}
+        self._assign_cache: dict[tuple[str | None, str], Group | None] = {}
+        self._token_bytes_cache: dict[object, bytes] = {}
 
     def __repr__(self) -> str:
         """
@@ -354,8 +353,8 @@ class FingerprintGenerator:
         self,
         result: Result,
         num_bits: int = 2048,
-        kmer_sizes: List[int] | None = None,
-        kmer_weights: Dict[int, int] | None = None,
+        kmer_sizes: list[int] | None = None,
+        kmer_weights: dict[int, int] | None = None,
         strict: bool = True,
         counted: bool = False,
     ) -> NDArray[np.int8] | None:
@@ -403,8 +402,8 @@ class FingerprintGenerator:
         for om in oms:
             om_graph = mapping_to_graph(tagged_smiles, om)
 
-            token_kmers: List[Tuple[str, ...]] = []
-            names_per_kmer: List[List[str]] = []
+            token_kmers: list[tuple[str, ...]] = []
+            names_per_kmer: list[list[str]] = []
 
             for kmer_size in kmer_sizes:
                 for kmer in iter_kmers(om_graph, kmer_size):
@@ -490,9 +489,9 @@ class FingerprintGenerator:
 
     def fingerprint_from_kmers(
         self,
-        kmers: Iterable[Sequence[Tuple[str | None, str | None]]],
+        kmers: Iterable[Sequence[tuple[str | None, str | None]]],
         num_bits: int = 2048,
-        kmer_weights: Dict[int, int] | None = None,
+        kmer_weights: dict[int, int] | None = None,
         *,
         counted: bool = False,
         none_policy: str = "skip-token",
@@ -542,13 +541,13 @@ class FingerprintGenerator:
             # Deterministic, case-insensitive token for raw names
             return f"NM:{blake64_hex('NAME:' + (nm or '').lower())}"
 
-        token_kmers: List[Tuple[str | None, ...]] = []
+        token_kmers: list[tuple[str | None, ...]] = []
 
         for kmer in kmers:
             if not kmer:
                 continue
 
-            toks: List[str | None] = []
+            toks: list[str | None] = []
             for item in kmer:
                 if not isinstance(item, tuple) or len(item) != 2:
                     raise TypeError("Each k-mer item must be a (name|None, smiles|None) tuple")
@@ -667,10 +666,10 @@ class FingerprintGenerator:
         return self
 
 
-def polyketide_family_of(name: str) -> List[str] | None:
+def polyketide_family_of(name: str) -> list[str] | None:
     """
     Simple polyketide family extractor based on name pattern.
-    
+
     :param name: monomer name
     :return: [family, subfamily] or None if not a polyketide
     """

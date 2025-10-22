@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """This module defines global constants and configuration for the RetroMol package."""
 
 import logging

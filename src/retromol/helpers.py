@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
-
 """This module provides helper functions for the RetroMol package."""
 
 import hashlib
 import json
 import signal
-from typing import Any, Callable, Generator, Generic, ParamSpec, TypeVar
+from collections.abc import Callable, Generator
+from typing import Any, Generic, ParamSpec, TypeVar
 
 import ijson
 

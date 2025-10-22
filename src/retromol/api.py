@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """This module provides the main API for the RetroMol package."""
 
 import logging
 from importlib.resources import files
-from typing import Any, Dict, List, Set, Tuple, cast
+from typing import Any, cast
 
 import yaml
 from networkx import Graph
@@ -20,7 +18,7 @@ from retromol.rules import Rules, load_rules_from_files
 
 def find_eligible_nodes(
     graph: "Graph[int | str]", parse_identified_nodes: bool = False
-) -> List[Tuple["Graph[int | str]", int | str]]:
+) -> list[tuple["Graph[int | str]", int | str]]:
     """
     Walk `graph` and nested sub-graphs (via node attr 'graph') and return a list of
     (parent_graph, node_id) for nodes whose attrs['graph'] is None, but ONLY when
@@ -50,7 +48,7 @@ def find_eligible_nodes(
     max_depth = _max_depth(graph)
 
     # Collect eligible nodes whose parent graph is exactly at max_depth.
-    eligible: List[Tuple[Graph[int | str], int | str]] = []
+    eligible: list[tuple[Graph[int | str], int | str]] = []
 
     def _collect(g: "Graph[int | str]", depth: int = 0):
         # Only collect from graphs at the current frontier depth.
@@ -74,7 +72,7 @@ def find_eligible_nodes(
 def run_retromol(
     input: Input,
     rule_set: Rules | None = None,
-    wave_configs: List[Dict[str, Any]] | None = None,
+    wave_configs: list[dict[str, Any]] | None = None,
     match_stereochemistry: bool = False,
 ) -> Result:
     """
@@ -104,7 +102,7 @@ def run_retromol(
     props = input.props if input.props else {}
     motif_graph = None
 
-    reserved_tags: Set[int] = set(get_tags_mol(input.mol))
+    reserved_tags: set[int] = set(get_tags_mol(input.mol))
 
     # Loop through wave numbers and apply rules to the motif graph, increasing the motif nesting
     for wave_config in wave_configs or []:

@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """Module for RetroMol results drawing."""
 
 import logging
 import os
 from copy import deepcopy
 from enum import Enum
-from typing import Dict, List, Tuple
 
 from rdkit.Chem.Draw.rdMolDraw2D import MolDraw2DSVG, MolDrawOptions
 
@@ -37,16 +34,16 @@ class Palette(Enum):
     def hex(self, alpha: float) -> str:
         """
         Get hex representation of the color with specified alpha transparency.
-        
+
         :param alpha: alpha transparency (0.0 to 1.0)
         :return: hex color string with alpha
         """
         return f"#{self.value[0]:02x}{self.value[1]:02x}{self.value[2]:02x}{int(alpha * 255):02x}"
 
-    def normalize(self, min_val: float = 0.0, max_val: float = 255.0) -> Tuple[float, float, float]:
+    def normalize(self, min_val: float = 0.0, max_val: float = 255.0) -> tuple[float, float, float]:
         """
         Get normalized RGB tuple of the color.
-        
+
         :param min_val: minimum value for normalization
         :param max_val: maximum value for normalization
         :return: normalized RGB tuple
@@ -59,10 +56,10 @@ class Palette(Enum):
         )
 
 
-def hex_to_rgb_tuple(hex_str: str) -> Tuple[float, float, float]:
+def hex_to_rgb_tuple(hex_str: str) -> tuple[float, float, float]:
     """
     Convert hex color string to normalized RGB tuple.
-    
+
     :param hex_str: hex color string (e.g. "#ff5733" or "#ff5733ff")
     :return: normalized RGB tuple
     """
@@ -118,10 +115,10 @@ def draw_result(
         drawing: MolDraw2DSVG = MolDraw2DSVG(*window_size)
         palette = [c.normalize() for c in Palette]
 
-        atoms_to_highlight: List[int] = []
-        bonds_to_highlight: List[int] = []
-        atom_highlight_colors: Dict[int, Tuple[float, float, float]] = {}
-        bond_highlight_colors: Dict[int, Tuple[float, float, float]] = {}
+        atoms_to_highlight: list[int] = []
+        bonds_to_highlight: list[int] = []
+        atom_highlight_colors: dict[int, tuple[float, float, float]] = {}
+        bond_highlight_colors: dict[int, tuple[float, float, float]] = {}
 
         for n_idx, node in enumerate(o_m.get("nodes", [])):
             color = palette[n_idx % len(palette)]
