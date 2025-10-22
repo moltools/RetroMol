@@ -1,6 +1,6 @@
 [project]
 name = "retromol"
-version = "1.0.0"
+version = "1.0.1"
 description = "RetroMol is retrosynthetic analysis tool for modular natural products"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -57,16 +57,14 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/retromol"]
 sources = ["src"]
-
-[project.scripts]
-retromol = "retromol.cli:main"
-
-[tool.hatch.build]
 include = [
     "src/retromol/data/default_matching_rules.yml",
     "src/retromol/data/default_reaction_rules.yml",
     "src/retromol/data/default_wave_config.yml"
 ]
+
+[project.scripts]
+retromol = "retromol.cli:main"
 
 # -------------------------
 # Hatch env + scripts
