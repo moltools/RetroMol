@@ -1,0 +1,83 @@
+- wave_name: disconnect macrostructures
+  reaction_groups:
+    - disconnect macrostructures
+
+# Remove tailoring moieties
+- wave_name: preprocessing
+  only_leaf_nodes: true
+  parse_identified_nodes: false
+
+  reaction_groups:
+    - preprocessing
+
+  matching_groups:
+    - acetalization
+    - acetylation
+    - glycosylation
+    - halogenation
+    - hydrogenation
+    - small tailoring  # e.g., methylation, epoxidation etc.
+
+# Linearize molecule by reversing cyclizations; no matching groups here
+- wave_name: linearization
+  only_leaf_nodes: true
+  parse_identified_nodes: false
+  reaction_groups:
+    - linearization
+
+# Linearization might reveal new tailoring groups, so do another tailoring removal wave
+- wave_name: postprocessing linearization
+  only_leaf_nodes: true
+  parse_identified_nodes: false
+
+  reaction_groups:
+    - postprocessing linearization
+
+  matching_groups:
+    - acetylation
+    - small tailoring  # e.g., methylation, epoxidation etc.
+    - glycosylation
+
+# Break down peptide(-like) structures into amino acids
+- wave_name: NRP disassembly
+  only_leaf_nodes: true
+  parse_identified_nodes: false
+
+  reaction_groups:
+    - NRP disassembly
+
+  matching_groups:
+    - amino acid
+    - artificial amino acid
+  
+    # Carboxylic acids that are not amino acids
+    - fatty acid
+    - phenolic acid
+    - non-amino acid A-domain substrate
+
+    # Unassigned
+    - other
+
+    # Residue urea bond formation
+    - urea bond
+
+# Break down polyketide(-like) structures into polyketide building blocks
+- wave_name: PK disassembly
+  only_leaf_nodes: false
+  parse_identified_nodes: true
+
+  reaction_groups:
+    - PK disassembly
+
+  matching_groups:
+    - polyketide building block
+    - polyketide starter
+  
+    # Also match these in case they initiate a mixed NRP-PK assembly line;
+    # we omit fatty acids here to prioritize their processing as PK building blocks in this wave
+    - amino acid
+    - artificial amino acid
+    - non-amino acid A-domain substrate
+
+    # Unassigned
+    - other

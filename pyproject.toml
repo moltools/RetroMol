@@ -1,0 +1,96 @@
+[project]
+name = "retromol"
+version = "1.0.0"
+description = "RetroMol is retrosynthetic analysis tool for modular natural products"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
+authors = [
+    { name = "David Meijer", email = "david.meijer@wur.nl" }
+]
+keywords = ["natural-products", "biosynthesis", "retrobiosynthesis", "monomers"]
+
+dependencies = [
+    "rdkit==2025.9.1",
+    "networkx==3.2.1",
+    "tqdm",
+    "numpy",
+    "pandas",
+    "pyyaml",
+    "ijson"
+]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+
+[project.urls]
+Homepage = "https://github.com/moltools/retromol"
+Repository = "https://github.com/moltools/retromol"
+Issues = "https://github.com/moltools/retromol/issues"
+Documentation = "https://github.com/moltools/retromol#readme"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff"
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/retromol"]
+sources = ["src"]
+
+[project.scripts]
+retromol = "retromol.cli:main"
+
+[tool.hatch.build]
+include = [
+    "src/retromol/data/default_matching_rules.yml",
+    "src/retromol/data/default_reaction_rules.yml",
+    "src/retromol/data/default_wave_config.yml"
+]
+
+# -------------------------
+# Hatch env + scripts
+# -------------------------
+[tool.hatch.envs.dev]
+features = ["dev"]
+python = "3.10"
+
+[tool.hatch.envs.dev.scripts]
+lint = "ruff check ."
+fmt = "ruff format ."
+test = "pytest -q"
+
+# -------------------------
+# Ruff
+# -------------------------
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["build", "dist", ".venv", "venv", "typings"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/data/**/*" = ["E501"]
