@@ -598,6 +598,11 @@
   groups:
     - fatty acid
 
+- rid: 3-hydroxytridecanoic acid
+  mol: O=C(O)CC(O)CCCCCCCCCC
+  groups:
+    - fatty acid
+
 - rid: tetradecanoic acid
   mol: CCCCCCCCCCCCCC(=O)O
   groups:
