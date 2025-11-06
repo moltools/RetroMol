@@ -577,12 +577,16 @@ class FingerprintGenerator:
             return f"NM:{blake64_hex('NAME:' + (nm or '').lower())}"
 
         token_kmers: list[tuple[str | None, ...]] = []
+        names_per_kmer: list[list[str]] = []
+        sizes_per_kmer: list[int] = []
 
         for kmer in kmers:
             if not kmer:
                 continue
 
             toks: list[str | None] = []
+            names_here: list[str] = []
+
             for item in kmer:
                 if not isinstance(item, tuple) or len(item) != 2:
                     raise TypeError("Each k-mer item must be a (name|None, smiles|None) tuple")
@@ -620,9 +624,80 @@ class FingerprintGenerator:
                 # If tok remains None, the item contributes nothing
                 toks.append(tok)
 
+                if name:
+                    names_here.append(name)
+
             # Emit this k-mer (even if some items were None; none_policy will handle)
             if toks:
                 token_kmers.append(tuple(toks))
+                names_per_kmer.append(names_here)
+                sizes_per_kmer.append(len(toks))  # logical k size
+
+        # Inject similarity virtual tokens
+        cfg = self.name_similarity
+        if cfg:
+            family_of = cfg.family_of if cfg.family_of is not None else (lambda n: None)
+            pairwise = (cfg.pairwise or {})
+            symmetric = bool(cfg.symmetric) if cfg.symmetric is not None else True
+            fam_rep = max(0, int(cfg.family_repeat_scale or 0))
+            pair_rep = max(0, int(cfg.pair_repeat_scale or 0))
+            ancestors_of = getattr(cfg, "ancestors_of", None)
+            anc_rep = max(0, int(getattr(cfg, "ancestor_repeat_scale", 0)))
+
+            # helper for stable ancestor token
+            def _anc_tok(level: int, anc: str) -> str:
+                anc = (anc or "").lower()
+                return f"AN:{level}:{blake64_hex(f'ANC:{level}:{anc}')}"
+
+            # Families
+            if fam_rep > 0:
+                for names in names_per_kmer:
+                    for nm in sorted(set(n for n in names if n)):
+                        fam_val = family_of(nm)
+                        families = [] if fam_val is None else (list(fam_val) if isinstance(fam_val, (list, tuple, set)) else [fam_val])
+                        for fam in sorted({f for f in families if f}):
+                            ftok = _family_token(fam)
+                            for _ in range(fam_rep):
+                                token_kmers.append((ftok,))
+
+            # Pairwise
+            if pair_rep > 0 and pairwise:
+                for names in names_per_kmer:
+                    uniq = sorted(set(n for n in names if n))
+                    if len(uniq) < 2:
+                        continue
+                    for a, b in combinations(uniq, 2):
+                        s = float(pairwise.get(a, {}).get(b, 0.0))
+                        if symmetric:
+                            s = max(s, float(pairwise.get(b, {}).get(a, 0.0)))
+                        reps = int(round(max(0.0, s) * pair_rep))
+                        if reps > 0:
+                            ptoken = _pair_token(a, b)
+                            for _ in range(reps):
+                                token_kmers.append((ptoken,))
+
+            # Ancestors (1-mers and aligned k-mers)
+            if ancestors_of and anc_rep > 0:
+                # 1-mers
+                for names in names_per_kmer:
+                    for nm in set(n for n in names if n):
+                        path = ancestors_of(nm) or []
+                        for lvl, anc in enumerate(path):
+                            tok = _anc_tok(lvl, anc)
+                            for _ in range(anc_rep):
+                                token_kmers.append((tok,))
+                # aligned k-mers by ancestor level
+                for names, ksize in zip(names_per_kmer, sizes_per_kmer):
+                    if ksize <= 1:
+                        continue
+                    pos_paths = [(ancestors_of(nm) or []) if nm else [] for nm in names]
+                    if not pos_paths or any(len(p) == 0 for p in pos_paths):
+                        continue
+                    max_depth = min(len(p) for p in pos_paths)
+                    for lvl in range(max_depth):
+                        kmer_tok = tuple(_anc_tok(lvl, pos_paths[i][lvl]) for i in range(ksize))
+                        for _ in range(anc_rep):
+                            token_kmers.append(kmer_tok)
 
         if not token_kmers:
             # Return an all-zero vector of the requested type/shape to keep behavior predictable
@@ -727,6 +802,8 @@ def polyketide_ancestors_of(name: str) -> list[str]:
     :return: list of ancestors (e.g., ["polyketide", "polyketide_type_A", "A1"])
     """
     n = (name or "").strip().upper()
+    if re.match(r"^[ABCD]$", n):
+        return ["polyketide", f"polyketide_type_{n}"]
     if re.match(r"^[ABCD]\d+$", n):
         return ["polyketide", f"polyketide_type_{n[0]}", n]
     return []
