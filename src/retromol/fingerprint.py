@@ -391,6 +391,8 @@ class FingerprintGenerator:
         symmetric = bool(cfg.symmetric) if cfg else True
         fam_rep = max(0, int(cfg.family_repeat_scale)) if cfg else 0
         pair_rep = max(0, int(cfg.pair_repeat_scale)) if cfg else 0
+        ancestors_of = getattr(cfg, "ancestors_of", None) if cfg else None
+        anc_rep = max(0, int(getattr(cfg, "ancestor_repeat_scale", 0))) if cfg else 0
 
         # Gather optimal mappings
         oms = [om for om in optimal_mappings(result)]
@@ -404,6 +406,7 @@ class FingerprintGenerator:
 
             token_kmers: list[tuple[str, ...]] = []
             names_per_kmer: list[list[str]] = []
+            sizes_per_kmer: list[int] = []
 
             for kmer_size in kmer_sizes:
                 for kmer in iter_kmers(om_graph, kmer_size):
@@ -426,6 +429,7 @@ class FingerprintGenerator:
 
                     token_kmers.append(tuple(tokenized_kmer))
                     names_per_kmer.append(names_in_kmer)
+                    sizes_per_kmer.append(kmer_size)
 
             # Inject similarity "virtual 1-mers" (families and pairwise), per k-mer
             if cfg and (fam_rep > 0 or pair_rep > 0):
@@ -468,6 +472,37 @@ class FingerprintGenerator:
                             ptoken = _pair_token(a, b)
                             for _ in range(reps):
                                 token_kmers.append((ptoken,))
+
+            # Ancestor supertokens
+            if ancestors_of and anc_rep > 0:
+                # Small local helper: stable ancestor token w/ level namespace
+                def _anc_tok(level: int, anc: str) -> str:
+                    anc = (anc or "").lower()
+                    return f"AN:{level}:{blake64_hex(f'ANC:{level}:{anc}')}"
+                
+                # Ancestor 1-mers: for each name, emit all ancestors in its path
+                for names in names_per_kmer:
+                    for nm in set(n for n in names if n):
+                        path = ancestors_of(nm) or []  # e.g., ["polyketide", "polyketide_type_A", "A1"]
+                        for lvl, anc in enumerate(path):
+                            tok = _anc_tok(lvl, anc)
+                            for _ in range(anc_rep):
+                                token_kmers.append((tok,))
+                
+                # Ancestor k-mers: for each window, for each ancestor level present at all positions
+                for names, ksize in zip(names_per_kmer, sizes_per_kmer):
+                    if ksize <= 1:
+                        continue
+                    pos_paths = [(ancestors_of(nm) or []) if nm else [] for nm in names]
+                    if not pos_paths or any(len(p) == 0 for p in pos_paths):
+                        # Require every position to have at least one ancestor (root level)
+                        continue
+                    max_depth = min(len(p) for p in pos_paths)  # only levels common to all positions
+                    for lvl in range(max_depth):
+                        # Form one ancestor k-mer at this level by taking the ancestor token per position
+                        kmer_tok = tuple(_anc_tok(lvl, pos_paths[i][lvl]) for i in range(ksize))
+                        for _ in range(anc_rep):
+                            token_kmers.append(kmer_tok)
 
             # Hash default + virtual kmers
             fp = kmers_to_fingerprint(
@@ -682,3 +717,16 @@ def polyketide_family_of(name: str) -> list[str] | None:
         subfamily = n[0]
         return [family, subfamily]
     return None
+
+
+def polyketide_ancestors_of(name: str) -> list[str]:
+    """
+    Simple polyketide ancestor extractor based on name pattern.
+
+    :param name: monomer name
+    :return: list of ancestors (e.g., ["polyketide", "polyketide_type_A", "A1"])
+    """
+    n = (name or "").strip().upper()
+    if re.match(r"^[ABCD]\d+$", n):
+        return ["polyketide", f"polyketide_type_{n[0]}", n]
+    return []

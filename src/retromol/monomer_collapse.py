@@ -93,6 +93,8 @@ class NameSimilarityConfig:
     :param symmetric: if True, treat pairwise as symmetric (use max(a->b, b->a))
     :param family_repeat_scale: integer scaling factor for family tokens
     :param pair_repeat_scale: integer scaling factor for pairwise tokens
+    :param ancestors_of: maps a group name -> ancestor string (None to skip ancestor)
+    :param ancestor_repeat_scale: integer scaling factor for ancestor tokens
     """
 
     family_of: Callable[[str], str | None] | None = None
@@ -102,6 +104,8 @@ class NameSimilarityConfig:
     symmetric: bool = True
     family_repeat_scale: int = 2
     pair_repeat_scale: int = 2
+    ancestors_of: Callable[[str], str | None] | None = None
+    ancestor_repeat_scale: int = 0
 
 
 class DSU:
