@@ -218,6 +218,38 @@ def cosine_similarity(fp1: NDArray[np.int8], fp2: NDArray[np.int8]) -> float:
     return dot / (na * nb)
 
 
+def tanimoto_similarity(fp1: NDArray[np.int8], fp2: NDArray[np.int8]) -> float:
+    """
+    Tanimoto similarity for molecular fingerprints (binary or count-based).
+
+    :param fp1: first fingerprint (1D array)
+    :param fp2: second fingerprint (1D array)
+    :return: Tanimoto similarity in [0, 1]
+    """
+    a = np.asarray(fp1)
+    b = np.asarray(fp2)
+
+    # Ensure 1D
+    a = a.ravel()
+    b = b.ravel()
+    if a.shape != b.shape:
+        raise ValueError(f"Different lengths: {a.shape} vs {b.shape}")
+
+    # Upcast to float to prevent overflow and ensure precision
+    a = a.astype(np.float64, copy=False)
+    b = b.astype(np.float64, copy=False)
+
+    # Dot product = intersection term
+    ab = float(np.dot(a, b))
+    aa = float(np.dot(a, a))
+    bb = float(np.dot(b, b))
+
+    denom = aa + bb - ab
+    if denom == 0.0:
+        return 0.0
+    return ab / denom
+
+
 def get_kmers(seq: tuple[T, ...], k: int) -> list[tuple[T, ...]]:
     """
     Return all contiguous, bidirectional k-mers (subtuples of length k) from a tuple.
