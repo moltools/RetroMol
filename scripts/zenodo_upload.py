@@ -52,26 +52,27 @@ def main() -> None:
 
     dep_id = os.getenv("ZENODO_DEPOSITION_ID")
     if dep_id:
-        # first check if a draft already exists
         existing = req("GET", f"{API}/deposit/depositions/{dep_id}", params=PARAMS).json()
-        if "latest_draft" in existing["links"]:
-            # reuse the existing draft
-            draft_url = existing["links"]["latest_draft"]
+        draft_url = existing["links"].get("latest_draft")
+        if draft_url:
+            print(f"Reusing existing draft: {draft_url}")
             draft = req("GET", draft_url, params=PARAMS).json()
         else:
-            # create a new version draft
+            print(f"Creating new version from deposition {dep_id}")
             r = requests.post(f"{API}/deposit/depositions/{dep_id}/actions/newversion", params=PARAMS)
             if r.status_code not in (200, 201):
                 print(r.text, file=sys.stderr)
                 r.raise_for_status()
-            draft_url = r.headers["Location"]
-            draft = req("GET", draft_url, params=PARAMS).json()
+            new_draft_url = r.headers["Location"]
+            draft = req("GET", new_draft_url, params=PARAMS).json()
     else:
         payload = {"metadata": {"title": title, "upload_type": "software", "version": version}}
         draft = req("POST", f"{API}/deposit/depositions", params=PARAMS,
                     data=json.dumps(payload), headers=HEADERS).json()
     
+    print(json.dumps(draft["links"], indent=2))
     bucket_url = draft["links"]["bucket"]
+    print("Uploading to bucket:", bucket_url)
 
     # Upload file into the draft's bucket
     with open(filepath, "rb") as f:
