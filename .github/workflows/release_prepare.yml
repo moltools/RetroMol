@@ -41,14 +41,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pyproject.toml || true
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
-          git tag "v${{ steps.bump.outputs.new_version }}"
-          git push --follow-tags
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}" || true
+          git push origin main
+          git tag -a "v${{ steps.bump.outputs.new_version }}" -m "release v${{ steps.bump.outputs.new_version }}"
+          git push origin "v${{ steps.bump.outputs.new_version }}"
 
       - name: build
         run: python -m build
 
-      # Optional: publish to TestPyPI using OIDC
+      # Optionally publish to TestPyPI using OIDC
       - name: publish to TestPyPI (trusted)
         if: inputs.publish_to_testpypi == true
         uses: pypa/gh-action-pypi-publish@release/v1
