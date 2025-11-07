@@ -74,7 +74,7 @@ def main() -> None:
     txt, cur = read_pyprojects()
     new_version = bump(cur, args.kind)
     write_pyproject(txt, new_version)
-    print(f"Bumped version: {cur[0]}.{cur[1]}.{cur[2]} -> {new_version}")
+    print(new_version)  # workflow reads new version from stdout for tagging
 
 
 if __name__ == "__main__":
