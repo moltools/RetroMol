@@ -28,7 +28,7 @@ jobs:
 
       - run: |
           python -m pip install --upgrade pip build requests
-          chmod +x scripts/bump_version.py scripts/zenodo_upload.py
+          chmod +x scripts/bump_version.py
 
       - id: bump
         run: |
