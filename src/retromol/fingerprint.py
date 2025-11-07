@@ -511,7 +511,7 @@ class FingerprintGenerator:
                 def _anc_tok(level: int, anc: str) -> str:
                     anc = (anc or "").lower()
                     return f"AN:{level}:{blake64_hex(f'ANC:{level}:{anc}')}"
-                
+
                 # Ancestor 1-mers: for each name, emit all ancestors in its path
                 for names in names_per_kmer:
                     for nm in set(n for n in names if n):
@@ -520,9 +520,9 @@ class FingerprintGenerator:
                             tok = _anc_tok(lvl, anc)
                             for _ in range(anc_rep):
                                 token_kmers.append((tok,))
-                
+
                 # Ancestor k-mers: for each window, for each ancestor level present at all positions
-                for names, ksize in zip(names_per_kmer, sizes_per_kmer):
+                for names, ksize in zip(names_per_kmer, sizes_per_kmer, strict=True):
                     if ksize <= 1:
                         continue
                     pos_paths = [(ancestors_of(nm) or []) if nm else [] for nm in names]
@@ -669,7 +669,7 @@ class FingerprintGenerator:
         cfg = self.name_similarity
         if cfg:
             family_of = cfg.family_of if cfg.family_of is not None else (lambda n: None)
-            pairwise = (cfg.pairwise or {})
+            pairwise = cfg.pairwise or {}
             symmetric = bool(cfg.symmetric) if cfg.symmetric is not None else True
             fam_rep = max(0, int(cfg.family_repeat_scale or 0))
             pair_rep = max(0, int(cfg.pair_repeat_scale or 0))
@@ -686,7 +686,11 @@ class FingerprintGenerator:
                 for names in names_per_kmer:
                     for nm in sorted(set(n for n in names if n)):
                         fam_val = family_of(nm)
-                        families = [] if fam_val is None else (list(fam_val) if isinstance(fam_val, (list, tuple, set)) else [fam_val])
+                        families = (
+                            []
+                            if fam_val is None
+                            else (list(fam_val) if isinstance(fam_val, (list, tuple, set)) else [fam_val])
+                        )
                         for fam in sorted({f for f in families if f}):
                             ftok = _family_token(fam)
                             for _ in range(fam_rep):
@@ -719,7 +723,7 @@ class FingerprintGenerator:
                             for _ in range(anc_rep):
                                 token_kmers.append((tok,))
                 # aligned k-mers by ancestor level
-                for names, ksize in zip(names_per_kmer, sizes_per_kmer):
+                for names, ksize in zip(names_per_kmer, sizes_per_kmer, strict=True):
                     if ksize <= 1:
                         continue
                     pos_paths = [(ancestors_of(nm) or []) if nm else [] for nm in names]
