@@ -60,6 +60,9 @@ def main() -> None:
         latest = req("GET", f"{API}/deposit/depositions/{dep_id}", params=PARAMS).json()
         draft_url = latest["links"]["latest_draft"]
         draft = req("GET", draft_url, params=PARAMS).json()
+
+        # Re-fetch the new draft (actual editable copy)
+        draft = req("GET", draft["links"]["self"], params=PARAMS).json()
     else:
         # Create new deposition
         payload = {"metadata": {"title": title, "upload_type": "software", "version": version}}
