@@ -1,0 +1,57 @@
+name: release-prepare
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        type: choice
+        options: [major, minor, patch]
+        default: patch
+      publish_to_testpypi:
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  id-token: write   # if using OIDC
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.10" }
+
+      - run: |
+          python -m pip install --upgrade pip build requests
+          chmod +x scripts/bump_version.py scripts/zenodo_upload.py
+
+      - id: bump
+        run: |
+          NEWVER=$(python scripts/bump_version.py "${{ inputs.bump }}")
+          echo "new_version=$NEWVER" >> $GITHUB_OUTPUT
+          echo "Version -> $NEWVER"
+
+      - name: commit + tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml || true
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+          git tag "v${{ steps.bump.outputs.new_version }}"
+          git push --follow-tags
+
+      - name: build
+        run: python -m build
+
+      # Optional: publish to TestPyPI using OIDC
+      - name: publish to TestPyPI (trusted)
+        if: inputs.publish_to_testpypi == true
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          repository-url: https://test.pypi.org/legacy/
