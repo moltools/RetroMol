@@ -52,17 +52,20 @@ def main() -> None:
 
     dep_id = os.getenv("ZENODO_DEPOSITION_ID")
     if dep_id:
-        # Create new version draft
+        # Create a new version draft
         url = f"{API}/deposit/depositions/{dep_id}/actions/newversion"
-        req("POST", url, params=PARAMS)
+        r = requests.post(url, params=PARAMS)
+        if not r.ok:
+            print(r.text, file=sys.stderr)
+            r.raise_for_status()
 
-        # Fetch latest draft link
-        latest = req("GET", f"{API}/deposit/depositions/{dep_id}", params=PARAMS).json()
-        draft_url = latest["links"]["latest_draft"]
-        draft = req("GET", draft_url, params=PARAMS).json()
+        # The Location header points to the new deposition draft
+        new_draft_url = r.headers.get("Location")
+        if not new_draft_url:
+            raise RuntimeError("Zenodo did not return a new draft Location header")
 
-        # Re-fetch the new draft (actual editable copy)
-        draft = req("GET", draft["links"]["self"], params=PARAMS).json()
+        # Fetch the new draft deposition JSON (this has the correct bucket)
+        draft = req("GET", new_draft_url, params=PARAMS).json()
     else:
         # Create new deposition
         payload = {"metadata": {"title": title, "upload_type": "software", "version": version}}
