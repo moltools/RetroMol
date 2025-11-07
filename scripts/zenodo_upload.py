@@ -52,19 +52,26 @@ def main() -> None:
 
     dep_id = os.getenv("ZENODO_DEPOSITION_ID")
     if dep_id:
+        # Ensure no stuck draft
         existing = req("GET", f"{API}/deposit/depositions/{dep_id}", params=PARAMS).json()
-        draft_url = existing["links"].get("latest_draft")
-        if draft_url:
-            print(f"Reusing existing draft: {draft_url}")
-            draft = req("GET", draft_url, params=PARAMS).json()
-        else:
-            print(f"Creating new version from deposition {dep_id}")
-            r = requests.post(f"{API}/deposit/depositions/{dep_id}/actions/newversion", params=PARAMS)
-            if r.status_code not in (200, 201):
-                print(r.text, file=sys.stderr)
-                r.raise_for_status()
-            new_draft_url = r.headers["Location"]
-            draft = req("GET", new_draft_url, params=PARAMS).json()
+        if "latest_draft" in existing.get("links", {}):
+            # discard any existing draft to avoid "Please remove all files first."
+            discard_url = existing["links"]["discard"]
+            try:
+                req("POST", discard_url, params=PARAMS)
+                print("Discarded existing draft.")
+            except Exception as e:
+                print(f"Note: discard failed or not needed: {e}", file=sys.stderr)
+
+        # 2) Create a new version; follow Location to the new deposition
+        r = requests.post(f"{API}/deposit/depositions/{dep_id}/actions/newversion", params=PARAMS)
+        if r.status_code not in (200, 201):
+            print(r.text, file=sys.stderr)
+            r.raise_for_status()
+        new_draft_url = r.headers.get("Location")
+        if not new_draft_url:
+            raise RuntimeError("Zenodo did not return Location for new draft.")
+        draft = req("GET", new_draft_url, params=PARAMS).json()
     else:
         payload = {"metadata": {"title": title, "upload_type": "software", "version": version}}
         draft = req("POST", f"{API}/deposit/depositions", params=PARAMS,
