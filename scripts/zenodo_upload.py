@@ -52,24 +52,24 @@ def main() -> None:
 
     dep_id = os.getenv("ZENODO_DEPOSITION_ID")
     if dep_id:
-        # Create a new version draft
-        url = f"{API}/deposit/depositions/{dep_id}/actions/newversion"
-        r = requests.post(url, params=PARAMS)
-        if not r.ok:
-            print(r.text, file=sys.stderr)
-            r.raise_for_status()
-
-        # The Location header points to the new deposition draft
-        new_draft_url = r.headers.get("Location")
-        if not new_draft_url:
-            raise RuntimeError("Zenodo did not return a new draft Location header")
-
-        # Fetch the new draft deposition JSON (this has the correct bucket)
-        draft = req("GET", new_draft_url, params=PARAMS).json()
+        # first check if a draft already exists
+        existing = req("GET", f"{API}/deposit/depositions/{dep_id}", params=PARAMS).json()
+        if "latest_draft" in existing["links"]:
+            # reuse the existing draft
+            draft_url = existing["links"]["latest_draft"]
+            draft = req("GET", draft_url, params=PARAMS).json()
+        else:
+            # create a new version draft
+            r = requests.post(f"{API}/deposit/depositions/{dep_id}/actions/newversion", params=PARAMS)
+            if r.status_code not in (200, 201):
+                print(r.text, file=sys.stderr)
+                r.raise_for_status()
+            draft_url = r.headers["Location"]
+            draft = req("GET", draft_url, params=PARAMS).json()
     else:
-        # Create new deposition
         payload = {"metadata": {"title": title, "upload_type": "software", "version": version}}
-        draft = req("POST", f"{API}/deposit/depositions", params=PARAMS, data=json.dumps(payload), headers=HEADERS).json()
+        draft = req("POST", f"{API}/deposit/depositions", params=PARAMS,
+                    data=json.dumps(payload), headers=HEADERS).json()
     
     bucket_url = draft["links"]["bucket"]
 
