@@ -17,8 +17,8 @@
       <img alt="PyPI" src="https://img.shields.io/pypi/v/retromol" /></a>
     <a href="https://pypi.org/project/retromol">
       <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/retromol" /></a>
-     <a href="https://doi.org/10.5281/zenodo.17410940">
-      <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.17410940.svg" alt="DOI" /></a>
+     <a href="https://doi.org/10.5281/zenodo.17555655">
+      <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.17555655.svg" alt="DOI" /></a>
 </p>
 
 RetroMol is retrosynthetic parsing and fingerprinting tool for modular natural products. 
