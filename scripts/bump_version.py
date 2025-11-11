@@ -4,7 +4,7 @@
 Bump semantic version in pyproject.toml.
 
 Usage: 
-    python scripts/bump_version.py [major|minor|patch] [--package mypkg]
+    python scripts/bump_version.py [major|minor|patch]
 """
 
 from os import major
