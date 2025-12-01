@@ -291,7 +291,7 @@ def main() -> None:
         pbar_outer = tqdm(desc="Batches", unit="batch", disable=args.no_tqdm)
         pbar_inner = tqdm(desc="Processed", unit="mol", disable=args.no_tqdm)
 
-        # Result sink (same behavior as before)
+        # Results saved into JSONL format to limit file operations
         jsonl_fh = None
         jsonl_path = None
         if args.results == "jsonl":
