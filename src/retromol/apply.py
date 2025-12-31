@@ -512,6 +512,26 @@ def resolve_mol(
         # Use all nodes from the reaction graph
         encoding_to_mol = processing_result.enc_to_mol
 
+    # If leaf-only selection dropped tags, fall back to all nodes
+    if use_leafs_only:
+        coverable_tags: set[int] =  set()
+        for mol in encoding_to_mol.values():
+            coverable_tags.update(get_tags_mol(mol))
+        missing = set(all_tags) - coverable_tags
+        if missing:
+            logger.warning("Leaf-only node selection dropped tags, falling back to all nodes")
+            logger.debug("Missing tags: " + ", ".join([str(t) for t in missing]))
+            encoding_to_mol = processing_result.enc_to_mol
+
+    # Trim required tags to what is actually coverable
+    coverable_tags: set[int] = set()
+    for mol in encoding_to_mol.values():
+        coverable_tags.update(get_tags_mol(mol))
+    missing = set(all_tags) - coverable_tags
+    if missing:
+        logger.warning("Dropping tags that cannot be covered by any node: " + ", ".join([str(t) for t in missing]))
+        all_tags = sorted(list(coverable_tags))
+
     # Identify nodes and pick best set of identified nodes
     encoding_to_mol_identified = matching.identify_nodes(encoding_to_mol, matching_rules, match_stereochemistry)
     identified_nodes = list(encoding_to_mol_identified.keys())  # keys are the identified nodes
