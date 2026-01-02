@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import itertools
 from collections import Counter
 from dataclasses import dataclass, field
 from importlib.resources import files
@@ -21,12 +22,188 @@ from retromol.chem.mol import (
     sanitize_mol,
     reassign_stereochemistry,
 )
-from retromol.chem.reaction import smarts_to_reaction
-from retromol.chem.tagging import get_tags_mol, remove_tags
+from retromol.chem.reaction import smarts_to_reaction, reactive_template_atoms
+from retromol.chem.tagging import get_tags_mol
 from retromol.chem.masking import is_masked_preserved
 
 
 log = logging.getLogger(__name__)
+
+
+def index_uncontested(
+    mol: Mol,
+    rls: list[ReactionRule],
+    failed_combos: set[tuple[int, frozenset[int]]],
+) -> list[tuple[ReactionRule, set[int]]]:
+    """
+    Index uncontested reactions for applying preprocessing rules in bulk.
+
+    :param mol: RDKit molecule
+    :param rls: List of preprocessing rules
+    :param failed_combos: Set of failed combinations to avoid infinite loops
+    :return: Uncontested reactions
+    """
+    up_for_election: list[tuple[ReactionRule, set[int], set[int]]] = []
+    for rl in rls:
+        if not rl.rxn:
+            continue  # skip rules without a reaction template
+
+        reactive_inds = reactive_template_atoms(rl.rxn)[0]
+        all_reactant_matches: list[tuple[tuple[int, ...], ...]] = []
+        all_reactant_matches_reactive_items: list[list[list[int]]] = []
+        for template_idx in range(rl.rxn.GetNumReactantTemplates()):
+            reactant_template = rl.rxn.GetReactantTemplate(template_idx)
+            reactant_matches: tuple[tuple[int, ...], ...] = mol.GetSubstructMatches(reactant_template)
+            all_reactant_matches.append(reactant_matches)
+            new_reactant_matches: list[list[int]] = []
+            for reactant_match in reactant_matches:
+                new_reactant_matches.append([reactant_match[idx] for idx in reactive_inds])
+            all_reactant_matches_reactive_items.append(new_reactant_matches)
+
+        # Generate all possible match sets, for when reaction template matches multiple sites
+        match_sets = list(itertools.product(*all_reactant_matches))
+        match_sets_reactive_items = list(itertools.product(*all_reactant_matches_reactive_items))
+        match_sets = [set(itertools.chain(*match_set)) for match_set in match_sets]
+        match_sets_reactive_items = [set(itertools.chain(*match_set)) for match_set in match_sets_reactive_items]
+        for match_set, match_set_reactive_items in zip(match_sets, match_sets_reactive_items, strict=True):
+            up_for_election.append((rl, match_set, match_set_reactive_items))
+
+    # Check which reactions with matched templates are uncontested and which are contested
+    uncontested: list[tuple[ReactionRule, set[int]]] = []
+    for i, (rl, match_set, match_set_reactive_items) in enumerate(up_for_election):
+        # TODO: Rules with ring matching conditions are always contested
+        # if rl.has_ring_matching_condition():
+        #     continue
+
+        # Check if match set has overlap with any other match set
+        # has_overlap = any(match_set.intersection(o) for j, (_, o, o_r) in enumerate(up_for_election) if i != j)
+        has_overlap = any(match_set_reactive_items.intersection(o_r) for j, (_, _, o_r) in enumerate(up_for_election) if i != j)
+        if not has_overlap:
+            uncontested.append((rl, match_set))
+
+    # Filter out failed combinations to avoid infinite loops
+    uncontested = [(rl, match_set) for rl, match_set in uncontested if (rl.id, frozenset(match_set)) not in failed_combos]
+
+    return uncontested
+
+
+def apply_uncontested(
+    parent: Mol,
+    uncontested: list[tuple[ReactionRule, set[int]]],
+    original_taken_tags: set[int],
+) -> tuple[list[Mol], list[ReactionRule], set[tuple[int, frozenset[int]]]]:
+    """
+    Apply uncontested reactions in bulk.
+
+    :param parent: RDKit molecule
+    :param uncontested: List of uncontested reactions
+    :param original_taken_tags: List of atom tags from original reactant
+    :return: List of trtue products, a list of applied ReactionRules,  and a set of failed combinations
+    """
+    original_taken_tags = list(original_taken_tags)
+
+    applied_reactions: list[ReactionRule] = []
+
+    tags_in_parent: set[int] = set(get_tags_mol(parent))
+
+    # We make sure all atoms, even the ones not from original reactant, have a
+    # unique isotope number, so we can track them through consecutive reactions
+    temp_taken_tags = list(get_tags_mol(parent))
+    for atom in parent.GetAtoms():
+        if atom.GetIsotope() == 0:
+            tag = 1
+            while tag in original_taken_tags or tag in temp_taken_tags:
+                tag += 1
+            atom.SetIsotope(tag)
+            temp_taken_tags.append(tag)
+
+    # Validate that all atoms have a unique tag
+    num_tagged_atoms = len(set(get_tags_mol(parent)))
+    if num_tagged_atoms != len(parent.GetAtoms()):
+        raise ValueError("Not all atoms have a unique tag before applying uncontested reactions")
+
+    # Map tags to atomic nums so we can create masks and reassign atomic nums later on
+    idx_to_tag = {a.GetIdx(): a.GetIsotope() for a in parent.GetAtoms()}
+
+    # All uncontested reactions become a single node in the reaction_graph
+    products: list[Mol] = []
+    failed_combos: set[tuple[int, frozenset[int]]] = set()  # keep track of failed combinations to avoid infinite loops
+
+    for rl, match_set in uncontested:
+        msk = set([idx_to_tag[idx] for idx in match_set])  # create mask for reaction
+
+        # We use the input parent if there are no products, otherwise we have to find out
+        # which product now contains the mask (i.e., the reaction template for this reaction)
+        if len(products) != 0:
+            new_parent: Mol | None = None
+            for product in products:
+                product_tags = set(get_tags_mol(product))
+                if msk.issubset(product_tags):
+                    new_parent = product
+                    products = [p for p in products if p != product]
+                    break
+
+            if new_parent is None:
+                # raise ValueError("no product found that contains the mask")
+                # If no product is found, we continue with the next uncontested reaction
+                continue
+
+            parent = new_parent
+
+        # Register all tags currently taken by atoms in parent
+        temp_taken_tags_uncontested = list(get_tags_mol(parent))
+
+        # Newly introduced atoms by one of the uncontested reactions need a unique tag
+        for atom in parent.GetAtoms():
+            if atom.GetIsotope() == 0:  # newly introduced atom has tag 0
+                # Loop until we find a tag that is not already taken
+                tag = 1
+                while tag in (temp_taken_tags_uncontested + original_taken_tags + temp_taken_tags):
+                    tag += 1
+                atom.SetIsotope(tag)
+                temp_taken_tags_uncontested.append(tag)
+
+        unmasked_parent = Mol(parent)  # keep original parent for later
+        results = rl.apply(parent, msk)  # apply reaction rule
+
+        try:
+            if len(results) == 0:
+                raise ValueError(f"No products from uncontested reaction {rl.name}")
+
+            if len(results) > 1:
+                raise ValueError(f"More than one product from uncontested reaction {rl.name}")
+
+            result = results[0]
+            applied_reactions.append(rl)  # keep track of successfully applied reactions
+
+            # Reset atom tags in products for atoms not in original reactant
+            for product in result:
+                for atom in product.GetAtoms():
+                    if atom.GetIsotope() not in original_taken_tags and atom.GetIsotope() != 0:
+                        atom.SetIsotope(0)
+                products.append(product)
+
+        except Exception:
+            # Start function again with the next uncontested reaction
+            for atom in parent.GetAtoms():
+                if atom.GetIsotope() not in original_taken_tags and atom.GetIsotope() != 0:
+                    atom.SetIsotope(0)
+            products.append(unmasked_parent)
+            failed_combos.add(
+                (
+                    rl.id,
+                    frozenset(match_set),
+                )
+            )
+
+    for product in products:
+        # Any tag in product that is not in parent should be 0; otherwise we run into issues with
+        # the set cover algorithm
+        for atom in product.GetAtoms():
+            if atom.GetIsotope() not in tags_in_parent and atom.GetIsotope() != 0:
+                atom.SetIsotope(0)
+
+    return products, applied_reactions, failed_combos
 
 
 @dataclass(frozen=True)
@@ -51,6 +228,15 @@ class ReactionRule:
         """
         rxn = smarts_to_reaction(self.smarts)
         object.__setattr__(self, "rxn", rxn)
+
+    @property
+    def id(self) -> int:
+        """
+        Unique identifier for the reaction rule based on its SMARTS pattern.
+
+        :return: int: unique identifier
+        """
+        return hash(self.smarts)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ReactionRule":
@@ -98,7 +284,7 @@ class ReactionRule:
                     break
                 
                 # Sanitize in place
-                if not sanitize_mol(prod, correct_hydrogens=True):
+                if not sanitize_mol(prod, fix_hydrogens=True):
                     log.debug("product sanitization failed, skipping")
                     ok_tuple = False
                     break
@@ -214,6 +400,14 @@ class RuleSet:
 
     reaction_rules: list[ReactionRule]
     matching_rules: list[MatchingRule]
+
+    def __str__(self) -> str:
+        """
+        String representation of the RuleSet.
+
+        :return: str: string representation
+        """
+        return f"RuleSet({len(self.reaction_rules)} reaction rules; {len(self.matching_rules)} matching rules)"
 
     @classmethod
     def load_default(cls) -> "RuleSet":

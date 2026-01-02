@@ -41,7 +41,7 @@ class Submission:
         )
 
         # Generate InChIKey
-        inchikey = mol_to_inchikey(self.mol)
+        inchikey = mol_to_inchikey(mol)
 
         # Tag molecule
         tag_mol(mol)

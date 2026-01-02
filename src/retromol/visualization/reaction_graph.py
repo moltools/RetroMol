@@ -36,14 +36,14 @@ def visualize_reaction_graph(g: ReactionGraph, html_path: str) -> None:
 
         identity = None
         if enc in identified and identified[enc]:
-            identity = identified[enc].get("identity", None)
+            identity = identified[enc].name
 
         label = str(identity) if identity else "mol"
         net.add_node(mol_vid(enc), label=label, title=label, shape="ellipse")
 
     # Add reaction nodes, and edges between molecules and reactions
     for i, e in enumerate(g.edges):
-        title = ", ".join(e.step.rids) if getattr(e.step, "rids", None) else ""
+        title = ", ".join(e.step.names) if getattr(e.step, "names", None) else ""
 
         net.add_node(rxn_vid(i), label="rxn", title=title, shape="box")
 

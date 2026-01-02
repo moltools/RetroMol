@@ -8,12 +8,11 @@ from typing import Dict, List, Set, Optional
 
 from retromol.utils.timeout import timeout_decorator
 from retromol.model.submission import Submission
-from retromol.model.rules import RuleSet
+from retromol.model.rules import RuleSet, index_uncontested, apply_uncontested
 from retromol.model.result import Result
 from retromol.model.reaction_graph import ReactionGraph, ReactionStep, RxnEdge
 from retromol.model.synthesis import SynthesisExtractResult
-from retromol.chem.mol import Mol, copy_mol, encode_mol
-from retromol.chem.reaction import index_uncontested, apply_uncontested
+from retromol.chem.mol import Mol, encode_mol
 from retromol.chem.tagging import get_tags_mol
 from retromol.visualization.reaction_graph import visualize_reaction_graph
 
@@ -42,7 +41,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
     expanded: set[str] = set()
 
     q: deque[Mol] = deque()
-    q.append(copy_mol(submission.mol))
+    q.append(Mol(submission.mol))
     enqueued.add(encode_mol(submission.mol))
 
     while q:
@@ -70,7 +69,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
             if applied_in_bulk:
                 step = ReactionStep(
                     kind="uncontested",
-                    rids=tuple(rl.rid for rl in applied_in_bulk),
+                    names=tuple(rl.name for rl in applied_in_bulk),
                     rule_ids=tuple(rl.id for rl in applied_in_bulk),
                 )
                 g.add_edge(parent_enc, products, step)
@@ -79,7 +78,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
                 for m in products:
                     enc = encode_mol(m)
                     if enc not in expanded and enc not in enqueued:
-                        q.append(copy_mol(m))
+                        q.append(Mol(m))
                         enqueued.add(enc)
 
                 continue  # skip contested for this parent if bulk succeeded
@@ -94,7 +93,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
                 # result_set is an iterable of product mols
                 step = ReactionStep(
                     kind="contested",
-                    rids=(rl.rid,),
+                    names=(rl.name,),
                     rule_ids=(rl.id,),
                 )
                 g.add_edge(parent_enc, result_set, step)
@@ -102,7 +101,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
                 for m in result_set:
                     enc = encode_mol(m)
                     if enc not in expanded and enc not in enqueued:
-                        q.append(copy_mol(m))
+                        q.append(Mol(m))
                         enqueued.add(enc)
 
     return g
@@ -258,7 +257,7 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     # store in downloads
     visualize_reaction_graph(r.graph, html_path="/Users/davidmeijer/Downloads/reaction_graph.html")
 
-    exit("CHK")
+    return Result()
 
 
 run_retromol_with_timeout = timeout_decorator(seconds=int(os.getenv("TIMEOUT_RUN_RETROMOL", "30")))(run_retromol)

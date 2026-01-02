@@ -2,8 +2,6 @@
 
 from rdkit.Chem.rdchem import Mol
 
-from retromol.chem.mol import copy_mol
-
 
 def tag_mol(mol: Mol) -> None:
     """
@@ -25,7 +23,7 @@ def remove_tags(mol: Mol, in_place: bool = False) -> Mol:
     :return: the molecule without atom tags
     """
     if not in_place:
-        mol = copy_mol(mol)
+        mol = Mol(mol)
 
     for atom in mol.GetAtoms():
         atom.SetIsotope(0)

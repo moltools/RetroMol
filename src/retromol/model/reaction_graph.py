@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Iterable, Literal
 
-from retromol.chem.mol import Mol, encode_mol, copy_mol
+from retromol.chem.mol import Mol, encode_mol
 from retromol.model.identity import MolIdentity
 from retromol.model.rules import MatchingRule
 from retromol.chem.matching import match_mol
@@ -81,12 +81,12 @@ class ReactionStep:
     - contested: exactly one rule applied
 
     :var kind: StepKind: 'uncontested' or 'contested'
-    :var rids: tuple[str, ...]: reaction rule IDs (human-facing)
+    :var names: tuple[str, ...]: reaction rule IDs (human-facing)
     :var rule_ids: tuple[int, ...]: optional numeric IDs (stable internal)
     """
 
     kind: StepKind
-    rids: tuple[str, ...]  # reaction rule IDs (human-facing)
+    names: tuple[str, ...]  # reaction rule IDs (human-facing)
     rule_ids: tuple[int, ...] = ()  # optional numeric IDs (stable internal)
 
 
@@ -144,7 +144,7 @@ class ReactionGraph:
         """
         enc = encode_mol(mol)
         if enc not in self.nodes:
-            self.nodes[enc] = MolNode(enc=enc, mol=copy_mol(mol))
+            self.nodes[enc] = MolNode(enc=enc, mol=Mol(mol))
             self.out_edges.setdefault(enc, [])
 
         return enc

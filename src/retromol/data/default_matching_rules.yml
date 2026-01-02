@@ -1,240 +1,240 @@
 
-- rid: methylation
-  mol: C
+- name: methylation
+  smiles: C
   groups:
     - small tailoring
 
-- rid: oxidation
-  mol: O
+- name: oxidation
+  smiles: O
   groups:
     - small tailoring
 
-- rid: amination
-  mol: N
+- name: amination
+  smiles: N
   groups:
     - small tailoring
 
-- rid: cyanide
-  mol: C#N
+- name: cyanide
+  smiles: C#N
   groups:
     - small tailoring
 
-- rid: boronation
-  mol: B
+- name: boronation
+  smiles: B
   groups:
     - small tailoring
 
-- rid: phosphonylation
-  mol: OP(O)(O)O
+- name: phosphonylation
+  smiles: OP(O)(O)O
   groups:
     - small tailoring
 
-- rid: fluorination
-  mol: F
+- name: fluorination
+  smiles: F
   groups:
     - halogenation
 
-- rid: chlorination
-  mol: Cl
+- name: chlorination
+  smiles: Cl
   groups:
     - halogenation
 
-- rid: bromination
-  mol: Br
+- name: bromination
+  smiles: Br
   groups:
     - halogenation
 
-- rid: iodination
-  mol: I
+- name: iodination
+  smiles: I
   groups:
     - halogenation
 
-- rid: methanol
-  mol: CO
+- name: methanol
+  smiles: CO
   groups:
     - hydrogenation
 
-- rid: ethanol
-  mol: CCO
+- name: ethanol
+  smiles: CCO
   groups:
     - hydrogenation
 
-- rid: propanol
-  mol: CCCO
+- name: propanol
+  smiles: CCCO
   groups:
     - hydrogenation
 
-- rid: formaldehyde
-  mol: C=O
+- name: formaldehyde
+  smiles: C=O
   groups:
     - acetalization
 
-- rid: carbamic acid
-  mol: NC(=O)O
+- name: carbamic acid
+  smiles: NC(=O)O
   groups:
     - acetylation
 
-- rid: carbonic acid
-  mol: OC(=O)O
+- name: carbonic acid
+  smiles: OC(=O)O
   groups:
     - acetylation
     - urea bond
   props:
     - residue urea bond formation
 
-- rid: acetic acid
-  mol: CC(=O)O
+- name: acetic acid
+  smiles: CC(=O)O
   groups:
     - acetylation
     - fatty acid
     - polyketide starter
 
-- rid: glyceric acid
-  mol: OC(CO)C(O)=O
+- name: glyceric acid
+  smiles: OC(CO)C(O)=O
   groups:
     - fatty acid
     - polyketide starter
     - acetylation
 
-- rid: propanoic acid
-  mol: CCC(O)=O
+- name: propanoic acid
+  smiles: CCC(O)=O
   groups:
     - fatty acid
     - polyketide starter
 
-- rid: glycosylation
-  mol: CC1CC(N)C(O)C(O)O1
+- name: glycosylation
+  smiles: CC1CC(N)C(O)C(O)O1
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1OC(O)CC(N)C1O
+- name: glycosylation
+  smiles: CC1OC(O)CC(N)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1OC(O)CC(C)(O)C1O
+- name: glycosylation
+  smiles: CC1OC(O)CC(C)(O)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1CC(O)C(O)C(O)O1
+- name: glycosylation
+  smiles: CC1CC(O)C(O)C(O)O1
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: NC1C(O)OC(O)C(O)C1O
+- name: glycosylation
+  smiles: NC1C(O)OC(O)C(O)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: OC1COC(O)C(O)C1O
+- name: glycosylation
+  smiles: OC1COC(O)C(O)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: OCC1OC(O)C(O)C(O)C1O
+- name: glycosylation
+  smiles: OCC1OC(O)C(O)C(O)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1OC(O)CCC1O
+- name: glycosylation
+  smiles: CC1OC(O)CCC1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1OC(O)CC(O)C1O
+- name: glycosylation
+  smiles: CC1OC(O)CC(O)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1OC(O)C(O)C(O)C1O
+- name: glycosylation
+  smiles: CC1OC(O)C(O)C(O)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1OC(O)C(O)C(N)C1O
+- name: glycosylation
+  smiles: CC1OC(O)C(O)C(N)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC(C1(C(C(C(OC1C)O)O)O)O)O
+- name: glycosylation
+  smiles: CC(C1(C(C(C(OC1C)O)O)O)O)O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC(C1(O)C(O)C(O)C(O)OC1C)=O
+- name: glycosylation
+  smiles: CC(C1(O)C(O)C(O)C(O)OC1C)=O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: NC1C(C(C(OC1O)CO)O)O
+- name: glycosylation
+  smiles: NC1C(C(C(OC1O)CO)O)O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: NC1COC(CC1O)O
+- name: glycosylation
+  smiles: NC1COC(CC1O)O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: OC1C(O)C(N)C(C)OC1O
+- name: glycosylation
+  smiles: OC1C(O)C(N)C(C)OC1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1OC(CC(C1S)O)O
+- name: glycosylation
+  smiles: CC1OC(CC(C1S)O)O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: CC1(N)CC(O)OC(C)C1O
+- name: glycosylation
+  smiles: CC1(N)CC(O)OC(C)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: NC1C(O)C(O)C(O)C(N)C1
+- name: glycosylation
+  smiles: NC1C(O)C(O)C(O)C(N)C1
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: O=CC1(O)C(CO)OC(O)C1O
+- name: glycosylation
+  smiles: O=CC1(O)C(CO)OC(O)C1O
   groups:
     - glycosylation
 
 # TODO: annoying that we have to specify both tautomers here
-- rid: glycosylation
-  mol: NC(N)=NC1C(O)C(O)C(O)C(N=C(N)N)C1O
+- name: glycosylation
+  smiles: NC(N)=NC1C(O)C(O)C(O)C(N=C(N)N)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: N=C(N)NC1C(O)C(NC(=N)N)C(O)C(O)C1O
+- name: glycosylation
+  smiles: N=C(N)NC1C(O)C(NC(=N)N)C(O)C(O)C1O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: OCC1OC(O)C(O)C1O  # ribose
+- name: glycosylation
+  smiles: OCC1OC(O)C(O)C1O  # ribose
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: NCC1OC(C(C(C1O)O)N)O
+- name: glycosylation
+  smiles: NCC1OC(C(C(C1O)O)N)O
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: OC1CC(C)(OC)C(O)C(C)O1
+- name: glycosylation
+  smiles: OC1CC(C)(OC)C(O)C(C)O1
   groups:
     - glycosylation
 
-- rid: glycosylation
-  mol: OC1C(O)C(N(C)C)CC(C)O1
+- name: glycosylation
+  smiles: OC1C(O)C(N(C)C)CC(C)O1
   groups:
     - glycosylation
 
-- rid: arginine
-  mol: NC(N)=NCCCC(N)C(=O)O
+- name: arginine
+  smiles: NC(N)=NCCCC(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
@@ -243,8 +243,8 @@
   props:
     - tautomer
 
-- rid: arginine
-  mol: N=C(N)NCCCC(N)C(=O)O
+- name: arginine
+  smiles: N=C(N)NCCCC(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
@@ -253,2367 +253,2367 @@
   props:
     - tautomer
 
-- rid: histidine
-  mol: NC(Cc1cnc[nH]1)C(=O)O
+- name: histidine
+  smiles: NC(Cc1cnc[nH]1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - positively charged amino acid
 
-- rid: 3-hydroxy histdine
-  mol: NC(C(c1[nH]cnc1)O)C(O)=O
+- name: 3-hydroxy histdine
+  smiles: NC(C(c1[nH]cnc1)O)C(O)=O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
     - positively charged amino acid
 
-- rid: lysine
-  mol: NCCCCC(N)C(=O)O
+- name: lysine
+  smiles: NCCCCC(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - positively charged amino acid
 
-- rid: aspartic acid
-  mol: NC(CC(=O)O)C(=O)O
+- name: aspartic acid
+  smiles: NC(CC(=O)O)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - negatively charged amino acid
 
-- rid: glutamic acid
-  mol: NC(CCC(=O)O)C(=O)O
+- name: glutamic acid
+  smiles: NC(CCC(=O)O)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - negatively charged amino acid
 
-- rid: serine
-  mol: NC(CO)C(=O)O
+- name: serine
+  smiles: NC(CO)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - polar uncharged amino acid
 
-- rid: threonine
-  mol: CC(O)C(N)C(=O)O
+- name: threonine
+  smiles: CC(O)C(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - polar uncharged amino acid
 
-- rid: asparagine
-  mol: NC(=O)CC(N)C(=O)O
+- name: asparagine
+  smiles: NC(=O)CC(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - polar uncharged amino acid
 
-- rid: glutamine
-  mol: NC(=O)CCC(N)C(=O)O
+- name: glutamine
+  smiles: NC(=O)CCC(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - polar uncharged amino acid
 
-- rid: glycine
-  mol: NCC(=O)O
+- name: glycine
+  smiles: NCC(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
 
-- rid: proline
-  mol: O=C(O)C1CCCN1
+- name: proline
+  smiles: O=C(O)C1CCCN1
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
 
-- rid: cysteine
-  mol: NC(CS)C(=O)O
+- name: cysteine
+  smiles: NC(CS)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
 
-- rid: leucine
-  mol: CC(C)CC(N)C(=O)O
-  groups:
-    - amino acid
-    - alpha amino acid
-    - proteinogenic amino acid
-    - hydrophobic amino acid
-
-- rid: isoleucine
-  mol: CCC(C)C(N)C(=O)O
+- name: leucine
+  smiles: CC(C)CC(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - hydrophobic amino acid
 
-- rid: alanine
-  mol: CC(N)C(=O)O
+- name: isoleucine
+  smiles: CCC(C)C(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - hydrophobic amino acid
 
-- rid: valine
-  mol: CC(C)C(N)C(=O)O
+- name: alanine
+  smiles: CC(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - hydrophobic amino acid
 
-- rid: methionine
-  mol: CSCCC(C(=O)O)N
+- name: valine
+  smiles: CC(C)C(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - hydrophobic amino acid
 
-- rid: phenylalanine
-  mol: NC(Cc1ccccc1)C(=O)O
+- name: methionine
+  smiles: CSCCC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - hydrophobic amino acid
 
-- rid: tryptophan
-  mol: NC(Cc1c[nH]c2ccccc12)C(=O)O
+- name: phenylalanine
+  smiles: NC(Cc1ccccc1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - hydrophobic amino acid
 
-- rid: tyrosine
-  mol: NC(Cc1ccc(O)cc1)C(=O)O
+- name: tryptophan
+  smiles: NC(Cc1c[nH]c2ccccc12)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - proteinogenic amino acid
     - hydrophobic amino acid
 
-- rid: 3,4-dihydroxyphenylalanine
-  mol: NC(C(O)=O)Cc1c(O)cc(O)cc1
+- name: tyrosine
+  smiles: NC(Cc1ccc(O)cc1)C(=O)O
+  groups:
+    - amino acid
+    - alpha amino acid
+    - proteinogenic amino acid
+    - hydrophobic amino acid
+
+- name: 3,4-dihydroxyphenylalanine
+  smiles: NC(C(O)=O)Cc1c(O)cc(O)cc1
   groups: 
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: kynurenine
-  mol: Nc1ccccc1C(=O)C[C@H](N)C(=O)O
+- name: kynurenine
+  smiles: Nc1ccccc1C(=O)C[C@H](N)C(=O)O
   groups: 
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: ornithine
-  mol: '[NH2]CCCC([NH2])C(=O)O'
+- name: ornithine
+  smiles: '[NH2]CCCC([NH2])C(=O)O'
   groups: 
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: ornithine alkaloid
-  mol: 'NC(NCCCCO)=N'
+- name: ornithine alkaloid
+  smiles: 'NC(NCCCCO)=N'
   groups:
     - non-amino acid A-domain substrate
 
-- rid: bicyclic guanidine alkaloid
-  mol: 'CCCCCCCCCC1N=C(N2CCCC2=C1C(O)=O)N'
+- name: bicyclic guanidine alkaloid
+  smiles: 'CCCCCCCCCC1N=C(N2CCCC2=C1C(O)=O)N'
   groups:
     - non-amino acid A-domain substrate
     - fatty acid
 
-- rid: ornithine alkaloid
-  mol: 'NC(N)=NCCCCO'
+- name: ornithine alkaloid
+  smiles: 'NC(N)=NCCCCO'
   groups:
     - non-amino acid A-domain substrate
 
-- rid: dehydrobutyrine
-  mol: CC=C(C(O)=O)N
+- name: dehydrobutyrine
+  smiles: CC=C(C(O)=O)N
   groups: 
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: dehydrohomoserine
-  mol: NC(C(O)=O)C=CO
+- name: dehydrohomoserine
+  smiles: NC(C(O)=O)C=CO
   groups: 
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N6-formyl-N6-hydroxylysine
-  mol: NC(CCCCN(O)C=O)C(O)=O
+- name: N6-formyl-N6-hydroxylysine
+  smiles: NC(CCCCN(O)C=O)C(O)=O
   groups: 
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2,3-diaminopropionate
-  mol: NCC(N)C(=O)O
+- name: 2,3-diaminopropionate
+  smiles: NCC(N)C(=O)O
   groups: 
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxyquinaldic acid
-  mol: O=C(O)c1nc2ccccc2cc1O
+- name: 3-hydroxyquinaldic acid
+  smiles: O=C(O)c1nc2ccccc2cc1O
   groups: 
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-alanine
-  mol: NCCC(=O)O
+- name: beta-alanine
+  smiles: NCCC(=O)O
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: salicylic acid
-  mol: O=C(O)c1ccccc1O
+- name: salicylic acid
+  smiles: O=C(O)c1ccccc1O
   groups:
     - phenolic acid
     - non-amino acid A-domain substrate
 
-- rid: 2,3-dihydroxybenzoic acid
-  mol: O=C(O)c1cccc(O)c1O
+- name: 2,3-dihydroxybenzoic acid
+  smiles: O=C(O)c1cccc(O)c1O
   groups:
     - phenolic acid
     - non-amino acid A-domain substrate
 
-- rid: 3,5-dihydroxybenzoic acid
-  mol: O=C(c1cc(O)cc(O)c1)O
+- name: 3,5-dihydroxybenzoic acid
+  smiles: O=C(c1cc(O)cc(O)c1)O
   groups:
     - phenolic acid
     - non-amino acid A-domain substrate
 
-- rid: isobutyric acid
-  mol: CC(C)C(=O)O
+- name: isobutyric acid
+  smiles: CC(C)C(=O)O
   groups:
     - fatty acid
     - polyketide starter
 
-- rid: lactic acid
-  mol: CC(O)C(=O)O
+- name: lactic acid
+  smiles: CC(O)C(=O)O
   groups:
     - fatty acid
     - polyketide starter
 
-- rid: 2-methyl lactic acid 
-  mol: CC(C)(O)C(=O)O
+- name: 2-methyl lactic acid 
+  smiles: CC(C)(O)C(=O)O
   groups:
     - fatty acid
     - polyketide starter
 
-- rid: 2,2-dimethylpropanoic acid
-  mol: CC(C)(C)C(=O)O
+- name: 2,2-dimethylpropanoic acid
+  smiles: CC(C)(C)C(=O)O
   groups:
     - fatty acid
     - polyketide starter
 
-- rid: butanoic acid
-  mol: CCCC(O)=O
+- name: butanoic acid
+  smiles: CCCC(O)=O
   groups:
     - fatty acid
 
-- rid: 3-methylbutanoic acid
-  mol: CC(CC(O)=O)C
-  groups:
-    - fatty acid
-    - polyketide starter
-
-- rid: 4-amino-2-hydroxybutanoic acid
-  mol: NCCC(C(O)=O)O
-  groups:
-    - fatty acid
-
-- rid: 3-butynoic acid
-  mol: C#CCC(=O)O
+- name: 3-methylbutanoic acid
+  smiles: CC(CC(O)=O)C
   groups:
     - fatty acid
     - polyketide starter
 
-- rid: pentanoic acid
-  mol: CCCCC(O)=O
+- name: 4-amino-2-hydroxybutanoic acid
+  smiles: NCCC(C(O)=O)O
   groups:
     - fatty acid
 
-- rid: hexanoic acid
-  mol: CCCCCC(O)=O
+- name: 3-butynoic acid
+  smiles: C#CCC(=O)O
+  groups:
+    - fatty acid
+    - polyketide starter
+
+- name: pentanoic acid
+  smiles: CCCCC(O)=O
   groups:
     - fatty acid
 
-- rid: heptanoic acid
-  mol: CCCCCCC(O)=O
+- name: hexanoic acid
+  smiles: CCCCCC(O)=O
   groups:
     - fatty acid
 
-- rid: octanoic acid
-  mol: CCCCCCCC(O)=O
+- name: heptanoic acid
+  smiles: CCCCCCC(O)=O
   groups:
     - fatty acid
 
-- rid: nonanoic acid
-  mol: CCCCCCCCC(O)=O
+- name: octanoic acid
+  smiles: CCCCCCCC(O)=O
   groups:
     - fatty acid
 
-- rid: 2-hydroxy-3-aminononanoic acid
-  mol: CCCCCCCC(N)C(O)C(=O)O
+- name: nonanoic acid
+  smiles: CCCCCCCCC(O)=O
   groups:
     - fatty acid
 
-- rid: decanoic acid
-  mol: CCCCCCCCCC(O)=O
+- name: 2-hydroxy-3-aminononanoic acid
+  smiles: CCCCCCCC(N)C(O)C(=O)O
   groups:
     - fatty acid
 
-- rid: dec-3-enoic acid
-  mol: CCCCCCC=CCC(=O)O
+- name: decanoic acid
+  smiles: CCCCCCCCCC(O)=O
   groups:
     - fatty acid
 
-- rid: 3-hydroxydecanoic acid
-  mol: CCCCCCCC(O)CC(=O)O
+- name: dec-3-enoic acid
+  smiles: CCCCCCC=CCC(=O)O
   groups:
     - fatty acid
 
-- rid: dodecanoic acid
-  mol: CCCCCCCCCCCC(=O)O
+- name: 3-hydroxydecanoic acid
+  smiles: CCCCCCCC(O)CC(=O)O
   groups:
     - fatty acid
 
-- rid: tridecanoic acid
-  mol: CCCCCCCCCCCCC(=O)O
+- name: dodecanoic acid
+  smiles: CCCCCCCCCCCC(=O)O
   groups:
     - fatty acid
 
-- rid: 3-hydroxytridecanoic acid
-  mol: O=C(O)CC(O)CCCCCCCCCC
+- name: tridecanoic acid
+  smiles: CCCCCCCCCCCCC(=O)O
   groups:
     - fatty acid
 
-- rid: tetradecanoic acid
-  mol: CCCCCCCCCCCCCC(=O)O
+- name: 3-hydroxytridecanoic acid
+  smiles: O=C(O)CC(O)CCCCCCCCCC
   groups:
     - fatty acid
 
-- rid: tetradec-2-enoic acid
-  mol: CCCCCCCCCCCC=CC(=O)O
+- name: tetradecanoic acid
+  smiles: CCCCCCCCCCCCCC(=O)O
   groups:
     - fatty acid
 
-- rid: pentadecanoic acid
-  mol: CCCCCCCCCCCCCCC(=O)O
+- name: tetradec-2-enoic acid
+  smiles: CCCCCCCCCCCC=CC(=O)O
   groups:
     - fatty acid
 
-- rid: hexadecanoic acid
-  mol: CCCCCCCCCCCCCCCC(=O)O
+- name: pentadecanoic acid
+  smiles: CCCCCCCCCCCCCCC(=O)O
   groups:
     - fatty acid
 
-- rid: 2,3-dihydroxyhexadecanoic acid
-  mol: CCCCCCCCCCCCCC(C(C(=O)O)O)O
+- name: hexadecanoic acid
+  smiles: CCCCCCCCCCCCCCCC(=O)O
   groups:
     - fatty acid
 
-- rid: 3-hydroxy-2,2-dimethyldecanoic acid
-  mol: CCCCCCCC(C(C)(C(O)=O)C)O
+- name: 2,3-dihydroxyhexadecanoic acid
+  smiles: CCCCCCCCCCCCCC(C(C(=O)O)O)O
   groups:
     - fatty acid
 
-- rid: 2-methylprop-2-enoic acid
-  mol: C=C(C)C(=O)O
+- name: 3-hydroxy-2,2-dimethyldecanoic acid
+  smiles: CCCCCCCC(C(C)(C(O)=O)C)O
+  groups:
+    - fatty acid
+
+- name: 2-methylprop-2-enoic acid
+  smiles: C=C(C)C(=O)O
   groups:
     - polyketide starter
 
-- rid: cyclopentane-1,2-dicarboxylic acid
-  mol: O=C(O)C1CCCC1C(=O)O
+- name: cyclopentane-1,2-dicarboxylic acid
+  smiles: O=C(O)C1CCCC1C(=O)O
   groups:
     - polyketide starter
 
-- rid: furan-3-carboxylic acid
-  mol: O=C(O)c1ccoc1
+- name: furan-3-carboxylic acid
+  smiles: O=C(O)c1ccoc1
   groups:
     - polyketide starter
 
-- rid: benzoic acid
-  mol: O=C(O)c1ccccc1
+- name: benzoic acid
+  smiles: O=C(O)c1ccccc1
   groups:
     - phenolic acid
     - polyketide starter
 
-- rid: 2-phenylacetic acid
-  mol: O=C(O)Cc1ccccc1
+- name: 2-phenylacetic acid
+  smiles: O=C(O)Cc1ccccc1
   groups:
     - phenolic acid
     - polyketide starter
 
-- rid: orsellinic acid
-  mol: O=C(O)c1c(O)cc(O)cc1C
+- name: orsellinic acid
+  smiles: O=C(O)c1c(O)cc(O)cc1C
   groups:
     - phenolic acid
     - polyketide starter
 
-- rid: 3-amino-5-hydroxybenzoic acid
-  mol: Nc1cc(C(O)=O)cc(O)c1
+- name: 3-amino-5-hydroxybenzoic acid
+  smiles: Nc1cc(C(O)=O)cc(O)c1
   groups:
     - amino acid
     - non-proteinogenic amino acid
     - phenolic acid
     - polyketide starter
 
-- rid: 2-(2,6-dioxopiperidin-4-yl)acetic acid
-  mol: O=C1NC(CC(CC(O)=O)C1)=O
+- name: 2-(2,6-dioxopiperidin-4-yl)acetic acid
+  smiles: O=C1NC(CC(CC(O)=O)C1)=O
   groups:
     - polyketide starter
 
-- rid: artificial amino acid harzianic acid
-  mol: NC(C(O)=O)CC(C(O)=O)(C(C)C)O
+- name: artificial amino acid harzianic acid
+  smiles: NC(C(O)=O)CC(C(O)=O)(C(C)C)O
   groups:
     - artificial amino acid
 
-- rid: trans-2-hexenoic acid
-  mol: CCCC=CC(O)=O
+- name: trans-2-hexenoic acid
+  smiles: CCCC=CC(O)=O
   groups:
     - fatty acid
 
-- rid: 4-hydroxyphenylglycine
-  mol: NC(C(=O)O)c1ccc(O)cc1
+- name: 4-hydroxyphenylglycine
+  smiles: NC(C(=O)O)c1ccc(O)cc1
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2,4-diaminobytyric acid
-  mol: NCCC(N)C(=O)O
+- name: 2,4-diaminobytyric acid
+  smiles: NCCC(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-hydroxytyrosine
-  mol: NC(C(=O)O)C(O)c1ccc(O)cc1
+- name: beta-hydroxytyrosine
+  smiles: NC(C(=O)O)C(O)c1ccc(O)cc1
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3,5-dihydroxyphenylglycine
-  mol: NC(C(=O)O)c1cc(O)cc(O)c1
+- name: 3,5-dihydroxyphenylglycine
+  smiles: NC(C(=O)O)c1cc(O)cc(O)c1
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: pipecolic acid
-  mol: O=C(O)C1CCCCN1
+- name: pipecolic acid
+  smiles: O=C(O)C1CCCCN1
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N5-formyl-N5-hydroxyornithine
-  mol: NC(CCCN(O)C=O)C(=O)O
+- name: N5-formyl-N5-hydroxyornithine
+  smiles: NC(CCCN(O)C=O)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N5-hydroxyornithine
-  mol: NC(CCCNO)C(=O)O
+- name: N5-hydroxyornithine
+  smiles: NC(CCCNO)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: anthranilic acid
-  mol: Nc1ccccc1C(=O)O
+- name: anthranilic acid
+  smiles: Nc1ccccc1C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-amino-3-hydroxy-4-(4-nitrophenyl)butanoic acid
-  mol: C1=CC(=CC=C1CC(C(C(=O)O)N)O)[N+](=O)[O-]
+- name: 2-amino-3-hydroxy-4-(4-nitrophenyl)butanoic acid
+  smiles: C1=CC(=CC=C1CC(C(C(=O)O)N)O)[N+](=O)[O-]
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2,6-diamino-57-dihydroxy-heptanoic acid
-  mol: C(CC(C(=O)O)N)C(C(CO)N)O
+- name: 2,6-diamino-57-dihydroxy-heptanoic acid
+  smiles: C(CC(C(=O)O)N)C(C(CO)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-methylhex-2-enoic acid
-  mol: CCC(C)C=CC(=O)O
+- name: 4-methylhex-2-enoic acid
+  smiles: CCC(C)C=CC(=O)O
   groups:
     - fatty acid
 
-- rid: 2-amino-4-decenoic acid
-  mol: CCCCCC=CCC(C(=O)O)N
+- name: 2-amino-4-decenoic acid
+  smiles: CCCCCC=CCC(C(=O)O)N
   groups:
     - fatty acid
 
-- rid: 1-(1,1-dimethylallyl)-tryptophan
-  mol: CC(C)(C=C)N1C=C(C2=CC=CC=C21)CC(C(=O)O)N
+- name: 1-(1,1-dimethylallyl)-tryptophan
+  smiles: CC(C)(C=C)N1C=C(C2=CC=CC=C21)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 1-aminocyclopropane-1-carboxylic acid
-  mol: C(O)(=O)C1(CC1)(N)
+- name: 1-aminocyclopropane-1-carboxylic acid
+  smiles: C(O)(=O)C1(CC1)(N)
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 1-pyrroline-5-carboxylic acid
-  mol: O=C(O)C1N=CCC1
+- name: 1-pyrroline-5-carboxylic acid
+  smiles: O=C(O)C1N=CCC1
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 10,14-dimethyloctadecanoic acid
-  mol: OC(CCCCCCCCC(C)CCCC(C)CCCC)=O
+- name: 10,14-dimethyloctadecanoic acid
+  smiles: OC(CCCCCCCCC(C)CCCC(C)CCCC)=O
   groups:
     - fatty acid
 
-- rid: 2,3-diaminobutyric acid
-  mol: NC(C)C(C(=O)O)N
+- name: 2,3-diaminobutyric acid
+  smiles: NC(C)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2,3-dihydroxy-para-aminobenzoic acid
-  mol: C1=CC(=C(C(=C(N)1)O)O)C(=O)O
+- name: 2,3-dihydroxy-para-aminobenzoic acid
+  smiles: C1=CC(=C(C(=C(N)1)O)O)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 2,4-dihydroxypentanoic acid
-  mol: CC(CC(C(=O)O)O)O
+- name: 2,4-dihydroxypentanoic acid
+  smiles: CC(CC(C(=O)O)O)O
   groups:
     - non-amino acid A-domain substrate
     - fatty acid
 
-- rid: 2-(1-methylcyclopropyl)-glycine
-  mol: CC1(CC1)C(C(=O)O)N
+- name: 2-(1-methylcyclopropyl)-glycine
+  smiles: CC1(CC1)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-amino-3,5-dimethyl-4-hexenoic Acid
-  mol: CC(C=C(C)C)C(C(=O)O)N
+- name: 2-amino-3,5-dimethyl-4-hexenoic Acid
+  smiles: CC(C=C(C)C)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-amino-3-hydroxycyclopent-2-enone
-  mol: C1CC(=O)C(=C1O)N
+- name: 2-amino-3-hydroxycyclopent-2-enone
+  smiles: C1CC(=O)C(=C1O)N
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 2-amino-6-hydroxy-4-methyl-8-oxodecanoic acid
-  mol: CCC(=O)CC(CC(C)CC(C(=O)O)N)O
+- name: 2-amino-6-hydroxy-4-methyl-8-oxodecanoic acid
+  smiles: CCC(=O)CC(CC(C)CC(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-aminoadipic acid
-  mol: C(CC(C(=O)O)N)CC(=O)O
+- name: 2-aminoadipic acid
+  smiles: C(CC(C(=O)O)N)CC(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-aminobutyric acid
-  mol: CCC(C(=O)O)N
+- name: 2-aminobutyric acid
+  smiles: CCC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-aminoisobutyric acid
-  mol: O=C(O)C(N)(C)C
+- name: 2-aminoisobutyric acid
+  smiles: O=C(O)C(N)(C)C
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-carboxy-6-hydroxyoctahydroindole
-  mol: N1[C@H](C(=O)O)CC2CCC(O)CC12
+- name: 2-carboxy-6-hydroxyoctahydroindole
+  smiles: N1[C@H](C(=O)O)CC2CCC(O)CC12
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-chloro-3,5-dihydroxy-4-methylphenylglycine
-  mol: CC1=C(O)C(Cl)=C(C=C(O)1)C(C(=O)O)N
+- name: 2-chloro-3,5-dihydroxy-4-methylphenylglycine
+  smiles: CC1=C(O)C(Cl)=C(C=C(O)1)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-chlorobenzoic acid
-  mol: C1=CC=C(C(=C1)C(=O)O)Cl
+- name: 2-chlorobenzoic acid
+  smiles: C1=CC=C(C(=C1)C(=O)O)Cl
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 2-hydroxy-4-methylpentanoic acid
-  mol: CC(C)CC(C(=O)O)O
-  groups:
-    - fatty acid
-    - non-amino acid A-domain substrate
-
-- rid: 2-hydroxypent-4-enoic acid
-  mol: C=CCC(C(=O)O)O
+- name: 2-hydroxy-4-methylpentanoic acid
+  smiles: CC(C)CC(C(=O)O)O
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: 2-ketoglutaric acid
-  mol: C(CC(=O)O)C(=O)C(=O)O
+- name: 2-hydroxypent-4-enoic acid
+  smiles: C=CCC(C(=O)O)O
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: 2-ketoisocaproic acid
-  mol: O=C(C(=O)O)CC(C)C
+- name: 2-ketoglutaric acid
+  smiles: C(CC(=O)O)C(=O)C(=O)O
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: 2-ketoisovaleric acid
-  mol: O=C(C(=O)O)C(C)C
+- name: 2-ketoisocaproic acid
+  smiles: O=C(C(=O)O)CC(C)C
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: 2-methylserine
-  mol: CC(CO)(C(=O)O)N
-  groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
-
-- rid: 2-sulfamoylacetic acid
-  mol: C(C(=O)O)S(=O)(=O)N
-  groups:
-    - non-amino acid A-domain substrate
-
-- rid: 2-hydroxy-3-methylpentanoic acid
-  mol: CCC(C)C(C(=O)O)O
+- name: 2-ketoisovaleric acid
+  smiles: O=C(C(=O)O)C(C)C
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: 2-amino-4-hexenoic acid
-  mol: CC=CCC(C(=O)O)N
+- name: 2-methylserine
+  smiles: CC(CO)(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-amino-8-oxodecanoic acid
-  mol: CCC(=O)CCCCCC(C(=O)O)N
+- name: 2-sulfamoylacetic acid
+  smiles: C(C(=O)O)S(=O)(=O)N
   groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
+    - non-amino acid A-domain substrate
 
-- rid: 2-amino-9,10-epoxy-8-oxodecanoic acid
-  mol: C1C(O1)C(=O)CCCCCC(C(=O)O)N
-  groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
-
-- rid: 2-aminodecanoic acid
-  mol: CCCCCCCCC(C(=O)O)N
-  groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
-
-- rid: 2-aminododecanoic acid
-  mol: CCCCCCCCCCC(C(=O)O)N
-  groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
-
-- rid: 2-aminooctanoic acid
-  mol: CCCCCCC(C(=O)O)N
-  groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
-
-- rid: 2-hydroxyisovaleric acid
-  mol: CC(C)C(C(=O)O)O
+- name: 2-hydroxy-3-methylpentanoic acid
+  smiles: CCC(C)C(C(=O)O)O
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: 2-methyl-3-oxobutyrine
-  mol: CC(=O)C(C)(N)C(=O)O
+- name: 2-amino-4-hexenoic acid
+  smiles: CC=CCC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3,3-dihomo-4-methoxytyrosine
-  mol: NC(CCCC1=CC=C(OC)C=C1)C(=O)O
+- name: 2-amino-8-oxodecanoic acid
+  smiles: CCC(=O)CCCCCC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3,3-dihomophenylalanine
-  mol: NC(CCCC1=CC=CC=C1)C(=O)O
+- name: 2-amino-9,10-epoxy-8-oxodecanoic acid
+  smiles: C1C(O1)C(=O)CCCCCC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3,3-dihomotyrosine
-  mol: NC(CCCC1=CC=C(O)C=C1)C(=O)O
+- name: 2-aminodecanoic acid
+  smiles: CCCCCCCCC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3,4-dehydrolysine
-  mol: C(CCN)=CC(C(=O)O)N
+- name: 2-aminododecanoic acid
+  smiles: CCCCCCCCCCC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3,4-dihydroxybenzoic acid
-  mol: C1=CC(=C(C=C1C(=O)O)O)O
+- name: 2-aminooctanoic acid
+  smiles: CCCCCCC(C(=O)O)N
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: 2-hydroxyisovaleric acid
+  smiles: CC(C)C(C(=O)O)O
+  groups:
+    - fatty acid
+    - non-amino acid A-domain substrate
+
+- name: 2-methyl-3-oxobutyrine
+  smiles: CC(=O)C(C)(N)C(=O)O
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: 3,3-dihomo-4-methoxytyrosine
+  smiles: NC(CCCC1=CC=C(OC)C=C1)C(=O)O
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: 3,3-dihomophenylalanine
+  smiles: NC(CCCC1=CC=CC=C1)C(=O)O
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: 3,3-dihomotyrosine
+  smiles: NC(CCCC1=CC=C(O)C=C1)C(=O)O
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: 3,4-dehydrolysine
+  smiles: C(CCN)=CC(C(=O)O)N
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: 3,4-dihydroxybenzoic acid
+  smiles: C1=CC(=C(C=C1C(=O)O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 3,5-dichloro-4-hydroxyphenylglycine
-  mol: C1=C(Cl)C(=C(Cl)C=C1C(C(=O)O)N)O
+- name: 3,5-dichloro-4-hydroxyphenylglycine
+  smiles: C1=C(Cl)C(=C(Cl)C=C1C(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-(2-nitrocyclopropylalanine)
-  mol: C1C(C1[N+](=O)[O-])CC(C(=O)O)N
+- name: 3-(2-nitrocyclopropylalanine)
+  smiles: C1C(C1[N+](=O)[O-])CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-(3ridyl)-alanine
-  mol: C1=CC(=CN=C1)CC(C(=O)O)N
+- name: 3-(3ridyl)-alanine
+  smiles: C1=CC(=CN=C1)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-amino-2,4-dihydroxybenzoic acid
-  mol: C1=CC(=C(C(=C1C(=O)O)O)N)O
+- name: 3-amino-2,4-dihydroxybenzoic acid
+  smiles: C1=CC(=C(C(=C1C(=O)O)O)N)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 3-amino-4-hydroxybenzoic acid
-  mol: C1=CC(=C(C=C1C(=O)O)N)O
+- name: 3-amino-4-hydroxybenzoic acid
+  smiles: C1=CC(=C(C=C1C(=O)O)N)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 3-amino-6-hydroxy-2-pridone
-  mol: C1CC(NC(=O)C1N)O
+- name: 3-amino-6-hydroxy-2-pridone
+  smiles: C1CC(NC(=O)C1N)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 3-chlorotyrosine
-  mol: C1=C(Cl)C(=CC=C1CC(C(=O)O)N)O
+- name: 3-chlorotyrosine
+  smiles: C1=C(Cl)C(=CC=C1CC(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxy-4-methylproline
-  mol: CC1C(O)C(NC1)C(=O)O
+- name: 3-hydroxy-4-methylproline
+  smiles: CC1C(O)C(NC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxy-O-methyl-5-methyltyrosine
-  mol: C1=C(O)C(=C(C)C=C1CC(C(=O)O)N)OC
+- name: 3-hydroxy-O-methyl-5-methyltyrosine
+  smiles: C1=C(O)C(=C(C)C=C1CC(C(=O)O)N)OC
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxy-O-methyltyrosine
-  mol: C1=C(O)C(=CC=C1CC(C(=O)O)N)OC
+- name: 3-hydroxy-O-methyltyrosine
+  smiles: C1=C(O)C(=CC=C1CC(C(=O)O)N)OC
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxy-para-aminobenzoic acid
-  mol: C1=CC(=C(C=C1C(=O)O)O)N
+- name: 3-hydroxy-para-aminobenzoic acid
+  smiles: C1=CC(=C(C=C1C(=O)O)O)N
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 3-hydroxyaspartic acid
-  mol: NC(C(C(=O)O)O)(C(=O)O)
+- name: 3-hydroxyaspartic acid
+  smiles: NC(C(C(=O)O)O)(C(=O)O)
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 2-hydroxyglycine
-  mol: NC(C(O)=O)O
+- name: 2-hydroxyglycine
+  smiles: NC(C(O)=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxyglutamine
-  mol: C(C(C(C(=O)O)N)O)C(=O)N
+- name: 3-hydroxyglutamine
+  smiles: C(C(C(C(=O)O)N)O)C(=O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxyglutamic acid
-  mol: NC(C(CC(O)=O)O)C(O)=O
+- name: 3-hydroxyglutamic acid
+  smiles: NC(C(CC(O)=O)O)C(O)=O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxykynurenine
-  mol: C1=CC(=C(C(=C1)O)N)C(=O)CC(C(=O)O)N
+- name: 3-hydroxykynurenine
+  smiles: C1=CC(=C(C(=C1)O)N)C(=O)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxyleucine
-  mol: CC(C)C(C(C(=O)O)N)O
+- name: 3-hydroxyleucine
+  smiles: CC(C)C(C(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxypicolinic acid
-  mol: C1=CC(=C(N=C1)C(=O)O)O
+- name: 3-hydroxypicolinic acid
+  smiles: C1=CC(=C(N=C1)C(=O)O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxytyrosine
-  mol: C1=CC(=C(C=C1CC(C(=O)O)N)O)O
+- name: 3-hydroxytyrosine
+  smiles: C1=CC(=C(C=C1CC(C(=O)O)N)O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxyvaline
-  mol: CC(O)(C)C(C(=O)O)N
+- name: 3-hydroxyvaline
+  smiles: CC(O)(C)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-methoxyanthranilic acid
-  mol: COC1=CC=CC(=C1N)C(=O)O
+- name: 3-methoxyanthranilic acid
+  smiles: COC1=CC=CC(=C1N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-methoxyaspartic acid
-  mol: NC(C(C(=O)O)OC)(C(=O)O)
+- name: 3-methoxyaspartic acid
+  smiles: NC(C(C(=O)O)OC)(C(=O)O)
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-methylasparagine
-  mol: CC(C(C(=O)O)N)C(=O)N
+- name: 3-methylasparagine
+  smiles: CC(C(C(=O)O)N)C(=O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-methylaspartic acid
-  mol: CC(C(C(=O)O)N)C(=O)O
+- name: 3-methylaspartic acid
+  smiles: CC(C(C(=O)O)N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-methylglutamic acid
-  mol: CC(CC(=O)O)C(C(=O)O)N
+- name: 3-methylglutamic acid
+  smiles: CC(CC(=O)O)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-methylleucine
-  mol: CC(C)C(C)C(C(=O)O)N
+- name: 3-methylleucine
+  smiles: CC(C)C(C)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-nitrotyrosine
-  mol: C1=CC(=C(C=C1CC(C(=O)O)N)[N+](=O)[O-])O
+- name: 3-nitrotyrosine
+  smiles: C1=CC(=C(C=C1CC(C(=O)O)N)[N+](=O)[O-])O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-chloroproline
-  mol: C1C(Cl)C(NC1)C(=O)O
+- name: 3-chloroproline
+  smiles: C1C(Cl)C(NC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxy-2,4-diaminobutyric acid
-  mol: NCC(O)C(C(=O)O)N
+- name: 3-hydroxy-2,4-diaminobutyric acid
+  smiles: NCC(O)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxyasparagine
-  mol: NC(C(O)=O)C(O)C(N)=O
+- name: 3-hydroxyasparagine
+  smiles: NC(C(O)=O)C(O)C(N)=O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxyhomotyrosine
-  mol: C1=CC(=CC=C1CC(C(C(=O)O)N)O)O
+- name: 3-hydroxyhomotyrosine
+  smiles: C1=CC(=CC=C1CC(C(C(=O)O)N)O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-methylbeta-alanine
-  mol: NCC(C)C(=O)O
+- name: 3-methylbeta-alanine
+  smiles: NCC(C)C(=O)O
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: 3,4-dichloroproline
-  mol: ClC1C(Cl)C(NC1)C(=O)O
+- name: 3,4-dichloroproline
+  smiles: ClC1C(Cl)C(NC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3,4-dihydroxyhomotyrosine
-  mol: C1=CC(=CC=C1C(O)C(C(C(=O)O)N)O)O
+- name: 3,4-dihydroxyhomotyrosine
+  smiles: C1=CC(=CC=C1C(O)C(C(C(=O)O)N)O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-aminobutyric acid
-  mol: CC(CC(=O)O)N
+- name: 3-aminobutyric acid
+  smiles: CC(CC(=O)O)N
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-cyclohex-2-enylalanine
-  mol: C1C=CC(CC1)CC(C(=O)O)N
+- name: 3-cyclohex-2-enylalanine
+  smiles: C1C=CC(CC1)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxy-4-methyloctanoic acid
-  mol: CCCCC(C(CC(O)=O)O)C
+- name: 3-hydroxy-4-methyloctanoic acid
+  smiles: CCCCC(C(CC(O)=O)O)C
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: 3-hydroxy-6-chlorohistidine
-  mol: C1=C(NC(Cl)=N1)C(C(C(=O)O)N)O
+- name: 3-hydroxy-6-chlorohistidine
+  smiles: C1=C(NC(Cl)=N1)C(C(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxypipecolic acid
-  mol: C1CC(C(NC1)C(=O)O)O
+- name: 3-hydroxypipecolic acid
+  smiles: C1CC(C(NC1)C(=O)O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxyproline
-  mol: OC1C(NCC1)C(=O)O
+- name: 3-hydroxyproline
+  smiles: OC1C(NCC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-methylproline
-  mol: CC1C(NCC1)C(=O)O
+- name: 3-methylproline
+  smiles: CC1C(NCC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4,5-dehydroarginine
-  mol: O=C(O)C(N)CC=CNC(N)=N
+- name: 4,5-dehydroarginine
+  smiles: O=C(O)C(N)CC=CNC(N)=N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4,5-dihydroxyornithine
-  mol: C(C(C(=O)O)N)C(C(N)O)O
+- name: 4,5-dihydroxyornithine
+  smiles: C(C(C(=O)O)N)C(C(N)O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-acetamidopyrrole-2-carboxylic acid
-  mol: CC(=O)NC1=CNC(=C1)C(=O)O
+- name: 4-acetamidopyrrole-2-carboxylic acid
+  smiles: CC(=O)NC1=CNC(=C1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-amino-2-hydroxy-3-isopropoxybenzoic acid
-  mol: CC(C)OC1=C(C=CC(=C1O)C(=O)O)N
+- name: 4-amino-2-hydroxy-3-isopropoxybenzoic acid
+  smiles: CC(C)OC1=C(C=CC(=C1O)C(=O)O)N
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 4-aminobutyric acid
-  mol: NCCCC(=O)O
+- name: 4-aminobutyric acid
+  smiles: NCCCC(=O)O
   groups:
     - amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-aminophenylalanine
-  mol: C1=CC(=CC=C1CC(C(=O)O)N)N
+- name: 4-aminophenylalanine
+  smiles: C1=CC(=CC=C1CC(C(=O)O)N)N
   groups:
     - amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-chlorobenzoic acid
-  mol: C1=CC(=CC=C1C(=O)O)Cl
+- name: 4-chlorobenzoic acid
+  smiles: C1=CC(=CC=C1C(=O)O)Cl
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 4-hydroxy-3-nitrobenzoic acid
-  mol: C1=CC(=C(C=C1C(=O)O)[N+](=O)[O-])O
+- name: 4-hydroxy-3-nitrobenzoic acid
+  smiles: C1=CC(=C(C=C1C(=O)O)[N+](=O)[O-])O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 4-hydroxy-D-kynurenine
-  mol: C1=C(O)C=C(C(=C1)C(=O)CC(C(=O)O)N)N
+- name: 4-hydroxy-D-kynurenine
+  smiles: C1=C(O)C=C(C(=C1)C(=O)CC(C(=O)O)N)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-hydroxybenzoic acid
-  mol: C1=CC(=CC=C1C(=O)O)O
+- name: 4-hydroxybenzoic acid
+  smiles: C1=CC(=CC=C1C(=O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 4-hydroxyglutamine
-  mol: C(C(O)C(=O)N)C(C(=O)O)N
+- name: 4-hydroxyglutamine
+  smiles: C(C(O)C(=O)N)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-hydroxyindole-3-carboxylic acid
-  mol: c1cc2c(c(c1)O)c(c[nH]2)C(=O)O
+- name: 4-hydroxyindole-3-carboxylic acid
+  smiles: c1cc2c(c(c1)O)c(c[nH]2)C(=O)O
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-hydroxyphenylpyruvic acid
-  mol: C1=CC(=CC=C1CC(=O)C(=O)O)O
+- name: 4-hydroxyphenylpyruvic acid
+  smiles: C1=CC(=CC=C1CC(=O)C(=O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 4-hydroxythreonine
-  mol: C(C(C(C(=O)O)N)O)O
+- name: 4-hydroxythreonine
+  smiles: C(C(C(C(=O)O)N)O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-hydroxyvaline
-  mol: CC(CO)C(C(=O)O)N
+- name: 4-hydroxyvaline
+  smiles: CC(CO)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-methoxytryptophan
-  mol: C1=CC=C2C(=C1OC)C(=CN2)CC(C(=O)O)N
+- name: 4-methoxytryptophan
+  smiles: C1=CC=C2C(=C1OC)C(=CN2)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-nitrotryptophan
-  mol: C1=CC=C2C(=C1[N+](=O)[O-])C(=CN2)CC(C(=O)O)N
+- name: 4-nitrotryptophan
+  smiles: C1=CC=C2C(=C1[N+](=O)[O-])C(=CN2)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-oxoproline
-  mol: C1C(NCC1=O)C(=O)O
+- name: 4-oxoproline
+  smiles: C1C(NCC1=O)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-butenyl-4-methylthreonine
-  mol: CC=CCC(C)C(C(C(=O)O)N)O
+- name: 4-butenyl-4-methylthreonine
+  smiles: CC=CCC(C)C(C(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-hydroxyproline
-  mol: C1C(NCC1O)C(=O)O
+- name: 4-hydroxyproline
+  smiles: C1C(NCC1O)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-propylproline
-  mol: CCCC1CC(NC1)C(=O)O
+- name: 4-propylproline
+  smiles: CCCC1CC(NC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4,5-dihydroxy-2-aminopentanoic acid
-  mol: OC(CC(C(=O)O)N)CO
+- name: 4,5-dihydroxy-2-aminopentanoic acid
+  smiles: OC(CC(C(=O)O)N)CO
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-acetyl-5-methylproline
-  mol: CC(=O)OC1CC(NC(C)1)C(=O)O
+- name: 4-acetyl-5-methylproline
+  smiles: CC(=O)OC1CC(NC(C)1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-hydroxylysine
-  mol: NCCC(O)CC(C(=O)O)N
+- name: 4-hydroxylysine
+  smiles: NCCC(O)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-methylazetidine-2-carboxylic acid
-  mol: CC1CC(N1)C(=O)O
+- name: 4-methylazetidine-2-carboxylic acid
+  smiles: CC1CC(N1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-methylproline
-  mol: CC1CC(NC1)C(=O)O
+- name: 4-methylproline
+  smiles: CC1CC(NC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 4-propenylproline
-  mol: CC=CC1CC(NC1)C(=O)O
+- name: 4-propenylproline
+  smiles: CC=CC1CC(NC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 5-hydroxylysine
-  mol: NCC(CCC(C(O)=O)N)O
+- name: 5-hydroxylysine
+  smiles: NCC(CCC(C(O)=O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 5,5-dimethylpipecolic acid
-  mol: C1C(C)(C)CNC(C1)C(=O)O
+- name: 5,5-dimethylpipecolic acid
+  smiles: C1C(C)(C)CNC(C1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 5-aminolevulinic acid
-  mol: C(CC(=O)O)C(=O)CN
+- name: 5-aminolevulinic acid
+  smiles: C(CC(=O)O)C(=O)CN
   groups:
     - amino acid
     - non-proteinogenic amino acid
 
-- rid: 5-chloroanthranilic acid
-  mol: C1=CC(=C(C=C1Cl)C(=O)O)N
-  groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
-
-- rid: 5-chlorotryptophan
-  mol: C1=CC2=C(C=C1Cl)C(=CN2)CC(C(=O)O)N
+- name: 5-chloroanthranilic acid
+  smiles: C1=CC(=C(C=C1Cl)C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 5-methoxytyrosine
-  mol: C1=C(OC)C(=CC=C1CC(C(=O)O)N)O
+- name: 5-chlorotryptophan
+  smiles: C1=CC2=C(C=C1Cl)C(=CN2)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 5-methylorsellinic acid
-  mol: C=1(C=C(C(=C(C1C)C)C(=O)O)O)O
+- name: 5-methoxytyrosine
+  smiles: C1=C(OC)C(=CC=C1CC(C(=O)O)N)O
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: 5-methylorsellinic acid
+  smiles: C=1(C=C(C(=C(C1C)C)C(=O)O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 5-methylproline
-  mol: C1CC(NC(C)1)C(=O)O
+- name: 5-methylproline
+  smiles: C1CC(NC(C)1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 6,7-dichlorotryptophan
-  mol: C1=C(Cl)C(Cl)=C2C(=C1)C(=CN2)CC(C(=O)O)N
+- name: 6,7-dichlorotryptophan
+  smiles: C1=C(Cl)C(Cl)=C2C(=C1)C(=CN2)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 6-chloro-4-hydroxy-1-methyl-indole-3-carboxylic acid
-  mol: C(O)1=C(Cl)C=C2C(=C1)C(=CN(C)2)C(=O)O
+- name: 6-chloro-4-hydroxy-1-methyl-indole-3-carboxylic acid
+  smiles: C(O)1=C(Cl)C=C2C(=C1)C(=CN(C)2)C(=O)O
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: 6-chloro-4-hydroxyindole-3-carboxylic acid
-  mol: c(Cl)1cc2c(c(c1)O)c(c[nH]2)C(=O)O
+- name: 6-chloro-4-hydroxyindole-3-carboxylic acid
+  smiles: c(Cl)1cc2c(c(c1)O)c(c[nH]2)C(=O)O
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: 6-chlorotryptophan
-  mol: C1=C(Cl)C=C2C(=C1)C(=CN2)CC(C(=O)O)N
+- name: 6-chlorotryptophan
+  smiles: C1=C(Cl)C=C2C(=C1)C(=CN2)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 6-hydroxy-tetrahydro-isoquinoline-3-carboxylic acid
-  mol: C1C(NCC2=C1C=C(C=C2)O)C(=O)O
+- name: 6-hydroxy-tetrahydro-isoquinoline-3-carboxylic acid
+  smiles: C1C(NCC2=C1C=C(C=C2)O)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 6-methylsalicylic acid
-  mol: CC1=C(C(=CC=C1)O)C(=O)O
+- name: 6-methylsalicylic acid
+  smiles: CC1=C(C(=CC=C1)O)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: 6-methyl-pipecolic acid
-  mol: C1CC(C)NC(C1)C(=O)O
+- name: 6-methyl-pipecolic acid
+  smiles: C1CC(C)NC(C1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: An acid hydrazine polyene (intermediate 14)
-  mol: OC(=O)CCC(=O)NNCC(=O)O
+- name: An acid hydrazine polyene (intermediate 14)
+  smiles: OC(=O)CCC(=O)NNCC(=O)O
   groups:
     - amino acid
     - non-proteinogenic amino acid
 
-- rid: Compound 4 (formed by the decarboxylative condensation of L-Phe and succinyl-CoA)
-  mol: C1=CC=C(C=C1)CC(C(=O)CCC(=O)O)N
+- name: Compound 4 (formed by the decarboxylative condensation of L-Phe and succinyl-CoA)
+  smiles: C1=CC=C(C=C1)CC(C(=O)CCC(=O)O)N
   groups:
     - amino acid
     - non-proteinogenic amino acid
 
-- rid: isovaline
-  mol: CCC(C)(C(=O)O)N
-  groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
-
-- rid: lysergic acid
-  mol: CN1CC(C=C2C1CC3=CNC4=CC=CC2=C34)C(=O)O
+- name: isovaline
+  smiles: CCC(C)(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N-(1-methyl)-tryptophan
-  mol: C1=CC=C2C(=C1)C(=CN(C)2)CC(C(=O)O)N
+- name: lysergic acid
+  smiles: CN1CC(C=C2C1CC3=CNC4=CC=CC2=C34)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N-(1-propargyl)-tryptophan
-  mol: C1=CC=C2C(=C1)C(=CN(CC#C)2)CC(C(=O)O)N
+- name: N-(1-methyl)-tryptophan
+  smiles: C1=CC=C2C(=C1)C(=CN(C)2)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N-formylglycine
-  mol: C(C(=O)O)NC=O
+- name: N-(1-propargyl)-tryptophan
+  smiles: C1=CC=C2C(=C1)C(=CN(CC#C)2)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N-hydroxyvaline
-  mol: CC(C)C(C(=O)O)NO
+- name: N-formylglycine
+  smiles: C(C(=O)O)NC=O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N-methylphenylalanine
-  mol: CNC(CC1=CC=CC=C1)C(=O)O
+- name: N-hydroxyvaline
+  smiles: CC(C)C(C(=O)O)NO
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N-methyltyrosine
-  mol: C1=CC(=CC=C1CC(C(=O)O)NC)O
+- name: N-methylphenylalanine
+  smiles: CNC(CC1=CC=CC=C1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N1-methoxytryptophan
-  mol: C1=CC=C2C(=C1)C(=CN(OC)2)CC(C(=O)O)N
+- name: N-methyltyrosine
+  smiles: C1=CC(=CC=C1CC(C(=O)O)NC)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N5-acetyl-hydroxyornithine
-  mol: CC(=O)N(CCCC(C(=O)O)N)O
+- name: N1-methoxytryptophan
+  smiles: C1=CC=C2C(=C1)C(=CN(OC)2)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N5-nitroso-N5-hydroxyornithine
-  mol: O=NN(CCCC(C(=O)O)N)O
+- name: N5-acetyl-hydroxyornithine
+  smiles: CC(=O)N(CCCC(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N5-anhydromevalonyl-N5-hydroxyornithine
-  mol: C(CC(C(=O)O)N)CN(O)C(=O)C=C(C)CCO
+- name: N5-nitroso-N5-hydroxyornithine
+  smiles: O=NN(CCCC(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: N6-hydroxylysine
-  mol: C(CCNO)CC(C(=O)O)N
+- name: N5-anhydromevalonyl-N5-hydroxyornithine
+  smiles: C(CC(C(=O)O)N)CN(O)C(=O)C=C(C)CCO
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: 3-hydroxy-3-methylproline
-  mol: OC(C)1C(NCC1)C(=O)O
+- name: N6-hydroxylysine
+  smiles: C(CCNO)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: aza-beta-tyrosine
-  mol: C1=CC(=NC=C1O)C(CC(=O)O)N
+- name: 3-hydroxy-3-methylproline
+  smiles: OC(C)1C(NCC1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-methyltryptophan
-  mol: CC(C1=CNC2=CC=CC=C21)C(C(=O)O)N
+- name: aza-beta-tyrosine
+  smiles: C1=CC(=NC=C1O)C(CC(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-phenylalanine
-  mol: C1=CC=C(C=C1)C(CC(=O)O)N
+- name: beta-methyltryptophan
+  smiles: CC(C1=CNC2=CC=CC=C21)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: adenosylmethionine
-  mol: C[S+](CCC(C(=O)[O-])N)CC1C(C(C(O1)N2C=NC3=C(N=CN=C32)N)O)O
+- name: beta-phenylalanine
+  smiles: C1=CC=C(C=C1)C(CC(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-hydroxycyclohex-2-enylalanine
-  mol: C1C=CC(CC1)C(O)C(C(=O)O)N
+- name: adenosylmethionine
+  smiles: C[S+](CCC(C(=O)[O-])N)CC1C(C(C(O1)N2C=NC3=C(N=CN=C32)N)O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-hydroxyenduracididine
-  mol: C1C(NC(=N1)N)C(O)C(C(=O)O)N
+- name: beta-hydroxycyclohex-2-enylalanine
+  smiles: C1C=CC(CC1)C(O)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-methylphenylalanine
-  mol: CC(C1=CC=CC=C1)C(C(=O)O)N
+- name: beta-hydroxyenduracididine
+  smiles: C1C(NC(=N1)N)C(O)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-tyrosine
-  mol: C1=CC(=CC=C1C(CC(=O)O)N)O
+- name: beta-methylphenylalanine
+  smiles: CC(C1=CC=CC=C1)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: alaninol
-  mol: CC(CO)N
+- name: beta-tyrosine
+  smiles: C1=CC(=CC=C1C(CC(=O)O)N)O
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: alaninol
+  smiles: CC(CO)N
   groups:
     - non-amino acid A-domain substrate
 
-- rid: argininol
-  mol: NC(CO)CCCN=C(N)N
+- name: argininol
+  smiles: NC(CO)CCCN=C(N)N
   groups:
     - non-amino acid A-domain substrate
 
-- rid: azetidine-2-carboxylic acid
-  mol: O=C(O)C1NCC1
+- name: azetidine-2-carboxylic acid
+  smiles: O=C(O)C1NCC1
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: benzoxazolinate
-  mol: c1ccc2c(c1)nc(o2)C(=O)O
+- name: benzoxazolinate
+  smiles: c1ccc2c(c1)nc(o2)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-hydroxy-3-hydroxy-O-methyl-5-methyltyrosine
-  mol: C1=C(C)C(=C(O)C=C1C(O)C(C(=O)O)N)OC
+- name: beta-hydroxy-3-hydroxy-O-methyl-5-methyltyrosine
+  smiles: C1=C(C)C(=C(O)C=C1C(O)C(C(=O)O)N)OC
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-hydroxy-gamma-methyl-hexadecanoic acid
-  mol: CCCCCCCCCCCCC(C)C(O)CC(=O)O
+- name: beta-hydroxy-gamma-methyl-hexadecanoic acid
+  smiles: CCCCCCCCCCCCC(C)C(O)CC(=O)O
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: beta-hydroxyarginine
-  mol: C(C(O)C(C(=O)O)N)CN=C(N)N
+- name: beta-hydroxyarginine
+  smiles: C(C(O)C(C(=O)O)N)CN=C(N)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-hydroxyphenylalanine
-  mol: OC(C1=CC=CC=C1)C(C(=O)O)N
+- name: beta-hydroxyphenylalanine
+  smiles: OC(C1=CC=CC=C1)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: beta-lysine
-  mol: C(CC(CC(=O)O)N)CN
+- name: beta-lysine
+  smiles: C(CC(CC(=O)O)N)CN
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: betaine
-  mol: C[N+](C)(C)CC(=O)O
+- name: betaine
+  smiles: C[N+](C)(C)CC(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: caffeic acid
-  mol: OC(=O)C=Cc1ccc(O)c(O)c1
+- name: caffeic acid
+  smiles: OC(=O)C=Cc1ccc(O)c(O)c1
   groups:
     - non-amino acid A-domain substrate
 
-- rid: capreomycidine
-  mol: C1CN=C(NC1C(C(=O)O)N)N
+- name: capreomycidine
+  smiles: C1CN=C(NC1C(C(=O)O)N)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: cinnamic acid
-  mol: C1=CC=C(C=C1)C=CC(=O)O
+- name: cinnamic acid
+  smiles: C1=CC=C(C=C1)C=CC(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: citrulline
-  mol: C(CC(C(=O)O)N)CNC(=O)N
+- name: citrulline
+  smiles: C(CC(C(=O)O)N)CNC(=O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: colletorin D acid
-  mol: CC1=CC(=C(C(=C1C(=O)O)O)CC=C(C)C)O
+- name: colletorin D acid
+  smiles: CC1=CC(=C(C(=C1C(=O)O)O)CC=C(C)C)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: coumaric acid
-  mol: C1=CC(=CC=C1C=CC(=O)O)O
+- name: coumaric acid
+  smiles: C1=CC(=CC=C1C=CC(=O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: cysteic acid
-  mol: C(C(C(=O)O)N)S(=O)(=O)O
+- name: cysteic acid
+  smiles: C(C(C(=O)O)N)S(=O)(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: dehydroarginine
-  mol: C(CN=C(N)N)C=C(C(=O)O)N
+- name: dehydroarginine
+  smiles: C(CN=C(N)N)C=C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: dehydrophenylalanine
-  mol: NC(=CC1=CC=CC=C1)C(=O)O
+- name: dehydrophenylalanine
+  smiles: NC(=CC1=CC=CC=C1)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: dehydrotryptophan
-  mol: C1=CC=C2C(=C1)C(=CN2)C=C(C(=O)O)N
+- name: dehydrotryptophan
+  smiles: C1=CC=C2C(=C1)C(=CN2)C=C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: dehydrovaline
-  mol: CC(=C(C(=O)O)N)C
+- name: dehydrovaline
+  smiles: CC(=C(C(=O)O)N)C
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: dehydroalanine
-  mol: C=C(N)C(=O)O
+- name: dehydroalanine
+  smiles: C=C(N)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: dihydrolysergic acid
-  mol: CN1CC(CC2C1CC3=CNC4=CC=CC2=C34)C(=O)O
+- name: dihydrolysergic acid
+  smiles: CN1CC(CC2C1CC3=CNC4=CC=CC2=C34)C(=O)O
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: dimethylsulfoniopropionic acid
-  mol: C[S+](C)CCC(=O)O
+- name: dimethylsulfoniopropionic acid
+  smiles: C[S+](C)CCC(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: enduracididine
-  mol: C1C(NC(=N1)N)CC(C(=O)O)N
+- name: enduracididine
+  smiles: C1C(NC(=N1)N)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: fumaric acid
-  mol: C(=CC(=O)O)C(=O)O
+- name: fumaric acid
+  smiles: C(=CC(=O)O)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: glycolic acid
-  mol: C(C(=O)O)O
+- name: glycolic acid
+  smiles: C(C(=O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: grifolic acid
-  mol: CC(C)=CCCC(C)=CCCC(C)=CCC1=C(O)C=C(C)C(C(=O)O)=C(O)1
+- name: grifolic acid
+  smiles: CC(C)=CCCC(C)=CCCC(C)=CCC1=C(O)C=C(C)C(C(=O)O)=C(O)1
   groups:
     - non-amino acid A-domain substrate
 
-- rid: homophenylalanine
-  mol: C1=CC=C(C=C1)CCC(C(=O)O)N
+- name: homophenylalanine
+  smiles: C1=CC=C(C=C1)CCC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: homoserine
-  mol: C(CO)C(C(=O)O)N
+- name: homoserine
+  smiles: C(CO)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: homotyrosine
-  mol: C1=CC(=CC=C1CCC(C(=O)O)N)O
+- name: homotyrosine
+  smiles: C1=CC(=CC=C1CCC(C(=O)O)N)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: homocysteine
-  mol: NC(CCS)C(=O)O
+- name: homocysteine
+  smiles: NC(CCS)C(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: indole pyruvic acid
-  mol: C1=CC=C2C(=C1)C(=CN2)CC(=O)C(=O)O
+- name: indole pyruvic acid
+  smiles: C1=CC=C2C(=C1)C(=CN2)CC(=O)C(=O)O
   groups:
     - amino acid
 
-- rid: leucinol
-  mol: CC(C)CC(CO)N
+- name: leucinol
+  smiles: CC(C)CC(CO)N
   groups:
     - non-amino acid A-domain substrate
 
-- rid: linoleic acid
-  mol: CCCCCC=CCC=CCCCCCCCC(=O)O
+- name: linoleic acid
+  smiles: CCCCCC=CCC=CCCCCCCCC(=O)O
   groups:
     - fatty acid
     - non-amino acid A-domain substrate
 
-- rid: malonic acid
-  mol: O=C(O)CC(=O)O
+- name: malonic acid
+  smiles: O=C(O)CC(=O)O
   groups:
     - fatty acid
 
-- rid: malic acid
-  mol: C(C(C(=O)O)O)C(=O)O
+- name: malic acid
+  smiles: C(C(C(=O)O)O)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: malonamate
-  mol: NC(=O)CC(=O)O
+- name: malonamate
+  smiles: NC(=O)CC(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: meta-tyrosine
-  mol: C1=CC(=CC(=C1)O)CC(C(=O)O)N
+- name: meta-tyrosine
+  smiles: C1=CC(=CC(=C1)O)CC(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: methylglutaconyl hydroxyornithine
-  mol: CC(=CC(=O)N(CCCC(C(=O)O)N)O)CC(=O)O
+- name: methylglutaconyl hydroxyornithine
+  smiles: CC(=CC(=O)N(CCCC(C(=O)O)N)O)CC(=O)O
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: nicotinic acid
-  mol: C1=CC(=CN=C1)C(=O)O
+- name: nicotinic acid
+  smiles: C1=CC(=CN=C1)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: norcoronamic acid
-  mol: CC1CC1(C(=O)O)N
+- name: norcoronamic acid
+  smiles: CC1CC1(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: ochratoxin beta
-  mol: CC1CC2=C(C(=C(C=C2)C(=O)O)O)C(=O)O1
+- name: ochratoxin beta
+  smiles: CC1CC2=C(C(=C(C=C2)C(=O)O)O)C(=O)O1
   groups:
     - non-amino acid A-domain substrate
 
-- rid: p-hydroxybenzoylformic acid
-  mol: C1=CC(=CC=C1C(=O)C(=O)O)O
+- name: p-hydroxybenzoylformic acid
+  smiles: C1=CC(=CC=C1C(=O)C(=O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: p-hydroxymandelate
-  mol: C1=CC(=CC=C1C(C(=O)O)O)O
+- name: p-hydroxymandelate
+  smiles: C1=CC(=CC=C1C(C(=O)O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: para-aminobenzoic acid
-  mol: O=C(O)c1ccc(N)cc1
+- name: para-aminobenzoic acid
+  smiles: O=C(O)c1ccc(N)cc1
   groups:
     - amino acid
     - non-proteinogenic amino acid
 
-- rid: phenazine-1,6-dicarboxylic acid
-  mol: C1=CC(=C2C(=C1)N=C3C(=N2)C=CC=C3C(=O)O)C(=O)O
+- name: phenazine-1,6-dicarboxylic acid
+  smiles: C1=CC(=C2C(=C1)N=C3C(=N2)C=CC=C3C(=O)O)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: phenylalaninol
-  mol: C1=CC=C(C=C1)CC(CO)N
+- name: phenylalaninol
+  smiles: C1=CC=C(C=C1)CC(CO)N
   groups:
     - non-amino acid A-domain substrate
 
-- rid: phenylglycine
-  mol: C1=CC=C(C=C1)C(C(=O)O)N
-  groups:
-    - amino acid
-    - alpha amino acid
-    - non-proteinogenic amino acid
-
-- rid: phenyllactic acid
-  mol: C1=CC=C(C=C1)CC(C(=O)O)O
-  groups:
-    - non-amino acid A-domain substrate
-
-- rid: phenylpyruvic acid
-  mol: C1=CC=C(C=C1)CC(=O)C(=O)O
-  groups:
-    - non-amino acid A-domain substrate
-
-- rid: piperazic acid
-  mol: C1CC(NNC1)C(=O)O
+- name: phenylglycine
+  smiles: C1=CC=C(C=C1)C(C(=O)O)N
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
 
-- rid: piperonylic acid
-  mol: OC(=O)c1ccc2OCOc2c1
+- name: phenyllactic acid
+  smiles: C1=CC=C(C=C1)CC(C(=O)O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: pyrrole-2-carboxylic acid
-  mol: C1=CNC(=C1)C(=O)O
+- name: phenylpyruvic acid
+  smiles: C1=CC=C(C=C1)CC(=O)C(=O)O
+  groups:
+    - non-amino acid A-domain substrate
+
+- name: piperazic acid
+  smiles: C1CC(NNC1)C(=O)O
+  groups:
+    - amino acid
+    - alpha amino acid
+    - non-proteinogenic amino acid
+
+- name: piperonylic acid
+  smiles: OC(=O)c1ccc2OCOc2c1
+  groups:
+    - non-amino acid A-domain substrate
+
+- name: pyrrole-2-carboxylic acid
+  smiles: C1=CNC(=C1)C(=O)O
   groups:
     - amino acid
     - beta amino acid
     - non-proteinogenic amino acid
 
-- rid: pyruvic acid
-  mol: CC(=O)C(=O)O
+- name: pyruvic acid
+  smiles: CC(=O)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: quinoxaline-2-carboxylic acid
-  mol: C1=CC=C2C(=C1)N=CC(=N2)C(=O)O
+- name: quinoxaline-2-carboxylic acid
+  smiles: C1=CC=C2C(=C1)N=CC(=N2)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: succinic semialdehyde
-  mol: C(CC(=O)O)C=O
+- name: succinic semialdehyde
+  smiles: C(CC(=O)O)C=O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: succinyl-hydrazinoacetic acid
-  mol: NN=CC=CC=CC=CC=CC=CC(=O)O
+- name: succinyl-hydrazinoacetic acid
+  smiles: NN=CC=CC=CC=CC=CC=CC(=O)O
   groups:
     - amino acid
     - non-proteinogenic amino acid
 
-- rid: tricarballylic acid
-  mol: C(C(CC(=O)O)C(=O)O)C(=O)O
+- name: tricarballylic acid
+  smiles: C(C(CC(=O)O)C(=O)O)C(=O)O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: ustethylinic acid
-  mol: c1(C)c(O)c(C(=O)O)c(CC)cc(O)1
+- name: ustethylinic acid
+  smiles: c1(C)c(O)c(C(=O)O)c(CC)cc(O)1
   groups:
     - non-amino acid A-domain substrate
 
-- rid: valine isocyanide
-  mol: CC(C)C([N+]#[C-])C(O)=O
+- name: valine isocyanide
+  smiles: CC(C)C([N+]#[C-])C(O)=O
   groups:
     - non-amino acid A-domain substrate
 
-- rid: valinol
-  mol: CC(C)C(CO)N
+- name: valinol
+  smiles: CC(C)C(CO)N
   groups:
     - non-amino acid A-domain substrate
 
-- rid: parahydroxy phenylacetic acid
-  mol: O=C(O)Cc1ccc(O)cc1
+- name: parahydroxy phenylacetic acid
+  smiles: O=C(O)Cc1ccc(O)cc1
   groups:
     - phenolic acid
 
-- rid: tryptophan alkaloid
-  mol: O=C(O)C(CC12O)N[C@@H]2Nc3c1cccc3
+- name: tryptophan alkaloid
+  smiles: O=C(O)C(CC12O)N[C@@H]2Nc3c1cccc3
   groups:
     - amino acid
     - alpha amino acid
     - non-proteinogenic amino acid
     - indole alkaloid
 
-- rid: guanidine-containing fatty acid
-  mol: N=C(NCCCCCC(O)=O)N
+- name: guanidine-containing fatty acid
+  smiles: N=C(NCCCCCC(O)=O)N
   groups:
     - fatty acid
     - guanidine
     - non-amino acid A-domain substrate
 
-- rid: guanidine-containing fatty acid
-  mol: N=C(NCCCC=CC(O)=O)N
+- name: guanidine-containing fatty acid
+  smiles: N=C(NCCCC=CC(O)=O)N
   groups:
     - fatty acid
     - guanidine
     - non-amino acid A-domain substrate
 
-- rid: guanidine-containing fatty acid
-  mol: N=C(N)NCCCC(=O)O
+- name: guanidine-containing fatty acid
+  smiles: N=C(N)NCCCC(=O)O
   groups:
     - fatty acid
     - guanidine
     - non-amino acid A-domain substrate
 
-- rid: guanidine-containing fatty acid
-  mol: N=C(N)NCC(=O)O
+- name: guanidine-containing fatty acid
+  smiles: N=C(N)NCC(=O)O
   groups:
     - fatty acid
     - guanidine
     - non-amino acid A-domain substrate
 
-- rid: isoleucinol
-  mol: CCC(C(N)CO)C
+- name: isoleucinol
+  smiles: CCC(C(N)CO)C
   groups:
     - other
 
-- rid: putrescin
-  mol: NCCCCN
+- name: putrescin
+  smiles: NCCCCN
   groups:
     - other
 
-- rid: cadaverine
-  mol: NCCCCCN
+- name: cadaverine
+  smiles: NCCCCCN
   groups:
     - other
 
-- rid: N-(5-aminopentyl)hydroxylamine
-  mol: NCCCCCNO
+- name: N-(5-aminopentyl)hydroxylamine
+  smiles: NCCCCCNO
   groups:
     - other
 
-- rid: butanedioic acid
-  mol: O=C(O)CCC(O)=O
+- name: butanedioic acid
+  smiles: O=C(O)CCC(O)=O
   groups:
     - other
 
-- rid: 3-formamido-2-hydroxybenzoic acid
-  mol: O=CNc1cccc(C(=O)O)c1O
+- name: 3-formamido-2-hydroxybenzoic acid
+  smiles: O=CNc1cccc(C(=O)O)c1O
   groups:
     - other
 
-- rid: 2-phenylethanamine
-  mol: NCCc1ccccc1
+- name: 2-phenylethanamine
+  smiles: NCCc1ccccc1
   groups:
     - other
 
-- rid: homocysteamine
-  mol: NCCCS
+- name: homocysteamine
+  smiles: NCCCS
   groups:
     - other
 
-- rid: valienol
-  mol: OC1C=C(C(C(C1O)O)O)CO
+- name: valienol
+  smiles: OC1C=C(C(C(C1O)O)O)CO
   groups:
     - other
     - carbohydrate
 
-- rid: valienone
-  mol: OC1C=C(C(C(C1O)O)=O)CO
+- name: valienone
+  smiles: OC1C=C(C(C(C1O)O)=O)CO
   groups:
     - other
     - carbohydrate
 
-- rid: streptamine
-  mol: NC1CC(C(C(C1O)O)O)N
+- name: streptamine
+  smiles: NC1CC(C(C(C1O)O)O)N
   groups:
     - other
     - carbohydrate
 
-- rid: A1
-  mol: O=C(O)CC(=O)SO
+- name: A1
+  smiles: O=C(O)CC(=O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A1
-  mol: O=C(O)C=C(O)SO
+- name: A1
+  smiles: O=C(O)C=C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A2
-  mol: CC(C(=O)O)C(=O)SO
+- name: A2
+  smiles: CC(C(=O)O)C(=O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A2
-  mol: CC(C(=O)O)=C(O)SO
+- name: A2
+  smiles: CC(C(=O)O)=C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A3
-  mol: CC(C)(C(=O)O)C(=O)SO
+- name: A3
+  smiles: CC(C)(C(=O)O)C(=O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A4
-  mol: CCC(C(=O)O)C(=O)SO
+- name: A4
+  smiles: CCC(C(=O)O)C(=O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A5
-  mol: O=C(O)C(O)C(=O)SO
+- name: A5
+  smiles: O=C(O)C(O)C(=O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A5
-  mol: O=C(C(O)=C(SO)O)O
+- name: A5
+  smiles: O=C(C(O)=C(SO)O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A6
-  mol: CC(O)(C(=O)O)C(=O)SO
+- name: A6
+  smiles: CC(O)(C(=O)O)C(=O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A7
-  mol: O=C(O)C(CO)C(=O)SO
+- name: A7
+  smiles: O=C(O)C(CO)C(=O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A7
-  mol: O=C(O)C(CO)=C(O)SO
+- name: A7
+  smiles: O=C(O)C(CO)=C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A8
-  mol: C=C(CC(=O)O)SO
+- name: A8
+  smiles: C=C(CC(=O)O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A8
-  mol: CC(=CC(=O)O)SO
+- name: A8
+  smiles: CC(=CC(=O)O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A9
-  mol: C=C(SO)C(C)C(=O)O
+- name: A9
+  smiles: C=C(SO)C(C)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A10
-  mol: C=C(SO)C(O)C(=O)O
+- name: A10
+  smiles: C=C(SO)C(O)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: A11
-  mol: C=C(SO)C(=O)C(=O)O
+- name: A11
+  smiles: C=C(SO)C(=O)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B1
-  mol: O=C(O)CC(O)SO
+- name: B1
+  smiles: O=C(O)CC(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B2
-  mol: CC(C(=O)O)C(O)SO
+- name: B2
+  smiles: CC(C(=O)O)C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B3
-  mol: CC(C)(C(=O)O)C(O)SO
+- name: B3
+  smiles: CC(C)(C(=O)O)C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B4
-  mol: CCC(C(=O)O)C(O)SO
+- name: B4
+  smiles: CCC(C(=O)O)C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B5
-  mol: O=C(O)C(O)C(O)SO
+- name: B5
+  smiles: O=C(O)C(O)C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B6
-  mol: CC(O)(C(=O)O)C(O)SO
+- name: B6
+  smiles: CC(O)(C(=O)O)C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B7
-  mol: O=C(O)C(CO)C(O)SO
+- name: B7
+  smiles: O=C(O)C(CO)C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B8
-  mol: CC(O)(CC(=O)O)SO
+- name: B8
+  smiles: CC(O)(CC(=O)O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B9
-  mol: CC(C(=O)O)C(C)(O)SO
+- name: B9
+  smiles: CC(C(=O)O)C(C)(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B10
-  mol: CC(O)(SO)C(O)C(=O)O
+- name: B10
+  smiles: CC(O)(SO)C(O)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B11
-  mol: O=C(O)C(=O)C(O)SO
+- name: B11
+  smiles: O=C(O)C(=O)C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B12
-  mol: NC(C(=O)O)C(O)SO
+- name: B12
+  smiles: NC(C(=O)O)C(O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: B12
-  mol: OSC(O)C(C(=O)O)C(=O)O
+- name: B12
+  smiles: OSC(O)C(C(=O)O)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: C1
-  mol: O=C(O)C=CSO
+- name: C1
+  smiles: O=C(O)C=CSO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: C2
-  mol: CC(=CSO)C(=O)O
+- name: C2
+  smiles: CC(=CSO)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: C4
-  mol: CCC(=CSO)C(=O)O
+- name: C4
+  smiles: CCC(=CSO)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: C5
-  mol: O=C(C(C(O)=O)=CSO)O
+- name: C5
+  smiles: O=C(C(C(O)=O)=CSO)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: C6
-  mol: O=C(O)C(=CSO)CO
+- name: C6
+  smiles: O=C(O)C(=CSO)CO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D1
-  mol: O=C(O)CCSO
+- name: D1
+  smiles: O=C(O)CCSO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D2
-  mol: CC(CSO)C(=O)O
+- name: D2
+  smiles: CC(CSO)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D3
-  mol: CC(C)(CSO)C(=O)O
+- name: D3
+  smiles: CC(C)(CSO)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D4
-  mol: CCC(CSO)C(=O)O
+- name: D4
+  smiles: CCC(CSO)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D5
-  mol: O=C(O)C(O)CSO
+- name: D5
+  smiles: O=C(O)C(O)CSO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D6
-  mol: CC(O)(CSO)C(=O)O
+- name: D6
+  smiles: CC(O)(CSO)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D7
-  mol: O=C(O)C(CO)CSO
+- name: D7
+  smiles: O=C(O)C(CO)CSO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D8
-  mol: CC(CC(=O)O)SO
+- name: D8
+  smiles: CC(CC(=O)O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D9
-  mol: CC(SO)C(O)C(=O)O
+- name: D9
+  smiles: CC(SO)C(O)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D11
-  mol: O=C(O)C(=O)CSO
+- name: D11
+  smiles: O=C(O)C(=O)CSO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D11
-  mol: O=C(O)C(O)=CSO
+- name: D11
+  smiles: O=C(O)C(O)=CSO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D12
-  mol: CC(O)C(CSO)C(=O)O
+- name: D12
+  smiles: CC(O)C(CSO)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D13
-  mol: C=C(C(O)=O)CSO
+- name: D13
+  smiles: C=C(C(O)=O)CSO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D14
-  mol: OSCC(CC=O)C(=O)O
+- name: D14
+  smiles: OSCC(CC=O)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D15
-  mol: O=C(C(C(C)SO)=O)O
+- name: D15
+  smiles: O=C(C(C(C)SO)=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: D15
-  mol: O=C(C(O)=C(C)SO)O
+- name: D15
+  smiles: O=C(C(O)=C(C)SO)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: E1
-  mol: OSC(N)CC(=O)O
+- name: E1
+  smiles: OSC(N)CC(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: E2
-  mol: OSC(N)C(C)C(=O)O
+- name: E2
+  smiles: OSC(N)C(C)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: E3
-  mol: OSC(N)C(C)(C)C(=O)O
+- name: E3
+  smiles: OSC(N)C(C)(C)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: E4
-  mol: OSC(N)C(CC)C(=O)O
+- name: E4
+  smiles: OSC(N)C(CC)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: E5
-  mol: OSC(N)C(C)(O)C(=O)O
+- name: E5
+  smiles: OSC(N)C(C)(O)C(=O)O
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
 
-- rid: E6
-  mol: NC(C(O)=O)CSO
+- name: E6
+  smiles: NC(C(O)=O)CSO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
     - flipped E1
 
-- rid: E7
-  mol: NC(C(C(O)=O)O)SO
+- name: E7
+  smiles: NC(C(C(O)=O)O)SO
   groups:
     - polyketide building block
   props:
     - novel polyketide encoding
     - flipped E1
 
-- rid: other polyketide building block
-  mol: O=C(C(C(C(O)=O)SO)O)O
+- name: other polyketide building block
+  smiles: O=C(C(C(C(O)=O)SO)O)O
   groups:
     - polyketide building block
   props:

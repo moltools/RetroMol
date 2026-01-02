@@ -15,16 +15,6 @@ from retromol.chem.tagging import remove_tags
 from retromol.chem.valence import correct_hydrogens
 
 
-def copy_mol(mol: Mol) -> Mol:
-    """
-    Create a deep copy of an RDKit molecule.
-
-    :param mol: the molecule to copy
-    :return: the copied molecule
-    """
-    return Mol(mol)
-
-
 def sanitize_mol(mol: Mol, fix_hydrogens: bool = False) -> bool:
     """
     Sanitizes an RDKit molecule in place, returning success status.
@@ -151,7 +141,7 @@ def standardize_from_smiles(
     if tautomer_canon:
         mol = TautomerEnumerator().Canonicalize(mol)
 
-    sanitize_mol(mol)
+    sanitize_mol(mol, fix_hydrogens=False)
 
     if not keep_stereo:
         RemoveStereochemistry(mol)
