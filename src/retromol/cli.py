@@ -12,23 +12,21 @@ from typing import Any
 import yaml
 from tqdm import tqdm
 
-from retromol.api import run_retromol_with_timeout
-from retromol.config import LOGGER_LEVEL, LOGGER_NAME
+from retromol.pipelines.api import run_retromol_with_timeout
 from retromol.drawing import draw_result
 from retromol.io import Input as RetroMolInput
 from retromol.io import Result
 from retromol.readout import linear_readout_with_timeout
-from retromol.rules import (
+from retromol.model.rules import (
     get_path_default_matching_rules,
     get_path_default_reaction_rules,
-    get_path_default_wave_config,
     load_rules_from_files,
 )
 from retromol.streaming import run_retromol_stream, stream_json_records, stream_sdf_records, stream_table_rows
 from retromol.version import __version__
 
-logger = logging.getLogger(LOGGER_NAME)
-logger.setLevel(LOGGER_LEVEL)
+
+log = logging.getLogger(__name__)
 
 
 def cli() -> argparse.Namespace:
@@ -58,14 +56,6 @@ def cli() -> argparse.Namespace:
         required=False,
         default=get_path_default_matching_rules(),
         help="path to matching rules yaml",
-    )
-    parser.add_argument(
-        "-wc",
-        "--wave-config",
-        type=str,
-        required=False,
-        default=get_path_default_wave_config(),
-        help="path to wave configuration yaml",
     )
 
     # Flags
@@ -237,18 +227,12 @@ def main() -> None:
         rule_set.check_for_duplicates()
         logger.info("Checked for duplicates in the rule set. Please remove duplicates for better performance.")
 
-    # Load wave configuration
-    with open(args.wave_config) as f:
-        wave_configs = yaml.safe_load(f)
-    logger.info(f"Loaded {len(wave_configs)} wave configuration(s) from {args.wave_config}")
-    logger.debug(f"Loaded wave configuration: {wave_configs}")
-
     result_counts: Counter[str] = Counter()
 
     # Single mode
     if args.mode == "single":
         mol = RetroMolInput("target", args.smiles, props={})
-        result: Result = run_retromol_with_timeout(mol, rule_set, wave_configs, args.matchstereochem)
+        result: Result = run_retromol_with_timeout(mol, rule_set)
         logger.info(f"Result: {result}")
         serialized_result = result.serialize()
         with open(osp.join(args.outdir, "result.json"), "w") as f:
@@ -305,8 +289,6 @@ def main() -> None:
         for evt in run_retromol_stream(
             # Config
             rule_set=rule_set,  # already loaded above
-            wave_configs=wave_configs,  # already loaded above
-            match_stereo=args.matchstereochem,
             # Data & schema
             row_iter=source_iter,
             id_col=id_col,

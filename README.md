@@ -72,15 +72,11 @@ result = Result.from_serialized(<json_dict>)
 coverage = result.best_total_coverage()
 ```
 
-Check out the [examples](https://github.com/moltools/RetroMol/tree/main/examples) folder for example scripts demonstrating how to use RetroMol as a library:
-* [Read out and align linear monomer readouts](https://github.com/moltools/RetroMol/tree/main/examples/align_compounds.py)
-* [Calculate and cluster monomer fingerprints](https://github.com/moltools/RetroMol/tree/main/examples/cluster_compounds.py)
+Check out the [examples](https://github.com/moltools/RetroMol/tree/main/examples) folder for example scripts demonstrating how to use RetroMol as a library.
 
 ### Using custom rules
 
-RetroMol comes with a default set of retrosynthetic rules for modular natural products.
-
-You can also provide your own custom rules and configurations. See [the custom rules documentation](docs/customize_rules.md) for details on the YAML formats supported.
+RetroMol comes with a default set of retrosynthetic rules for modular natural products. See [the default rules](src/retromol/data/) for examples of the included rules.
 
 ## Attribution
 

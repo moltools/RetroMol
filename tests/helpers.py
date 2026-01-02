@@ -10,7 +10,9 @@ from typing import Any, Dict, List
 import yaml
 
 import retromol.data
-from retromol import api, io, readout, rules
+from retromol import io, readout
+from retromol.model import rules
+from retromol.pipelines import api
 
 
 def load_rule_set() -> rules.Rules:

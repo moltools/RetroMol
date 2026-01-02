@@ -223,6 +223,16 @@
   groups:
     - glycosylation
 
+- rid: glycosylation
+  mol: OC1CC(C)(OC)C(O)C(C)O1
+  groups:
+    - glycosylation
+
+- rid: glycosylation
+  mol: OC1C(O)C(N(C)C)CC(C)O1
+  groups:
+    - glycosylation
+
 - rid: arginine
   mol: NC(N)=NCCCC(N)C(=O)O
   groups:

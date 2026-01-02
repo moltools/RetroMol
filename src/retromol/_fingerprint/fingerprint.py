@@ -24,7 +24,7 @@ from retromol.monomer_collapse import (
     collapse_monomers_order_invariant,
 )
 from retromol.readout import mapping_to_graph, optimal_mappings
-from retromol.rules import MatchingRule
+from retromol.model.rules import MatchingRule
 
 T = TypeVar("T")
 

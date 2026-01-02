@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from retromol import rules
+from retromol.model import rules
 
 from .data.integration_demo_set import CASES
 from .helpers import assert_result, parse_compound

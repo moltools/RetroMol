@@ -1,38 +1,20 @@
-"""This module provides helper functions for the RetroMol package."""
+"""Utilities for function timeouts using SIGALRM."""
 
-import hashlib
-import json
 import signal
 from collections.abc import Callable, Generator
 from typing import Any, Generic, ParamSpec, TypeVar
 
-import ijson
-
-from retromol.errors import FunctionTimeoutError
 
 P = ParamSpec("P")
 T = TypeVar("T")
 
 
-def sha256_hex(s: str) -> str:
+class FunctionTimeoutError(Exception):
     """
-    Compute the SHA-256 hash of the input string `s` and return its hexadecimal representation.
-    If `s` is None, treat it as an empty string.
-
-    :param s: input string to hash
-    :return: hexadecimal representation of the SHA-256 hash
+    Custom exception for function timeout.
     """
-    return hashlib.sha256((s or "").encode("utf-8")).hexdigest()
 
-
-def blake64_hex(s: str) -> str:
-    """
-    Compute the BLAKE2b hash of the input string `s` and return the first 16 characters
-
-    :param s: input string to hash
-    :return: 16-character hex string (64 bits)
-    """
-    return hashlib.blake2b((s or "").encode("utf-8"), digest_size=8).hexdigest()
+    pass
 
 
 def _timeout_handler(signum: int, frame: Any) -> None:
@@ -97,22 +79,3 @@ def timeout_decorator(seconds: int = 30) -> Callable[[Callable[P, T]], _TimeoutW
         return _TimeoutWrapper(func, seconds)
 
     return decorate
-
-
-def iter_json(path: str, jsonl: bool = False) -> Generator[Any, None, None]:
-    """
-    Stream items from a JSON array or a JSON Lines (JSONL) file.
-
-    :param path: path to the JSON or JSONL file
-    :param jsonl: if True, treat the file as JSONL (one JSON object per line). If False, assume a single JSON array
-    :yield: parsed JSON objects
-    """
-    with open(path, "rb") as f:
-        if jsonl:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                yield json.loads(line)
-        else:
-            yield from ijson.items(f, "item")

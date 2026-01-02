@@ -59,8 +59,7 @@ packages = ["src/retromol"]
 sources = ["src"]
 include = [
     "src/retromol/data/default_matching_rules.yml",
-    "src/retromol/data/default_reaction_rules.yml",
-    "src/retromol/data/default_wave_config.yml"
+    "src/retromol/data/default_reaction_rules.yml"
 ]
 
 [project.scripts]
