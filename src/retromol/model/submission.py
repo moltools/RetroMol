@@ -28,6 +28,7 @@ class Submission:
 
     def __post_init__(self) -> None:
         """
+        Post-initialization processing to generate standardized molecule and InChIKey.
         """
         # Sanitize SMILES
         smiles = self.smiles.replace("[N]", "N")  # avoid parsing issues with RDKit
@@ -49,3 +50,37 @@ class Submission:
         object.__setattr__(self, "smiles", smiles)
         object.__setattr__(self, "mol", mol)
         object.__setattr__(self, "inchikey", inchikey)
+
+    def __str__(self) -> str:
+        """
+        String representation of the Submission.
+
+        :return: string representation of the Submission
+        """
+        return f"Submission(name={self.name})"
+    
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Serialize the Submission to a dictionary.
+
+        :return: dictionary representation of the Submission
+        """
+        return {
+            "smiles": self.smiles,
+            "name": self.name,
+            "props": self.props,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Submission":
+        """
+        Deserialize a Submission from a dictionary.
+
+        :param data: dictionary representation of the Submission
+        :return: Submission object
+        """
+        return cls(
+            smiles=data["smiles"],
+            name=data.get("name"),
+            props=data.get("props"),
+        )

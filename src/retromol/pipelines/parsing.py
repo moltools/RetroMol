@@ -4,7 +4,7 @@ import logging
 import os
 from math import inf
 from collections import deque, defaultdict
-from typing import Dict, List, Set, Optional
+from typing import Optional
 
 from retromol.utils.timeout import timeout_decorator
 from retromol.model.submission import Submission
@@ -14,7 +14,6 @@ from retromol.model.reaction_graph import ReactionGraph, ReactionStep, RxnEdge
 from retromol.model.synthesis import SynthesisExtractResult
 from retromol.chem.mol import Mol, encode_mol
 from retromol.chem.tagging import get_tags_mol
-from retromol.visualization.reaction_graph import visualize_reaction_graph
 
 
 log = logging.getLogger(__name__)
@@ -53,14 +52,15 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
             continue
         expanded.add(parent_enc)
 
-        # Identity gating
+        # Identity gating: only gate (stop expanding) if identified AND terminal=True
         node = g.nodes[parent_enc]
-        ident = node.identify(matching_rules, match_stereochemistry=False)
-        if ident:
+        ident = node.identify(matching_rules, match_stereochemistry=ruleset.match_stereochemistry)
+        if ident and bool(getattr(ident, "terminal", True)):
             continue
 
         # Uncontested in bulk (combined step)
-        uncontested = index_uncontested(parent, reaction_rules, failed_combos)
+        allowed_in_bulk = [rl for rl in reaction_rules if rl.allowed_in_bulk]
+        uncontested = index_uncontested(parent, allowed_in_bulk, failed_combos)
         if uncontested:
             products, applied_in_bulk, new_failed = apply_uncontested(parent, uncontested, original_taken_tags)
             failed_combos.update(new_failed)
@@ -69,8 +69,8 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
             if applied_in_bulk:
                 step = ReactionStep(
                     kind="uncontested",
-                    names=tuple(rl.name for rl in applied_in_bulk),
-                    rule_ids=tuple(rl.id for rl in applied_in_bulk),
+                    names=tuple(rl.name for rl, _ in applied_in_bulk),
+                    rule_ids=tuple(rl.id for rl, _ in applied_in_bulk),
                 )
                 g.add_edge(parent_enc, products, step)
 
@@ -81,10 +81,11 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
                         q.append(Mol(m))
                         enqueued.add(enc)
 
-                continue  # skip contested for this parent if bulk succeeded
+                continue
 
         # Contested exhaustive
         for rl in reaction_rules:
+
             results = rl.apply(parent, None)
             if not results:
                 continue
@@ -112,6 +113,8 @@ def extract_min_edge_synthesis_subgraph(
     root_enc: int,
     prefer_kind: tuple[str, ...] = ("uncontested", "contested"),
     edge_base_cost: float = 1.0,
+    nonterminal_leaf_penalty: float = 0.25,
+    unsolved_leaf_penalty: float = 5.0,
 ) -> SynthesisExtractResult:
     """
     Extract a minimum-edge synthesis subgraph from a retrosynthesis ReactionGraph.
@@ -123,9 +126,21 @@ def extract_min_edge_synthesis_subgraph(
 
     The extracted subgraph contains at most one chosen outgoing edge per expanded node
     and includes all required precursor branches for that choice.
+
+    :param g: ReactionGraph: the full retrosynthesis reaction graph
+    :param root_enc: int: encoding of the root molecule to extract from
+    :param prefer_kind: tuple[str, ...]: preference order for reaction kinds when costs are equal
+    :param edge_base_cost: float: base cost per reaction edge
+    :param nonterminal_leaf_penalty: float: penalty for identified leaves that are non-terminal
+    :param unsolved_leaf_penalty: float: penalty for unsolved leaves (i.e., "give up" cost)
+    :return: SynthesisExtractResult: the extracted synthesis subgraph and status
+    :raises: ValueError: if root_enc is not in the graph
     """
+    if root_enc not in g.nodes:
+        raise ValueError(f"root encoding {root_enc} not found in reaction graph nodes")
+
     # Adjacency list of outgoing edges for quick access
-    out_edges: Dict[int, List[int]] = defaultdict(list)
+    out_edges: dict[int, list[int]] = defaultdict(list)
     for ei, e in enumerate(g.edges):
         out_edges[e.src].append(ei)
 
@@ -139,31 +154,54 @@ def extract_min_edge_synthesis_subgraph(
         return edge_base_cost + kind_penalty + branch_penalty
 
     # DP memo: cost to "solve" a node into identified leaves
-    memo_cost: Dict[int, float] = {}
-    memo_choice: Dict[int, Optional[int]] = {}  # node -> chosen edge index
-    visiting: Set[int] = set()
+    memo_cost: dict[int, float] = {}
+    memo_choice: dict[int, Optional[int]] = {}  # node -> chosen edge index
+    visiting: set[int] = set()
 
-    def is_identified(enc: int) -> bool:
+    def is_terminal(enc: int) -> bool:
         n = g.nodes.get(enc)
-        return bool(n and n.is_identified)
+        if not n or not n.is_identified:
+            return False
+        ident = n.identity
+        return bool(getattr(ident, "terminal", True))
 
     def solve_cost(enc: int) -> float:
-        # Identified nodes are leaves
-        if is_identified(enc):
+        n = g.nodes.get(enc)
+
+        # Hard leaves: identified + terminal=True
+        if n and n.is_identified and is_terminal(enc):
             memo_choice[enc] = None
             return 0.0
+        
+        # If nothing to expand, treat as "frontier leaf" (unsolved remainder)
+        if not out_edges.get(enc):
+            memo_choice[enc] = None
+            # Identified nonterminal with no edges is still fine as 0, else unsolved penalty
+            if n and n.is_identified:
+                return 0.0
+            return unsolved_leaf_penalty
+
+        # Soft leaves: identified + terminal=False
+        leaf_cost = inf
+        if n and n.is_identified and not is_terminal(enc):
+            # If no outgoing edges exist, must stop here (fallback leaf)
+            if not out_edges.get(enc):
+                memo_choice[enc] = None
+                return 0.0
+            # Otherwise, allow stopping, but discourage it
+            leaf_cost = nonterminal_leaf_penalty
 
         if enc in memo_cost:
             return memo_cost[enc]
 
         if enc in visiting:
-            # cycle guard: treat as unsolvable in this simple DP
+            # Cycle guard: treat as unsolvable in this simple DP
             return inf
 
         visiting.add(enc)
 
-        best = inf
-        best_ei: Optional[int] = None
+        best = leaf_cost
+        best_ei: Optional[int] = None if best < inf else None
 
         for ei in out_edges.get(enc, []):
             e = g.edges[ei]
@@ -187,14 +225,16 @@ def extract_min_edge_synthesis_subgraph(
         return best
 
     total = solve_cost(root_enc)
+    # solved = no unsolved frontier was needed
+    solved = total < inf and total < unsolved_leaf_penalty
     if total == inf:
         return SynthesisExtractResult(graph=ReactionGraph(), solved=False, total_cost=inf)
 
     # Extract chosen policy edges into a new small graph
     new_g = ReactionGraph()
 
-    kept_nodes: Set[int] = set()
-    kept_edge_indices: Set[int] = set()
+    kept_nodes: set[int] = set()
+    kept_edge_indices: set[int] = set()
 
     def extract(enc: int) -> None:
         if enc in kept_nodes:
@@ -207,7 +247,7 @@ def extract_min_edge_synthesis_subgraph(
             new_g.out_edges.setdefault(enc, [])
 
         # Stop at identified leaves
-        if is_identified(enc):
+        if is_terminal(enc):
             return
 
         ei = memo_choice.get(enc)
@@ -235,7 +275,7 @@ def extract_min_edge_synthesis_subgraph(
         new_g.edges.append(new_edge)
         new_g.out_edges.setdefault(e.src, []).append(len(new_g.edges) - 1)
 
-    return SynthesisExtractResult(graph=new_g, solved=True, total_cost=total)
+    return SynthesisExtractResult(graph=new_g, solved=solved, total_cost=total)
 
 
 def run_retromol(submission: Submission, rules: RuleSet) -> Result:
@@ -246,18 +286,20 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     :param rules: Rules object containing the reaction rules to apply
     :return: Result object containing the retrosynthesis results
     """
-
     g = process_mol(submission, rules)
-    print(g)
+    log.debug(f"retrosynthesis graph has {len(g.nodes)} nodes and {len(g.edges)} edges")
 
     root = encode_mol(submission.mol)
-    r = extract_min_edge_synthesis_subgraph(g, root_enc=root)
-    print(r.graph)
+    r = extract_min_edge_synthesis_subgraph(g, root_enc=root, nonterminal_leaf_penalty=100.0)  # high penalty forces expansion of non-terminal leaves (e.g., fatty acids)
+    log.debug(f"extracted synthesis subgraph has {len(r.graph.nodes)} nodes and {len(r.graph.edges)} edges")
 
-    # store in downloads
-    visualize_reaction_graph(r.graph, html_path="/Users/davidmeijer/Downloads/reaction_graph.html")
+    if not r.solved:
+        log.warning("retrosynthesis extraction failed to find a solution")
 
-    return Result()
+    return Result(
+        submission=submission,
+        reaction_graph=r.graph,
+    )
 
 
 run_retromol_with_timeout = timeout_decorator(seconds=int(os.getenv("TIMEOUT_RUN_RETROMOL", "30")))(run_retromol)

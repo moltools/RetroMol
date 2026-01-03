@@ -58,8 +58,10 @@ allow-direct-references = true
 packages = ["src/retromol"]
 sources = ["src"]
 include = [
-    "src/retromol/data/default_matching_rules.yml",
-    "src/retromol/data/default_reaction_rules.yml"
+    "src/retromol/data/mxn_other.yml",
+    "src/retromol/data/mxn_pks_chiral.yml",
+    "src/retromol/data/mxn_pks.yml",
+    "src/retromol/data/rxn.yml"
 ]
 
 [project.scripts]

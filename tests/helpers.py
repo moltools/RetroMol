@@ -2,8 +2,6 @@
 
 """Shared helpers for RetroMol integration tests."""
 
-from __future__ import annotations
-
 from importlib.resources import files
 from typing import Any, Dict, List
 

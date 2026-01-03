@@ -2,9 +2,9 @@
 
 import logging
 from dataclasses import dataclass, field
-from typing import Iterable, Literal
+from typing import Any, Iterable, Literal
 
-from retromol.chem.mol import Mol, encode_mol
+from retromol.chem.mol import Mol, encode_mol, mol_to_smiles, smiles_to_mol
 from retromol.model.identity import MolIdentity
 from retromol.model.rules import MatchingRule
 from retromol.chem.matching import match_mol
@@ -20,7 +20,7 @@ class MolNode:
     """
     A molecule node in the processing graph.
 
-    :var enc: str: unique encoding of the molecule (canonical SMILES with isotopic tags)
+    :var enc: str: unique encoding of the molecule
     :var mol: Mol: the molecule object
     :var identity: MolIdentity | None: identification information if identified
     :var identified: bool | None: whether the node has been checked for identification
@@ -71,6 +71,37 @@ class MolNode:
         object.__setattr__(self, "identity", None)
         object.__setattr__(self, "identified", False)
         return None
+    
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Serialize the MolNode to a dictionary.
+
+        :return: dictionary representation of the MolNode
+        """
+        return {
+            "enc": self.enc,
+            "smiles": mol_to_smiles(self.mol, include_tags=True),
+            "identity": self.identity.to_dict() if self.identity else None,
+            "identified": self.identified,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "MolNode":
+        """
+        Deserialize a MolNode from a dictionary.
+
+        :param data: dictionary representation of the MolNode
+        :return: MolNode object
+        """
+        identity = MolIdentity.from_dict(data["identity"]) if data["identity"] else None
+
+        node = cls(
+            enc=data["enc"],
+            mol=smiles_to_mol(data["smiles"]),
+            identity=identity,
+            identified=data["identified"],
+        )
+        return node
 
 
 @dataclass(frozen=True)
@@ -82,12 +113,39 @@ class ReactionStep:
 
     :var kind: StepKind: 'uncontested' or 'contested'
     :var names: tuple[str, ...]: reaction rule IDs (human-facing)
-    :var rule_ids: tuple[int, ...]: optional numeric IDs (stable internal)
+    :var rule_ids: tuple[str, ...]: optional numeric IDs (stable internal)
     """
 
     kind: StepKind
     names: tuple[str, ...]  # reaction rule IDs (human-facing)
-    rule_ids: tuple[int, ...] = ()  # optional numeric IDs (stable internal)
+    rule_ids: tuple[str, ...] = ()  # optional numeric IDs (stable internal)
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Serialize the ReactionStep to a dictionary.
+
+        :return: dictionary representation of the ReactionStep
+        """
+        return {
+            "kind": self.kind,
+            "names": self.names,
+            "rule_ids": self.rule_ids,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ReactionStep":
+        """
+        Deserialize a ReactionStep from a dictionary.
+
+        :param data: dictionary representation of the ReactionStep
+        :return: ReactionStep object
+        """
+        step = cls(
+            kind=data["kind"],
+            names=tuple(data["names"]),
+            rule_ids=tuple(data.get("rule_ids", ())),
+        )
+        return step
 
 
 @dataclass
@@ -103,6 +161,33 @@ class RxnEdge:
     src: int
     dsts: tuple[int, ...]
     step: ReactionStep
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Serialize the RxnEdge to a dictionary.
+
+        :return: dictionary representation of the RxnEdge
+        """
+        return {
+            "src": self.src,
+            "dsts": self.dsts,
+            "step": self.step.to_dict(),
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "RxnEdge":
+        """
+        Deserialize a RxnEdge from a dictionary.
+
+        :param data: dictionary representation of the RxnEdge
+        :return: RxnEdge object
+        """
+        edge = cls(
+            src=data["src"],
+            dsts=tuple(data["dsts"]),
+            step=ReactionStep.from_dict(data["step"]),
+        )
+        return edge
 
 
 @dataclass
@@ -168,3 +253,29 @@ class ReactionGraph:
 
         return tuple(dst_encs)
     
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Serialize the ReactionGraph to a dictionary.
+
+        :return: dictionary representation of the ReactionGraph
+        """
+        return {
+            "nodes": {enc: node.to_dict() for enc, node in self.nodes.items()},
+            "edges": [edge.to_dict() for edge in self.edges],
+            "out_edges": {enc: indices for enc, indices in self.out_edges.items()},
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ReactionGraph":
+        """
+        Deserialize a ReactionGraph from a dictionary.
+
+        :param data: dictionary representation of the ReactionGraph
+        :return: ReactionGraph object
+        """
+        reaction_graph = cls(
+            nodes={int(enc): MolNode.from_dict(node_data) for enc, node_data in data["nodes"].items()},
+            edges=[RxnEdge.from_dict(edge_data) for edge_data in data["edges"]],
+            out_edges={int(enc): indices for enc, indices in data["out_edges"].items()},
+        )
+        return reaction_graph

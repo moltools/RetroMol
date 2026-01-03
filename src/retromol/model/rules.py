@@ -1,9 +1,8 @@
 """Module defining reaction and matching rules."""
 
-from __future__ import annotations
-
 import logging
 import itertools
+import hashlib
 from collections import Counter
 from dataclasses import dataclass, field
 from importlib.resources import files
@@ -30,21 +29,153 @@ from retromol.chem.masking import is_masked_preserved
 log = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class ReactionRule:
+    """
+    Represents a chemical reaction rule defined by a SMARTS pattern.
+
+    :var name: str: name of the reaction rule
+    :var smarts: str: SMARTS pattern defining the reaction
+    :var props: dict[str, Any]: additional properties associated with the rule
+    :var allowed_in_bulk: bool: whether this rule is allowed to be applied in bulk preprocessing
+    """
+
+    name: str
+    smarts: str
+    props: dict[str, Any]
+    allowed_in_bulk: bool = False
+
+    rxn: ChemicalReaction = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """
+        Initialize the ChemicalReaction from the SMARTS pattern.
+        """
+        rxn = smarts_to_reaction(self.smarts)
+        object.__setattr__(self, "rxn", rxn)
+
+    @property
+    def id(self) -> str:
+        """
+        Unique identifier for the reaction rule based on its SMARTS pattern.
+
+        :return: str: unique identifier
+        """
+        return hashlib.sha256(self.smarts.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ReactionRule":
+        """
+        Create a ReactionRule instance from a dictionary.
+
+        :param data: dict[str, Any]: dictionary containing rule data
+        :return: ReactionRule: the created ReactionRule instance
+        """
+        reaction_rule = cls(
+            name=data["name"],
+            smarts=data["smarts"],
+            props=data.get("props", {}),
+            allowed_in_bulk=data.get("allowed_in_bulk", False),
+        )
+        return reaction_rule
+    
+    def apply(self, reactant: Mol, mask_tags: set[int] | None = None) -> list[list[Mol]]:
+        """
+        Apply the reaction to the given reactant molecule, optionally enforcing a mask on atom tags.
+
+        :param reactant: Mol: the reactant molecule
+        :param mask_tags: set[int] | None: set of atom tags (isotope-based tags) that are allowed to change
+        :return: list[list[Mol]]: list of unique product tuples (each tuple as a list[Mol])
+        """ 
+        log.debug(f"applying reaction rule '{self.name}'")
+
+        results = self.rxn.RunReactants([reactant])
+        if not results:
+            log.debug("no valid products generated for reactant")
+            return []
+        
+        # Sanitize and filter
+        kept: list[list[Mol]] = []
+        for tup in results:
+            products: list[Mol] = []
+
+            # Quick shape check, and sanitize
+            atom_tag_sets: list[set[int]] = []
+            ok_tuple = True
+            for prod in tup:
+
+                # Check if product is single component
+                if not count_fragments(prod) == 1:
+                    log.debug("product has multiple components, skipping")
+                    ok_tuple = False
+                    break
+                
+                # Sanitize in place
+                if not sanitize_mol(prod, fix_hydrogens=True):
+                    log.debug("product sanitization failed, skipping")
+                    ok_tuple = False
+                    break
+
+                # Reassign stereo on the sanitized product
+                prod = reassign_stereochemistry(prod)
+
+                products.append(prod)
+                atom_tag_sets.append(get_tags_mol(prod))
+
+            if not ok_tuple:
+                log.debug("product tuple failed validation, skipping")
+                continue
+
+            # Disallow overlapping tag sets across products
+            total_tags = sum(len(s) for s in atom_tag_sets)
+            union_tags = len(set().union(*atom_tag_sets)) if atom_tag_sets else 0
+            if atom_tag_sets and total_tags != union_tags:
+                log.debug("products share atom tags, skipping")
+                continue
+
+            # Mask check
+            if mask_tags is not None and not is_masked_preserved(reactant, products, mask_tags):
+                log.debug("products modify tags outside mask, skipping")
+                continue
+
+            kept.append(products)
+
+        if len(kept) <= 1:
+            return kept
+        
+        # Stereo-aware dereplication (order-insensitive, multiplicity-preserving)
+        seen: dict[tuple[tuple[str, int], ...], int] = {}
+        unique: list[list[Mol]] = []
+        for res in kept:
+
+            # Create keys based on the SMILES of products without tags
+            c = Counter(mol_to_smiles(p, include_tags=False, isomeric=True, canonical=True) for p in res)
+            key = tuple(sorted(c.items(), key=lambda kv: kv[0]))
+
+            if key in seen:
+                continue
+
+            seen[key] = 1
+            unique.append(res)
+        
+        return unique
+
+
 def index_uncontested(
     mol: Mol,
-    rls: list[ReactionRule],
+    rules: list[ReactionRule],
     failed_combos: set[tuple[int, frozenset[int]]],
 ) -> list[tuple[ReactionRule, set[int]]]:
     """
     Index uncontested reactions for applying preprocessing rules in bulk.
 
     :param mol: RDKit molecule
-    :param rls: List of preprocessing rules
+    :param rules: List of preprocessing rules
     :param failed_combos: Set of failed combinations to avoid infinite loops
     :return: Uncontested reactions
     """
     up_for_election: list[tuple[ReactionRule, set[int], set[int]]] = []
-    for rl in rls:
+    for rl in rules:
         if not rl.rxn:
             continue  # skip rules without a reaction template
 
@@ -91,31 +222,29 @@ def apply_uncontested(
     parent: Mol,
     uncontested: list[tuple[ReactionRule, set[int]]],
     original_taken_tags: set[int],
-) -> tuple[list[Mol], list[ReactionRule], set[tuple[int, frozenset[int]]]]:
+) -> tuple[list[Mol], list[tuple[ReactionRule, set[int]]], set[tuple[int, frozenset[int]]]]:
     """
     Apply uncontested reactions in bulk.
 
     :param parent: RDKit molecule
     :param uncontested: List of uncontested reactions
     :param original_taken_tags: List of atom tags from original reactant
-    :return: List of trtue products, a list of applied ReactionRules,  and a set of failed combinations
+    :return: list of true products, a list of applied ReactionRules with their masks,  and a set of failed combinations
     """
-    original_taken_tags = list(original_taken_tags)
-
-    applied_reactions: list[ReactionRule] = []
+    applied_reactions: list[tuple[ReactionRule, set[int]]] = []
 
     tags_in_parent: set[int] = set(get_tags_mol(parent))
 
     # We make sure all atoms, even the ones not from original reactant, have a
     # unique isotope number, so we can track them through consecutive reactions
-    temp_taken_tags = list(get_tags_mol(parent))
+    temp_taken_tags = get_tags_mol(parent)
     for atom in parent.GetAtoms():
         if atom.GetIsotope() == 0:
             tag = 1
             while tag in original_taken_tags or tag in temp_taken_tags:
                 tag += 1
             atom.SetIsotope(tag)
-            temp_taken_tags.append(tag)
+            temp_taken_tags.add(tag)
 
     # Validate that all atoms have a unique tag
     num_tagged_atoms = len(set(get_tags_mol(parent)))
@@ -151,17 +280,17 @@ def apply_uncontested(
             parent = new_parent
 
         # Register all tags currently taken by atoms in parent
-        temp_taken_tags_uncontested = list(get_tags_mol(parent))
+        temp_taken_tags_uncontested = get_tags_mol(parent)
 
         # Newly introduced atoms by one of the uncontested reactions need a unique tag
         for atom in parent.GetAtoms():
             if atom.GetIsotope() == 0:  # newly introduced atom has tag 0
                 # Loop until we find a tag that is not already taken
                 tag = 1
-                while tag in (temp_taken_tags_uncontested + original_taken_tags + temp_taken_tags):
+                while tag in (temp_taken_tags_uncontested | original_taken_tags | temp_taken_tags):
                     tag += 1
                 atom.SetIsotope(tag)
-                temp_taken_tags_uncontested.append(tag)
+                temp_taken_tags_uncontested.add(tag)
 
         unmasked_parent = Mol(parent)  # keep original parent for later
         results = rl.apply(parent, msk)  # apply reaction rule
@@ -174,7 +303,7 @@ def apply_uncontested(
                 raise ValueError(f"More than one product from uncontested reaction {rl.name}")
 
             result = results[0]
-            applied_reactions.append(rl)  # keep track of successfully applied reactions
+            applied_reactions.append((rl, match_set))  # keep track of successfully applied reactions
 
             # Reset atom tags in products for atoms not in original reactant
             for product in result:
@@ -189,12 +318,7 @@ def apply_uncontested(
                 if atom.GetIsotope() not in original_taken_tags and atom.GetIsotope() != 0:
                     atom.SetIsotope(0)
             products.append(unmasked_parent)
-            failed_combos.add(
-                (
-                    rl.id,
-                    frozenset(match_set),
-                )
-            )
+            failed_combos.add((rl.id, frozenset(match_set)))
 
     for product in products:
         # Any tag in product that is not in parent should be 0; otherwise we run into issues with
@@ -207,134 +331,6 @@ def apply_uncontested(
 
 
 @dataclass(frozen=True)
-class ReactionRule:
-    """
-    Represents a chemical reaction rule defined by a SMARTS pattern.
-
-    :var name: str: name of the reaction rule
-    :var smarts: str: SMARTS pattern defining the reaction
-    :var props: dict[str, Any]: additional properties associated with the rule
-    """
-
-    name: str
-    smarts: str
-    props: dict[str, Any]
-
-    rxn: ChemicalReaction = field(init=False, repr=False)
-
-    def __post_init__(self) -> None:
-        """
-        Initialize the ChemicalReaction from the SMARTS pattern.
-        """
-        rxn = smarts_to_reaction(self.smarts)
-        object.__setattr__(self, "rxn", rxn)
-
-    @property
-    def id(self) -> int:
-        """
-        Unique identifier for the reaction rule based on its SMARTS pattern.
-
-        :return: int: unique identifier
-        """
-        return hash(self.smarts)
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ReactionRule":
-        """
-        Create a ReactionRule instance from a dictionary.
-
-        :param data: dict[str, Any]: dictionary containing rule data
-        :return: ReactionRule: the created ReactionRule instance
-        """
-        return ReactionRule(
-            name=data["name"],
-            smarts=data["smarts"],
-            props=data.get("props", {}),
-        )
-    
-    def apply(self, reactant: Mol, mask_tags: set[int] | None = None) -> list[list[Mol]]:
-        """
-        Apply the reaction to the given reactant molecule, optionally enforcing a mask on atom tags.
-
-        :param reactant: Mol: the reactant molecule
-        :param mask_tags: set[int] | None: set of atom tags (isotope-based tags) that are allowed to change
-        :return: list[list[Mol]]: list of unique product tuples (each tuple as a list[Mol])
-        """ 
-        log.debug(f"applying reaction rule '{self.name}'")
-
-        results = self.rxn.RunReactants([reactant])
-        if not results:
-            log.debug("no valid products generated for reactant")
-            return []
-        
-        # Sanitize and filter
-        kept: list[list[Mol]] = []
-        for tup in results:
-            products: list[Mol] = []
-
-            # Quick shape check, and sanitize
-            atom_tag_sets: list[set[int]] = []
-            ok_tuple = True
-            for prod in tup:
-
-                # Check if product is single component
-                if not count_fragments(prod) == 1:
-                    log.debug("product has multiple components, skipping")
-                    ok_tuple = False
-                    break
-                
-                # Sanitize in place
-                if not sanitize_mol(prod, fix_hydrogens=True):
-                    log.debug("product sanitization failed, skipping")
-                    ok_tuple = False
-                    break
-
-            # Reassign stereo on the sanitized product
-            prod = reassign_stereochemistry(prod)
-
-            products.append(prod)
-            atom_tag_sets.append(get_tags_mol(prod))
-
-            if not ok_tuple:
-                log.debug("product tuple failed validation, skipping")
-                continue
-
-            # Disallow overlapping tag sets across products
-            total_tags = sum(len(s) for s in atom_tag_sets)
-            union_tags = len(set().union(*atom_tag_sets)) if atom_tag_sets else 0
-            if atom_tag_sets and total_tags != union_tags:
-                log.debug("products share atom tags, skipping")
-                continue
-
-            # Mask check
-            if mask_tags is not None and not is_masked_preserved(reactant, products, mask_tags):
-                log.debug("products modify tags outside mask, skipping")
-                continue
-
-            kept.append(products)
-
-        if len(kept) <= 1:
-            return kept
-        
-        # Stereo-aware dereplication (order-insensitive, multiplicity-preserving)
-        seen: dict[tuple[tuple[str, int], ...], int] = {}
-        unique: list[list[Mol]] = []
-        for res in kept:
-
-            # Create keys based on the SMILES of products without tags
-            c = Counter(mol_to_smiles(p, include_tags=False, isomeric=True, canonical=True) for p in res)
-            key = tuple(sorted(c.items(), key=lambda kv: kv[0]))
-
-            if key in seen:
-                continue
-
-            seen[key] = 1
-            unique.append(res)
-        
-        return unique
-
-
-@dataclass(frozen=True)
 class MatchingRule:
     """
     Represents a molecular matching rule defined by a SMILES pattern.
@@ -342,11 +338,13 @@ class MatchingRule:
     :var name: str: name of the matching rule
     :var smiles: str: SMILES pattern defining the motif
     :var props: dict[str, Any]: additional properties associated with the rule
+    :var terminal: bool: whether this rule is terminal (i.e., should not be expanded further)
     """
 
     name: str
     smiles: str
     props: dict[str, Any]
+    terminal: bool = True
 
     mol: Mol = field(init=False, repr=False)
 
@@ -357,6 +355,19 @@ class MatchingRule:
         mol = smiles_to_mol(self.smiles)
         object.__setattr__(self, "mol", mol)
 
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Serialize the MatchingRule to a dictionary.
+
+        :return: dictionary representation of the MatchingRule
+        """
+        return {
+            "name": self.name,
+            "smiles": self.smiles,
+            "props": self.props,
+            "terminal": self.terminal,
+        }
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "MatchingRule":
         """
@@ -365,11 +376,13 @@ class MatchingRule:
         :param data: dict[str, Any]: dictionary containing rule data
         :return: MatchingRule: the created MatchingRule instance
         """
-        return MatchingRule(
+        matching_rule = cls(
             name=data["name"],
             smiles=data["smiles"],
             props=data.get("props", {}),
+            terminal=data.get("terminal", True),
         )
+        return matching_rule
 
     def is_match(self, mol: Mol, match_stereochemistry: bool = False) -> bool:
         """
@@ -394,10 +407,12 @@ class RuleSet:
     """
     Represents a set of reaction and matching rules.
 
+    :var match_stereochemistry: bool: whether to consider stereochemistry in matching rules
     :var reaction_rules: list[ReactionRule]: list of reaction rules
     :var matching_rules: list[MatchingRule]: list of matching rules
     """
 
+    match_stereochemistry: bool
     reaction_rules: list[ReactionRule]
     matching_rules: list[MatchingRule]
 
@@ -407,25 +422,35 @@ class RuleSet:
 
         :return: str: string representation
         """
-        return f"RuleSet({len(self.reaction_rules)} reaction rules; {len(self.matching_rules)} matching rules)"
+        return f"RuleSet({len(self.reaction_rules)} reaction rules; {len(self.matching_rules)} matching rules; match_stereochemistry={self.match_stereochemistry})"
 
     @classmethod
-    def load_default(cls) -> "RuleSet":
+    def load_default(cls, match_stereochemistry: bool = False) -> "RuleSet":
         """
         Load the default set of reaction and matching rules.
 
         :return: RuleSet: the default rule set
         """
-        path_reaction_rules = Path(files(retromol.data).joinpath("default_reaction_rules.yml"))
-        path_matching_rules = Path(files(retromol.data).joinpath("default_matching_rules.yml"))
+        path_reaction_rules = Path(files(retromol.data).joinpath("rxn.yml"))
+        path_matching_rules_other = Path(files(retromol.data).joinpath("mxn_other.yml"))
+
+        if match_stereochemistry:
+            path_matching_rules_polyketide = Path(files(retromol.data).joinpath("mxn_pks_chiral.yml"))
+        else:
+            path_matching_rules_polyketide = Path(files(retromol.data).joinpath("mxn_pks.yml"))
 
         with open(path_reaction_rules, "r") as fo:
             reaction_rules_data = yaml.safe_load(fo)
 
-        with open(path_matching_rules, "r") as fo:
-            matching_rules_data = yaml.safe_load(fo)
+        with open(path_matching_rules_other, "r") as fo:
+            matching_rules_other_data = yaml.safe_load(fo)
+
+        with open(path_matching_rules_polyketide, "r") as fo:
+            matching_rules_polyketide_data = yaml.safe_load(fo)
+
+        matching_rules_data = matching_rules_other_data + matching_rules_polyketide_data
 
         reaction_rules = [ReactionRule.from_dict(d) for d in reaction_rules_data]
         matching_rules = [MatchingRule.from_dict(d) for d in matching_rules_data]
 
-        return RuleSet(reaction_rules, matching_rules)
+        return RuleSet(match_stereochemistry, reaction_rules, matching_rules)

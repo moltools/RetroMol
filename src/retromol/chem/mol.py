@@ -1,5 +1,7 @@
 """Module for RDKit molecule utilities."""
 
+import hashlib
+
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.MolStandardize.rdMolStandardize import TautomerEnumerator, Uncharger
 from rdkit.Chem.rdmolfiles import MolFromSmiles, MolFromSmarts, MolToSmiles
@@ -180,11 +182,13 @@ def mol_to_inchikey(mol: Mol) -> str:
     return MolToInchiKey(mol)
 
 
-def encode_mol(mol: Mol) -> int:
+def encode_mol(mol: Mol) -> str:
     """
     Encodes an RDKit molecule as a canonical isomeric SMILES string.
 
     :param mol: the molecule to encode
     :return: the encoded molecule
     """
-    return hash(mol_to_smiles(mol, include_tags=True, isomeric=True, canonical=True))
+    smiles = mol_to_smiles(mol, include_tags=True, isomeric=True, canonical=True)
+
+    return hashlib.sha256(smiles.encode("utf-8")).hexdigest()

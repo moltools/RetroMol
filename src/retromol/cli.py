@@ -14,6 +14,8 @@ from retromol.model.rules import RuleSet
 from retromol.model.submission import Submission
 from retromol.model.result import Result
 from retromol.pipelines.parsing import run_retromol_with_timeout
+from retromol.chem.mol import encode_mol
+from retromol.visualization.reaction_graph import visualize_reaction_graph
 
 
 log = logging.getLogger(__name__)
@@ -120,7 +122,7 @@ def main() -> None:
         log.info(f"\t{arg}: {val}")
 
     # Load default ruleset
-    ruleset = RuleSet.load_default()
+    ruleset = RuleSet.load_default(match_stereochemistry=args.c)
     log.info(f"loaded default ruleset: {ruleset}")
 
     result_counts: Counter[str] = Counter()
@@ -130,6 +132,18 @@ def main() -> None:
         submission = Submission(args.smiles, props={})
         result: Result = run_retromol_with_timeout(submission, ruleset)
         log.info(f"result: {result}")
+
+        # Report on coverage as percentage of tags identified
+        coverage = result.calculate_coverage()
+        log.info(f"coverage: {coverage:.2%}")
+        
+        # Visualize reaction graph
+        root = encode_mol(result.submission.mol)
+        visualize_reaction_graph(
+            result.reaction_graph,
+            html_path=os.path.join(args.outdir, "reaction_graph.html"),
+            root_enc=root
+        )
 
         result_dict = result.to_dict()
         with open(os.path.join(args.outdir, "result.json"), "w") as f:
