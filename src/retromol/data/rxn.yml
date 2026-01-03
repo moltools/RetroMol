@@ -108,13 +108,6 @@
 
 - name: reverse hydrogenation tailoring
   smarts: "[CH2:1][CH1:2]([OH1:3])[CH2:4][OH1:5]>>[CH2:1][CH0:2](=[OH0:3])[OH1].[CH3:4][OH1:5]"
-  # props:
-  #   conditions:
-  #     reactant:
-  #       # Reverse hydrogenation tailoring is fallback for when default reactive group for starting PK disassembly is not present
-  #       forbids_any:
-  #         - "[C](=[O])-[OH]"      # carboxylic group
-  #         - "[C](=[O])-[O]-[C]"   # still cyclized carboxylic group
 
 - name: reverse etherification
   smarts: "[*:1]-[CH0:2]1(-[OH:3])-[O:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1>>([*:1]-[CH0:2]1=[OH0:3].[OH1:4]-[CH1:5](-[*:6])-[C:7][C:8][C:9]1)"
@@ -157,24 +150,31 @@
 
 - name: break dilsufide bridge (intramolecular)
   smarts: "[C;R:1][C:2][S:3][S:4][C:5][C;R:6]>>([C;R:1][C:2][SH:3].[SH:4][C:5][C;R:6])"
+  allowed_in_bulk: true
 
 - name: break disulfide bridge (intermolecular)
   smarts: "[C:1][C:2][S:3][S:4][C:5][C:6]>>[C;R:1][C:2][SH:3].[SH:4][C:5][C;R:6]"
+  allowed_in_bulk: true
 
 - name: break threonine-cysteine bridge (intramolecular)
   smarts: "[C:1](=[O:2])[C:3]([N:4])[CH1:5]([CH3:6])[S:7][CH2:8][C:9]([N:10])[C:11]=[O:12]>>([C:1](=[O:2])[C:3]([N:4])[CH1:5]([CH3:6])[OH].[SH:7][CH2:8][C:9]([N:10])[C:11]=[O:12])"
+  allowed_in_bulk: true
 
 - name: break threonine-cysteine bridge (intermolecular)
   smarts: "[C:1](=[O:2])[C:3]([N:4])[CH1:5]([CH3:6])[S:7][CH2:8][C:9]([N:10])[C:11]=[O:12]>>[C:1](=[O:2])[C:3]([N:4])[CH1:5]([CH3:6])[OH].[SH:7][CH2:8][C:9]([N:10])[C:11]=[O:12]"
+  allowed_in_bulk: true
 
 - name: break serine-cysteine bridge (intramolecular)
   smarts: "[C:1](=[O:2])[C:3]([N:4])[CH2:5][S:7][CH2:8][C:9]([N:10])[C:11]=[O:12]>>([C:1](=[O:2])[C:3]([N:4])[CH2:5][SH:7].[OH][CH2:8][C:9]([N:10])[C:11]=[O:12])"
+  allowed_in_bulk: true
 
 - name: break serine-cysteine bridge (intermolecular)
   smarts: "[C:1](=[O:2])[C:3]([N:4])[CH2:5][S:7][CH2:8][C:9]([N:10])[C:11]=[O:12]>>[C:1](=[O:2])[C:3]([N:4])[CH2:5][SH:7].[OH][CH2:8][C:9]([N:10])[C:11]=[O:12]"
+  allowed_in_bulk: true
 
 - name: break cysteine bond (intramolecular)
   smarts: "[O:1][C:2](=[O:3])[C:4][C:5][SH0:6][C:7]>>[O:1][C:2](=[O:3])[C:4][C:5][SH1:6].[C:7]"
+  allowed_in_bulk: true
 
 - name: reverse reduction (type 1)
   smarts: "[NH2:1][CH0:2]([OH:3])[C:4](=[O:5])[OH:6]>>[NH2:1][CH1:2][C:4](=[O:5])[OH:6].[OH2:3]"
