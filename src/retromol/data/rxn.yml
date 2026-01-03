@@ -104,7 +104,7 @@
   smarts: "[*:6][C:1]1~[C:2]([*:7])[O:4][C:8][O:5]1>>[*:6][C:1]([OH:5])~[C:2]([OH:4])[*:7].[C:8][OH]"
 
 - name: reverse 2,3-diaminopropionate amidation
-  smarts: "[NH1:1][CH1:2]([C:3](=[O:4])[NH2:5])[CH2:6][NH2:7]>>[NH1:1][CH1:2]([C:3](=[O:4])[OH])[CH2:6][NH2:7].[N:5]"
+  smarts: "[NH2:1][CH1:2]([C:3](=[O:4])[NH2:5])[CH2:6][NH2:7]>>[NH1:1][CH1:2]([C:3](=[O:4])[OH])[CH2:6][NH2:7].[N:5]"
 
 - name: reverse hydrogenation tailoring
   smarts: "[CH2:1][CH1:2]([OH1:3])[CH2:4][OH1:5]>>[CH2:1][CH0:2](=[OH0:3])[OH1].[CH3:4][OH1:5]"
@@ -206,6 +206,9 @@
 - name: reverse tetramate formation (type 2)
   smarts: "[*:1]-[C:2](-[OH:3])-[C:4]=1[C:5](=[O:6])[N:7][C:8][C:9]1-[OH:10]>>[*:1]-[C:2](=[OH0:3])-[CH2:4][C:5](=[O:6])[N:7][C:8][C:9](-[OH])=[O:10]"
 
+- name: reverse tetramate formation (type 3; aromatic)
+  smarts: "[*:1]-[C:2](=[O:3])[c:4]1[c:5](-[OH:6])[n:7][c:8][c:9]1-[OH:10]>>[*:1]-[C:2](=[OH0:3])-[CH2:4][C:5](=[O:6])[N:7][C:8][C:9](-[OH])=[O:10]"
+
 - name: reverse tetronate formation (type 1)
   smarts: "[*:1]-[C:2](-[OH:3])=[C:4]1[C:5](=[O:6])[O:7][C:8][C:9]1=[O:10]>>[*:1]-[C:2](=[OH0:3])-[CH2:4][C:5](=[O:6])[O:7][C:8][C:9](-[OH])=[O:10]"
 
@@ -222,7 +225,7 @@
   smarts: "[c:1]1([C:2](=[O:8])[*:9])[c:3](~[O:10])[c:4][c:5][n:6][c:7](~[O:11])1>>[CH0:3](=[O:10])(-[OH])[CH2:4][CH2:5][NH1:6][CH0:7](=[O:11])[CH2:1]([CH0:2](=[O:8])[*:9])"
 
 - name: reverse beta-lactam formation
-  smarts: "[C:1][N:2][C:3]1[C:4]2[S:5][C:6][C:7]([C:8])[N:9]2[C:10]1=[O:11]>>([C:1][N:2][C:3]1[C:4][S:5].[C:6][C:7]([C:8])[N:9][C:10]1=[O:11])"
+  smarts: "[N:1][C:2]1[C:3]2[S:4][C:5][C:6]([C:7])[N:8]2[C:9]1=[O:10]>>([N:1][C:2]1[C:3][S:4].[C:5][C:6]([C:7])[N:8][C:9]1=[O:10])"
 
 - name: reverse DAOC-synthetase
   smarts: "[C:1][N:2][C:3]1[C:4]2[S:5][C:6][CH0:7]=[CH0:8]([C:9])[N:10]2[C:11]1=[O:12]>>[C:1][N:2][C:3]1[C:4]2[S:5][CH0:7]([CH3:6])[CH1:8]([C:9])[N:10]2[C:11]1=[O:12]"
@@ -284,18 +287,23 @@
 
 - name: reverse urea bond formation (intermolecular)
   smarts: "[C:1][NH1:2][C:3](=[O:4])[NH1:5][C:6]>>[C:1][NH2:2].[NH2:5][C:6].[OH][C:3](=[O:4])[OH]"
+  allowed_in_bulk: true
 
 - name: reverse urea bond formation (intramolecular)
   smarts: "[C:1][NH1:2][C:3](=[O:4])[NH1:5][C:6]>>([C:1][NH2:2].[NH2:5][C:6]).[OH][C:3](=[O:4])[OH]"
+  allowed_in_bulk: true
 
 - name: reversed NRP biosynthesis (alpha amino acid; proline-like)
   smarts: "[*:1][C:2](=[O:3])[NH0:4][C:5][C:6](=[O:7])[OH:8]>>[*:1][C:2](=[O:3])[OH].[NH1:4][C:5][C:6](=[O:7])[OH:8]"
+  allowed_in_bulk: true
 
 - name: reversed NRP biosynthesis (beta amino acid)
   smarts: "[*:1][C:2](=[O:3])[NH1:4][C:5][CH2:6][C:7](=[O:8])[OH:9]>>[*:1][C:2](=[O:3])[OH].[NH2:4][C:5][CH2:6][C:7](=[O:8])[OH:9]"
+  allowed_in_bulk: true
 
 - name: break amide bond (hydroxamic)
   smarts: "[C:1][C:2](=[O:3])[N:4](-[OH:5])[C:6]>>[C:1][C:2](=[O:3])-[OH].[N:4](-[OH:5])[C:6]"
+  allowed_in_bulk: true
 
 - name: reversed polyketide synthesis (saturated)
   smarts: "[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH:6]"

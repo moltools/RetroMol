@@ -263,8 +263,8 @@ CASES: list[tuple[str, str, float, list[str]]] = [
     (
         "harzianic acid",
         r"CCC/C=C/C=C/C(=C\1/C(=O)C(N(C1=O)C)CC(C(C)C)(C(=O)O)O)/O",
-        0.08,
-        ["acetic acid", "acetic acid"],
+        1.0,
+        ["A1", "C1", "C1", "D1", "acetic acid", "artificial amino acid harzianic acid", "butanoic acid", "methylation"],
     ),
     (
         "herboxidiene",
@@ -281,8 +281,8 @@ CASES: list[tuple[str, str, float, list[str]]] = [
     (
         "hymenosetin",
         r"C/C=C/[C@@H]1C(=C[C@@H]2C[C@@H](CC[C@H]2[C@]1(C)/C(=C\3/C(=O)[C@@H](NC3=O)[C@@H](C)O)/O)C)C",
-        0.0,
-        [],
+        1.0,
+        ["A1", "C1", "C1", "C2", "C2", "D1", "D2", "acetic acid", "threonine"],
     ),
     (
         "indanomycin",
@@ -401,8 +401,8 @@ CASES: list[tuple[str, str, float, list[str]]] = [
     (
         "penicillin G",
         r"CC1([C@@H](N2[C@H](S1)[C@@H](C2=O)NC(=O)CC3=CC=CC=C3)C(=O)O)C",
-        0.39,
-        ["2-phenylacetic acid"],
+        1.0,
+        ["2-phenylacetic acid", "cysteine", "valine"],
     ),
     (
         "periconiasin A",
@@ -479,8 +479,8 @@ CASES: list[tuple[str, str, float, list[str]]] = [
     (
         "zwittermicin A",
         r"C([C@H]([C@H](CO)N)O)[C@H]([C@H]([C@H]([C@@H](C(=O)N[C@@H](CNC(=O)N)C(=O)N)O)O)N)O",
-        0.74,
-        ["B1", "B12", "B5", "carbamic acid", "serine"],
+        1.0,
+        ["B1", "B12", "B5", "carbamic acid", "serine", "2,3-diaminopropionate", "amination"],
     ),
     (
         "enterobactin",
@@ -521,14 +521,14 @@ CASES: list[tuple[str, str, float, list[str]]] = [
     (
         "borophycin",
         r"[B-]123O[C@]45O[C@H](C(C(=O)C[C@H](CC/C=C\C[C@@H](OC(=O)C(O1)[C@]6(O2)O[C@H](C(C(=O)C[C@H](CC/C=C\C[C@@H](OC(=O)C4O3)CC)O)(C)C)CC[C@H]6C)CC)O)(C)C)CC[C@H]5C",
-        0.0,
-        [],
+        1.0,
+        ["A3", "A3", "A5", "A5", "B1", "B1", "B1", "B1", "B1", "B1", "C1", "C1", "D1", "D1", "D2", "D2", "boronation", "propanoic acid", "propanoic acid"],
     ),
     (
         "aplasmomycin C",
         r"[B-]123O[C@]45O[C@H](C([C@H](C/C=C/[C@H]6O[C@@H]([C@H](C6)OC(=O)[C@@H](O1)[C@]7(O2)O[C@H](C([C@H](C/C=C/[C@H]8O[C@@H]([C@H](C8)OC(=O)[C@H]4O3)C)OC(=O)C)(C)C)CC[C@H]7C)C)OC(=O)C)(C)C)CC[C@H]5C",
-        0.1,
-        ["acetic acid", "acetic acid"],
+        1.0,
+        ["A5", "A5", "B1", "B1", "B1", "B1", "B3", "B3", "C1", "C1", "C1", "C1", "D2", "D2", "acetic acid", "acetic acid", "boronation", "lactic acid", "lactic acid"],
     ),
     (
         "chaetosemin G",

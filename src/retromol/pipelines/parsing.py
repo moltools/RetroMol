@@ -12,7 +12,7 @@ from retromol.model.rules import RuleSet, index_uncontested, apply_uncontested
 from retromol.model.result import Result
 from retromol.model.reaction_graph import ReactionGraph, ReactionStep, RxnEdge
 from retromol.model.synthesis import SynthesisExtractResult
-from retromol.chem.mol import Mol, encode_mol
+from retromol.chem.mol import Mol, encode_mol, mol_to_smiles
 from retromol.chem.tagging import get_tags_mol
 
 
@@ -47,6 +47,8 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
         parent = q.popleft()
         parent_enc = g.add_node(parent)
 
+        log.debug(f"expanding node {mol_to_smiles(parent, include_tags=False)}")
+
         # If we've already expanded this encoding, skip
         if parent_enc in expanded:
             continue
@@ -56,12 +58,15 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
         node = g.nodes[parent_enc]
         ident = node.identify(matching_rules, match_stereochemistry=ruleset.match_stereochemistry)
         if ident and bool(getattr(ident, "terminal", True)):
+            log.debug(f"node (identity={ident.name}) identified as terminal; stopping expansion")
             continue
 
         # Uncontested in bulk (combined step)
         allowed_in_bulk = [rl for rl in reaction_rules if rl.allowed_in_bulk]
         uncontested = index_uncontested(parent, allowed_in_bulk, failed_combos)
         if uncontested:
+            log.debug(f"applying {len(uncontested)} uncontested rule(s) in bulk")
+
             products, applied_in_bulk, new_failed = apply_uncontested(parent, uncontested, original_taken_tags)
             failed_combos.update(new_failed)
 
@@ -287,11 +292,16 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     :return: Result object containing the retrosynthesis results
     """
     g = process_mol(submission, rules)
-    log.debug(f"retrosynthesis graph has {len(g.nodes)} nodes and {len(g.edges)} edges")
+    log.debug(f"retrosynthesis graph has {len(g.nodes)} ({len(g.identified_nodes)} identified) nodes and {len(g.edges)} edges")
 
     root = encode_mol(submission.mol)
-    r = extract_min_edge_synthesis_subgraph(g, root_enc=root, nonterminal_leaf_penalty=100.0)  # high penalty forces expansion of non-terminal leaves (e.g., fatty acids)
-    log.debug(f"extracted synthesis subgraph has {len(r.graph.nodes)} nodes and {len(r.graph.edges)} edges")
+    r = extract_min_edge_synthesis_subgraph(
+        g,
+        root_enc=root,
+        edge_base_cost=0.25,                # low base cost encourages longer syntheses
+        nonterminal_leaf_penalty=100.0,     # high penalty forces expansion of non-terminal leaves (e.g., fatty acids)
+    )
+    log.debug(f"extracted synthesis subgraph has {len(r.graph.nodes)} ({len(r.graph.identified_nodes)} identified) nodes and {len(r.graph.edges)} edges")
 
     if not r.solved:
         log.debug("retrosynthesis extraction failed to find a solution")

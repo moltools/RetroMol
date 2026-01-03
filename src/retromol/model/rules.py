@@ -91,8 +91,9 @@ class ReactionRule:
 
         results = self.rxn.RunReactants([reactant])
         if not results:
-            log.debug("no valid products generated for reactant")
+            log.debug("no products generated for reactant")
             return []
+        log.debug(f"generated {len(results)} raw product tuple(s)")
         
         # Sanitize and filter
         kept: list[list[Mol]] = []
