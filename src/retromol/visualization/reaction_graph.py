@@ -52,7 +52,7 @@ def visualize_reaction_graph(g: ReactionGraph, html_path: str, root_enc: str | N
         color = "lightgreen" if root_enc is not None and enc == root_enc else "lightblue"
 
         identity = None
-        if enc == root_enc:
+        if enc not in identified and enc == root_enc:
             identity = "root"
         elif enc in identified and identified[enc]:
             identity = identified[enc].name
