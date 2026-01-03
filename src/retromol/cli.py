@@ -8,17 +8,24 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
+from tqdm import tqdm
+from rdkit import RDLogger
+
 from retromol.version import __version__
 from retromol.utils.logging import setup_logging, add_file_handler
 from retromol.model.rules import RuleSet
 from retromol.model.submission import Submission
 from retromol.model.result import Result
 from retromol.pipelines.parsing import run_retromol_with_timeout
+from retromol.io.streaming import run_retromol_stream, stream_sdf_records, stream_table_rows, stream_json_records
 from retromol.chem.mol import encode_mol
 from retromol.visualization.reaction_graph import visualize_reaction_graph
 
 
 log = logging.getLogger(__name__)
+
+
+RDLogger.DisableLog('rdApp.*')  # disable RDKit warnings
 
 
 def cli() -> argparse.Namespace:
@@ -81,18 +88,6 @@ def _open_jsonl(outdir: str, jsonl_path: str | None) -> tuple[Any, str]:
     return open(path, "a", buffering=1), path  # line-buffered
 
 
-def _write_result_file(outdir: str, inchikey: str, payload: dict[str, Any] | None) -> None:
-    """
-    Write a result payload to a JSON file in the specified output directory.
-    
-    :param outdir: str: output directory
-    :param inchikey: str: InChIKey of the compound
-    :param payload: dict[str, Any] | None: result payload to write
-    """
-    with open(os.path.join(outdir, f"result_{inchikey}.json"), "w") as f:
-        json.dump(payload, f, indent=0)  # indent=0 faster than 4
-
-
 def main() -> None:
     """
     Main entry point for the CLI.
@@ -152,77 +147,73 @@ def main() -> None:
         result_counts["successes"] += 1
 
     # Batch mode
-    # elif args.mode == "batch":
-    #     id_col = args.id_col
-    #     smiles_col = args.smiles_col
-    #     separator = "," if args.separator == "comma" else "\t"
+    elif args.mode == "batch":
+        id_col = args.id_col
+        smiles_col = args.smiles_col
+        separator = "," if args.separator == "comma" else "\t"
 
-    #     # Choose source iterator (streamed, chunked)
-    #     if args.sdf:
-    #         source_iter = stream_sdf_records(args.sdf, fast=args.rdkit_fast)
-    #     elif args.table:
-    #         source_iter = stream_table_rows(args.table, sep=separator, chunksize=args.chunksize)
-    #     else:
-    #         source_iter = stream_json_records(args.json)
+        # Choose source iterator (streamed, chunked)
+        if args.sdf:
+            source_iter = stream_sdf_records(args.sdf, fast=args.rdkit_fast)
+        elif args.table:
+            source_iter = stream_table_rows(args.table, sep=separator, chunksize=args.chunksize)
+        else:
+            source_iter = stream_json_records(args.json)
 
-    #     # Progress bars: outer ~batches, inner = molecules processed
-    #     pbar_outer = tqdm(desc="Batches", unit="batch", disable=args.no_tqdm)
-    #     pbar_inner = tqdm(desc="Processed", unit="mol", disable=args.no_tqdm)
+        # Progress bars: outer ~batches, inner = molecules processed
+        pbar_outer = tqdm(desc="Batches", unit="batch", disable=args.no_tqdm)
+        pbar_inner = tqdm(desc="Processed", unit="mol", disable=args.no_tqdm)
 
-    #     # Results saved into JSONL format to limit file operations
-    #     jsonl_fh = None
-    #     jsonl_path = None
-    #     if args.results == "jsonl":
-    #         jsonl_fh, jsonl_path = _open_jsonl(args.outdir, args.jsonl_path)
-    #         logger.info(f"Appending results to JSONL file at: {jsonl_path}")
+        # Results saved into JSONL format to limit file operations
+        jsonl_fh = None
+        jsonl_path = None
+        if args.results == "jsonl":
+            jsonl_fh, jsonl_path = _open_jsonl(args.outdir, args.jsonl_path)
+            log.info(f"Appending results to JSONL file at: {jsonl_path}")
 
-    #     result_counts = Counter()
+        result_counts = Counter()
 
-    #     processed_in_current_batch = 0
+        processed_in_current_batch = 0
 
-    #     for evt in run_retromol_stream(
-    #         # Config
-    #         rule_set=rule_set,  # already loaded above
-    #         # Data & schema
-    #         row_iter=source_iter,
-    #         id_col=id_col,
-    #         smiles_col=smiles_col,
-    #         # Concurrency knobs
-    #         workers=args.workers,
-    #         batch_size=args.batch_size,
-    #         pool_chunksize=args.pool_chunksize,
-    #         maxtasksperchild=args.maxtasksperchild,
-    #     ):
-    #         # evt has: inchikey, result (dict or None), error (str or None)
-    #         input_id = evt.inchikey
-    #         if evt.error is not None:
-    #             logger.error(f"Error {input_id}: {evt.error}")
-    #             result_counts["errors"] += 1
-    #         else:
-    #             if args.results == "files":
-    #                 _write_result_file(args.outdir, input_id, evt.result)
-    #             else:
-    #                 jsonl_fh.write(json.dumps({"inchikey": input_id, "result": evt.result}) + "\n")
-    #             result_counts["successes"] += 1
+        for evt in run_retromol_stream(
+            ruleset=ruleset,
+            row_iter=source_iter,
+            smiles_col=smiles_col,
+            workers=args.workers,
+            batch_size=args.batch_size,
+            pool_chunksize=args.pool_chunksize,
+            maxtasksperchild=args.maxtasksperchild,
+        ):
+            # evt has: result (dict or None) and error (str or None)
+            if evt.error is not None:
+                log.error(evt.error)
+                result_counts["errors"] += 1
+            elif evt.result is not None:
+                # Result is already serialized as dict
+                jsonl_fh.write(json.dumps(evt.result) + "\n")
+                result_counts["successes"] += 1
+            else:
+                log.error("received empty result with no error message")
+                result_counts["failures"] += 1
 
-    #         # Progress
-    #         pbar_inner.update(1)
-    #         processed_in_current_batch += 1
-    #         if processed_in_current_batch >= args.batch_size:
-    #             pbar_outer.update(1)
-    #             processed_in_current_batch = 0
+            # Progress
+            pbar_inner.update(1)
+            processed_in_current_batch += 1
+            if processed_in_current_batch >= args.batch_size:
+                pbar_outer.update(1)
+                processed_in_current_batch = 0
 
-    #     # If there was a final partial batch, tick the outer bar once more
-    #     if processed_in_current_batch > 0:
-    #         pbar_outer.update(1)
+        # If there was a final partial batch, tick the outer bar once more
+        if processed_in_current_batch > 0:
+            pbar_outer.update(1)
 
-    #     pbar_inner.close()
-    #     pbar_outer.close()
+        pbar_inner.close()
+        pbar_outer.close()
 
-    #     if jsonl_fh:
-    #         jsonl_fh.close()
+        if jsonl_fh:
+            jsonl_fh.close()
 
-    #     logger.info(f"Streaming complete. Summary: {dict(result_counts)}")
+        log.info(f"Streaming complete. Summary: {dict(result_counts)}")
 
     else:
         log.error("either --smiles or --database must be provided")

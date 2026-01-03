@@ -294,7 +294,7 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     log.debug(f"extracted synthesis subgraph has {len(r.graph.nodes)} nodes and {len(r.graph.edges)} edges")
 
     if not r.solved:
-        log.warning("retrosynthesis extraction failed to find a solution")
+        log.debug("retrosynthesis extraction failed to find a solution")
 
     return Result(
         submission=submission,

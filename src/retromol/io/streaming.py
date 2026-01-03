@@ -89,16 +89,12 @@ def _task_buffered_iterator(
 
 def run_retromol_stream(
     ruleset: RuleSet,
-    *,
-    # Data source: an iterable of row dicts containing id_col and smiles_col
     row_iter: Iterable[dict[str, Any]],
     smiles_col: str = "smiles",
-    # Concurrency knobs (match CLI defaults)
     workers: int = 1,
     batch_size: int = 2000,
     pool_chunksize: int = 50,
     maxtasksperchild: int = 2000,
-    # Optional sink callback
     on_result: Callable[[ResultEvent], None] | None = None,
 ) -> Iterator[ResultEvent]:
     """
