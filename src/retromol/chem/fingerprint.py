@@ -1,7 +1,7 @@
 """Module for calculating and comparing chemical fingerprints."""
 
 from rdkit.Chem.rdchem import Mol
-from rdkit.Chem.rdMolDescriptors import GetMorganFingerprintAsBitVect
+from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 from rdkit.DataStructs.cDataStructs import ExplicitBitVect, TanimotoSimilarity
 
 
@@ -20,12 +20,10 @@ def mol_to_morgan_fingerprint(
     :param use_chirality: whether to include chirality information
     :return: Morgan fingerprint as an RDKit ExplicitBitVect
     """
-    return GetMorganFingerprintAsBitVect(
-        mol,
-        radius=radius,
-        nBits=num_bits,
-        useChirality=use_chirality
-    )
+    generator = GetMorganGenerator(radius=radius, fpSize=num_bits, includeChirality=use_chirality)
+    fingerprint = generator.GetFingerprint(mol)
+
+    return fingerprint
 
 
 def calculate_tanimoto_similarity(fp1: ExplicitBitVect, fp2: ExplicitBitVect) -> float:

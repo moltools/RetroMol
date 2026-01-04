@@ -1,7 +1,7 @@
 """Module contains utilities for defining and working with assembly graphs."""
 
 from dataclasses import dataclass
-from typing import Any, Iterable, Iterable, Iterator
+from typing import Any, Iterable, Iterable, Iterator, Generator
 
 from rdkit.Chem.rdchem import Mol
 import matplotlib.pyplot as plt
@@ -407,6 +407,69 @@ class AssemblyGraph:
                 best_path_nodes = best_comp_path
 
         return to_molnodes(best_path_nodes)
+    
+
+    def iter_kmers(
+        self,
+        k: int,
+        include_unassigned: bool = False,
+        identified_only: bool = False
+    ) -> Generator[tuple[MolNode, ...], None, None]:
+        """
+        Iterate over all k-mers (paths of length k) in the assembly graph.
+
+        :param k: length of the k-mers (must be at least 1)
+        :param include_unassigned: whether to include the unassigned node in paths (default: False)
+        :param identified_only: whether to yield only k-mers with all identified monomers (default: False)
+        :yield: tuples of MolNode instances representing k-mers
+        """
+        if k < 1:
+            raise ValueError("k must be at least 1")
+        
+        g = self.g
+
+        def usable_node_ids() -> list[str]:
+            ids = []
+            for n in g.nodes:
+                if (not include_unassigned) and (n == self.unassigned):
+                    continue
+                ids.append(n)
+            return ids
+        
+        def node_to_molnode(node_id: str) -> MolNode:
+            mn = g.nodes[node_id].get("molnode", None)
+            if mn is None:
+                raise ValueError(f"AssemblyGraph node {node_id!r} has no 'molnode' attached")
+            return mn
+        
+        node_ids = usable_node_ids()
+
+        # k == 1: one k-mer per node
+        if k == 1:
+            for nid in node_ids:
+                mn = node_to_molnode(nid)
+                if identified_only and not mn.is_identified:
+                    continue
+                yield (mn,)
+            return
+        
+        # Stack items are (current_node_id, path_node_ids)
+        stack: list[tuple[str, list[str]]] = [(start, [start]) for start in node_ids]
+
+        while stack:
+            cur, path = stack.pop()
+
+            if len(path) == k:
+                km = tuple(node_to_molnode(pid) for pid in path)
+                if identified_only and any(not n.is_identified for n in km):
+                    continue
+                yield km
+                continue
+
+            for nbr in g.neighbors(cur):
+                if (not include_unassigned) and (nbr == self.unassigned):
+                    continue
+                stack.append((nbr, path + [nbr]))
 
     
     def validate(self) -> None:

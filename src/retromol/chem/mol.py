@@ -1,7 +1,5 @@
 """Module for RDKit molecule utilities."""
 
-import hashlib
-
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.MolStandardize.rdMolStandardize import TautomerEnumerator, Uncharger
 from rdkit.Chem.rdmolfiles import MolFromSmiles, MolFromSmarts, MolToSmiles
@@ -15,6 +13,7 @@ from rdkit.Chem.rdmolops import (
 
 from retromol.chem.tagging import remove_tags
 from retromol.chem.valence import correct_hydrogens
+from retromol.utils.hashing import sha256_hex
 
 
 def sanitize_mol(mol: Mol, fix_hydrogens: bool = False) -> bool:
@@ -191,4 +190,4 @@ def encode_mol(mol: Mol) -> str:
     """
     smiles = mol_to_smiles(mol, include_tags=True, isomeric=True, canonical=True)
 
-    return hashlib.sha256(smiles.encode("utf-8")).hexdigest()
+    return sha256_hex(smiles)

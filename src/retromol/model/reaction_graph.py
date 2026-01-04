@@ -22,12 +22,14 @@ class MolNode:
 
     :var enc: str: unique encoding of the molecule
     :var mol: Mol: the molecule object
+    :var smiles: str: SMILES representation of the molecule
     :var identity: MolIdentity | None: identification information if identified
     :var identified: bool | None: whether the node has been checked for identification
     """
 
     enc: str
     mol: Mol
+    smiles: str
     identity: MolIdentity | None = None
     identified: bool | None = None  # None=unknown, False=checked-no, True=checked-yes
 
@@ -80,7 +82,8 @@ class MolNode:
         """
         return {
             "enc": self.enc,
-            "smiles": mol_to_smiles(self.mol, include_tags=True),
+            "tagged_smiles": mol_to_smiles(self.mol, include_tags=True),
+            "smiles": self.smiles,
             "identity": self.identity.to_dict() if self.identity else None,
             "identified": self.identified,
         }
@@ -97,7 +100,8 @@ class MolNode:
 
         node = cls(
             enc=data["enc"],
-            mol=smiles_to_mol(data["smiles"]),
+            mol=smiles_to_mol(data["tagged_smiles"]),
+            smiles=data["smiles"],
             identity=identity,
             identified=data["identified"],
         )
@@ -225,11 +229,12 @@ class ReactionGraph:
         Add a molecule node to the graph if not already present.
         
         :param mol: molecule to add
+        :param keep_stereo_smiles: whether to keep stereochemistry in SMILES
         :return: encoding of the molecule node
         """
         enc = encode_mol(mol)
         if enc not in self.nodes:
-            self.nodes[enc] = MolNode(enc=enc, mol=Mol(mol))
+            self.nodes[enc] = MolNode(enc=enc, mol=Mol(mol), smiles=mol_to_smiles(mol, include_tags=False))
             self.out_edges.setdefault(enc, [])
 
         return enc
