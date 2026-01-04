@@ -20,7 +20,8 @@ dependencies = [
     "numpy",
     "pandas",
     "pyyaml",
-    "ijson"
+    "ijson",
+    "matplotlib"
 ]
 
 classifiers = [
@@ -47,8 +48,7 @@ build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "ruff"
+    "pytest"
 ]
 
 [tool.hatch.metadata]
@@ -58,9 +58,10 @@ allow-direct-references = true
 packages = ["src/retromol"]
 sources = ["src"]
 include = [
-    "src/retromol/data/default_matching_rules.yml",
-    "src/retromol/data/default_reaction_rules.yml",
-    "src/retromol/data/default_wave_config.yml"
+    "src/retromol/data/mxn_other.yml",
+    "src/retromol/data/mxn_pks_chiral.yml",
+    "src/retromol/data/mxn_pks.yml",
+    "src/retromol/data/rxn.yml"
 ]
 
 [project.scripts]
@@ -74,21 +75,4 @@ features = ["dev"]
 python = "3.10"
 
 [tool.hatch.envs.dev.scripts]
-lint = "ruff check ."
-fmt = "ruff format ."
 test = "pytest -q"
-
-# -------------------------
-# Ruff
-# -------------------------
-[tool.ruff]
-line-length = 120
-target-version = "py310"
-extend-exclude = ["build", "dist", ".venv", "venv", "typings"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
-ignore = []
-
-[tool.ruff.lint.per-file-ignores]
-"tests/data/**/*" = ["E501"]

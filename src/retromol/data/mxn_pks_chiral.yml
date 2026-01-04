@@ -1,0 +1,452 @@
+- name: A1
+  smiles: "O=C(O)CC(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A1
+  smiles: "O=C(O)C=C(O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A2^R
+  smiles: "C[C@@H](C(SO)=O)C(O)=O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A2^S
+  smiles: "C[C@H](C(SO)=O)C(O)=O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A2
+  smiles: "CC(C(=O)O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A2
+  smiles: "CC(C(=O)O)=C(O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A3
+  smiles: "CC(C)(C(=O)O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A4^R
+  smiles: "CC[C@@H](C(SO)=O)C(O)=O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A4^S
+  smiles: "CC[C@H](C(SO)=O)C(O)=O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A4
+  smiles: "CCC(C(=O)O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A5^R
+  smiles: "O=C([C@H](C(SO)=O)O)O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A5^S
+  smiles: "O=C([C@@H](C(SO)=O)O)O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A5
+  smiles: "O=C(O)C(O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A5
+  smiles: "O=C(C(O)=C(SO)O)O"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A6^R
+  smiles: "C[C@@](C(O)=O)(C(SO)=O)O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A6^S
+  smiles: "C[C@](C(O)=O)(C(SO)=O)O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A6
+  smiles: "CC(O)(C(=O)O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A7^R
+  smiles: "O=C([C@H](C(SO)=O)CO)O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A7^S
+  smiles: "O=C([C@@H](C(SO)=O)CO)O"
+  ancestor_tokens: ["PKS", "A"]
+- name: A7
+  smiles: "O=C(O)C(CO)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A7
+  smiles: "O=C(O)C(CO)=C(O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A8
+  smiles: "C=C(CC(=O)O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A8
+  smiles: "CC(=CC(=O)O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A9^R
+  smiles: "C=C([C@@H](C(O)=O)C)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A9^S
+  smiles: "C=C([C@H](C(O)=O)C)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A9
+  smiles: "C=C(SO)C(C)C(=O)O"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A10^R
+  smiles: "C=C([C@@H](C(O)=O)O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A10^S
+  smiles: "C=C([C@H](C(O)=O)O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A10
+  smiles: "C=C(SO)C(O)C(=O)O"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A11
+  smiles: "C=C(SO)C(=O)C(=O)O"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: B^R1
+  smiles: "O=C(C[C@@H](SO)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S1
+  smiles: "O=C(C[C@H](SO)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B1
+  smiles: "O=C(O)CC(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R2^R
+  smiles: "C[C@@H]([C@@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R2^S
+  smiles: "C[C@H]([C@@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R2
+  smiles: "CC([C@@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S2^R
+  smiles: "C[C@@H]([C@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S2^S
+  smiles: "C[C@H]([C@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S2
+  smiles: "CC([C@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B2
+  smiles: "CC(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R3
+  smiles: "CC(C(O)=O)([C@@H](SO)O)C"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S3
+  smiles: "CC(C(O)=O)([C@H](SO)O)C"
+  ancestor_tokens: ["PKS", "B"]
+- name: B3
+  smiles: "CC(C)(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R4^R
+  smiles: "CC[C@@H]([C@@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R4^S
+  smiles: "CC[C@H]([C@@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S4^R
+  smiles: "CC[C@@H]([C@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S4^S
+  smiles: "CC[C@H]([C@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B4
+  smiles: "CCC(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R5^R
+  smiles: "O=C([C@H]([C@@H](SO)O)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R5^S
+  smiles: "O=C([C@@H]([C@@H](SO)O)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S5^R
+  smiles: "O=C([C@H]([C@H](SO)O)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S5^S
+  smiles: "O=C([C@@H]([C@H](SO)O)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B5
+  smiles: "O=C(O)C(O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R6^R
+  smiles: "C[C@@](C(O)=O)([C@@H](SO)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R6^S
+  smiles: "C[C@](C(O)=O)([C@@H](SO)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S6^R
+  smiles: "C[C@@](C(O)=O)([C@H](SO)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S6^S
+  smiles: "C[C@](C(O)=O)([C@H](SO)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B6
+  smiles: "CC(O)(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R7^R
+  smiles: "O=C([C@H]([C@@H](SO)O)CO)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R7^S
+  smiles: "O=C([C@@H]([C@@H](SO)O)CO)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S7^R
+  smiles: "O=C([C@H]([C@H](SO)O)CO)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S7^S
+  smiles: "O=C([C@@H]([C@H](SO)O)CO)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B7
+  smiles: "O=C(O)C(CO)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R8
+  smiles: "C[C@](CC(O)=O)(SO)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S8
+  smiles: "C[C@@](CC(O)=O)(SO)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B8
+  smiles: "CC(O)(CC(=O)O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R9^R
+  smiles: "C[C@@H]([C@](O)(SO)C)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R9^S
+  smiles: "C[C@H]([C@](O)(SO)C)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S9^R
+  smiles: "C[C@@H]([C@@](O)(SO)C)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S9^S
+  smiles: "C[C@H]([C@@](O)(SO)C)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B9
+  smiles: "CC(C(=O)O)C(C)(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R10^R
+  smiles: "C[C@@](SO)([C@@H](C(O)=O)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R10^S
+  smiles: "C[C@@](SO)([C@H](C(O)=O)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S10^R
+  smiles: "C[C@](SO)([C@@H](C(O)=O)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S10^S
+  smiles: "C[C@](SO)([C@H](C(O)=O)O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B10
+  smiles: "CC(O)(SO)C(O)C(=O)O"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B11
+  smiles: "O=C(O)C(=O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R12^R
+  smiles: "N[C@@H]([C@@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^R12^S
+  smiles: "N[C@H]([C@@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S12^R
+  smiles: "N[C@@H]([C@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S12^S
+  smiles: "N[C@H]([C@H](SO)O)C(O)=O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B12
+  smiles: "NC(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B^R13
+  smiles: "OS[C@H](C(C(O)=O)C(O)=O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B^S13
+  smiles: "OS[C@@H](C(C(O)=O)C(O)=O)O"
+  ancestor_tokens: ["PKS", "B"]
+- name: B13
+  smiles: "OSC(O)C(C(=O)O)C(=O)O"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: C1
+  smiles: "O=C(O)C=CSO"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: C2
+  smiles: "CC(=CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: C4
+  smiles: "CCC(=CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: C7
+  smiles: "O=C(O)C(=CSO)CO"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: C13
+  smiles: "O=C(C(C(O)=O)=CSO)O"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: D1
+  smiles: "O=C(O)CCSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D2^R
+  smiles: "C[C@H](C(O)=O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D2^S
+  smiles: "C[C@@H](C(O)=O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D2
+  smiles: "CC(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D3
+  smiles: "CC(C)(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D4^R
+  smiles: "CC[C@H](C(O)=O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D4^S
+  smiles: "CC[C@@H](C(O)=O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D4
+  smiles: "CCC(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D5^R
+  smiles: "O=C([C@H](CSO)O)O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D5^S
+  smiles: "O=C([C@@H](CSO)O)O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D5
+  smiles: "O=C(O)C(O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D6^R
+  smiles: "C[C@](CSO)(C(O)=O)O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D6^S
+  smiles: "C[C@@](CSO)(C(O)=O)O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D6
+  smiles: "CC(O)(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D7^R
+  smiles: "O=C([C@H](CSO)CO)O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D7^S
+  smiles: "O=C([C@@H](CSO)CO)O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D7
+  smiles: "O=C(O)C(CO)CSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D^R8
+  smiles: "C[C@@H](SO)CC(O)=O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D^S8
+  smiles: "C[C@H](SO)CC(O)=O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D8
+  smiles: "CC(CC(=O)O)SO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D^R10^R
+  smiles: "C[C@H]([C@@H](C(O)=O)O)SO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D^R10^S
+  smiles: "C[C@H]([C@H](C(O)=O)O)SO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D^S10^R
+  smiles: "C[C@@H]([C@@H](C(O)=O)O)SO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D^S10^S
+  smiles: "C[C@@H]([C@H](C(O)=O)O)SO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D10
+  smiles: "CC(SO)C(O)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D11
+  smiles: "O=C(O)C(=O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D11
+  smiles: "O=C(O)C(O)=CSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D14
+  smiles: "CC(O)C(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D15
+  smiles: "C=C(C(O)=O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D16^R
+  smiles: "OSC[C@@H](C(O)=O)CC=O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D16^S
+  smiles: "OSC[C@H](C(O)=O)CC=O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D16
+  smiles: "OSCC(CC=O)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D^R17
+  smiles: "O=C(O)C([C@H](SO)C)=O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D^S17
+  smiles: "O=C(O)C([C@@H](SO)C)=O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D17
+  smiles: "O=C(C(C(C)SO)=O)O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D17
+  smiles: "O=C(C(O)=C(C)SO)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: A
+  smiles: "OSC(N)CC(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "OSC(N)C(C)C(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "OSC(N)C(C)(C)C(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "OSC(N)C(CC)C(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "OSC(N)C(C)(O)C(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "NC(C(O)=O)CSO"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "NC(C(C(O)=O)O)SO"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "O=C(C(C(C(O)=O)SO)O)O"
+  family_tokens: ["PKS"]

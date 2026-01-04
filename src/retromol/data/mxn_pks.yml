@@ -1,0 +1,224 @@
+- name: A1
+  smiles: "O=C(O)CC(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A1
+  smiles: "O=C(O)C=C(O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A2
+  smiles: "CC(C(=O)O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A2
+  smiles: "CC(C(=O)O)=C(O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A3
+  smiles: "CC(C)(C(=O)O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A4
+  smiles: "CCC(C(=O)O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A5
+  smiles: "O=C(O)C(O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A5
+  smiles: "O=C(C(O)=C(SO)O)O"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A6
+  smiles: "CC(O)(C(=O)O)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A7
+  smiles: "O=C(O)C(CO)C(=O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A7
+  smiles: "O=C(O)C(CO)=C(O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A8
+  smiles: "C=C(CC(=O)O)SO"
+  ancestor_tokens: ["PKS", "A"]
+- name: A8
+  smiles: "CC(=CC(=O)O)SO"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A9
+  smiles: "C=C(SO)C(C)C(=O)O"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A10
+  smiles: "C=C(SO)C(O)C(=O)O"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: A11
+  smiles: "C=C(SO)C(=O)C(=O)O"
+  ancestor_tokens: ["PKS", "A"]
+
+- name: B1
+  smiles: "O=C(O)CC(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B2
+  smiles: "CC(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B3
+  smiles: "CC(C)(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B4
+  smiles: "CCC(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B5
+  smiles: "O=C(O)C(O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B6
+  smiles: "CC(O)(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B7
+  smiles: "O=C(O)C(CO)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B8
+  smiles: "CC(O)(CC(=O)O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B9
+  smiles: "CC(C(=O)O)C(C)(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B10
+  smiles: "CC(O)(SO)C(O)C(=O)O"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B11
+  smiles: "O=C(O)C(=O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B12
+  smiles: "NC(C(=O)O)C(O)SO"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: B13
+  smiles: "OSC(O)C(C(=O)O)C(=O)O"
+  ancestor_tokens: ["PKS", "B"]
+
+- name: C1
+  smiles: "O=C(O)C=CSO"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: C2
+  smiles: "CC(=CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: C4
+  smiles: "CCC(=CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: C7
+  smiles: "O=C(O)C(=CSO)CO"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: C13
+  smiles: "O=C(C(C(O)=O)=CSO)O"
+  ancestor_tokens: ["PKS", "C"]
+
+- name: D1
+  smiles: "O=C(O)CCSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D2
+  smiles: "CC(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D3
+  smiles: "CC(C)(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D4
+  smiles: "CCC(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D5
+  smiles: "O=C(O)C(O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D6
+  smiles: "CC(O)(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D7
+  smiles: "O=C(O)C(CO)CSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D8
+  smiles: "CC(CC(=O)O)SO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D10
+  smiles: "CC(SO)C(O)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D11
+  smiles: "O=C(O)C(=O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+- name: D11
+  smiles: "O=C(O)C(O)=CSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D14
+  smiles: "CC(O)C(CSO)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D15
+  smiles: "C=C(C(O)=O)CSO"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D16
+  smiles: "OSCC(CC=O)C(=O)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: D17
+  smiles: "O=C(C(C(C)SO)=O)O"
+  ancestor_tokens: ["PKS", "D"]
+- name: D17
+  smiles: "O=C(C(O)=C(C)SO)O"
+  ancestor_tokens: ["PKS", "D"]
+
+- name: A
+  smiles: "OSC(N)CC(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "OSC(N)C(C)C(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "OSC(N)C(C)(C)C(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "OSC(N)C(CC)C(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "OSC(N)C(C)(O)C(=O)O"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "NC(C(O)=O)CSO"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "NC(C(C(O)=O)O)SO"
+  family_tokens: ["PKS"]
+
+- name: A
+  smiles: "O=C(C(C(C(O)=O)SO)O)O"
+  family_tokens: ["PKS"]

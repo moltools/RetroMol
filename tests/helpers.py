@@ -1,66 +1,73 @@
-# -*- coding: utf-8 -*-
-
 """Shared helpers for RetroMol integration tests."""
 
-from __future__ import annotations
-
-from importlib.resources import files
-from typing import Any, Dict, List
-
-import yaml
-
-import retromol.data
-from retromol import api, io, readout, rules
+from retromol.model.rules import RuleSet
+from retromol.model.result import Result
+from retromol.model.submission import Submission
+from retromol.model.reaction_graph import MolNode
+from retromol.pipelines.parsing import run_retromol_with_timeout
 
 
-def load_rule_set() -> rules.Rules:
-    """Load the default RetroMol rule set once."""
-    path_reaction_rules = str(files(retromol.data).joinpath("default_reaction_rules.yml"))
-    path_matching_rules = str(files(retromol.data).joinpath("default_matching_rules.yml"))
-    return rules.load_rules_from_files(path_reaction_rules, path_matching_rules)
+def load_rule_set() -> RuleSet:
+    """
+    Load the default RetroMol rule set once.
+    
+    :return: the loaded RuleSet object
+    """
+    return RuleSet.load_default(match_stereochemistry=False)
 
 
-def load_wave_config() -> Dict[str, Any]:
-    """Load the default wave configuration once."""
-    path_wave_config = str(files(retromol.data).joinpath("default_wave_config.yml"))
+def parse_compound(smiles: str, ruleset: RuleSet) -> Result:
+    """
+    Parse a compound SMILES string into an Result object.
 
-    with open(path_wave_config) as f:
-        return yaml.safe_load(f)
-
-
-def parse_compound(
-    smiles: str,
-    rule_set: rules.Rules,
-    wave_config: Dict[str, Any],
-    *,
-    match_stereochemistry: bool = False,
-) -> io.Result:
-    """Parse a compound SMILES string into an io.Result object."""
-    mol = io.Input("test_compound", smiles)
-    return api.run_retromol_with_timeout(mol, rule_set, wave_config, match_stereochemistry=match_stereochemistry)
+    :param smiles: the SMILES string of the compound to parse
+    :param ruleset: the RuleSet to use for parsing
+    :return: the resulting Result object
+    """
+    submission = Submission(smiles)
+    return run_retromol_with_timeout(submission, ruleset)
 
 
-def compare_lists_of_lists(a: List[List[str]], b: List[List[str]]) -> bool:
-    # Convert each inner list to a frozenset (hashable, unordered)
-    set_a = {frozenset(inner) for inner in a}
-    set_b = {frozenset(inner) for inner in b}
-    return set_a == set_b
+def compare_floats(a: float, b: float, tol: float = 1e-2) -> bool:
+    """
+    Compare two floating-point numbers for equality within a tolerance.
+
+    :param a: the first float to compare
+    :param b: the second float to compare
+    :param tol: the tolerance for comparison
+    :return: True if the numbers are equal within the tolerance, False otherwise
+    """
+    return abs(a - b) <= tol
 
 
-def assert_result(result: io.Result, expected_coverage: float, expected_mappings: List[List[str]]) -> None:
-    """Common assertion logic used by all integration tests."""
-    best_total_coverage: float = result.best_total_coverage()
-    assert best_total_coverage == expected_coverage, f"Expected coverage {expected_coverage}, got {best_total_coverage}"
+def compare_lists(list1: list[str], list2: list[str]) -> bool:
+    """
+    Compare two lists of strings for equality, ignoring order.
 
-    mappings = readout.optimal_mappings_with_timeout(result)
-    parsed_mappings: List[List[str]] = []
-    for mapping in mappings:
-        parsed_mapping: List[str] = []
-        for node in mapping["nodes"]:
-            parsed_mapping.append(node["identity"])
-        parsed_mapping.sort()
-        parsed_mappings.append(parsed_mapping)
+    :param list1: the first list to compare
+    :param list2: the second list to compare
+    :return: True if the lists contain the same elements, False otherwise
+    """
+    return sorted(list1) == sorted(list2)
 
-    assert compare_lists_of_lists(expected_mappings, parsed_mappings), (
-        f"Expected mappings {expected_mappings}, got {parsed_mappings}"
-    )
+
+def assert_result(result: Result, expected_coverage: float, expected_monomers: list[str]) -> None:
+    """
+    Common assertion logic used by all integration tests.
+    
+    :param result: the Result object to check
+    :param expected_coverage: the expected total coverage value
+    :param expected_monomers: the expected list of monomer identities
+    """
+    coverage: float = result.calculate_coverage()
+    assert compare_floats(coverage, expected_coverage), f"expected coverage {expected_coverage}, got {coverage}"
+
+    ident_nodes: MolNode = result.reaction_graph.identified_nodes.values()
+    assert all(n.is_identified for n in ident_nodes), "not all identified nodes are marked as identified"
+    found_monomers: list[str] = [n.identity.name for n in ident_nodes]
+
+    # Sort monomers before comparison; easier to read in case of failure
+    found_monomers.sort()
+    expected_monomers.sort()
+
+    assert compare_lists(found_monomers, expected_monomers), f"expected monomers {expected_monomers}, got {found_monomers}"
