@@ -104,7 +104,7 @@
   smarts: "[*:6][C:1]1~[C:2]([*:7])[O:4][C:8][O:5]1>>[*:6][C:1]([OH:5])~[C:2]([OH:4])[*:7].[C:8][OH]"
 
 - name: reverse 2,3-diaminopropionate amidation
-  smarts: "[NH2:1][CH1:2]([C:3](=[O:4])[NH2:5])[CH2:6][NH2:7]>>[NH1:1][CH1:2]([C:3](=[O:4])[OH])[CH2:6][NH2:7].[N:5]"
+  smarts: "[N:1][CH1:2]([C:3](=[O:4])[NH2:5])[CH2:6][NH2:7]>>[NH1:1][CH1:2]([C:3](=[O:4])[OH])[CH2:6][NH2:7].[N:5]"
 
 - name: reverse hydrogenation tailoring
   smarts: "[CH2:1][CH1:2]([OH1:3])[CH2:4][OH1:5]>>[CH2:1][CH0:2](=[OH0:3])[OH1].[CH3:4][OH1:5]"

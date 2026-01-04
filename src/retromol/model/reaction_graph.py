@@ -199,16 +199,16 @@ class ReactionGraph:
     - out_edges: adjacency index for fast traversal
     """
 
-    nodes: dict[int, MolNode] = field(default_factory=dict)
+    nodes: dict[str, MolNode] = field(default_factory=dict)
     edges: list[RxnEdge] = field(default_factory=list)
-    out_edges: dict[int, list[int]] = field(default_factory=dict)  # enc -> indices into edges
+    out_edges: dict[str, list[int]] = field(default_factory=dict)  # enc -> indices into edges
 
     @property
-    def identified_nodes(self) -> dict[int, MolNode]:
+    def identified_nodes(self) -> dict[str, MolNode]:
         """
         Return only identified nodes.
         
-        :return: dict[int, MolNode]: mapping of encodings to identified MolNodes
+        :return: dict[str, MolNode]: mapping of encodings to identified MolNodes
         """
         return {enc: node for enc, node in self.nodes.items() if node.is_identified}
 
@@ -234,7 +234,7 @@ class ReactionGraph:
 
         return enc
     
-    def add_edge(self, src_enc: int, child_mols: Iterable[Mol], step: ReactionStep) -> tuple[int, ...]:
+    def add_edge(self, src_enc: str, child_mols: Iterable[Mol], step: ReactionStep) -> tuple[str, ...]:
         """
         Add a reaction edge to the graph.
 
@@ -243,7 +243,7 @@ class ReactionGraph:
         :param step: ReactionStep describing the reaction
         :return: tuple of encodings of the child molecule nodes
         """
-        dst_encs: list[int] = []
+        dst_encs: list[str] = []
         for m in child_mols:
             dst_encs.append(self.add_node(m))
 
@@ -252,6 +252,25 @@ class ReactionGraph:
         self.out_edges.setdefault(src_enc, []).append(len(self.edges) - 1)
 
         return tuple(dst_encs)
+    
+    def get_leaf_nodes(self, identified_only: bool = True) -> list[MolNode]:
+        """
+        Get all leaf nodes (nodes with no outgoing edges).
+
+        :param identified_only: whether to include only identified nodes
+        :return: list of MolNode objects that are leaves
+        """
+        leaves: list[MolNode] = []
+
+        for enc, node in self.nodes.items():
+            # No outgoing edges -> leaf
+            if not self.out_edges.get(enc):
+                if identified_only and not node.is_identified:
+                    continue
+                leaves.append(node)
+
+        return leaves
+
     
     def to_dict(self) -> dict[str, Any]:
         """

@@ -28,7 +28,7 @@ def visualize_reaction_graph(g: ReactionGraph, html_path: str, root_enc: str | N
     net.toggle_physics(True)
 
     # Use prefixed IDs to avoid collisions with reaction node IDs
-    def mol_vid(enc: int) -> str:
+    def mol_vid(enc: str) -> str:
         """
         Generate a unique molecule node ID.
         

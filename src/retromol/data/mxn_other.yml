@@ -19,15 +19,19 @@
 
 - name: fluorination
   smiles: "F"
+  family_tokens: ["halogenation"]
 
 - name: chlorination
   smiles: "Cl"
+  family_tokens: ["halogenation"]
 
 - name: bromination
   smiles: "Br"
+  family_tokens: ["halogenation"]
 
 - name: iodination
   smiles: "I"
+  family_tokens: ["halogenation"]
 
 - name: methanol
   smiles: "CO"
@@ -56,83 +60,109 @@
 - name: propanoic acid
   smiles: "CCC(O)=O"
 
-- name: glycosylation
+- name: 4-amino-6-methyloxane-2,3-diol
   smiles: "CC1CC(N)C(O)C(O)O1"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: sugar
   smiles: "CC1OC(O)CC(N)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 4,6-dimethyloxane-2,4,5-triol
   smiles: "CC1OC(O)CC(C)(O)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 6-methyloxane-2,3,4-triol
   smiles: "CC1CC(O)C(O)C(O)O1"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: sugar
   smiles: "NC1C(O)OC(O)C(O)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: arabinose
   smiles: "OC1COC(O)C(O)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: glucose
   smiles: "OCC1OC(O)C(O)C(O)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 6-methyloxane-2,5-diol
   smiles: "CC1OC(O)CCC1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 6-methyloxane-2,4,5-triol
   smiles: "CC1OC(O)CC(O)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: rhamnose
   smiles: "CC1OC(O)C(O)C(O)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: sugar
   smiles: "CC1OC(O)C(O)C(N)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: sugar
   smiles: "CC(C1(C(C(C(OC1C)O)O)O)O)O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: sugar
   smiles: "CC(C1(O)C(O)C(O)C(O)OC1C)=O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: glucosamine
   smiles: "NC1C(C(C(OC1O)CO)O)O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: sugar
   smiles: "NC1COC(CC1O)O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 5-amino-6-methyloxane-2,3,4-triol
   smiles: "OC1C(O)C(N)C(C)OC1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 6-methyl-5-sulfanyloxane-2,4-diol
   smiles: "CC1OC(CC(C1S)O)O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 4-amino-4,6-dimethyloxane-2,5-diol
   smiles: "CC1(N)CC(O)OC(C)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 4,6-diaminocyclohexane-1,2,3-triol
   smiles: "NC1C(O)C(O)C(O)C(N)C1"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: sugar
   smiles: "O=CC1(O)C(CO)OC(O)C1O"
+  family_tokens: ["glycosylation"]
 
 # Tautomers
-- name: glycosylation
+- name: 2-[3-(diaminomethylideneamino)-2,4,5,6-tetrahydroxycyclohexyl]guanidine
   smiles: "NC(N)=NC1C(O)C(O)C(O)C(N=C(N)N)C1O"
-- name: glycosylation
+  family_tokens: ["glycosylation"]
+- name: 2-[3-(diaminomethylideneamino)-2,4,5,6-tetrahydroxycyclohexyl]guanidine
   smiles: "N=C(N)NC1C(O)C(NC(=N)N)C(O)C(O)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: ribose
   smiles: "OCC1OC(O)C(O)C1O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 3-amino-6-(aminomethyl)oxane-2,4,5-triol
   smiles: "NCC1OC(C(C(C1O)O)N)O"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: sugar
   smiles: "OC1CC(C)(OC)C(O)C(C)O1"
+  family_tokens: ["glycosylation"]
 
-- name: glycosylation
+- name: 4-dimethylamino-6-methyloxane-2,3-diol
   smiles: "OC1C(O)C(N(C)C)CC(C)O1"
+  family_tokens: ["glycosylation"]
 
 # Tautomers
 - name: arginine
@@ -1065,9 +1095,11 @@
 
 - name: N-(5-aminopentyl)hydroxylamine
   smiles: "NCCCCCNO"
+  family_tokens: ["siderophore"]
 
 - name: butanedioic acid
   smiles: "O=C(O)CCC(O)=O"
+  family_tokens: ["siderophore"]
 
 - name: 3-formamido-2-hydroxybenzoic acid
   smiles: "O=CNc1cccc(C(=O)O)c1O"

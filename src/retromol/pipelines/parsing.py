@@ -115,7 +115,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
 
 def extract_min_edge_synthesis_subgraph(
     g: ReactionGraph,
-    root_enc: int,
+    root_enc: str,
     prefer_kind: tuple[str, ...] = ("uncontested", "contested"),
     edge_base_cost: float = 1.0,
     nonterminal_leaf_penalty: float = 0.25,
@@ -133,7 +133,7 @@ def extract_min_edge_synthesis_subgraph(
     and includes all required precursor branches for that choice.
 
     :param g: ReactionGraph: the full retrosynthesis reaction graph
-    :param root_enc: int: encoding of the root molecule to extract from
+    :param root_enc: encoding of the root molecule to extract from
     :param prefer_kind: tuple[str, ...]: preference order for reaction kinds when costs are equal
     :param edge_base_cost: float: base cost per reaction edge
     :param nonterminal_leaf_penalty: float: penalty for identified leaves that are non-terminal
@@ -163,14 +163,14 @@ def extract_min_edge_synthesis_subgraph(
     memo_choice: dict[int, Optional[int]] = {}  # node -> chosen edge index
     visiting: set[int] = set()
 
-    def is_terminal(enc: int) -> bool:
+    def is_terminal(enc: str) -> bool:
         n = g.nodes.get(enc)
         if not n or not n.is_identified:
             return False
         ident = n.identity
         return bool(getattr(ident, "terminal", True))
 
-    def solve_cost(enc: int) -> float:
+    def solve_cost(enc: str) -> float:
         n = g.nodes.get(enc)
 
         # Hard leaves: identified + terminal=True
@@ -241,7 +241,7 @@ def extract_min_edge_synthesis_subgraph(
     kept_nodes: set[int] = set()
     kept_edge_indices: set[int] = set()
 
-    def extract(enc: int) -> None:
+    def extract(enc: str) -> None:
         if enc in kept_nodes:
             return
         kept_nodes.add(enc)

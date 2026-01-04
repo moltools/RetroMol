@@ -28,7 +28,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "2-deoxystreptamine",
         r"C1C(C(C(C(C1N)O)O)O)N",
         1.0,
-        ["glycosylation"],
+        ["4,6-diaminocyclohexane-1,2,3-triol"],
     ),
     (
         "6-deoxyerythronolide B",
@@ -58,7 +58,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "aculeximycin",
         r"CCCC(O[C@H]1C[C@](C)(N)[C@H](O)[C@H](C)O1)C(C)C(O)C(CC)\C=C\C(O)C(C)C1C\C=C(C)\C(O)C(C)C(CC(O)C(C)C(O)CC2CC(O)C(O)C(O)(CC(O[C@@H]3O[C@H](C)[C@@H](O)[C@H](O[C@H]4C[C@@H](N)[C@H](O)[C@@H](C)O4)[C@H]3O[C@@H]3O[C@H](C)[C@@H](O)[C@H](O)[C@H]3O)C(C)CCC(O)CC(O)C\C=C(CC)\C(=O)O1)O2)O[C@@H]1O[C@H](CO)[C@@H](O)[C@H](O)[C@@H]1O",
         1.0,
-        ["A1", "B1", "B1", "B1", "B1", "B1", "B1", "B2", "B2", "B2", "B2", "B2", "B4", "B5", "C1", "C2", "C4", "D1", "D1", "acetic acid", "butanoic acid", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation"],
+        ["4-amino-4,6-dimethyloxane-2,5-diol", "A1", "B1", "B1", "B1", "B1", "B1", "B1", "B2", "B2", "B2", "B2", "B2", "B4", "B5", "C1", "C2", "C4", "D1", "D1", "acetic acid", "butanoic acid", "glucose", "rhamnose", "rhamnose", "sugar"],
     ),
     (
         "acutiphycin",
@@ -112,19 +112,19 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "apoptolidin",
         r"COC[C@@H](C[C@H]1O[C@@](O)([C@H](O)[C@@H]2C[C@H](OC)[C@@H](O)CC\C=C(/C)\C=C\[C@@H](O[C@@H]3O[C@@H](C)[C@H](OC)[C@@H](O)[C@@H]3O)[C@H](C)\C=C(/C)\C=C(/C)\C=C(C)\C(=O)O2)[C@H](C)[C@@H](O)[C@H]1C)O[C@H]1C[C@](C)(O)[C@@H](O[C@H]2C[C@@H](OC)[C@H](O)[C@@H](C)O2)[C@H](C)O1",
         1.0,
-        ["A2", "B1", "B1", "B2", "B2", "B5", "C1", "C2", "C2", "C2", "C2", "D5", "glycosylation", "glycosylation", "glycosylation", "malonic acid", "methanol", "methylation", "methylation", "methylation", "methylation"]
+        ["4,6-dimethyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "A2", "B1", "B1", "B2", "B2", "B5", "C1", "C2", "C2", "C2", "C2", "D5", "malonic acid", "methanol", "methylation", "methylation", "methylation", "methylation", "rhamnose"],
     ),
     (
         "avilamycin A",
         r"C[C@@H]1[C@H]([C@@H](C[C@@H](O1)O[C@@H]2[C@H](OC3(C[C@@H]2O)O[C@@H]4[C@H](O[C@H](C[C@]4(O3)C)O[C@@H]5[C@H]([C@@H](O[C@@H]([C@@H]5OC)C)O[C@@H]6[C@H](O[C@H]([C@H]([C@H]6O)OC)O[C@H]7[C@@H]([C@H]8[C@H](CO7)O[C@@]9(O8)C1C([C@@]([C@H](O9)C)(C(=O)C)O)OCO1)OC(=O)C(C)C)COC)O)C)C)O)OC(=O)C1=C(C(=C(C(=C1OC)Cl)O)Cl)C",
         1.0,
-        ["A1", "A1", "C1", "acetic acid", "chlorination", "chlorination", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "isobutyric acid", "methanol", "methylation", "methylation", "methylation", "methylation", "orsellinic acid"],
+        ["4,6-dimethyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "A1", "A1", "C1", "acetic acid", "arabinose", "chlorination", "chlorination", "glucose", "isobutyric acid", "methanol", "methylation", "methylation", "methylation", "methylation", "orsellinic acid", "rhamnose", "sugar"],
     ),
     (
         "avilamycin C",
         r"C[C@@H]1[C@H]([C@@H](C[C@@H](O1)O[C@@H]2[C@H](OC3(C[C@H]2O)O[C@@H]4[C@H](O[C@H](C[C@]4(O3)C)O[C@@H]5[C@H]([C@@H](O[C@@H]([C@@H]5OC)C)O[C@@H]6[C@H](O[C@H]([C@H]([C@H]6O)OC)O[C@H]7[C@@H]([C@H]8[C@H](CO7)O[C@@]9(O8)[C@H]1[C@H]([C@@]([C@H](O9)C)(C(C)O)O)OCO1)OC(=O)C(C)C)COC)O)C)C)O)OC(=O)C1=C(C(=C(C(=C1OC)Cl)O)Cl)C",
         1.0,
-        ["A1", "A1", "C1", "acetic acid", "chlorination", "chlorination", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "isobutyric acid", "methanol", "methylation", "methylation", "methylation", "methylation", "orsellinic acid"],
+        ["4,6-dimethyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "A1", "A1", "C1", "acetic acid", "arabinose", "chlorination", "chlorination", "glucose", "isobutyric acid", "methanol", "methylation", "methylation", "methylation", "methylation", "orsellinic acid", "rhamnose", "sugar"],
     ),
     (
         "bitungolide F",
@@ -142,20 +142,20 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "butirosin A",
         r"C1[C@@H]([C@H]([C@@H]([C@H]([C@@H]1NC(=O)[C@H](CCN)O)O)O[C@H]2[C@@H]([C@H]([C@H](O2)CO)O)O)O[C@@H]3[C@@H]([C@H]([C@@H]([C@H](O3)CN)O)O)N)N",
         1.0,
-        ["4-amino-2-hydroxybutanoic acid", "D5", "glycine", "glycosylation", "glycosylation", "glycosylation"],
+        ["3-amino-6-(aminomethyl)oxane-2,4,5-triol", "4,6-diaminocyclohexane-1,2,3-triol", "4-amino-2-hydroxybutanoic acid", "D5", "glycine", "ribose"],
     ),
     (
         "butirosin B",
         r"C1[C@@H]([C@H]([C@@H]([C@H]([C@@H]1NC(=O)[C@H](CCN)O)O)O[C@H]2[C@@H]([C@@H]([C@H](O2)CO)O)O)O[C@@H]3[C@@H]([C@H]([C@@H]([C@H](O3)CN)O)O)N)N",
         1.0,
-        ["4-amino-2-hydroxybutanoic acid", "D5", "glycine", "glycosylation", "glycosylation", "glycosylation"]
+        ["3-amino-6-(aminomethyl)oxane-2,4,5-triol", "4,6-diaminocyclohexane-1,2,3-triol", "4-amino-2-hydroxybutanoic acid", "D5", "glycine", "ribose"],
     ),
     (
         "calicheamicin",
         r"CCN[C@H]1CO[C@H](C[C@@H]1OC)O[C@@H]2[C@H]([C@@H]([C@H](OC2O[C@H]3C#C/C=C\C#C[C@]\4(CC(=O)C(=C3/C4=C\CSSSC)NC(=O)OC)O)C)NO[C@H]5C[C@@H]([C@@H]([C@H](O5)C)SC(=O)C6=C(C(=C(C(=C6OC)OC)O[C@H]7[C@@H]([C@@H]([C@H]([C@@H](O7)C)O)OC)O)I)C)O)O",
         0.70,
         # Default rule set is not able to parse the enediyne core, but should at least identify the sugar parts
-        ["A1", "A5", "C1", "acetic acid", "ethanol", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "iodination", "methylation", "methylation", "methylation", "methylation", "methylation", "methylation"],
+        ["5-amino-6-methyloxane-2,3,4-triol", "6-methyl-5-sulfanyloxane-2,4-diol", "A1", "A5", "C1", "acetic acid", "ethanol", "iodination", "methylation", "methylation", "methylation", "methylation", "methylation", "methylation", "rhamnose", "sugar"],
     ),
     (
         "callystatin",
@@ -192,7 +192,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "chlorothricin",
         r"C[C@@H](C(C(O)=O)=C1)C[C@@]2(C(O)=C(O3)C(O2)=O)[C@@H]1C=CCCCC[C@@H]4C=C[C@@]([C@@H](O[C@@H]5C[C@H](O)[C@@H](O[C@H]6O[C@@H](C)[C@H](O)[C@@H](OC(C7=C(C)C(Cl)=CC=C7OC)=O)C6)[C@@H](C)O5)CCC8)([H])[C@]8([H])[C@@H]4C3=O",
         1.0,
-        ["6-methylsalicylic acid", "A1", "A5", "B1", "C1", "C1", "C1", "C1", "C1", "C1", "C1", "C13", "D1", "D1", "D1", "acetic acid", "acetic acid", "chlorination", "glyceric acid", "glycosylation", "glycosylation", "methylation"],
+        ["6-methyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "6-methylsalicylic acid", "A1", "A5", "B1", "C1", "C1", "C1", "C1", "C1", "C1", "C1", "C13", "D1", "D1", "D1", "acetic acid", "acetic acid", "chlorination", "glyceric acid", "methylation"]
     ),
     (
         "coelimycin P1",
@@ -210,13 +210,13 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "cremimycin",
         r"CCCCCCC1CC(CCCC(C/C(O)=C2C(/C=C(/C=C\C=C/C(N1)=O)C)CC(C\2=O)O[C@H]3C[C@@H]([C@@H]([C@H](O3)C)O)OC)O)=O",
         1.0,
-        ["A", "A1", "A1", "B1", "B1", "C1", "C1", "C1", "C2", "D1", "D1", "D1", "glycosylation", "heptanoic acid", "methylation", "oxidation", "pentanoic acid", "propanoic acid"]
+        ["6-methyloxane-2,4,5-triol", "A", "A1", "A1", "B1", "B1", "C1", "C1", "C1", "C2", "D1", "D1", "D1", "heptanoic acid", "methylation", "oxidation", "pentanoic acid", "propanoic acid"],
     ),
     (
         "deschlorothricin",
         r"C[C@@H](C(C(O)=O)=C1)C[C@@]2(C(O)=C(O3)C(O2)=O)[C@@H]1C=CCCCC[C@@H]4C=C[C@@]([C@@H](O[C@@H]5C[C@H](O)[C@@H](O[C@H]6O[C@@H](C)[C@H](O)[C@@H](OC(C7=C(C)C=CC=C7OC)=O)C6)[C@@H](C)O5)CCC8)([H])[C@]8([H])[C@@H]4C3=O",
         1.0,
-        ["6-methylsalicylic acid", "A1", "A5", "B1", "C1", "C1", "C1", "C1", "C1", "C1", "C1", "C13", "D1", "D1", "D1", "acetic acid", "acetic acid", "glyceric acid", "glycosylation", "glycosylation", "methylation"]
+        ["6-methyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "6-methylsalicylic acid", "A1", "A5", "B1", "C1", "C1", "C1", "C1", "C1", "C1", "C1", "C13", "D1", "D1", "D1", "acetic acid", "acetic acid", "glyceric acid", "methylation"]
     ),
     (
         "daptomycin",
@@ -246,7 +246,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "erythromycin",
         r"CC[C@@H]1[C@@]([C@@H]([C@H](C(=O)[C@@H](C[C@@]([C@@H]([C@H]([C@@H]([C@H](C(=O)O1)C)O[C@H]2C[C@@]([C@H]([C@@H](O2)C)O)(C)OC)C)O[C@H]3[C@@H]([C@H](C[C@H](O3)C)N(C)C)O)(C)O)C)C)O)(C)O",
         1.0,
-        ["A2", "B2", "B2", "B2", "B6", "D6", "glycosylation", "glycosylation", "methylation", "propanoic acid"],
+        ["4,6-dimethyloxane-2,4,5-triol", "4-dimethylamino-6-methyloxane-2,3-diol", "A2", "B2", "B2", "B2", "B6", "D6", "methylation", "propanoic acid"]
     ),
     (
         "georatusin",
@@ -276,7 +276,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "hydroxystreptomycin",
         r"CN[C@H]1[C@H](O)[C@@H](O)[C@H](CO)O[C@H]1O[C@H]1[C@H](O[C@H]2[C@H](O)[C@@H](O)[C@H](NC(N)=N)[C@@H](O)[C@@H]2NC(N)=N)O[C@@H](CO)[C@]1(O)C=O",
         1.0,
-        ["glycosylation", "glycosylation", "glycosylation", "methylation"],
+        ["2-[3-(diaminomethylideneamino)-2,4,5,6-tetrahydroxycyclohexyl]guanidine", "glucosamine", "methylation", "sugar"],
     ),
     (
         "hymenosetin",
@@ -330,7 +330,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "lankamycin",
         r"C[C@@H]1C[C@@H]([C@H]([C@@H](O1)O[C@H]2[C@H](C[C@](C(=O)[C@@H]([C@H]([C@H]([C@H](OC(=O)[C@@H]([C@H]([C@@H]2C)O[C@H]3C[C@@]([C@@H]([C@@H](O3)C)OC(=O)C)(C)OC)C)[C@@H](C)[C@H](C)O)C)OC(=O)C)C)(C)O)C)O)OC",
         1.0,
-        ["A6", "B2", "B2", "B2", "B2", "B2", "D2", "acetic acid", "acetic acid", "acetic acid", "glycosylation", "glycosylation", "methylation", "methylation"],
+        ["4,6-dimethyloxane-2,4,5-triol", "6-methyloxane-2,3,4-triol", "A6", "B2", "B2", "B2", "B2", "B2", "D2", "acetic acid", "acetic acid", "acetic acid", "methylation", "methylation"],
     ),
     (
         "latrunculin",
@@ -366,7 +366,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "megalomycin A",
         r"CC[C@@H]1[C@@]([C@@H]([C@H](C(=O)[C@@H](C[C@@]([C@@H]([C@H]([C@@H]([C@H](C(=O)O1)C)O[C@H]2C[C@@]([C@H]([C@@H](O2)C)O)(C)O)C)O[C@H]3[C@@H]([C@H](C[C@H](O3)C)N(C)C)O)(C)O[C@H]4C[C@H]([C@H]([C@@H](O4)C)O)N(C)C)C)C)O)(C)O",
         1.0,
-        ["A2", "B2", "B2", "B2", "B6", "D6", "glycosylation", "glycosylation", "glycosylation", "methylation", "methylation", "propanoic acid"],
+        ["4,6-dimethyloxane-2,4,5-triol", "4-dimethylamino-6-methyloxane-2,3-diol", "A2", "B2", "B2", "B2", "B6", "D6", "methylation", "methylation", "propanoic acid", "sugar"],
     ),
     (
         "micacocidin A",

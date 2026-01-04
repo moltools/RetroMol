@@ -20,7 +20,8 @@ dependencies = [
     "numpy",
     "pandas",
     "pyyaml",
-    "ijson"
+    "ijson",
+    "matplotlib"
 ]
 
 classifiers = [
