@@ -21,9 +21,13 @@ name5 = "nocardichelin B"
 smi5 = r"CCCCCCCCCCC/C=C\C(=O)N(CCCCCNC(=O)CCC(=O)N(CCCCCNC(=O)[C@@H]1COC(=N1)C2=CC=CC=C2O)O)O"
 name6 = "daptomycin"
 smi6 = r"CCCCCCCCCC(=O)N[C@@H](CC1=CNC2=CC=CC=C21)C(=O)N[C@H](CC(=O)N)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@H]3[C@H](OC(=O)[C@@H](NC(=O)[C@@H](NC(=O)[C@H](NC(=O)CNC(=O)[C@@H](NC(=O)[C@H](NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CNC3=O)CCCN)CC(=O)O)C)CC(=O)O)CO)[C@H](C)CC(=O)O)CC(=O)C4=CC=CC=C4N)C"
+name7 = "dictyostatin"
+smi7 = r"C[C@H]1CC[C@H]([C@@H]([C@@H](OC(=O)/C=C\C=C\[C@H]([C@H](C[C@@H](/C=C\[C@@H]([C@@H]([C@H](C1)C)O)C)O)O)C)[C@@H](C)/C=C\C=C)C)O"
+name8 = "discodermolide"
+smi8 = r"C[C@H]1[C@@H](OC(=O)[C@@H]([C@H]1O)C)C[C@@H](/C=C\[C@H](C)[C@@H]([C@@H](C)/C=C(/C)\C[C@H](C)[C@H]([C@H](C)[C@H]([C@@H](C)/C=C\C=C)OC(=O)N)O)O)O"
 
-names = [name1, name2, name3, name4, name5, name6]
-smis = [smi1, smi2, smi3, smi4, smi5, smi6]
+names = [name1, name2, name3, name4, name5, name6, name7, name8]
+smis = [smi1, smi2, smi3, smi4, smi5, smi6, smi7, smi8]
 subs = [Submission(smi) for smi in smis]
 
 ruleset = RuleSet.load_default(match_stereochemistry=False)
@@ -38,17 +42,19 @@ print(len(generator.groups), len(generator.monomers))
 fingerprints = np.array([generator.fingerprint_from_result(r, num_bits=512, counted=True) for r in results])
 print(fingerprints.shape)
 
-def similarity_matrix(fps, sim):
+def similarity_matrix(fps, names, sim):
     n = fps.shape[0]
     M = np.zeros((n, n), dtype=float)
 
     for i in range(n):
         for j in range(n):
-            M[i, j] = sim(fps[i], fps[j])
+            score = sim(fps[i], fps[j])
+            print(f"similarity {names[i]} vs {names[j]}: {score:.4f}")
+            M[i, j] = score
         
     return M
 
-S = similarity_matrix(fingerprints, calculate_cosine_similarity)
+S = similarity_matrix(fingerprints, names, calculate_tanimoto_similarity)
 
 plt.imshow(S, vmin=0.0, vmax=1.0, cmap="viridis")
 plt.colorbar(label="similarity")
