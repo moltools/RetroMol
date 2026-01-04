@@ -312,4 +312,4 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     )
 
 
-run_retromol_with_timeout = timeout_decorator(seconds=int(os.getenv("TIMEOUT_RUN_RETROMOL", "30")))(run_retromol)
+run_retromol_with_timeout = timeout_decorator(seconds=int(os.getenv("TIMEOUT_RUN_RETROMOL", "60")))(run_retromol)
