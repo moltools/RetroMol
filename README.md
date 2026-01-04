@@ -59,18 +59,9 @@ In either case a the output folder will contain a log file together with the res
 
 Any column, field, or property in the input file, either CSV, TSV, SDF, or JSON, is preserved as props in the output JSON or JSONL.
 
-Stereochemistry parsing is supported by supplying the `--matchstereochem` flag. This flag annotates the identifier of every identified monomer with R/S and E/Z annotation where applicable.
+Stereochemistry parsing is supported by supplying the `-c` flag.
 
-Result JSONs or lines from a JSONL file can be loaded into Python using RetroMol's `Result` class for further downstream analyses:
-
-```python
-from retromol.io import Result
-
-result = Result.from_serialized(<json_dict>)
-
-# e.g., calculate coverage
-coverage = result.best_total_coverage()
-```
+Result JSONs or lines from a JSONL file can be loaded into Python using RetroMol's `Result` class for further downstream analyses.
 
 Check out the [examples](https://github.com/moltools/RetroMol/tree/main/examples) folder for example scripts demonstrating how to use RetroMol as a library.
 
@@ -97,8 +88,6 @@ in "editable" mode with the development dependencies:
 git clone git+https://github.com/MolTools/RetroMol.git
 cd RetroMol
 pip install -e .[dev]
-pip install hatch     # if you don't have hatch installed yet; needed for building the package
-hatch env create dev  # create the development environment
 ```
 
 You can now make code changes locally and have them immediately available for testing.
