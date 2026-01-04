@@ -350,7 +350,7 @@ class MatchingRule:
     terminal: bool = True
 
     family_tokens: set[str] = field(default_factory=set)
-    ancestor_tokens: set[tuple[str, ...]] = field(default_factory=set)
+    ancestor_tokens: list[str] = field(default_factory=list)
 
     mol: Mol = field(init=False, repr=False)
 
@@ -382,7 +382,7 @@ class MatchingRule:
             "props": self.props,
             "terminal": self.terminal,
             "family_tokens": list(self.family_tokens),
-            "ancestor_tokens": [list(t) for t in self.ancestor_tokens],
+            "ancestor_tokens": list(self.ancestor_tokens),
         }
 
     @classmethod
@@ -399,7 +399,7 @@ class MatchingRule:
             props=data.get("props", {}),
             terminal=data.get("terminal", True),
             family_tokens=set(data.get("family_tokens", [])),
-            ancestor_tokens=set(tuple(t) for t in data.get("ancestor_tokens", [])),
+            ancestor_tokens=list(data.get("ancestor_tokens", [])),
         )
         return matching_rule
 

@@ -6,12 +6,12 @@ from collections.abc import Callable, Iterable, Sequence
 from typing import Any, Literal
 
 import numpy as np
-import yaml
 from numpy.typing import NDArray
 
 from retromol.model.result import Result
 from retromol.model.rules import MatchingRule
 from retromol.model.assembly_graph import AssemblyGraph
+from retromol.model.reaction_graph import MolNode
 from retromol.utils.hashing import blake64_hex
 
 from retromol.fingerprint.monomer_collapse import Group, collapse_monomers, assign_to_group
@@ -238,6 +238,20 @@ class FingerprintGenerator:
         self._assign_cache[smiles] = group
     
         return group
+    
+    def ancestor_list_for_node(self, node: MolNode) -> list[str | None]:
+        """
+        Return full ancestor hierarchy for a node.
+
+        :param node: MolNode to get ancestors for
+        :return: list of ancestor tokens (str or None)
+        """
+        anc: list[str] = []
+
+        if node.is_identified and node.identity.matched_rule.ancestor_tokens:
+            anc.extend(node.identity.matched_rule.ancestor_tokens)
+
+        return anc
 
     def fingerprint_from_result(
         self,
@@ -275,20 +289,29 @@ class FingerprintGenerator:
 
         for kmer_size in kmer_sizes:
             for kmer in a.iter_kmers(k=kmer_size):
-                
-                # Gather structural tokens based on monomer group assignments
-                tokenized_kmer: list[str | None] = []
+
+                per_node_ancestors: list[list[str | None]] = []
+                max_depth = 0
+
                 for node in kmer:
-                    assigned = self.assign_to_group(node.smiles)
-                    token = assigned.token if assigned is not None else None
-                    tokenized_kmer.append(token)
+                    anc = self.ancestor_list_for_node(node)
+                    per_node_ancestors.append(anc)
+                    max_depth = max(max_depth, len(anc))
 
-                # Gather additional ancestor tokens (defined in matching rules) for every kmer
-                tokenized_ancestor_kmers: list[list[str | None]] = []
-                # TODO
+                # Emit ancestor-aligned kmers
+                for level in range(max_depth):
+                    tokenized_kmers.append(tuple(
+                        anc[level] if level < len(anc) else None
+                        for anc in per_node_ancestors
+                    ))
 
-                tokenized_kmers.append(tuple(tokenized_kmer))
-                tokenized_kmers.extend(tuple(tok) for tok in tokenized_ancestor_kmers)
+                # Emite structural kmer separately (structure only)
+                tokenized_kmers.append(tuple(
+                    (self.assign_to_group(node.smiles).token
+                     if self.assign_to_group(node.smiles) is not None
+                     else None)
+                     for node in kmer
+                ))
 
         # Gather additional 1-mer virtual family tokens (defined in matching rules); only once per found monomer
         for node in a.monomer_nodes():
