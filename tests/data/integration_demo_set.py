@@ -45,14 +45,14 @@ CASES: list[tuple[str, str, float, list[str]]] = [
     (
         "abyssomicin C",
         r"C[C@@H]1C[C@]23OC(=O)C4=C2OC1[C@H](O)C3\C=C\C(=O)[C@@H](C)C[C@@H](C)C4=O",
-        0.04,
-        ["oxidation"],
+        0.72,
+        ["A2", "C1", "C1", "C1", "D2", "acetic acid", "glyceric acid", "oxidation"],
     ),
     (
         "atrop-abyssocymin C",
         r"CC1CC23OC(=O)C4=C2OC1C(O)C3\C=C/C(=O)C(C)CC(C)C4=O",
-        0.04,
-        ["oxidation"],
+        0.72,
+        ["A2", "C1", "C1", "C1", "D2", "acetic acid", "glyceric acid", "oxidation"],
     ),
     (
         "aculeximycin",
@@ -153,9 +153,9 @@ CASES: list[tuple[str, str, float, list[str]]] = [
     (
         "calicheamicin",
         r"CCN[C@H]1CO[C@H](C[C@@H]1OC)O[C@@H]2[C@H]([C@@H]([C@H](OC2O[C@H]3C#C/C=C\C#C[C@]\4(CC(=O)C(=C3/C4=C\CSSSC)NC(=O)OC)O)C)NO[C@H]5C[C@@H]([C@@H]([C@H](O5)C)SC(=O)C6=C(C(=C(C(=C6OC)OC)O[C@H]7[C@@H]([C@@H]([C@H]([C@@H](O7)C)O)OC)O)I)C)O)O",
-        0.70,
+        0.74,
         # Default rule set is not able to parse the enediyne core, but should at least identify the sugar parts
-        ["5-amino-6-methyloxane-2,3,4-triol", "6-methyl-5-sulfanyloxane-2,4-diol", "A1", "A5", "C1", "acetic acid", "ethanol", "iodination", "methylation", "methylation", "methylation", "methylation", "methylation", "methylation", "rhamnose", "sugar"],
+        ["5-amino-6-methyloxane-2,3,4-triol", "6-methyl-5-sulfanyloxane-2,4-diol", "A1", "A5", "C1", "acetic acid", "carbonic acid", "ethanol", "iodination", "methylation", "methylation", "methylation", "methylation", "methylation", "methylation", "rhamnose", "sugar"]
     ),
     (
         "callystatin",
@@ -168,13 +168,13 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         r"C[C@@H]\1CCC[C@@H]([C@H](OC(=O)[C@@H]([C@@H](/C=C1)O)O)/C(=C/[C@@H](C)C(=O)[C@H](C)[C@@H](CC(=O)O)OC)/C)C",
         1.0,
         # This parsing is ambiguous... can parse from two sides and neither is correct/wrong
-        ["A2", "B11", "B2", "B2", "C2", "D1", "D1", "D2", "malonic acid", "methylation"]
+        ["A2", "B1", "B2", "B5", "C1", "C2", "D2", "D2", "malonic acid", "methylation"],
     ),
     (
         "chaetoglobosin A",
         r"C[C@H]\1C/C=C/[C@H]2[C@H]3[C@](O3)([C@H]([C@@H]4[C@@]2(C(=O)/C=C/C(=O)[C@@H](/C(=C1)/C)O)C(=O)N[C@H]4CC5=CNC6=CC=CC=C65)C)C",
-        0.9,
-        ["A1", "C1", "C1", "C2", "C2", "D1", "D2", "acetic acid", "oxidation", "tryptophan"]
+        1.0,
+        ["A1", "B11", "C1", "C1", "C1", "C2", "C2", "D2", "acetic acid", "oxidation", "tryptophan"],
     ),
     (
         "chichorine",
@@ -192,7 +192,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "chlorothricin",
         r"C[C@@H](C(C(O)=O)=C1)C[C@@]2(C(O)=C(O3)C(O2)=O)[C@@H]1C=CCCCC[C@@H]4C=C[C@@]([C@@H](O[C@@H]5C[C@H](O)[C@@H](O[C@H]6O[C@@H](C)[C@H](O)[C@@H](OC(C7=C(C)C(Cl)=CC=C7OC)=O)C6)[C@@H](C)O5)CCC8)([H])[C@]8([H])[C@@H]4C3=O",
         1.0,
-        ["6-methyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "6-methylsalicylic acid", "A1", "A5", "B1", "C1", "C1", "C1", "C1", "C1", "C1", "C1", "C13", "D1", "D1", "D1", "acetic acid", "acetic acid", "chlorination", "glyceric acid", "methylation"]
+        ["6-methyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "6-methylsalicylic acid", "A1", "B1", "C1", "C1", "C1", "C1", "C1", "C1", "C1", "C13", "D1", "D1", "D1", "acetic acid", "acetic acid", "chlorination", "glyceric acid", "glycolic acid", "methylation"],
     ),
     (
         "coelimycin P1",
@@ -216,7 +216,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "deschlorothricin",
         r"C[C@@H](C(C(O)=O)=C1)C[C@@]2(C(O)=C(O3)C(O2)=O)[C@@H]1C=CCCCC[C@@H]4C=C[C@@]([C@@H](O[C@@H]5C[C@H](O)[C@@H](O[C@H]6O[C@@H](C)[C@H](O)[C@@H](OC(C7=C(C)C=CC=C7OC)=O)C6)[C@@H](C)O5)CCC8)([H])[C@]8([H])[C@@H]4C3=O",
         1.0,
-        ["6-methyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "6-methylsalicylic acid", "A1", "A5", "B1", "C1", "C1", "C1", "C1", "C1", "C1", "C1", "C13", "D1", "D1", "D1", "acetic acid", "acetic acid", "glyceric acid", "methylation"]
+        ["6-methyloxane-2,4,5-triol", "6-methyloxane-2,4,5-triol", "6-methylsalicylic acid", "A1", "B1", "C1", "C1", "C1", "C1", "C1", "C1", "C1", "C13", "D1", "D1", "D1", "acetic acid", "acetic acid", "glyceric acid", "glycolic acid", "methylation"],
     ),
     (
         "daptomycin",
@@ -264,7 +264,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "harzianic acid",
         r"CCC/C=C/C=C/C(=C\1/C(=O)C(N(C1=O)C)CC(C(C)C)(C(=O)O)O)/O",
         1.0,
-        ["A1", "C1", "C1", "D1", "acetic acid", "artificial amino acid harzianic acid", "butanoic acid", "methylation"],
+        ["A1", "C1", "C1", "D1", "acetic acid", "artificial amino acid harzianic acid", "butanoic acid", "methylation", "trans-2-hexanoic acid"]
     ),
     (
         "herboxidiene",

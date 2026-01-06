@@ -14,9 +14,8 @@ from rdkit import RDLogger
 from retromol.version import __version__
 from retromol.utils.logging import setup_logging, add_file_handler
 from retromol.model.rules import RuleSet
-from retromol.model.submission import Submission
 from retromol.model.result import Result
-from retromol.model.readout import LinearReadout
+from retromol.model.submission import Submission
 from retromol.pipelines.parsing import run_retromol_with_timeout
 from retromol.io.streaming import run_retromol_stream, stream_sdf_records, stream_table_rows, stream_json_records
 from retromol.chem.mol import encode_mol
@@ -129,27 +128,32 @@ def main() -> None:
         result: Result = run_retromol_with_timeout(submission, ruleset)
         log.info(f"result: {result}")
 
+        # Write out result to file and then read back in again for visualization (test I/O)
+        result_dict = result.to_dict()
+        with open(os.path.join(args.outdir, "result.json"), "w") as f:
+            json.dump(result_dict, f, indent=4)
+
+        with open(os.path.join(args.outdir, "result.json"), "r") as f:
+            result_data = json.load(f)
+        result2 = Result.from_dict(result_data)
+
         # Report on coverage as percentage of tags identified
-        coverage = result.calculate_coverage()
+        coverage = result2.calculate_coverage()
         log.info(f"coverage: {coverage:.2%}")
 
-        # Get linear readout; print summary
-        linear_readout = LinearReadout.from_result(result)
+        # Get linear readout; draw assembly graph
+        linear_readout = result2.linear_readout
         out_assembly_graph_fig = os.path.join(args.outdir, "assembly_graph.png")
         linear_readout.assembly_graph.draw(show_unassigned=True, savepath=out_assembly_graph_fig)
         log.info(f"linear readout: {linear_readout}")
 
         # Visualize reaction graph
-        root = encode_mol(result.submission.mol)
+        root = encode_mol(result2.submission.mol)
         visualize_reaction_graph(
-            result.reaction_graph,
+            result2.reaction_graph,
             html_path=os.path.join(args.outdir, "reaction_graph.html"),
             root_enc=root
         )
-
-        result_dict = result.to_dict()
-        with open(os.path.join(args.outdir, "result.json"), "w") as f:
-            json.dump(result_dict, f, indent=4)
 
         result_counts["successes"] += 1
 

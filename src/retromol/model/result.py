@@ -1,10 +1,11 @@
 """Module defining the Result data class."""
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Any
 
 from retromol.model.submission import Submission
 from retromol.model.reaction_graph import ReactionGraph
+from retromol.model.readout import LinearReadout
 from retromol.chem.tagging import get_tags_mol
 
 
@@ -12,10 +13,15 @@ from retromol.chem.tagging import get_tags_mol
 class Result:
     """
     Represents a RetroMol parsing result.
+
+    :var submission: Submission: the original submission associated with this result
+    :var reaction_graph: ReactionGraph: the reaction graph generated from retrosynthetic analysis
+    :var linear_readout: LinearReadout: the linear readout representation of the reaction graph
     """
 
     submission: Submission
     reaction_graph: ReactionGraph
+    linear_readout: LinearReadout
 
     def __str__(self) -> str:
         """
@@ -55,6 +61,7 @@ class Result:
         return {
             "submission": self.submission.to_dict(),
             "reaction_graph": self.reaction_graph.to_dict(),
+            "linear_readout": self.linear_readout.to_dict(),
         }
     
     @classmethod
@@ -67,8 +74,10 @@ class Result:
         """
         submission = Submission.from_dict(data["submission"])
         reaction_graph = ReactionGraph.from_dict(data["reaction_graph"])
+        linear_readout = LinearReadout.from_dict(data["linear_readout"])
 
         return cls(
             submission=submission,
             reaction_graph=reaction_graph,
+            linear_readout=linear_readout,
         )

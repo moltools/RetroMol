@@ -3,9 +3,8 @@
 from dataclasses import dataclass
 from typing import Literal
 
-from retromol.model.reaction_graph import MolNode
+from retromol.model.reaction_graph import MolNode, ReactionGraph
 from retromol.model.assembly_graph import AssemblyGraph
-from retromol.model.result import Result
 from retromol.model.rules import MatchingRule
 from retromol.chem.mol import encode_mol
 from retromol.chem.tagging import get_tags_mol
@@ -32,18 +31,18 @@ class LinearReadout:
         return f"LinearReadout(assembly_graph_nodes={self.assembly_graph.g.number_of_nodes()}; assembly_graph_edges={self.assembly_graph.g.number_of_edges()}; num_paths={len(self.paths)})"
 
     @classmethod
-    def from_result(
+    def from_reaction_graph(
         cls,
-        result: Result,
-        root_enc: str | None = None,
+        root_enc: str,
+        reaction_graph: ReactionGraph,
         exclude_identities: list[MatchingRule] | None = None,
         include_identities: list[MatchingRule] | None = None,
     ) -> "LinearReadout":
         """
         Create a LinearReadout from a Result object.
 
-        :param result: RetroMol parsing result
-        :param root_enc: optional root molecule encoding; if None, use submission molecule
+        :param root_enc: encoding of the root molecule
+        :param reaction_graph: ReactionGraph object
         :param exclude_identities: list of matching rules to exclude identities (not used here)
         :param include_identities: list of matching rules to include identities (not used here)
         :return: LinearReadout instance
@@ -57,10 +56,7 @@ class LinearReadout:
         if include_identities is not None:
             include_identities = set([r.id for r in include_identities])
 
-        g = result.reaction_graph
-        if root_enc is None:
-            root_enc = encode_mol(result.submission.mol)
-
+        g = reaction_graph
         if root_enc not in g.nodes:
             raise ValueError(f"root_enc {root_enc} not found in reaction graph nodes")
         
@@ -83,3 +79,26 @@ class LinearReadout:
             paths.append(path)
 
         return cls(assembly_graph=a, paths=paths)
+    
+    def to_dict(self) -> dict:
+        """
+        Serialize the LinearReadout to a dictionary.
+
+        :return: dict representation of LinearReadout
+        """
+        return {
+            "assembly_graph": self.assembly_graph.to_dict(),
+            "paths": [[node.to_dict() for node in path] for path in self.paths],
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "LinearReadout":
+        """
+        Deserialize a LinearReadout from a dictionary.
+
+        :param data: dict representation of LinearReadout
+        :return: LinearReadout instance
+        """
+        assembly_graph = AssemblyGraph.from_dict(data["assembly_graph"])
+        paths = [[MolNode.from_dict(node_data) for node_data in path_data] for path_data in data["paths"]]
+        return cls(assembly_graph=assembly_graph, paths=paths)
