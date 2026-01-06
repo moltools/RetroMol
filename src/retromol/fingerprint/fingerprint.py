@@ -175,8 +175,6 @@ class FingerprintGenerator:
         tanimoto_threshold: float = 0.6,
         morgan_radius: int = 2,
         morgan_num_bits: int = 2048,
-        family_token_weight: int = 1,
-        ancestor_token_weight: int = 1,
     ) -> None:
         """
         Initialize FingerprintGenerator.
@@ -186,8 +184,6 @@ class FingerprintGenerator:
         :param tanimoto_threshold: Tanimoto similarity threshold for collapsing monomers
         :param morgan_radius: radius for Morgan fingerprinting when collapsing monomers
         :param morgan_num_bits: number of bits for Morgan fingerprinting when collapsing monomers
-        :param family_token_weight: weight for family tokens in the fingerprint
-        :param ancestor_token_weight: weight for ancestor tokens in the fingerprint
         """
         matching_rules = list(matching_rules)
 
@@ -279,10 +275,8 @@ class FingerprintGenerator:
         if kmer_weights is None:
             kmer_weights = {1: 1, 2: 1}
 
-        # Create assembly graph of monomers; first collect nodes to include
-        root = result.submission.mol
-        collected = result.reaction_graph.get_leaf_nodes(identified_only=False)
-        a = AssemblyGraph.build(root_mol=root, monomers=collected, include_unassigned=True)
+        # Retrieve AssemblyGraph from Result
+        a = result.linear_readout.assembly_graph
 
         # Calculate kmers from AssemblyGraph
         tokenized_kmers: list[tuple[str | None, ...]] = []
