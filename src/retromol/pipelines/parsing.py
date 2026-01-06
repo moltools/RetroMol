@@ -11,6 +11,7 @@ from retromol.model.submission import Submission
 from retromol.model.rules import RuleSet, index_uncontested, apply_uncontested
 from retromol.model.result import Result
 from retromol.model.reaction_graph import ReactionGraph, ReactionStep, RxnEdge
+from retromol.model.readout import LinearReadout
 from retromol.model.synthesis import SynthesisExtractResult
 from retromol.chem.mol import Mol, encode_mol, mol_to_smiles
 from retromol.chem.tagging import get_tags_mol
@@ -290,10 +291,12 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     :param submission: Submission object containing the input molecule and data
     :param rules: Rules object containing the reaction rules to apply
     :return: Result object containing the retrosynthesis results
-    """
+    """ 
+    # Parse compound into reaction graph
     g = process_mol(submission, rules)
     log.debug(f"retrosynthesis graph has {len(g.nodes)} ({len(g.identified_nodes)} identified) nodes and {len(g.edges)} edges")
 
+    # Extract minimum-edge synthesis subgraph
     root = encode_mol(submission.mol)
     r = extract_min_edge_synthesis_subgraph(
         g,
@@ -306,9 +309,13 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     if not r.solved:
         log.debug("retrosynthesis extraction failed to find a solution")
 
+    # Calculate the linear readouts for the synthesis graph
+    linear_readout = LinearReadout.from_reaction_graph(root, r.graph)
+
     return Result(
         submission=submission,
         reaction_graph=r.graph,
+        linear_readout=linear_readout,
     )
 
 

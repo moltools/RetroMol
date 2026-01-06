@@ -1,6 +1,6 @@
 """Module contains utilities for defining and working with assembly graphs."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Any, Iterable, Iterable, Iterator, Generator
 
 from rdkit.Chem.rdchem import Mol
@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 from retromol.model.reaction_graph import MolNode
+from retromol.model.identity import MolIdentity
 from retromol.chem.tagging import get_tags_mol
 
 
@@ -36,6 +37,24 @@ class RootBondLink:
 
     bond_type: str  # stringified version of RDKit BondType
     bond_order: float | int | None  # include if available
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the RootBondLink to a dictionary.
+
+        :return: dictionary representation of the RootBondLink
+        """
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "RootBondLink":
+        """
+        Create a RootBondLink from a dictionary.
+
+        :param data: dictionary representation of the RootBondLink
+        :return: RootBondLink instance
+        """
+        return cls(**data)
 
 
 def build_assembly_graph(
@@ -497,6 +516,93 @@ class AssemblyGraph:
             
             if not isinstance(data["n_bonds"], int):
                 raise ValueError(f"AssemblyGraph edge {u!r}-{v!r} n_bonds must be int")
+            
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the AssemblyGraph to a dictionary.
+
+        :return: dictionary representation of the AssemblyGraph
+        """
+        nodes_out: list[dict[str, Any]] = []
+        for node_id, data in self.g.nodes(data=True):
+            tags = data.get("tags", set())
+            tags_json = sorted(tags)  # stable + JSON-friendly
+
+            mn = data.get("molnode", None)
+            mn_json = None if mn is None else mn.to_dict()
+
+            ident = data.get("identity", None)
+            ident_json = None if ident is None else ident.to_dict()
+
+            nodes_out.append(
+                {
+                    "id": node_id,
+                    "tags": tags_json,
+                    "identity": ident_json,
+                    "molnode": mn_json,
+                }
+            )
+
+        edges_out: list[dict[str, Any]] = []
+        for u, v, data in self.g.edges(data=True):
+            bonds = data.get("bonds", [])
+            edges_out.append(
+                {
+                    "u": u,
+                    "v": v,
+                    "bonds": [b.to_dict() for b in bonds],
+                    "n_bonds": int(data.get("n_bonds", len(bonds))),
+                }
+            )
+
+        return {
+            "unassigned": self.unassigned,
+            "nodes": nodes_out,
+            "edges": edges_out,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], validate: bool = True) -> "AssemblyGraph":
+        """
+        Create an AssemblyGraph from a dictionary.
+
+        :param data: dictionary representation of the AssemblyGraph
+        :param validate: whether to validate the graph after creation (default: True)
+        :return: AssemblyGraph instance
+        """
+        unassigned = data.get("unassigned", "unassigned")
+        g = nx.Graph()
+
+        # Nodes
+        for nd in data.get("nodes", []):
+            node_id = nd["id"]
+            tags = set(nd.get("tags", []))
+
+            mn_payload = nd.get("molnode", None)
+            molnode = None if mn_payload is None else MolNode.from_dict(mn_payload)
+
+            ident_payload = nd.get("identity", None)
+            identity = None if ident_payload is None else MolIdentity.from_dict(ident_payload)
+
+            g.add_node(node_id, molnode=molnode, tags=tags, identity=identity)
+
+        # Edges
+        for ed in data.get("edges", []):
+            u = ed["u"]
+            v = ed["v"]
+
+            bonds_raw = ed.get("bonds", [])
+            bonds = [RootBondLink.from_dict(b) for b in bonds_raw]
+
+            n_bonds = int(ed.get("n_bonds", len(bonds)))
+            g.add_edge(u, v, bonds=bonds, n_bonds=n_bonds)
+
+        ag = cls(g=g, unassigned=unassigned, validate_upon_initialization=False)
+
+        if validate:
+            ag.validate()
+            
+        return ag
 
     @classmethod
     def build(
