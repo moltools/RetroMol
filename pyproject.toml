@@ -1,6 +1,6 @@
 [project]
 name = "retromol"
-version = "2.1.0"
+version = "2.1.1"
 description = "RetroMol is retrosynthetic analysis tool for modular natural products"
 readme = "README.md"
 requires-python = ">=3.10"
