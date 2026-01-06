@@ -441,7 +441,7 @@ class RuleSet:
 
         :return: str: string representation
         """
-        return f"RuleSet({len(self.reaction_rules)} reaction rules; {len(self.matching_rules)} matching rules; match_stereochemistry={self.match_stereochemistry})"
+        return f"RuleSet({len(self.reaction_rules)} reaction rules, {len(self.matching_rules)} matching rules, match_stereochemistry={self.match_stereochemistry})"
 
     @classmethod
     def load_default(cls, match_stereochemistry: bool = False) -> "RuleSet":

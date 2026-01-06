@@ -28,7 +28,7 @@ class LinearReadout:
 
         :return: str: string representation
         """
-        return f"LinearReadout(assembly_graph_nodes={self.assembly_graph.g.number_of_nodes()}; assembly_graph_edges={self.assembly_graph.g.number_of_edges()}; num_paths={len(self.paths)})"
+        return f"LinearReadout(assembly_graph_nodes={self.assembly_graph.g.number_of_nodes()}, assembly_graph_edges={self.assembly_graph.g.number_of_edges()}, num_paths={len(self.paths)})"
 
     @classmethod
     def from_reaction_graph(

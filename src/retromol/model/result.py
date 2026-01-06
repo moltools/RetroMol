@@ -29,7 +29,7 @@ class Result:
         
         :return: string representation of the Result
         """
-        return f"Result(submission={self.submission}, reaction_graph={self.reaction_graph})"
+        return f"Result(submission={self.submission}, reaction_graph={self.reaction_graph}, linear_readout={self.linear_readout})"
     
     def calculate_coverage(self) -> float:
         """
