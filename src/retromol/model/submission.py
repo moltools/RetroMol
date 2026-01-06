@@ -17,11 +17,18 @@ class Submission:
     :var smiles: str: SMILES representation of the submitted molecule
     :var name: str | None: optional name of the submitted molecule
     :var props: dict[str, Any] | None: optional additional properties associated with the submission
+    :var keep_stereo: bool: whether to keep stereochemistry during standardization
+    :var neutralize: bool: whether to neutralize the molecule during standardization
+    :var canonicalize_tautomer: bool: whether to canonicalize the tautomer during
     """
 
     smiles: str
     name: str | None = None
     props: dict[str, Any] | None = None
+
+    keep_stereo: bool = True
+    neutralize: bool = True
+    canonicalize_tautomer: bool = False
 
     mol: Mol = field(init=False, repr=False)
     inchikey: str = field(init=False, repr=False)
@@ -36,9 +43,9 @@ class Submission:
         # Generate standardized molecule
         mol = standardize_from_smiles(
             smiles,
-            keep_stereo=True,
-            neutralize=True,
-            tautomer_canon=True,
+            keep_stereo=self.keep_stereo,
+            neutralize=self.neutralize,
+            tautomer_canon=self.canonicalize_tautomer,
         )
 
         # Generate InChIKey
