@@ -298,8 +298,8 @@ class ReactionGraph:
         :return: ReactionGraph object
         """
         reaction_graph = cls(
-            nodes={int(enc): MolNode.from_dict(node_data) for enc, node_data in data["nodes"].items()},
+            nodes={enc: MolNode.from_dict(node_data) for enc, node_data in data["nodes"].items()},
             edges=[RxnEdge.from_dict(edge_data) for edge_data in data["edges"]],
-            out_edges={int(enc): indices for enc, indices in data["out_edges"].items()},
+            out_edges={enc: indices for enc, indices in data["out_edges"].items()},
         )
         return reaction_graph
