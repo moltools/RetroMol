@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import os
+import time
 from collections import Counter
 from datetime import datetime
 from typing import Any
@@ -20,6 +21,7 @@ from retromol.pipelines.parsing import run_retromol_with_timeout
 from retromol.io.streaming import run_retromol_stream, stream_sdf_records, stream_table_rows, stream_json_records
 from retromol.chem.mol import encode_mol
 from retromol.visualization.reaction_graph import visualize_reaction_graph
+from retromol.fingerprint.fingerprint import FingerprintGenerator
 
 
 log = logging.getLogger(__name__)
@@ -154,6 +156,16 @@ def main() -> None:
             html_path=os.path.join(args.outdir, "reaction_graph.html"),
             root_enc=root
         )
+
+        # Calculate a fingerprint for the molecule based on matched rules
+        t0 = time.time()
+        ruleset = RuleSet.load_default()
+        matching_rules = ruleset.matching_rules
+        generator = FingerprintGenerator(matching_rules)
+        fp = generator.fingerprint_from_result(result, num_bits=512, counted=True)
+        t1 = time.time()
+        log.info(f"generated fingerprint with {len(fp)} bits set in {t1 - t0:.2f} seconds")
+        log.info(f"fingerprint contains {sum(1 for v in fp if v != 0)} non-zero items")
 
         result_counts["successes"] += 1
 

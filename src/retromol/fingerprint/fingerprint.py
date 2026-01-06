@@ -2,22 +2,27 @@
 
 import hashlib
 import struct
-from collections.abc import Callable, Iterable, Sequence
-from typing import Any, Literal
+import logging
+from typing import Any, Literal, Callable, Iterable, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
 
 from retromol.model.result import Result
 from retromol.model.rules import MatchingRule
-from retromol.model.assembly_graph import AssemblyGraph
 from retromol.model.reaction_graph import MolNode
 from retromol.utils.hashing import blake64_hex
 
 from retromol.fingerprint.monomer_collapse import Group, collapse_monomers, assign_to_group
 
 
+log = logging.getLogger(__name__)
+
+
 NonePolicy = Literal["keep", "skip-token", "drop-kmer"]
+
+
+_MISS = object()
 
 
 def encode_family_token(fam: str) -> str:
@@ -204,7 +209,7 @@ class FingerprintGenerator:
         self.morgan_num_bits = morgan_num_bits
 
         # For speedup
-        self._assign_cache: dict[tuple[str | None, str], Group | None] = {}
+        self._assign_cache: dict[str, Group | None] = {}
         self._token_bytes_cache: dict[object, bytes] = {}
 
     def assign_to_group(self, smiles: str) -> Group | None:
@@ -215,9 +220,9 @@ class FingerprintGenerator:
         :return: assigned Group or None if no match
         """
         # SMILES was checked before; return from cache
-        g = self._assign_cache.get(smiles)
-        if g is not None:
-            return g
+        cached = self._assign_cache.get(smiles, _MISS)
+        if cached is not _MISS:
+            return cached  # can be group or None
 
         # Structure branch: assign based on Tanimoto similarity
         group = assign_to_group(
@@ -301,10 +306,8 @@ class FingerprintGenerator:
 
                 # Emite structural kmer separately (structure only)
                 tokenized_kmers.append(tuple(
-                    (self.assign_to_group(node.smiles).token
-                     if self.assign_to_group(node.smiles) is not None
-                     else None)
-                     for node in kmer
+                    (g.token if (g := self.assign_to_group(node.smiles)) is not None else None)
+                    for node in kmer
                 ))
 
         # Gather additional 1-mer virtual family tokens (defined in matching rules); only once per found monomer
