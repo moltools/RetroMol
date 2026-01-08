@@ -12,6 +12,7 @@ _BIOCRACKER = False
 try:
     from biocracker.query.modules import (
         LinearReadout as BioCrackerLinearReadout,
+        Module,
         NRPSModule,
         PKSModule,
         PKSExtenderUnit,
@@ -406,6 +407,7 @@ class FingerprintGenerator:
     def fingerprint_from_biocracker_readout(
         self,
         readout: BioCrackerLinearReadout,
+        by_orf: bool = False,
         num_bits: int = 2048,
         kmer_sizes: list[int] | None = None,
         kmer_weights: dict[int, int] | None = None,
@@ -415,6 +417,7 @@ class FingerprintGenerator:
         Generate a fingerprint from a BioCracker LinearReadout.
 
         :param readout: BioCracker LinearReadout object
+        :param by_orf: if True, generate fingerprint per ORF instead of per region
         :param num_bits: number of bits in the fingerprint
         :param kmer_sizes: list of k-mer sizes to consider
         :param kmer_weights: weights for each k-mer size. Determines how many bits each k-mer sets.
@@ -438,63 +441,73 @@ class FingerprintGenerator:
         # Calculate kmers from BioCracker's linear readout
         tokenized_kmers: list[tuple[str | None, ...]] = []
 
-        modules = readout.biosynthetic_order()
-        for kmer_size in kmer_sizes:
-            for kmer in iter_kmers_sequence(modules, k=kmer_size):
-            
-                # Ancestral tokens for items in kmer
-                per_module_ancestors: list[list[str | None]] = []
+        ordered = readout.biosynthetic_order(by_orf=by_orf)
 
-                for module in kmer:
-                    # Structural token is the lowest level ancestor
-                    ancestors: list[str | None] = []
-
-                    if isinstance(module, NRPSModule):
-                        # Extract SMILES of predicted substrate
-                        if module.substrate is not None:
-                            if module.substrate.name == "graminine":
-                                # Graminine SMILES was incorrect in BioCracker versions <2.0.1; fix here for backwards compatibility
-                                smiles = r"O=NN(O)CCC[C@H](N)(C(=O)O)"
-                            else:
-                                smiles = module.substrate.smiles
-                        else:
-                            smiles = None
-
-                        if smiles is not None:
-                            ancestors.append(g.token if (g := self.assign_to_group(smiles)) is not None else None)
-                        else:
-                            # No predicted substrate
-                            ancestors.append(None) 
-
-                        # We don't add ancestral tokens for NRPSModule
-
-                    elif isinstance(module, PKSModule):
-                        # PKSModule has no structural token
-                        ancestors.append(None)
-
-                        # Extract ancestral tokens
-                        match module.substrate.extender_unit:
-                            case PKSExtenderUnit.PKS_A: ancestors.extend(["A", "PKS"])
-                            case PKSExtenderUnit.PKS_B: ancestors.extend(["B", "PKS"])
-                            case PKSExtenderUnit.PKS_C: ancestors.extend(["C", "PKS"])
-                            case PKSExtenderUnit.PKS_D: ancestors.extend(["D", "PKS"])
-                    
-                    else:
-                        # Unsupported module type
-                        log.warning(f"Unsupported module type: {type(module)}")
-                        ancestors.append(None)
-
-                    per_module_ancestors.append(ancestors)
-
-                assert len(per_module_ancestors) == len(kmer), "length mismatch in ancestor tokens"
+        # Normalize to an interable of (readout_id, modules_in_readout)
+        if by_orf:
+            # ordered: list[tuple[str, list[Module]]]
+            readout_blocks: list[tuple[str, list[Module]]] = list(ordered)
+        else:
+            # ordered: list[Module] -> treat as a single block
+            readout_blocks = [(readout.id, list(ordered))]
+        
+        for _, modules in readout_blocks:
+            for kmer_size in kmer_sizes:
+                for kmer in iter_kmers_sequence(modules, k=kmer_size, direction="both"):
                 
-                # Get tokenized kmer from every level of ancestor
-                max_depth = max(len(anc) for anc in per_module_ancestors)
-                for level in range(max_depth):
-                    tokenized_kmers.append(tuple(
-                        anc[level] if level < len(anc) else None
-                        for anc in per_module_ancestors
-                    ))
+                    # Ancestral tokens for items in kmer
+                    per_module_ancestors: list[list[str | None]] = []
+
+                    for module in kmer:
+                        # Structural token is the lowest level ancestor
+                        ancestors: list[str | None] = []
+
+                        if isinstance(module, NRPSModule):
+                            # Extract SMILES of predicted substrate
+                            if module.substrate is not None:
+                                if module.substrate.name == "graminine":
+                                    # Graminine SMILES was incorrect in BioCracker versions <2.0.1; fix here for backwards compatibility
+                                    smiles = r"O=NN(O)CCC[C@H](N)(C(=O)O)"
+                                else:
+                                    smiles = module.substrate.smiles
+                            else:
+                                smiles = None
+
+                            if smiles is not None:
+                                ancestors.append(g.token if (g := self.assign_to_group(smiles)) is not None else None)
+                            else:
+                                # No predicted substrate
+                                ancestors.append(None) 
+
+                            # We don't add ancestral tokens for NRPSModule
+
+                        elif isinstance(module, PKSModule):
+                            # PKSModule has no structural token
+                            ancestors.append(None)
+
+                            # Extract ancestral tokens
+                            match module.substrate.extender_unit:
+                                case PKSExtenderUnit.PKS_A: ancestors.extend(["A", "PKS"])
+                                case PKSExtenderUnit.PKS_B: ancestors.extend(["B", "PKS"])
+                                case PKSExtenderUnit.PKS_C: ancestors.extend(["C", "PKS"])
+                                case PKSExtenderUnit.PKS_D: ancestors.extend(["D", "PKS"])
+                        
+                        else:
+                            # Unsupported module type
+                            log.warning(f"Unsupported module type: {type(module)}")
+                            ancestors.append(None)
+
+                        per_module_ancestors.append(ancestors)
+
+                    assert len(per_module_ancestors) == len(kmer), "length mismatch in ancestor tokens"
+                    
+                    # Get tokenized kmer from every level of ancestor
+                    max_depth = max(len(anc) for anc in per_module_ancestors)
+                    for level in range(max_depth):
+                        tokenized_kmers.append(tuple(
+                            anc[level] if level < len(anc) else None
+                            for anc in per_module_ancestors
+                        ))
 
         # Add modifiers as family tokens
         for modifier in readout.modifiers:
