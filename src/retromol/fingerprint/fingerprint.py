@@ -480,6 +480,7 @@ class FingerprintGenerator:
                                 ancestors.append(None) 
 
                             # We don't add ancestral tokens for NRPSModule
+                            ancestors.extend(["NRPS"])
 
                         elif isinstance(module, PKSModule):
                             # PKSModule has no structural token
