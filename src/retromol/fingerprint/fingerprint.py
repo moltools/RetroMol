@@ -32,9 +32,6 @@ from retromol.fingerprint.monomer_collapse import Group, collapse_monomers, assi
 log = logging.getLogger(__name__)
 
 
-NonePolicy = Literal["keep", "skip-token", "drop-kmer"]
-
-
 _MISS = object()
 DEFAULT_KMER_WEIGHTS: dict[int, int] = {1: 1, 2: 1}
 DEFAULT_KMER_SIZES: list[int] = [1, 2]
@@ -72,34 +69,63 @@ def iter_kmers_sequence(items: Sequence[T], k: int, direction: Direction = "both
         """
         for i in range(0, n - k + 1):
             yield tuple(items[i : i + k])
-    
-    def backward() -> Iterator[tuple[T, ...]]:
-        """
-        Yield backward k-mers.
-        """
-        for km in forward():
-            yield km[::-1]
 
     if direction == "forward":
         yield from forward()
     elif direction == "backward":
-        yield from backward()
+        for km in forward():
+            yield km[::-1]
     elif direction == "both":
-        yield from forward()
-        yield from backward()
+        for km in forward():
+            yield km
+            yield km[::-1]
     else:
         raise ValueError(f"invalid direction: {direction}")
+    
 
-
-def encode_family_token(fam: str) -> str:
+def canonicalize_token_kmer(tup: tuple[str, ...]) -> tuple[str, ...]:
     """
-    Generate a family token.
-
-    :param fam: family name
-    :return: family token string
+    Return the canonical form of a token k-mer (lexicographically smallest of
+    
+    the k-mer and its reverse).
+    :param tup: token k-mer as a tuple of strings
+    :return: canonical token k-mer
     """
-    fam = fam or ""
-    return f"NF:{blake64_hex(f'FAM:{fam.lower()}')}"
+    rev = tup[::-1]
+
+    # Yield canonical form
+    # By canonicalizing, we ensure that (A,B) and (B,A) yield the same k-mer (order-invariant)
+    return tup if tup <= rev else rev
+
+
+def tok_g(tok: str | None) -> str | None:
+    """
+    Format a group token.
+    
+    :param tok: group token (str) or None
+    :return: formatted group token or None
+    """
+    return None if tok is None else f"G:{blake64_hex(tok)}"
+
+
+def tok_a(tok: str | None) -> str | None:
+    """
+    Format an ancestor token.
+    
+    :param tok: ancestor token (str) or None
+    :return: formatted ancestor token or None
+    """
+    return None if tok is None else f"A:{tok.upper()}"
+
+
+def tok_f(tok: str | None) -> str | None:
+    """
+    Format a family token.
+    
+    :param tok: family token (str) or None
+    :return: formatted family token or None
+    """
+    return None if tok is None else f"F:{tok.upper()}"
 
 
 def normalize_token(tok: object, none_sentinel: str = "<NONE>") -> bytes:
@@ -153,23 +179,21 @@ def hash_kmer_tokens(
 
 
 def kmers_to_fingerprint(
-    kmers: Iterable[Sequence[Any]],
+    kmers: Iterable[Sequence[str]] | Iterable[tuple[int, Sequence[str]]],
     num_bits: int = 2048,
-    num_hashes_per_kmer: int | Callable[[int], int] = 2,
+    num_hashes_per_kmer: int | Callable[[int], int] = 1,
     seed: int = 42,
-    none_policy: NonePolicy = "keep",
     counted: bool = False,
 ) -> NDArray[np.generic]:
     """
     Build a hashed fingerprint from an iterable of tokenized k-mers.
 
-    :param kmers: iterable of k-mers, where each k-mer is a sequence of tokens (str, int, float, or None)
+    :param kmers: iterable of k-mers, where each k-mer is a sequence of tokens (str), or
+        a tuple of (k-mer length, sequence of tokens) where the int is used to determine the salt/weight
     :param num_bits: number of bits in the fingerprint
     :param num_hashes_per_kmer: number of hash indices to produce per k-mer (int or callable that takes k-mer length
-        as input and returns the number of hashes).
+        as input and returns the number of hashes)
     :param seed: global seed for hashing.
-    :param none_policy: policy for handling None tokens: "keep" (treat as a special token), "skip-token"
-        (omit the token), or "drop-kmer" (skip the entire k-mer).
     :param counted: if True, produce a count vector instead of a binary vector
     :return: fingerprint as a numpy array of shape (n_bits,)
     """
@@ -193,28 +217,27 @@ def kmers_to_fingerprint(
         fp = np.zeros(num_bits, dtype=np.uint8)
 
     # Main loop
-    for kmer in kmers:
-        if none_policy == "drop-kmer" and any(t is None for t in kmer):
-            continue
+    for item in kmers:
+        # Accept either kmer or (k_intended, kmer)
+        if isinstance(item, tuple) and len(item) ==  2 and isinstance(item[0], int):
+            k_intended, kmer = item
+        else:
+            kmer = item  # type: ignore[assignment]
+            k_intended = len(kmer)
 
         # Normalize per token
         normd: list[bytes] = []
         for t in kmer:
-            if t is None:
-                if none_policy == "skip-token":
-                    continue
-                normd.append(normalize_token(None))
-            else:
-                normd.append(normalize_token(t))
+            normd.append(normalize_token(t))
         if not normd:
             continue
 
-        n_hashes = _nh(len(kmer))
+        n_hashes = _nh(k_intended)
         if n_hashes <= 0:
             continue
-
-        # Simple salt tied to (normalized) k-mer length
-        k_salt = len(normd)
+        
+        # Salt tied to intended k-mer size (1, 2, 3, ...) to decorrelate lengths
+        k_salt = k_intended
 
         idxs = hash_kmer_tokens(
             normd,
@@ -350,7 +373,7 @@ class FingerprintGenerator:
         a = result.linear_readout.assembly_graph
 
         # Calculate kmers from AssemblyGraph
-        tokenized_kmers: list[tuple[str | None, ...]] = []
+        tokenized_kmers: list[tuple[int, tuple[str, ...]]] = []
 
         for kmer_size in kmer_sizes:
             for kmer in a.iter_kmers(k=kmer_size):
@@ -365,13 +388,14 @@ class FingerprintGenerator:
                     # First get the structural token (lowest level ancestor)
                     if item.is_identified:
                         smiles = item.smiles
-                        ancestors.append(g.token if (g := self.assign_to_group(smiles)) is not None else None)
+                        grp = g.token if (g := self.assign_to_group(smiles)) is not None else None
+                        ancestors.append(tok_g(grp))
                     else:
                         ancestors.append(None)
 
                     # Then get the rest of the ancestors
                     # We reverse to have the highest level ancestor last
-                    ancestors.extend(reversed(self.ancestor_list_for_node(item)))
+                    ancestors.extend(tok_a(t) for t in self.ancestor_list_for_node(item))
 
                     per_item_ancestors.append(ancestors)
                 
@@ -380,17 +404,33 @@ class FingerprintGenerator:
                 # Get tokenized kmer from every level of ancestor
                 max_depth = max(len(anc) for anc in per_item_ancestors)
                 for level in range(max_depth):
-                    tokenized_kmers.append(tuple(
+                    # Skip None 1-mers; emit (kmer_size, tup)
+                    tup = tuple(
                         anc[level] if level < len(anc) else None
                         for anc in per_item_ancestors
-                    ))
+                    )
+
+                    # Skip None 1-mers
+                    if kmer_size == 1:
+                        tok = tup[0]
+                        if tok is None:
+                            continue
+                        tokenized_kmers.append((kmer_size, (tok,)))
+                        continue
+                        
+                    # k > 1: drop-kmer semantics (avoid hashing None as a feature)
+                    if any(x is None for x in tup):
+                        continue
+                    
+                    tup = canonicalize_token_kmer(tup)
+                    tokenized_kmers.append((kmer_size, tup))
 
         # Gather additional 1-mer virtual family tokens (defined in matching rules); only once per found monomer
         for node in a.monomer_nodes():
             ident = node.identity if node.is_identified else None
             if ident is not None:
                 for fam_tok in ident.matched_rule.family_tokens:
-                    tokenized_kmers.append((encode_family_token(fam_tok),))
+                    tokenized_kmers.append((1, (tok_f(fam_tok),)))
 
         # Hash kmers
         fp = kmers_to_fingerprint(
@@ -398,7 +438,6 @@ class FingerprintGenerator:
             num_bits=num_bits,
             num_hashes_per_kmer=lambda k: kmer_weights.get(k, 1),
             seed=42,
-            none_policy="keep",
             counted=counted,
         )
 
@@ -439,7 +478,7 @@ class FingerprintGenerator:
             kmer_weights = DEFAULT_KMER_WEIGHTS
 
         # Calculate kmers from BioCracker's linear readout
-        tokenized_kmers: list[tuple[str | None, ...]] = []
+        tokenized_kmers: list[tuple[int, tuple[str, ...]]] = []
 
         ordered = readout.biosynthetic_order(by_orf=by_orf)
 
@@ -474,13 +513,13 @@ class FingerprintGenerator:
                                 smiles = None
 
                             if smiles is not None:
-                                ancestors.append(g.token if (g := self.assign_to_group(smiles)) is not None else None)
+                                grp = g.token if (g := self.assign_to_group(smiles)) is not None else None
+                                ancestors.append(tok_g(grp))
+                                ancestors.append(tok_a("NRPS"))
                             else:
                                 # No predicted substrate
                                 ancestors.append(None) 
-
-                            # We don't add ancestral tokens for NRPSModule
-                            ancestors.extend(["NRPS"])
+                                ancestors.append(tok_a("NRPS"))
 
                         elif isinstance(module, PKSModule):
                             # PKSModule has no structural token
@@ -488,10 +527,10 @@ class FingerprintGenerator:
 
                             # Extract ancestral tokens
                             match module.substrate.extender_unit:
-                                case PKSExtenderUnit.PKS_A: ancestors.extend(["A", "PKS"])
-                                case PKSExtenderUnit.PKS_B: ancestors.extend(["B", "PKS"])
-                                case PKSExtenderUnit.PKS_C: ancestors.extend(["C", "PKS"])
-                                case PKSExtenderUnit.PKS_D: ancestors.extend(["D", "PKS"])
+                                case PKSExtenderUnit.PKS_A: ancestors.extend([tok_a("PKS"), tok_a("A")])
+                                case PKSExtenderUnit.PKS_B: ancestors.extend([tok_a("PKS"), tok_a("B")])
+                                case PKSExtenderUnit.PKS_C: ancestors.extend([tok_a("PKS"), tok_a("C")])
+                                case PKSExtenderUnit.PKS_D: ancestors.extend([tok_a("PKS"), tok_a("D")])
                         
                         else:
                             # Unsupported module type
@@ -505,14 +544,30 @@ class FingerprintGenerator:
                     # Get tokenized kmer from every level of ancestor
                     max_depth = max(len(anc) for anc in per_module_ancestors)
                     for level in range(max_depth):
-                        tokenized_kmers.append(tuple(
+                        # Skip None 1-mers; emit (kmer_size, tup)
+                        tup = tuple(
                             anc[level] if level < len(anc) else None
                             for anc in per_module_ancestors
-                        ))
+                        )
+
+                        # Skip None 1-mers
+                        if kmer_size == 1:
+                            tok = tup[0]
+                            if tok is None:
+                                continue
+                            tokenized_kmers.append((kmer_size, (tok,)))
+                            continue
+
+                        # k > 1: drop-kmer semantics (avoid hashing None as a feature)
+                        if any(x is None for x in tup):
+                            continue
+                        
+                        tup = canonicalize_token_kmer(tup)
+                        tokenized_kmers.append((kmer_size, tup))
 
         # Add modifiers as family tokens
         for modifier in readout.modifiers:
-            tokenized_kmers.append((encode_family_token(modifier),))
+            tokenized_kmers.append((1, (tok_f(modifier),)))
 
         # Hash kmers
         fp = kmers_to_fingerprint(
@@ -520,7 +575,6 @@ class FingerprintGenerator:
             num_bits=num_bits,
             num_hashes_per_kmer=lambda k: kmer_weights.get(k, 1),
             seed=42,
-            none_policy="keep",
             counted=counted,
         )
 
