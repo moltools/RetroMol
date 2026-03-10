@@ -4,7 +4,7 @@ import pytest
 
 from retromol.model.rules import RuleSet
 
-from .helpers import load_rule_set
+from .helpers_retromol import load_rule_set
 
 
 @pytest.fixture(scope="session")
