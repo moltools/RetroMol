@@ -26,7 +26,7 @@ from retromol.model.rules import MatchingRule
 from retromol.model.reaction_graph import MolNode
 from retromol.utils.hashing import blake64_hex
 
-from retromol.fingerprint.monomer_collapse import Group, collapse_monomers, assign_to_group
+from retromol_fingerprint.monomer_collapse import Group, collapse_monomers, assign_to_group
 
 
 log = logging.getLogger(__name__)
