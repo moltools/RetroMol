@@ -1,7 +1,7 @@
 [project]
 name = "retromol"
-version = "2.2.2"
-description = "RetroMol is retrosynthetic analysis tool for modular natural products"
+version = "3.0.0"
+description = "RetroMol is retrosynthetic analysis framework for modular natural products"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -21,7 +21,7 @@ dependencies = [
     "pandas",
     "pyyaml",
     "ijson",
-    "matplotlib"
+    "matplotlib",
 ]
 
 classifiers = [
@@ -43,19 +43,31 @@ Issues = "https://github.com/moltools/retromol/issues"
 Documentation = "https://github.com/moltools/retromol#readme"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [project.optional-dependencies]
-dev = [
-    "pytest"
+dev = ["pytest"]
+alignment = ["biopython"]
+antismash = []
+database = []
+fingerprint = []
+all = [
+    "biopython",
 ]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/retromol"]
+packages = [
+    "src/retromol",
+    "src/retromol_cli",
+    "src/retromol_alignment",
+    "src/retromol_antismash",
+    "src/retromol_database",
+    "src/retromol_fingerprint",
+]
 sources = ["src"]
 include = [
     "src/retromol/data/mxn_other.yml",
@@ -65,7 +77,7 @@ include = [
 ]
 
 [project.scripts]
-retromol = "retromol.cli:main"
+retromol = "retromol_cli.cli:main"
 
 # -------------------------
 # Hatch env + scripts
@@ -75,4 +87,4 @@ features = ["dev"]
 python = "3.10"
 
 [tool.hatch.envs.dev.scripts]
-test = "pytest -q"
+test = "pytest -q"  # usage: hatch run dev:test
