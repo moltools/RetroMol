@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 
-from retromol_versalign.scoring import create_scoring_matrix
-from retromol_versalign.aligner import setup_aligner
-from retromol_versalign.pairwise import Converter, align
-from retromol_versalign.msa import calculate_msa
+from retromol_alignment.scoring import create_scoring_matrix
+from retromol_alignment.aligner import setup_aligner
+from retromol_alignment.pairwise import Converter, align
+from retromol_alignment.msa import calculate_msa
 
 # Dummy scoring matrix with three items: A, B, C
 df = pd.DataFrame(
