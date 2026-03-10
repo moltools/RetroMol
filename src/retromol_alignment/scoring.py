@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from retromol_versalign.aligner import substitution_matrices
+from retromol_alignment.aligner import substitution_matrices
 
 
 def create_scoring_matrix(df: pd.DataFrame) -> substitution_matrices.Array:

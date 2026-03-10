@@ -6,7 +6,7 @@ from typing import TypeVar, Callable
 import numpy as np
 from numpy.typing import NDArray
 
-from retromol_versalign.aligner import PairwiseAligner
+from retromol_alignment.aligner import PairwiseAligner
 
 
 T = TypeVar("T")

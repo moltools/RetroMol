@@ -4,8 +4,8 @@ import logging
 
 import numpy as np
 
-from retromol_versalign.aligner import PairwiseAligner
-from retromol_versalign.pairwise import T, Converter, _pairwise_alignment
+from retromol_alignment.aligner import PairwiseAligner
+from retromol_alignment.pairwise import T, Converter, _pairwise_alignment
 
 
 log = logging.getLogger(__name__)
