@@ -340,17 +340,12 @@ class MatchingRule:
     :var smiles: str: SMILES pattern defining the motif
     :var props: dict[str, Any]: additional properties associated with the rule
     :var terminal: bool: whether this rule is terminal (i.e., should not be expanded further)
-    :var family_tokens: tuple[str, ...]: tokens representing the family of the matching rule
-    :var ancestor_tokens: tuple[tuple[str, ...]]: tokens representing the ancestors of the matching rule
     """
 
     name: str
     smiles: str
     props: dict[str, Any]
     terminal: bool = True
-
-    family_tokens: set[str] = field(default_factory=set)
-    ancestor_tokens: list[str] = field(default_factory=list)
 
     mol: Mol = field(init=False, repr=False)
 
@@ -381,8 +376,6 @@ class MatchingRule:
             "smiles": self.smiles,
             "props": self.props,
             "terminal": self.terminal,
-            "family_tokens": list(self.family_tokens),
-            "ancestor_tokens": list(self.ancestor_tokens),
         }
 
     @classmethod
@@ -398,8 +391,6 @@ class MatchingRule:
             smiles=data["smiles"],
             props=data.get("props", {}),
             terminal=data.get("terminal", True),
-            family_tokens=set(data.get("family_tokens", [])),
-            ancestor_tokens=list(data.get("ancestor_tokens", [])),
         )
         return matching_rule
 
