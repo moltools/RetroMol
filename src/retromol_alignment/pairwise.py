@@ -12,16 +12,15 @@ from retromol_alignment.aligner import PairwiseAligner
 T = TypeVar("T")
 
 
-
 @dataclass(frozen=True)
 class Converter:
     """
     Converter for sequences to be aligned.
 
-    :cvar to_identifier: function to convert items in sequences to integers for alignment
-    :cvar from_identifier: function to convert integers back to items in sequences after alignment
-    :cvar gap_repr: integer representation of a gap in the alignment (default: -1)
-    :cvar insert_repr: integer representation of an insertion in the alignment (default: -
+    :cvar to_identifier: Function to convert items in sequences to integers for alignment.
+    :cvar from_identifier: Function to convert integers back to items in sequences after alignment.
+    :cvar gap_repr: Integer representation of a gap in the alignment (default: -1).
+    :cvar insert_repr: Integer representation of an insertion in the alignment (default: -2).
     """
 
     to_identifier: Callable[[T], np.int32]
@@ -34,8 +33,8 @@ class Converter:
         """
         Convert a sequence to a numpy array of integers for alignment.
 
-        :param sequence: list of items in the sequence
-        :return: numpy array of integers representing the sequence
+        :param sequence: List of items in the sequence.
+        :return: Numpy array of integers representing the sequence.
         """
         return np.array([self.to_identifier(item) for item in sequence], dtype=np.int32)
     
@@ -43,8 +42,8 @@ class Converter:
         """
         Convert a numpy array of integers back to a sequence of items after alignment.
 
-        :param int_array: numpy array of integers representing the aligned sequence (with gap_repr for gaps)
-        :return: list of items in the aligned sequence (with None for gaps)
+        :param int_array: Numpy array of integers representing the aligned sequence (with gap_repr for gaps).
+        :return: List of items in the aligned sequence (with None for gaps).
         """
         return [self.from_identifier(item) if item != self.gap_repr else None for item in int_array]
 
@@ -58,12 +57,12 @@ def _pairwise_alignment(
     """
     Align two sequences and return the alignment result.
 
-    :param aligner: PairwiseAligner object to use for alignment
-    :param t: first sequence as a numpy array of integers
-    :param q: second sequence as a numpy array of integers
-    :param gap_repr: integer representation of a gap in the alignment (default: -1)
-    :return: tuple containing the alignment score, aligned first sequence, and aligned second sequence
-    :raises ValueError: if the alignment coordinates are invalid
+    :param aligner: PairwiseAligner object to use for alignment.
+    :param t: First sequence as a numpy array of integers.
+    :param q: Second sequence as a numpy array of integers.
+    :param gap_repr: Integer representation of a gap in the alignment (default: -1).
+    :return: Tuple containing the alignment score, aligned first sequence, and aligned second sequence.
+    :raises ValueError: If the alignment coordinates are invalid.
     """
     alignments = aligner.align(seqA=t, seqB=q)
 
@@ -88,7 +87,7 @@ def _pairwise_alignment(
             t_a.extend(t[a[0]:a[1]])
             q_a.extend([gap_repr] * len_a)
         else:
-            raise ValueError("Invalid alignment coordinates")
+            raise ValueError("Invalid alignment coordinates!")
         
     return score, np.array(t_a, dtype=np.int32), np.array(q_a, dtype=np.int32)
 
@@ -103,10 +102,10 @@ def align(
     Align two sequences and return the alignment result.
 
     :param aligner: PairwiseAligner object to use for alignment
-    :param t: first sequence as a list of items
-    :param q: second sequence as a list of items
-    :param converter: Converter object to convert items in sequences to integers for alignment and back
-    :return: tuple containing the alignment score, aligned first sequence, and aligned second sequence
+    :param t: First sequence as a list of items.
+    :param q: Second sequence as a list of items.
+    :param converter: Converter object to convert items in sequences to integers for alignment and back.
+    :return: Tuple containing the alignment score, aligned first sequence, and aligned second sequence.
     """
     t_int = np.array([converter.to_identifier(item) for item in t], dtype=np.int32)
     q_int = np.array([converter.to_identifier(item) for item in q], dtype=np.int32)

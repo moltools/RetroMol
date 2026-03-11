@@ -21,17 +21,17 @@ def calculate_msa(
     """
     Calculate a multiple sequence alignment (MSA) for the given sequences.
 
-    :param aligner: PairwiseAligner object to use for pairwise alignments
-    :param to_align: list of sequences to align, where each sequence is a list of items
-    :param converter: Converter object to convert items in sequences to integers for alignment and back
-    :param center_star: index of the sequence to use as the center for the star alignment (default: None, which means to
-        use the first sequence)
-    :param can_reverse: list of booleans indicating whether each sequence can be reversed for alignment (default: None,
-        which means none of the sequences can be reversed)
-    :return: tuple containing a list of tuples, where each tuple contains the alignment score, a boolean indicating if
+    :param aligner: PairwiseAligner object to use for pairwise alignments.
+    :param to_align: List of sequences to align, where each sequence is a list of items.
+    :param converter: Converter object to convert items in sequences to integers for alignment and back.
+    :param center_star: Index of the sequence to use as the center for the star alignment (default: None, which means to
+        use the first sequence).
+    :param can_reverse: List of booleans indicating whether each sequence can be reversed for alignment (default: None,
+        which means none of the sequences can be reversed).
+    :return: Tuple containing a list of tuples, where each tuple contains the alignment score, a boolean indicating if
         the sequence was reversed,and the aligned sequence (with None for gaps),and a list of indices representing the
-        order of sequences in the MSA
-    :raises ValueError: if the length of can_reverse does not match the number of sequences to align
+        order of sequences in the MSA.
+    :raises ValueError: If the length of can_reverse does not match the number of sequences to align.
     """
     if not to_align:
         return []
@@ -40,12 +40,12 @@ def calculate_msa(
         can_reverse = [False] * len(to_align)
 
     if len(can_reverse) != len(to_align):
-        raise ValueError(f"Length of can_reverse ({len(can_reverse)}) must match the number of sequences to align ({len(to_align)}).")
+        raise ValueError(f"Length of can_reverse ({len(can_reverse)}) must match the number of sequences to align ({len(to_align)})!")
 
     # Failsafe: set aligner mode to global
     alignment_mode = aligner.mode
     if alignment_mode != "global":
-        log.warning(f"Aligner mode is '{alignment_mode}', but 'global' is required for MSA. Setting aligner mode to 'global'.")
+        log.warning(f"Aligner mode is '{alignment_mode}', but 'global' is required for MSA. Setting aligner mode to 'global'!")
         aligner.mode = "global"
 
     # Convert sequences into int arrays based on substitution matrix alphabet
