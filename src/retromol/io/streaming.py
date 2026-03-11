@@ -22,8 +22,8 @@ def _init_worker(ruleset: RuleSet) -> None:
     """
     Initialize worker process with necessary global variables.
 
-    :param ruleset: reaction/matching rule set
-    :param wave_configs: wave configuration dicts
+    :param ruleset: Reaction/matching rule set.
+    :param wave_configs: Wave configuration dicts.
     """
     global _G_RULESET
     _G_RULESET = ruleset
@@ -53,8 +53,8 @@ class ResultEvent:
     """
     Represents the result of processing a single compound.
 
-    :param result: serialized result dict or None if there was an error
-    :param error: error message string or None if processing was successful
+    :param result: Serialized result dict or None if there was an error.
+    :param error: Error message string or None if processing was successful.
     """
 
     result: dict[str, Any] | None  # serialized result or None on error
@@ -69,10 +69,10 @@ def _task_buffered_iterator(
     """
     Convert row dicts into (smiles, props) tuples and yield in batches.
 
-    :param source_iter: iterable of row dicts
-    :param smiles_col: name of column containing SMILES
-    :param batch_size: number of compounds per batch
-    :return: iterator over lists of (smiles, props) tuples
+    :param source_iter: Iterable of row dicts.
+    :param smiles_col: Name of column containing SMILES.
+    :param batch_size: Number of compounds per batch.
+    :return: Iterator over lists of (smiles, props) tuples.
     """
     buf: list[tuple[str, dict[str, Any]]] = []
     for rec in source_iter:
@@ -101,15 +101,15 @@ def run_retromol_stream(
     Stream RetroMol results with multiprocessing, yielding ResultEvent as soon as
     each compound finishes. No files/logs are written here—callers are free to do so.
 
-    :param ruleset: pre-loaded reaction/matching rule set
-    :param row_iter: iterable of row dicts containing at least id_col and smiles_col
-    :param smiles_col: name of column containing SMILES (default: "smiles")
-    :param workers: number of worker processes (default: 1)
-    :param batch_size: number of compounds to send to each worker at once (default: 2000)
-    :param pool_chunksize: chunksize for imap_unordered (default: 50)
-    :param maxtasksperchild: max tasks per worker before restart (default: 2000)
-    :param on_result: optional callback receiving each ResultEvent as it arrives
-    :return: iterator over ResultEvent objects
+    :param ruleset: Pre-loaded reaction/matching rule set.
+    :param row_iter: Iterable of row dicts containing at least id_col and smiles_col.
+    :param smiles_col: Name of column containing SMILES (default: "smiles").
+    :param workers: Number of worker processes (default: 1).
+    :param batch_size: Number of compounds to send to each worker at once (default: 2000).
+    :param pool_chunksize: Chunksize for imap_unordered (default: 50).
+    :param maxtasksperchild: Max tasks per worker before restart (default: 2000).
+    :param on_result: Optional callback receiving each ResultEvent as it arrives.
+    :return: Iterator over ResultEvent objects.
     """
     # Start worker pool with same init pattern
     with Pool(
@@ -130,10 +130,10 @@ def stream_table_rows(path: str, sep: str = ",", chunksize: int = 20_000) -> Ite
     """
     Stream CSV/TSV rows as dicts. Keeps memory usage low (chunked).
 
-    :param path: path to CSV/TSV file
-    :param sep: field separator (default: ",")
-    :param chunksize: number of rows to read per chunk (default: 20,000)
-    :return: iterator over row dicts
+    :param path: Path to CSV/TSV file.
+    :param sep: Field separator (default: ",").
+    :param chunksize: Number of rows to read per chunk (default: 20,000).
+    :return: Iterator over row dicts.
     """
     chunks: Iterator[DataFrame] = read_csv(
         path,
@@ -153,9 +153,9 @@ def stream_sdf_records(sdf_path: str, fast: bool = False) -> Iterator[dict[str, 
     """
     Stream SDF as dict rows: {'smiles': <SMI>, ...props}.
 
-    :param sdf_path: path to SDF file
-    :param fast: if True, skips sanitization and H removal (default: False)
-    :return: iterator over record dicts
+    :param sdf_path: Path to SDF file.
+    :param fast: If True, skips sanitization and H removal (default: False).
+    :return: Iterator over record dicts.
     """
     sanitize = not fast
     removeHs = fast
@@ -181,9 +181,9 @@ def stream_json_records(path: str, jsonl: bool = False) -> Iterator[dict[str, An
     """
     Stream JSON or JSONL records as dicts.
 
-    :param path: path to JSON or JSONL file
-    :param jsonl: if True, treat as JSONL (one JSON object per line)
-    :return: iterator over record dicts
+    :param path: Path to JSON or JSONL file.
+    :param jsonl: If True, treat as JSONL (one JSON object per line).
+    :return: Iterator over record dicts.
     """
     for rec in iter_json(path, jsonl=jsonl):
         if isinstance(rec, dict):

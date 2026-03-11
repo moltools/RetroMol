@@ -11,8 +11,8 @@ def get_default_valence(atom_num: int) -> int:
     """
     Returns the default valence for a given atom number.
 
-    :param atom_num: the atomic number
-    :return: the default valence
+    :param atom_num: The atomic number.
+    :return: The default valence.
     """
     return PERIODIC_TABLE.GetDefaultValence(atom_num)
 
@@ -21,8 +21,8 @@ def correct_hydrogens(mol: Mol) -> None:
     """
     Correct explicit hydrogens on atoms based on valence rules.
     
-    :param mol: the RDKit molecule
-    .. note:: this function modifies the molecule in place
+    :param mol: The RDKit molecule.
+    .. note:: This function modifies the molecule in place.
     """
     for atom in mol.GetAtoms():
         # Skip aromatic and charged atoms
@@ -42,6 +42,6 @@ def correct_hydrogens(mol: Mol) -> None:
             new_valence = default_valence - valence_bonds
 
             if new_valence < 0:
-                raise ValueError("new valence for atom is negative")
+                raise ValueError("New valence for atom is negative!")
             
             atom.SetNumExplicitHs(new_valence)

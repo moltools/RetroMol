@@ -4,7 +4,6 @@ import argparse
 import json
 import logging
 import os
-import time
 from collections import Counter
 from datetime import datetime
 from typing import Any
@@ -43,7 +42,7 @@ def cli() -> argparse.Namespace:
     """
     Parse command line arguments.
 
-    :return: parsed command line arguments
+    :return: Parsed command line arguments.
     """
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("-o", "--outdir", type=str, required=True, help="output directory for results")

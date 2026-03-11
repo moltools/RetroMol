@@ -24,9 +24,9 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
     """
     Process a molecule by applying reaction rules and constructing a reaction graph.
 
-    :param submission: Submission: the input molecule and associated data
-    :param ruleset: RuleSet: the set of reaction and matching rules to apply
-    :return: ReactionGraph: the resulting reaction graph after processing
+    :param submission: The input molecule and associated data.
+    :param ruleset: The set of reaction and matching rules to apply.
+    :return: The resulting reaction graph after processing.
     """
     reaction_rules = ruleset.reaction_rules
     matching_rules = ruleset.matching_rules
@@ -59,14 +59,14 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
         node = g.nodes[parent_enc]
         ident = node.identify(matching_rules, match_stereochemistry=ruleset.match_stereochemistry)
         if ident and bool(getattr(ident, "terminal", True)):
-            log.debug(f"node (identity={ident.name}) identified as terminal; stopping expansion")
+            log.debug(f"Node (identity={ident.name}) identified as terminal; stopping expansion")
             continue
 
         # Uncontested in bulk (combined step)
         allowed_in_bulk = [rl for rl in reaction_rules if rl.allowed_in_bulk]
         uncontested = index_uncontested(parent, allowed_in_bulk, failed_combos)
         if uncontested:
-            log.debug(f"applying {len(uncontested)} uncontested rule(s) in bulk")
+            log.debug(f"Applying {len(uncontested)} uncontested rule(s) in bulk")
 
             products, applied_in_bulk, new_failed = apply_uncontested(parent, uncontested, original_taken_tags)
             failed_combos.update(new_failed)
@@ -133,17 +133,17 @@ def extract_min_edge_synthesis_subgraph(
     The extracted subgraph contains at most one chosen outgoing edge per expanded node
     and includes all required precursor branches for that choice.
 
-    :param g: ReactionGraph: the full retrosynthesis reaction graph
-    :param root_enc: encoding of the root molecule to extract from
-    :param prefer_kind: tuple[str, ...]: preference order for reaction kinds when costs are equal
-    :param edge_base_cost: float: base cost per reaction edge
-    :param nonterminal_leaf_penalty: float: penalty for identified leaves that are non-terminal
-    :param unsolved_leaf_penalty: float: penalty for unsolved leaves (i.e., "give up" cost)
-    :return: SynthesisExtractResult: the extracted synthesis subgraph and status
-    :raises: ValueError: if root_enc is not in the graph
+    :param g: The full retrosynthesis reaction graph
+    :param root_enc: Encoding of the root molecule to extract from
+    :param prefer_kind: Preference order for reaction kinds when costs are equal
+    :param edge_base_cost: Base cost per reaction edge
+    :param nonterminal_leaf_penalty: Penalty for identified leaves that are non-terminal
+    :param unsolved_leaf_penalty: Penalty for unsolved leaves (i.e., "give up" cost)
+    :return: The extracted synthesis subgraph and status
+    :raises ValueError: If root_enc is not in the graph
     """
     if root_enc not in g.nodes:
-        raise ValueError(f"root encoding {root_enc} not found in reaction graph nodes")
+        raise ValueError(f"Root encoding {root_enc} not found in reaction graph nodes!")
 
     # Adjacency list of outgoing edges for quick access
     out_edges: dict[int, list[int]] = defaultdict(list)
@@ -288,13 +288,13 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     """
     Run RetroMol retrosynthesis on the given input molecule using the specified reaction rules.
     
-    :param submission: Submission object containing the input molecule and data
-    :param rules: Rules object containing the reaction rules to apply
-    :return: Result object containing the retrosynthesis results
+    :param submission: Submission object containing the input molecule and data.
+    :param rules: Rules object containing the reaction rules to apply.
+    :return: Result object containing the retrosynthesis results.
     """ 
     # Parse compound into reaction graph
     g = process_mol(submission, rules)
-    log.debug(f"retrosynthesis graph has {len(g.nodes)} ({len(g.identified_nodes)} identified) nodes and {len(g.edges)} edges")
+    log.debug(f"Retrosynthesis graph has {len(g.nodes)} ({len(g.identified_nodes)} identified) nodes and {len(g.edges)} edges")
 
     # Extract minimum-edge synthesis subgraph
     root = encode_mol(submission.mol)
@@ -304,10 +304,10 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
         edge_base_cost=0.25,                # low base cost encourages longer syntheses
         nonterminal_leaf_penalty=100.0,     # high penalty forces expansion of non-terminal leaves (e.g., fatty acids)
     )
-    log.debug(f"extracted synthesis subgraph has {len(r.graph.nodes)} ({len(r.graph.identified_nodes)} identified) nodes and {len(r.graph.edges)} edges")
+    log.debug(f"Extracted synthesis subgraph has {len(r.graph.nodes)} ({len(r.graph.identified_nodes)} identified) nodes and {len(r.graph.edges)} edges")
 
     if not r.solved:
-        log.debug("retrosynthesis extraction failed to find a solution")
+        log.debug("Retrosynthesis extraction failed to find a solution")
 
     # Calculate the linear readouts for the synthesis graph
     linear_readout = LinearReadout.from_reaction_graph(root, r.graph)

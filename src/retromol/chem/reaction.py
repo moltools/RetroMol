@@ -7,15 +7,15 @@ def smarts_to_reaction(smarts: str, use_smiles: bool = False) -> ChemicalReactio
     """
     Converts a SMARTS string to an RDKit reaction.
 
-    :param smarts: the SMARTS string to convert
-    :param use_smiles: whether to interpret the SMARTS as SMILES
-    :return: the RDKit reaction
-    :raises ValueError: if the SMARTS pattern is invalid
+    :param smarts: The SMARTS string to convert.
+    :param use_smiles: Whether to interpret the SMARTS as SMILES.
+    :return: The RDKit reaction.
+    :raises ValueError: If the SMARTS pattern is invalid.
     """
     rxn = ReactionFromSmarts(smarts, useSmiles=use_smiles)
 
     if rxn is None:
-        raise ValueError(f"invalid reaction SMARTS: {smarts}")
+        raise ValueError(f"Invalid reaction SMARTS: {smarts}")
 
     return rxn
 
@@ -26,8 +26,8 @@ def reactive_template_atoms(rxn: ChemicalReaction) -> list[set[int]]:
     that actually change (i.e. have a broken/formed bond or disappear/appear).
     We return a list: one set per reactant-template in the order they appear.
 
-    :param rxn: RDKit ChemicalReaction object
-    :return: List of sets, each set contains indices of reactive atoms in the corresponding reactant template
+    :param rxn: RDKit ChemicalReaction object.
+    :return: List of sets, each set contains indices of reactive atoms in the corresponding reactant template.
     """
     # First, build a map from map‐no -> (reactant_template_idx, reactant_atom_idx)
     reactant_maps: dict[int, tuple[int, int]] = {}  # map_no -> (which reactant‐template, which atom‐idx in that template)

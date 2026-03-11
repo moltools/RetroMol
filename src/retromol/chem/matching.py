@@ -13,11 +13,11 @@ def match_mol(
     """
     Match a molecule to a motif.
 
-    :param mol: RDKit molecule to match
-    :param rules: list of MatchingRule to use for matching
-    :param match_stereochemistry: whether to consider stereochemistry in matching
-    :return: MolIdentity | None: the identity if matched, else None
-    .. note:: this function uses a greedy approach to match a molecule to a motif
+    :param mol: RDKit molecule to match.
+    :param rules: List of MatchingRule to use for matching.
+    :param match_stereochemistry: Whether to consider stereochemistry in matching.
+    :return: MolIdentity | None: The identity if matched, else None.
+    .. note:: This function uses a greedy approach to match a molecule to a motif.
     """
     for rl in rules:
         if rl.is_match(mol, match_stereochemistry):

@@ -8,16 +8,16 @@ def visualize_reaction_graph(g: ReactionGraph, html_path: str, root_enc: str | N
     """
     Visualize ReactionGraph.
 
-    :param g: ReactionGraph to visualize
-    :param html_path: path to save the HTML visualization
-    :param root_enc: optional root molecule encoding to highlight
-    .. note:: requires pyvis package
+    :param g: ReactionGraph to visualize.
+    :param html_path: Path to save the HTML visualization.
+    :param root_enc: Optional root molecule encoding to highlight.
+    .. note:: Requires pyvis package.
     """
 
     try:
         from pyvis.network import Network
     except ImportError as e:
-        raise ImportError("Requires pyvis. Install with: pip install pyvis") from e
+        raise ImportError("Requires pyvis. Install with: pip install pyvis!") from e
 
     # Build identified map from your graph (as in your code)
     identified = {}

@@ -21,8 +21,8 @@ def _timeout_handler(signum: int, frame: Any) -> None:
     """
     Signal handler that raises our custom timeout exception.
 
-    :param signum: the signal number
-    :param frame: the current stack frame
+    :param signum: The signal number.
+    :param frame: The current stack frame.
     """
     raise FunctionTimeoutError("function timed out")
 
@@ -39,8 +39,8 @@ class _TimeoutWrapper(Generic[P, T]):
         """
         Initialize the _TimeoutWrapper.
 
-        :param func: the function to wrap
-        :param seconds: the timeout duration in seconds
+        :param func: The function to wrap.
+        :param seconds: The timeout duration in seconds.
         """
         self.func = func
         self.seconds = seconds
@@ -49,10 +49,10 @@ class _TimeoutWrapper(Generic[P, T]):
         """
         Call the wrapped function with a timeout.
 
-        :param args: positional arguments for the wrapped function
-        :param kwargs: keyword arguments for the wrapped function
-        :return: the result of the wrapped function
-        :raises FunctionTimeoutError: if the function call times out
+        :param args: Positional arguments for the wrapped function.
+        :param kwargs: Keyword arguments for the wrapped function.
+        :return: The result of the wrapped function.
+        :raises FunctionTimeoutError: If the function call times out.
         """
         original_handler = signal.getsignal(signal.SIGALRM)
         signal.signal(signal.SIGALRM, _timeout_handler)
@@ -70,9 +70,9 @@ def timeout_decorator(seconds: int = 30) -> Callable[[Callable[P, T]], _TimeoutW
     """
     Returns a decorator that wraps a function in a _TimeoutWrapper instance.
 
-    :param seconds: The timeout duration in seconds
-    :return: A decorator that applies the timeout to a function
-    .. note:: because _TimeoutWrapper is at module level, it is picklable
+    :param seconds: The timeout duration in seconds.
+    :return: A decorator that applies the timeout to a function.
+    .. note:: Because _TimeoutWrapper is at module level, it is picklable.
     """
 
     def decorate(func: Callable[P, T]) -> _TimeoutWrapper[P, T]:

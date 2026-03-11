@@ -14,9 +14,9 @@ class SynthesisExtractResult:
     """
     Result of synthesis subgraph extraction.
     
-    :var graph: ReactionGraph: the extracted synthesis subgraph
-    :var solved: bool: whether the root was successfully solved
-    :var total_cost: float: total cost of the extracted subgraph
+    :var graph: The extracted synthesis subgraph.
+    :var solved: Whether the root was successfully solved.
+    :var total_cost: Total cost of the extracted subgraph.
     """
 
     graph: ReactionGraph

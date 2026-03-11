@@ -14,9 +14,9 @@ class Result:
     """
     Represents a RetroMol parsing result.
 
-    :var submission: Submission: the original submission associated with this result
-    :var reaction_graph: ReactionGraph: the reaction graph generated from retrosynthetic analysis
-    :var linear_readout: LinearReadout: the linear readout representation of the reaction graph
+    :var submission: Submission: The original submission associated with this result.
+    :var reaction_graph: ReactionGraph: The reaction graph generated from retrosynthetic analysis.
+    :var linear_readout: LinearReadout: The linear readout representation of the reaction graph.
     """
 
     submission: Submission
@@ -27,7 +27,7 @@ class Result:
         """
         String representation of the Result.
         
-        :return: string representation of the Result
+        :return: String representation of the Result.
         """
         return f"Result(submission={self.submission}, reaction_graph={self.reaction_graph}, linear_readout={self.linear_readout})"
     
@@ -35,7 +35,7 @@ class Result:
         """
         Calculate coverage score for result.
         
-        :return: coverage score as a float
+        :return: Coverage score as a float.
         """
         # Collect all unique tags from identified nodes
         identified_tags = set()
@@ -56,7 +56,7 @@ class Result:
         """
         Serialize the Result to a dictionary.
 
-        :return: dictionary representation of the Result
+        :return: Dictionary representation of the Result.
         """
         return {
             "submission": self.submission.to_dict(),
@@ -69,8 +69,8 @@ class Result:
         """
         Deserialize a Result from a dictionary.
 
-        :param data: dictionary representation of the Result
-        :return: Result object
+        :param data: Dictionary representation of the Result.
+        :return: Result object.
         """
         submission = Submission.from_dict(data["submission"])
         reaction_graph = ReactionGraph.from_dict(data["reaction_graph"])

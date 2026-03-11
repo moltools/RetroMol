@@ -10,7 +10,7 @@ class MolIdentity:
     """
     Represents the identity of a molecule based on matched rules.
 
-    :var matched_rules: list[str]: List of matched rule identifiers
+    :var matched_rules: list[str]: List of matched rule identifiers.
     """
 
     matched_rule: MatchingRule
@@ -20,7 +20,7 @@ class MolIdentity:
         """
         Get the name of the matched rule.
 
-        :return: name of the matched rule
+        :return: Name of the matched rule.
         """
         return self.matched_rule.name
     
@@ -29,7 +29,7 @@ class MolIdentity:
         """
         Check if the matched rule indicates a terminal identity.
 
-        :return: True if the matched rule is terminal, False otherwise
+        :return: True if the matched rule is terminal, False otherwise.
         """
         return self.matched_rule.terminal
     
@@ -37,7 +37,7 @@ class MolIdentity:
         """
         Serialize the MolIdentity to a dictionary.
 
-        :return: dictionary representation of the MolIdentity
+        :return: Dictionary representation of the MolIdentity.
         """
         return {
             "matched_rule": self.matched_rule.to_dict(),
@@ -48,8 +48,8 @@ class MolIdentity:
         """
         Deserialize a MolIdentity from a dictionary.
 
-        :param data: dictionary representation of the MolIdentity
-        :return: MolIdentity object
+        :param data: Dictionary representation of the MolIdentity.
+        :return: MolIdentity object.
         """
         matched_rule = MatchingRule.from_dict(data["matched_rule"])
         return cls(

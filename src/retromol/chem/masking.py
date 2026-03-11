@@ -9,13 +9,13 @@ def mask_atoms(mol: Mol, mask_tags: set[int]) -> dict[int, int]:
     """
     Set atom numbers not in mask to 0 based on atom tags.
 
-    :param mol: the molecule to mask
-    :param mask_tags: mask of atom tags
-    :return: mapping of atom tags to pre-mask atomic numbers
+    :param mol: The molecule to mask.
+    :param mask_tags: Mask of atom tags.
+    :return: Mapping of atom tags to pre-mask atomic numbers.
     """
     # Ensure all atoms have unique tags
     if not all_atoms_have_unique_tags(mol):
-        raise ValueError("all atoms in the molecule must have unique tags before masking")
+        raise ValueError("All atoms in the molecule must have unique tags before masking!")
     
     # Create mapping of tags to atomic numbers
     tag_to_atomic_num = {a.GetIsotope(): a.GetAtomicNum() for a in mol.GetAtoms()}
@@ -32,35 +32,34 @@ def unmask_atoms(mol: Mol, tag_to_atomic_num: dict[int, int]) -> None:
     """
     Restore atomic numbers based on the provided tag to atomic number mapping.
 
-    :param mol: the molecule to unmask
-    :param tag_to_atomic_num: mapping of atom tags to original atomic numbers
-    :return: None
-    .. note:: this function modifies the input molecule in place
+    :param mol: The molecule to unmask.
+    :param tag_to_atomic_num: Mapping of atom tags to original atomic numbers.
+    .. note:: This function modifies the input molecule in place.
     """
     for atom in mol.GetAtoms():
         if atom.GetIsotope() != 0:  # newly added atoms by rxn have isotope 0
             original_atom_num = tag_to_atomic_num.get(atom.GetIsotope(), None)
             if original_atom_num is None:
-                raise ValueError(f"tag {atom.GetIsotope()} not found in tag_to_atomic_num mapping during unmasking")
+                raise ValueError(f"Tag {atom.GetIsotope()} not found in tag_to_atomic_num mapping during unmasking!")
 
             atom.SetAtomicNum(original_atom_num)
 
     # Validate that no atomic numbers are zero after unmasking
     curr_atomic_nums = {atom.GetAtomicNum() for atom in mol.GetAtoms()}
     if 0 in curr_atomic_nums:
-        raise ValueError("unmasking failed, some atomic numbers are still zero")
+        raise ValueError("Unmasking failed, some atomic numbers are still zero!")
     
 
 def mapped_tags_changed(reactant: Mol, product: Mol) -> set[int]:
     """
     Determine which mapped atom tags have changed between reactant and product.
 
-    :param reactant: reactant molecule
-    :param product: product molecule
-    :return: set of changed atom tags
-    .. note:: a tag is considered changed if either the atom with that tag changes 
+    :param reactant: Reactant molecule.
+    :param product: Product molecule.
+    :return: Set of changed atom tags.
+    .. note:: A tag is considered changed if either the atom with that tag changes 
         atomic number, or its neighbor signature (by tagged IDs / atom types + bond order)
-        changes
+        changes.
     """
     def _tag_to_idx(m: Mol) -> dict[int, int]:
         # Atom tags live in the isotope numbers; ignore zeros
@@ -103,10 +102,10 @@ def is_masked_preserved(reactant: Mol, products: list[Mol], allowed: set[int]) -
     """
     Check that only tags in 'allowed' are changed across all products.
 
-    :param reactant: reactant molecule
-    :param products: list of product molecules
-    :param allowed: set of allowed atom tags that can change
-    :return: True if only allowed tags are changed, False otherwise
+    :param reactant: Reactant molecule.
+    :param products: List of product molecules.
+    :param allowed: Set of allowed atom tags that can change.
+    :return: True if only allowed tags are changed, False otherwise.
     """
     if not allowed:
         return True  # there is no mask, everything is allowed

@@ -7,8 +7,8 @@ def tag_mol(mol: Mol) -> None:
     """
     Tags the atoms in an RDKit molecule with unique isotope-based tags.
 
-    :param mol: the molecule to tag
-    .. note:: this function modifies the input molecule in place
+    :param mol: The molecule to tag.
+    .. note:: This function modifies the input molecule in place.
     """
     for i, atom in enumerate(mol.GetAtoms(), start=1):
         atom.SetIsotope(i)
@@ -18,9 +18,9 @@ def remove_tags(mol: Mol, in_place: bool = False) -> Mol:
     """
     Removes atom tags from an RDKit molecule.
 
-    :param mol: the molecule to process
-    :param in_place: whether to modify the input molecule in place
-    :return: the molecule without atom tags
+    :param mol: The molecule to process.
+    :param in_place: Whether to modify the input molecule in place.
+    :return: The molecule without atom tags.
     """
     if not in_place:
         mol = Mol(mol)
@@ -35,8 +35,8 @@ def get_tags_mol(mol: Mol) -> set[int]:
     """
     Get the atom tags from a molecule.
 
-    :param mol: the molecule
-    :return: unordered set of atom tags
+    :param mol: The molecule.
+    :return: Unordered set of atom tags.
     """
     tags: set[int] = set()
     for atom in mol.GetAtoms():
@@ -50,8 +50,8 @@ def get_tags_mols(mols: list[Mol]) -> set[int]:
     """
     Get the atom tags from a list of molecules.
 
-    :param mols: the list of molecules
-    :return: unordered set of atom tags
+    :param mols: The list of molecules.
+    :return: Unordered set of atom tags.
     """
     tags: set[int] = set()
     for mol in mols:
@@ -64,8 +64,8 @@ def all_atoms_have_unique_tags(mol: Mol) -> bool:
     """
     Check if all atoms in a molecule have unique tags.
 
-    :param mol: the molecule
-    :return: True if all atoms have unique tags, False otherwise
+    :param mol: The molecule.
+    :return: True if all atoms have unique tags, False otherwise.
     """
     num_atoms = mol.GetNumAtoms()
     curr_tags = get_tags_mol(mol)

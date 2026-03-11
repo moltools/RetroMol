@@ -14,12 +14,12 @@ class Submission:
     """
     Represents a submission of a molecule for retrosynthetic analysis.
 
-    :var smiles: str: SMILES representation of the submitted molecule
-    :var name: str | None: optional name of the submitted molecule
-    :var props: dict[str, Any] | None: optional additional properties associated with the submission
-    :var keep_stereo: bool: whether to keep stereochemistry during standardization
-    :var neutralize: bool: whether to neutralize the molecule during standardization
-    :var canonicalize_tautomer: bool: whether to canonicalize the tautomer during
+    :var smiles: SMILES representation of the submitted molecule.
+    :var name: Optional name of the submitted molecule.
+    :var props: Optional additional properties associated with the submission.
+    :var keep_stereo: Whether to keep stereochemistry during standardization.
+    :var neutralize: Whether to neutralize the molecule during standardization.
+    :var canonicalize_tautomer: Whether to canonicalize the tautomer during standardization.
     """
 
     smiles: str
@@ -70,7 +70,7 @@ class Submission:
         """
         Serialize the Submission to a dictionary.
 
-        :return: dictionary representation of the Submission
+        :return: Dictionary representation of the Submission.
         """
         return {
             "smiles": self.smiles,
@@ -83,8 +83,8 @@ class Submission:
         """
         Deserialize a Submission from a dictionary.
 
-        :param data: dictionary representation of the Submission
-        :return: Submission object
+        :param data: Dictionary representation of the Submission.
+        :return: Submission object.
         """
         return cls(
             smiles=data["smiles"],

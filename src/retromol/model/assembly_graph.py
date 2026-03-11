@@ -17,14 +17,14 @@ class RootBondLink:
     """
     One root bond connects two monomer tag-sets.
     
-    :var a1_idx: index of the first atom in the root bond
-    :var a2_idx: index of the second atom in the root bond
-    :var a1_tag: tag of the first atom in the root bond
-    :var a2_tag: tag of the second atom in the root bond
-    :var a1_symbol: element symbol of the first atom
-    :var a2_symbol: element symbol of the second atom
-    :var bond_type: stringified version of RDKit BondType
-    :var bond_order: bond order if available
+    :var a1_idx: Index of the first atom in the root bond
+    :var a2_idx: Index of the second atom in the root bond
+    :var a1_tag: Tag of the first atom in the root bond
+    :var a2_tag: Tag of the second atom in the root bond
+    :var a1_symbol: Element symbol of the first atom
+    :var a2_symbol: Element symbol of the second atom
+    :var bond_type: Stringified version of RDKit BondType
+    :var bond_order: Bond order if available
     """
 
     a1_idx: int
@@ -42,7 +42,7 @@ class RootBondLink:
         """
         Convert the RootBondLink to a dictionary.
 
-        :return: dictionary representation of the RootBondLink
+        :return: Dictionary representation of the RootBondLink.
         """
         return asdict(self)
     
@@ -51,8 +51,8 @@ class RootBondLink:
         """
         Create a RootBondLink from a dictionary.
 
-        :param data: dictionary representation of the RootBondLink
-        :return: RootBondLink instance
+        :param data: Dictionary representation of the RootBondLink.
+        :return: RootBondLink instance.
         """
         return cls(**data)
 
@@ -66,11 +66,11 @@ def build_assembly_graph(
     """
     Build an assembly graph from the given root molecule and monomers.
 
-    :param root_mol: RDKit Mol representing the root molecule
-    :param monomers: iterable of MolNode representing the monomers
-    :param allow_overlaps: whether to allow overlapping monomers (default: False)
-    :param include_unassigned: whether to include unassigned regions as a node (default: False)
-    :return: NetworkX graph representing the assembly graph
+    :param root_mol: RDKit Mol representing the root molecule.
+    :param monomers: Iterable of MolNode representing the monomers.
+    :param allow_overlaps: Whether to allow overlapping monomers (default: False).
+    :param include_unassigned: Whether to include unassigned regions as a node (default: False).
+    :return: NetworkX graph representing the assembly graph.
     """
     monomers = list(monomers)
 
@@ -84,7 +84,7 @@ def build_assembly_graph(
 
         for t in tags:
             if t in tag_to_monomer and not allow_overlaps:
-                raise ValueError(f"root tag {t} appears in multiple monomersL {tag_to_monomer[t]} and {m.enc}")
+                raise ValueError(f"Root tag {t} appears in multiple monomersL {tag_to_monomer[t]} and {m.enc}!")
             tag_to_monomer[t] = m.enc
 
     # Initialize empty graph
@@ -148,9 +148,9 @@ class AssemblyGraph:
     """
     Assembly graph representing monomer connectivity in a molecule.
 
-    :var g: NetworkX graph representing the assembly graph
-    :var unassigned: name of the unassigned node
-    :var validate: validate graph structure upon initialization
+    :var g: NetworkX graph representing the assembly graph.
+    :var unassigned: Name of the unassigned node.
+    :var validate: Validate graph structure upon initialization.
     """
 
     g: nx.Graph
@@ -168,7 +168,7 @@ class AssemblyGraph:
         """
         String representation of the AssemblyGraph.
         
-        :return: string representation
+        :return: String representation.
         """
         return f"AssemblyGraph(num_nodes={self.g.number_of_nodes()}, num_edges={self.g.number_of_edges()})"
     
@@ -176,7 +176,7 @@ class AssemblyGraph:
         """
         Get the list of monomer IDs in the assembly graph.
 
-        :return: list of monomer IDs
+        :return: List of monomer IDs.
         """
         return [n for n in self.g.nodes if n != self.unassigned]
     
@@ -184,7 +184,7 @@ class AssemblyGraph:
         """
         Get the list of monomer MolNodes in the assembly graph.
 
-        :return: list of MolNode instances
+        :return: List of MolNode instances.
         """
         out: list[MolNode] = []
         for n in self.monomer_ids():
@@ -199,7 +199,7 @@ class AssemblyGraph:
         """
         Iterate over edges with their associated root bonds.
 
-        :return: iterator of tuples (node1, node2, list of RootBondLink)
+        :return: Iterator of tuples (node1, node2, list of RootBondLink).
         """
         for u, v, data in self.g.edges(data=True):
             yield u, v, data["bonds"]
@@ -208,7 +208,7 @@ class AssemblyGraph:
         """
         Drop the unassigned node from the assembly graph.
         
-        :return: AssemblyGraph without the unassigned node
+        :return: AssemblyGraph without the unassigned node.
         """
         h = self.g.copy()
 
@@ -221,7 +221,7 @@ class AssemblyGraph:
         """
         Drop singleton nodes (nodes with degree 0) from the assembly graph.
         
-        :return: AssemblyGraph with singleton nodes removed
+        :return: AssemblyGraph with singleton nodes removed.
         """
         h = self.g.copy()
 
@@ -238,9 +238,9 @@ class AssemblyGraph:
         """
         Filter the assembly graph by allowed root bond element pairs.
         
-        :param allow_pairs: set of allowed element symbol pairs (as frozensets)
-        :param drop_isolated: whether to drop isolated nodes after filtering (default: True)
-        :return: filtered AssemblyGraph
+        :param allow_pairs: Set of allowed element symbol pairs (as frozensets).
+        :param drop_isolated: Whether to drop isolated nodes after filtering (default: True).
+        :return: Filtered AssemblyGraph.
         """
         h = self.g.copy()
 
@@ -274,8 +274,8 @@ class AssemblyGraph:
         """
         Get the connected components of the assembly graph.
 
-        :param keep_unassigned: whether to keep the unassigned node in components (default: False)
-        :return: list of AssemblyGraph instances representing connected components
+        :param keep_unassigned: Whether to keep the unassigned node in components (default: False).
+        :return: List of AssemblyGraph instances representing connected components.
         """
         h = self.g.copy()
 
@@ -293,9 +293,9 @@ class AssemblyGraph:
         """
         Find the longest path of monomer nodes in assembly graph.
 
-        :param keep_unassigned: whether to keep the unassigned node in the graph (default: False)
-        :param max_starts: maximum number of starting nodes for greedy search (default: 25)
-        :return: list of MolNode instances representing the longest path
+        :param keep_unassigned: Whether to keep the unassigned node in the graph (default: False)
+        :param max_starts: Maximum number of starting nodes for greedy search (default: 25)
+        :return: List of MolNode instances representing the longest path
         """
         g = self.g
         h = g.copy()
@@ -306,7 +306,7 @@ class AssemblyGraph:
         # Double check that every node has a MolNode attached
         for n in h.nodes:
             if "molnode" not in h.nodes[n] or h.nodes[n]["molnode"] is None:
-                raise ValueError(f"AssemblyGraph node {n!r} has no valid 'molnode' attached")
+                raise ValueError(f"AssemblyGraph node {n!r} has no valid 'molnode' attached!")
 
         # Empty graph case
         if h.number_of_nodes() == 0:
@@ -316,12 +316,12 @@ class AssemblyGraph:
             """
             Convert a graph node ID to its corresponding MolNode.
             
-            :param node_id: node ID in the graph
-            :return: corresponding MolNode
+            :param node_id: Node ID in the graph.
+            :return: Corresponding MolNode.
             """
             mn = h.nodes[node_id].get("molnode", None)
             if mn is None:
-                raise ValueError(f"Node {node_id!r} has no 'molnode' attached")
+                raise ValueError(f"Node {node_id!r} has no 'molnode' attached!")
 
             return mn
 
@@ -329,8 +329,8 @@ class AssemblyGraph:
             """
             Convert a list of graph node IDs to their corresponding MolNodes.
             
-            :param path_nodes: list of node IDs in the graph
-            :return: list of corresponding MolNodes
+            :param path_nodes: List of node IDs in the graph.
+            :return: List of corresponding MolNodes.
             """
             return [node_to_molnode(n) for n in path_nodes]
 
@@ -364,8 +364,8 @@ class AssemblyGraph:
                 """
                 Perform a greedy walk starting from the given node.
                 
-                :param start: starting node ID
-                :return: list of node IDs in the greedy path
+                :param start: Starting node ID.
+                :return: List of node IDs in the greedy path.
                 """
                 used = {start}
                 path = [start]
@@ -437,13 +437,13 @@ class AssemblyGraph:
         """
         Iterate over all k-mers (paths of length k) in the assembly graph.
 
-        :param k: length of the k-mers (must be at least 1)
-        :param include_unassigned: whether to include the unassigned node in paths (default: False)
-        :param identified_only: whether to yield only k-mers with all identified monomers (default: False)
-        :yield: tuples of MolNode instances representing k-mers
+        :param k: Length of the k-mers (must be at least 1).
+        :param include_unassigned: Whether to include the unassigned node in paths (default: False).
+        :param identified_only: Whether to yield only k-mers with all identified monomers (default: False).
+        :yield: Tuples of MolNode instances representing k-mers.
         """
         if k < 1:
-            raise ValueError("k must be at least 1")
+            raise ValueError("k must be at least 1!")
         
         g = self.g
 
@@ -458,7 +458,7 @@ class AssemblyGraph:
         def node_to_molnode(node_id: str) -> MolNode:
             mn = g.nodes[node_id].get("molnode", None)
             if mn is None:
-                raise ValueError(f"AssemblyGraph node {node_id!r} has no 'molnode' attached")
+                raise ValueError(f"AssemblyGraph node {node_id!r} has no 'molnode' attached!")
             return mn
         
         node_ids = usable_node_ids()
@@ -498,30 +498,30 @@ class AssemblyGraph:
         for n, data in self.g.nodes(data=True):
             for k in ("molnode", "tags", "identity"):
                 if k not in data:
-                    raise ValueError(f"AssemblyGraph node {n!r} missing required attribute {k!r}")
+                    raise ValueError(f"AssemblyGraph node {n!r} missing required attribute {k!r}!")
                 
             if not isinstance(data["tags"], set):
                 raise ValueError(f"AssemblyGraph node {n!r} tags must be set[int]")
             
             if data["molnode"] is None and n != self.unassigned:
-                raise ValueError(f"AssemblyGraph node {n!r} has None molnode but is not unassigned node")
+                raise ValueError(f"AssemblyGraph node {n!r} has None molnode but is not unassigned node!")
             
         for u, v, data in self.g.edges(data=True):
             for k in ("bonds", "n_bonds"):
                 if k not in data:
-                    raise ValueError(f"AssemblyGraph edge {u!r}-{v!r} missing required attribute {k!r}")
+                    raise ValueError(f"AssemblyGraph edge {u!r}-{v!r} missing required attribute {k!r}!")
                 
             if not isinstance(data["bonds"], list):
-                raise ValueError(f"AssemblyGraph edge {u!r}-{v!r} bonds must be list[RootBondLink]")
+                raise ValueError(f"AssemblyGraph edge {u!r}-{v!r} bonds must be list[RootBondLink]!")
             
             if not isinstance(data["n_bonds"], int):
-                raise ValueError(f"AssemblyGraph edge {u!r}-{v!r} n_bonds must be int")
+                raise ValueError(f"AssemblyGraph edge {u!r}-{v!r} n_bonds must be int!")
             
     def to_dict(self) -> dict[str, Any]:
         """
         Convert the AssemblyGraph to a dictionary.
 
-        :return: dictionary representation of the AssemblyGraph
+        :return: Dictionary representation of the AssemblyGraph.
         """
         nodes_out: list[dict[str, Any]] = []
         for node_id, data in self.g.nodes(data=True):
@@ -617,13 +617,13 @@ class AssemblyGraph:
         """
         Build an AssemblyGraph from the given root molecule and monomers.
 
-        :param root_mol: RDKit Mol representing the root molecule
-        :param monomers: iterable of MolNode representing the monomers
-        :param allow_overlaps: whether to allow overlapping monomers (default: False)
-        :param include_unassigned: whether to include unassigned regions as a node (default: False)
-        :param unassigned: name of the unassigned node (default: "unassigned")
-        :param validate: whether to validate the graph after building (default: True)
-        :return: AssemblyGraph instance
+        :param root_mol: RDKit Mol representing the root molecule.
+        :param monomers: Iterable of MolNode representing the monomers.
+        :param allow_overlaps: Whether to allow overlapping monomers (default: False).
+        :param include_unassigned: Whether to include unassigned regions as a node (default: False).
+        :param unassigned: Name of the unassigned node (default: "unassigned").
+        :param validate: Whether to validate the graph after building (default: True).
+        :return: AssemblyGraph instance.
         """
         g = build_assembly_graph(
             root_mol=root_mol,
@@ -650,12 +650,12 @@ class AssemblyGraph:
         """
         Visualize the assembly graph using Matplotlib.
 
-        :param with_labels: whether to show node labels (default: True)
-        :param show_unassinged: whether to show the unassigned node (default: False)
-        :param node_size: size of the nodes (default: 1600)
-        :param font_size: font size for labels (default: 9)
-        :param edge_with_scale: scale factor for edge widths (default: 1.0)
-        :param savepath: optional path to save the figure (default: None)
+        :param with_labels: Whether to show node labels (default: True).
+        :param show_unassigned: Whether to show the unassigned node (default: False).
+        :param node_size: Size of the nodes (default: 1600).
+        :param font_size: Font size for labels (default: 9).
+        :param edge_with_scale: Scale factor for edge widths (default: 1.0).
+        :param savepath: Optional path to save the figure (default: None).
         """
         # Hide unassigned if requested
         if not show_unassigned:
@@ -664,7 +664,7 @@ class AssemblyGraph:
             g = self.g
 
         if g.number_of_nodes() == 0:
-            raise ValueError("AssemblyGraph has no nodes to show")
+            raise ValueError("AssemblyGraph has no nodes to show!")
         
         # Layout
         pos = nx.spring_layout(g, seed=42)

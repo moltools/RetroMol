@@ -22,12 +22,12 @@ def setup_logging(
     """
     Set up logging for the retromol package.
 
-    :param level: log level for console output
-    :param fmt: log message format
-    :param datefmt: date format for log messages
-    :param stream: output stream for console logs; defaults to sys.stderr
-    .. note:: safe to call multiple times; library code should not call this function;
-        it is intended for use by applications using the library
+    :param level: Log level for console output.
+    :param fmt: Log message format.
+    :param datefmt: Date format for log messages.
+    :param stream: Output stream for console logs; defaults to sys.stderr.
+    .. note:: Safe to call multiple times; library code should not call this function;
+        it is intended for use by applications using the library.
     """
     if stream is None:
         stream = sys.stderr
@@ -60,10 +60,10 @@ def add_file_handler(
     """
     Add a file handler to the root logger.
 
-    :param logfile: path to log file
-    :param level: log level for file output
-    .. note:: intended to be called after setup_logginer(); safe to call multiple times
-        for the same logfile
+    :param logfile: Path to log file.
+    :param level: Log level for file output.
+    .. note:: Intended to be called after setup_logging(); safe to call multiple times
+        for the same logfile.
     """
     if isinstance(level, str):
         level = level.upper()

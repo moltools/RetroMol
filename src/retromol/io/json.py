@@ -10,9 +10,9 @@ def iter_json(path: str, jsonl: bool = False) -> Generator[Any, None, None]:
     """
     Stream items from a JSON array or a JSON Lines (JSONL) file.
 
-    :param path: path to the JSON or JSONL file
-    :param jsonl: if True, treat the file as JSONL (one JSON object per line). If False, assume a single JSON array
-    :yield: parsed JSON objects
+    :param path: Path to the JSON or JSONL file.
+    :param jsonl: If True, treat the file as JSONL (one JSON object per line). If False, assume a single JSON array.
+    :yield: Parsed JSON objects.
     """
     with open(path, "rb") as f:
         if jsonl:

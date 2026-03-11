@@ -17,6 +17,9 @@ ReadoutMode = Literal["leaf_identified", "first_identified"]
 class LinearReadout:
     """
     A linear readout representation of a RetroMol parsing result.
+
+    :cvar assembly_graph: AssemblyGraph representing the assembly of monomers.
+    :cvar paths: list of paths (each path is a list of MolNodes) extracted from the assembly graph, representing linear sequences of monomers.
     """
 
     assembly_graph: AssemblyGraph
@@ -26,7 +29,7 @@ class LinearReadout:
         """
         Return a string representation of the LinearReadout.
 
-        :return: str: string representation
+        :return: str: String representation.
         """
         return f"LinearReadout(assembly_graph_nodes={self.assembly_graph.g.number_of_nodes()}, assembly_graph_edges={self.assembly_graph.g.number_of_edges()}, num_paths={len(self.paths)})"
 
@@ -41,12 +44,12 @@ class LinearReadout:
         """
         Create a LinearReadout from a Result object.
 
-        :param root_enc: encoding of the root molecule
-        :param reaction_graph: ReactionGraph object
-        :param exclude_identities: list of matching rules to exclude identities (not used here)
-        :param include_identities: list of matching rules to include identities (not used here)
-        :return: LinearReadout instance
-        :raises ValueError: if root_enc not found in reaction graph nodes
+        :param root_enc: Encoding of the root molecule.
+        :param reaction_graph: ReactionGraph object.
+        :param exclude_identities: List of matching rules to exclude identities (not used here).
+        :param include_identities: List of matching rules to include identities (not used here).
+        :return: LinearReadout instance.
+        :raises ValueError: If root_enc not found in reaction graph nodes.
         """
         exclude_identities = exclude_identities or []
         include_identities = include_identities  # keep None meaning "no whitelist"
@@ -58,7 +61,7 @@ class LinearReadout:
 
         g = reaction_graph
         if root_enc not in g.nodes:
-            raise ValueError(f"root_enc {root_enc} not found in reaction graph nodes")
+            raise ValueError(f"The root_enc {root_enc} not found in reaction graph nodes!")
         
         # Use root_enc to get root mol
         root = g.nodes[root_enc].mol
@@ -96,8 +99,8 @@ class LinearReadout:
         """
         Deserialize a LinearReadout from a dictionary.
 
-        :param data: dict representation of LinearReadout
-        :return: LinearReadout instance
+        :param data: Dictionary representation of LinearReadout.
+        :return: LinearReadout instance.
         """
         assembly_graph = AssemblyGraph.from_dict(data["assembly_graph"])
         paths = [[MolNode.from_dict(node_data) for node_data in path_data] for path_data in data["paths"]]

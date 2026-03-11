@@ -20,10 +20,10 @@ def sanitize_mol(mol: Mol, fix_hydrogens: bool = False) -> bool:
     """
     Sanitizes an RDKit molecule in place, returning success status.
 
-    :param mol: the molecule to sanitize
-    :param fix_hydrogens: whether to correct hydrogen counts before sanitization
-    :return: True if sanitization was successful, False otherwise
-    .. note:: this function mutates the input molecule in place
+    :param mol: The molecule to sanitize.
+    :param fix_hydrogens: Whether to correct hydrogen counts before sanitization.
+    :return: True if sanitization was successful, False otherwise.
+    .. note:: This function mutates the input molecule in place.
     """
     try:
         if fix_hydrogens:
@@ -38,8 +38,8 @@ def reassign_stereochemistry(mol: Mol) -> Mol:
     """
     Reassign stereochemistry of a molecule without changing its identity.
 
-    :param mol: input molecule
-    :return: molecule with reassigned stereochemistry
+    :param mol: Input molecule.
+    :return: Molecule with reassigned stereochemistry.
     """
     mm = Mol(mol)
     
@@ -58,9 +58,9 @@ def smiles_to_mol(smiles: str) -> Mol:
     """
     Converts a SMILES string to an RDKit molecule.
 
-    :param smiles: the SMILES string to convert
-    :return: the RDKit molecule
-    :raises ValueError: if the SMILES is invalid
+    :param smiles: The SMILES string to convert.
+    :return: The RDKit molecule.
+    :raises ValueError: If the SMILES is invalid.
     """
     mol = MolFromSmiles(smiles)
 
@@ -74,9 +74,9 @@ def smarts_to_mol(smarts: str) -> Mol:
     """
     Converts a SMARTS string to an RDKit molecule.
 
-    :param smarts: the SMARTS string to convert
-    :return: the RDKit molecule
-    :raises ValueError: if the SMARTS pattern is invalid
+    :param smarts: The SMARTS string to convert.
+    :return: The RDKit molecule.
+    :raises ValueError: If the SMARTS pattern is invalid.
     """
     mol: Mol | None = MolFromSmarts(smarts)
 
@@ -90,8 +90,8 @@ def get_fragments(mol: Mol) -> tuple[Mol, ...]:
     """
     Returns the fragments of a molecule.
 
-    :param mol: the molecule to analyze
-    :return: a tuple of fragment molecules
+    :param mol: The molecule to analyze.
+    :return: A tuple of fragment molecules.
     """
     frags: tuple[Mol, ...] = GetMolFrags(mol, asMols=True, sanitizeFrags=False)
     return frags
@@ -101,8 +101,8 @@ def count_fragments(mol: Mol) -> int:
     """
     Counts the number of fragments in a molecule.
 
-    :param mol: the molecule to analyze
-    :return: the number of fragments
+    :param mol: The molecule to analyze.
+    :return: The number of fragments.
     """
     return len(get_fragments(mol))
 
@@ -111,8 +111,8 @@ def largest_fragment(mol: Mol) -> Mol:
     """
     Return the largest fragment of a molecule (by atom count).
 
-    :param mol: input molecule
-    :return: largest fragment molecule
+    :param mol: Input molecule.
+    :return: Largest fragment molecule.
     """
     frags = get_fragments(mol)
     return max(frags, key=lambda m: m.GetNumAtoms()) if frags else mol
@@ -127,11 +127,11 @@ def standardize_from_smiles(
     """
     Standardize a molecule from its SMILES representation.
 
-    :param smi: input SMILES string
-    :param keep_stereo: whether to retain stereochemistry
-    :param neutralize: whether to neutralize charges
-    :param tautomer_canon: whether to canonicalize tautomers
-    :return: standardized molecule or None if input SMILES is invalid
+    :param smi: Input SMILES string.
+    :param keep_stereo: Whether to retain stereochemistry.
+    :param neutralize: Whether to neutralize charges.
+    :param tautomer_canon: Whether to canonicalize tautomers.
+    :return: Standardized molecule or None if input SMILES is invalid.
     """
     mol = smiles_to_mol(smi)
     mol = largest_fragment(mol)
@@ -159,11 +159,11 @@ def mol_to_smiles(
     """
     Converts an RDKit molecule to a SMILES string.
 
-    :param mol: the molecule to convert
-    :param include_tags: whether to include tagging information in the SMILES
-    :param isomeric: whether to include isomeric information in the SMILES
-    :param canonical: whether to generate a canonical SMILES
-    :return: the SMILES string
+    :param mol: The molecule to convert.
+    :param include_tags: Whether to include tagging information in the SMILES.
+    :param isomeric: Whether to include isomeric information in the SMILES.
+    :param canonical: Whether to generate a canonical SMILES.
+    :return: The SMILES string.
     """
     if not include_tags:
         mol = remove_tags(mol, in_place=False)
@@ -175,8 +175,8 @@ def mol_to_inchikey(mol: Mol) -> str:
     """
     Converts an RDKit molecule to an InChIKey.
 
-    :param mol: the molecule to convert
-    :return: the InChIKey
+    :param mol: The molecule to convert.
+    :return: The InChIKey.
     """
     return MolToInchiKey(mol)
 
@@ -185,8 +185,8 @@ def encode_mol(mol: Mol) -> str:
     """
     Encodes an RDKit molecule as a canonical isomeric SMILES string.
 
-    :param mol: the molecule to encode
-    :return: the encoded molecule
+    :param mol: The molecule to encode.
+    :return: The encoded molecule.
     """
     smiles = mol_to_smiles(mol, include_tags=True, isomeric=True, canonical=True)
 

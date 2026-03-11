@@ -20,11 +20,11 @@ class MolNode:
     """
     A molecule node in the processing graph.
 
-    :var enc: str: unique encoding of the molecule
-    :var mol: Mol: the molecule object
-    :var smiles: str: SMILES representation of the molecule
-    :var identity: MolIdentity | None: identification information if identified
-    :var identified: bool | None: whether the node has been checked for identification
+    :var enc: str: Unique encoding of the molecule.
+    :var mol: Mol: The molecule object.
+    :var smiles: str: SMILES representation of the molecule.
+    :var identity: MolIdentity | None: Identification information if identified.
+    :var identified: bool | None: Whether the node has been checked for identification.
     """
 
     enc: str
@@ -49,7 +49,7 @@ class MolNode:
         """
         Return a string representation of the MolNode.
         
-        :return: str: string representation
+        :return: str: String representation of the MolNode.
         """
         id_name = self.identity.name if self.identity else None
         return f"MolNode(enc={self.enc}, id={id_name})"
@@ -58,9 +58,9 @@ class MolNode:
         """
         Identify the molecule node using the provided matching rules.
 
-        :param rules: list[MatchingRule]: the matching rules to apply
-        :param match_stereochemistry: bool: whether to consider stereochemistry in matching
-        :return: MolIdentity | None: the identity if matched, else None
+        :param rules: The matching rules to apply.
+        :param match_stereochemistry: Whether to consider stereochemistry in matching.
+        :return: The identity if matched, else None.
         """
         if self.is_checked:
             return self.identity  # identity is present only if identified=True
@@ -78,7 +78,7 @@ class MolNode:
         """
         Serialize the MolNode to a dictionary.
 
-        :return: dictionary representation of the MolNode
+        :return: Dictionary representation of the MolNode.
         """
         return {
             "enc": self.enc,
@@ -93,8 +93,8 @@ class MolNode:
         """
         Deserialize a MolNode from a dictionary.
 
-        :param data: dictionary representation of the MolNode
-        :return: MolNode object
+        :param data: Dictionary representation of the MolNode.
+        :return: MolNode object.
         """
         identity = MolIdentity.from_dict(data["identity"]) if data["identity"] else None
 
@@ -111,13 +111,13 @@ class MolNode:
 @dataclass(frozen=True)
 class ReactionStep:
     """
-    Edge payload: desribes one application event.
+    Edge payload: desribes one application event:
     - uncontested: multiple rules applied as one step
     - contested: exactly one rule applied
 
     :var kind: StepKind: 'uncontested' or 'contested'
-    :var names: tuple[str, ...]: reaction rule IDs (human-facing)
-    :var rule_ids: tuple[str, ...]: optional numeric IDs (stable internal)
+    :var names: Tuple[str, ...]: reaction rule IDs (human-facing).
+    :var rule_ids: Tuple[str, ...]: optional numeric IDs (stable internal).
     """
 
     kind: StepKind
@@ -128,7 +128,7 @@ class ReactionStep:
         """
         Serialize the ReactionStep to a dictionary.
 
-        :return: dictionary representation of the ReactionStep
+        :return: Dictionary representation of the ReactionStep.
         """
         return {
             "kind": self.kind,
@@ -141,8 +141,8 @@ class ReactionStep:
         """
         Deserialize a ReactionStep from a dictionary.
 
-        :param data: dictionary representation of the ReactionStep
-        :return: ReactionStep object
+        :param data: Dictionary representation of the ReactionStep.
+        :return: ReactionStep object.
         """
         step = cls(
             kind=data["kind"],
@@ -157,9 +157,9 @@ class RxnEdge:
     """
     Directed hyper-edge parent -> children, labeled by ReactionStep.
 
-    :var src: int: encoding of source molecule node
-    :var dsts: tuple[int, ...]: encodings of child molecule nodes
-    :var step: ReactionStep: details of the reaction application
+    :var src: int: Encoding of source molecule node.
+    :var dsts: Tuple[int, ...]: encodings of child molecule nodes.
+    :var step: ReactionStep: details of the reaction application.
     """
 
     src: int
@@ -170,7 +170,7 @@ class RxnEdge:
         """
         Serialize the RxnEdge to a dictionary.
 
-        :return: dictionary representation of the RxnEdge
+        :return: Dictionary representation of the RxnEdge.
         """
         return {
             "src": self.src,
@@ -183,8 +183,8 @@ class RxnEdge:
         """
         Deserialize a RxnEdge from a dictionary.
 
-        :param data: dictionary representation of the RxnEdge
-        :return: RxnEdge object
+        :param data: Dictionary representation of the RxnEdge.
+        :return: RxnEdge object.
         """
         edge = cls(
             src=data["src"],
@@ -212,7 +212,7 @@ class ReactionGraph:
         """
         Return only identified nodes.
         
-        :return: dict[str, MolNode]: mapping of encodings to identified MolNodes
+        :return: Mapping of encodings to identified MolNodes.
         """
         return {enc: node for enc, node in self.nodes.items() if node.is_identified}
 
@@ -220,7 +220,7 @@ class ReactionGraph:
         """
         Return a string representation of the ReactionGraph.
         
-        :return: str: string representation
+        :return: String representation.
         """
         return f"ReactionGraph(num_nodes={len(self.nodes)}, num_edges={len(self.edges)})"
 
@@ -228,9 +228,9 @@ class ReactionGraph:
         """
         Add a molecule node to the graph if not already present.
         
-        :param mol: molecule to add
-        :param keep_stereo_smiles: whether to keep stereochemistry in SMILES
-        :return: encoding of the molecule node
+        :param mol: Molecule to add.
+        :param keep_stereo_smiles: Whether to keep stereochemistry in SMILES.
+        :return: Encoding of the molecule node.
         """
         enc = encode_mol(mol)
         if enc not in self.nodes:
@@ -243,10 +243,10 @@ class ReactionGraph:
         """
         Add a reaction edge to the graph.
 
-        :param src_enc: encoding of the source molecule node
-        :param child_mols: iterable of child molecule nodes
-        :param step: ReactionStep describing the reaction
-        :return: tuple of encodings of the child molecule nodes
+        :param src_enc: Encoding of the source molecule node.
+        :param child_mols: Iterable of child molecule nodes.
+        :param step: ReactionStep describing the reaction.
+        :return: Tuple of encodings of the child molecule nodes.
         """
         dst_encs: list[str] = []
         for m in child_mols:
@@ -262,8 +262,8 @@ class ReactionGraph:
         """
         Get all leaf nodes (nodes with no outgoing edges).
 
-        :param identified_only: whether to include only identified nodes
-        :return: list of MolNode objects that are leaves
+        :param identified_only: Whether to include only identified nodes.
+        :return: List of MolNode objects that are leaves.
         """
         leaves: list[MolNode] = []
 
@@ -281,7 +281,7 @@ class ReactionGraph:
         """
         Serialize the ReactionGraph to a dictionary.
 
-        :return: dictionary representation of the ReactionGraph
+        :return: Dictionary representation of the ReactionGraph.
         """
         return {
             "nodes": {enc: node.to_dict() for enc, node in self.nodes.items()},
@@ -294,8 +294,8 @@ class ReactionGraph:
         """
         Deserialize a ReactionGraph from a dictionary.
 
-        :param data: dictionary representation of the ReactionGraph
-        :return: ReactionGraph object
+        :param data: Dictionary representation of the ReactionGraph.
+        :return: ReactionGraph object.
         """
         reaction_graph = cls(
             nodes={enc: MolNode.from_dict(node_data) for enc, node_data in data["nodes"].items()},
