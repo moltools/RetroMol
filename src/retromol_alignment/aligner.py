@@ -11,7 +11,7 @@ __all__ = ["PairwiseAligner", "substitution_matrices"]
 
 
 def setup_aligner(
-    substitution_matrix: substitution_matrices.Array,
+    substitution_matrix: "substitution_matrices.Array",
     *,
     mode: str = "global",
     open_internal_insertion_score: float = -1.0,
@@ -26,7 +26,7 @@ def setup_aligner(
     extend_left_deletion_score: float = -1.0,
     open_right_deletion_score: float = -1.0,
     extend_right_deletion_score: float = -1.0,
-) -> PairwiseAligner:
+) -> "PairwiseAligner":
     """
     Setup a PairwiseAligner with the given parameters.
 
