@@ -7,7 +7,7 @@ from rdkit import RDLogger
 
 from retromol.model.rules import RuleSet
 
-from .data.integration_demo_set import CASES
+from .data.integration_retromol import CASES
 from .helpers_retromol import assert_result, parse_compound
 
 
