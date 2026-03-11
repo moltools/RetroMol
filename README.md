@@ -104,5 +104,11 @@ reproducibly with:
 pytest tests
 ```
 
+or with:
+
+```shell
+hatch run dev:test
+```
+
 Additionally, these tests are automatically re-run with each push and pull request on `main` in a
 [GitHub Action](https://github.com/MolTools/RetroMol/actions?query=workflow%3ATests).
