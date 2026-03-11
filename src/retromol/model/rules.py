@@ -34,10 +34,10 @@ class ReactionRule:
     """
     Represents a chemical reaction rule defined by a SMARTS pattern.
 
-    :var name: str: name of the reaction rule
-    :var smarts: str: SMARTS pattern defining the reaction
-    :var props: dict[str, Any]: additional properties associated with the rule
-    :var allowed_in_bulk: bool: whether this rule is allowed to be applied in bulk preprocessing
+    :cvar name: str: name of the reaction rule
+    :cvar smarts: str: SMARTS pattern defining the reaction
+    :cvar props: dict[str, Any]: additional properties associated with the rule
+    :cvar allowed_in_bulk: bool: whether this rule is allowed to be applied in bulk preprocessing
     """
 
     name: str
@@ -336,16 +336,18 @@ class MatchingRule:
     """
     Represents a molecular matching rule defined by a SMILES pattern.
 
-    :var name: Name of the matching rule.
-    :var smiles: SMILES pattern defining the motif.
-    :var props: Additional properties associated with the rule.
-    :var terminal: Whether this rule is terminal (i.e., should not be expanded further).
+    :cvar name: Name of the matching rule.
+    :cvar smiles: SMILES pattern defining the motif.
+    :cvar props: Additional properties associated with the rule.
+    :cvar terminal: Whether this rule is terminal (i.e., should not be expanded further).
+    :cvar stereochemistry: Whether to consider stereochemistry in matching.
     """
 
     name: str
     smiles: str
     props: dict[str, Any]
     terminal: bool = True
+    stereochemistry: bool = False
 
     mol: Mol = field(init=False, repr=False)
 
@@ -376,6 +378,7 @@ class MatchingRule:
             "smiles": self.smiles,
             "props": self.props,
             "terminal": self.terminal,
+            "stereochemistry": self.stereochemistry,
         }
 
     @classmethod
@@ -391,6 +394,7 @@ class MatchingRule:
             smiles=data["smiles"],
             props=data.get("props", {}),
             terminal=data.get("terminal", True),
+            stereochemistry=data.get("stereochemistry", False),
         )
         return matching_rule
 
@@ -442,23 +446,13 @@ class RuleSet:
         :return: The default RuleSet.
         """
         path_reaction_rules = Path(files(retromol.data).joinpath("rxn.yml"))
-        path_matching_rules_other = Path(files(retromol.data).joinpath("mxn_other.yml"))
-
-        if match_stereochemistry:
-            path_matching_rules_polyketide = Path(files(retromol.data).joinpath("mxn_pks_chiral.yml"))
-        else:
-            path_matching_rules_polyketide = Path(files(retromol.data).joinpath("mxn_pks.yml"))
+        path_matching_rules = Path(files(retromol.data).joinpath("mxn.yml"))
 
         with open(path_reaction_rules, "r") as fo:
             reaction_rules_data = yaml.safe_load(fo)
 
-        with open(path_matching_rules_other, "r") as fo:
-            matching_rules_other_data = yaml.safe_load(fo)
-
-        with open(path_matching_rules_polyketide, "r") as fo:
-            matching_rules_polyketide_data = yaml.safe_load(fo)
-
-        matching_rules_data = matching_rules_other_data + matching_rules_polyketide_data
+        with open(path_matching_rules, "r") as fo:
+            matching_rules_data = yaml.safe_load(fo)
 
         reaction_rules = [ReactionRule.from_dict(d) for d in reaction_rules_data]
         matching_rules = [MatchingRule.from_dict(d) for d in matching_rules_data]
