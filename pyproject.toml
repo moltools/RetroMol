@@ -47,9 +47,10 @@ dev = ["pytest"]
 alignment = ["biopython"]
 antismash = []
 database = []
-fingerprint = []
+fingerprint = ["networkx]
 all = [
     "biopython",
+    "networkx",
 ]
 
 [tool.hatch.metadata]

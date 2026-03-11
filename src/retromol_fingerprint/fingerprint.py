@@ -5,12 +5,18 @@ import math
 from collections import Counter
 from typing import Any
 
-import networkx as nx
 import numpy as np
 
 
+try:
+    import networkx as nx
+    NETWORKX_AVAILABLE = True
+except ImportError:
+    NETWORKX_AVAILABLE = False
+
+
 def module_graph_fingerprint(
-    graph: nx.Graph,
+    graph: "nx.Graph",
     substitution_matrix: dict[str, dict[str, float]],
     n_bits: int = 2048,
     radius: int = 2,
@@ -39,7 +45,16 @@ def module_graph_fingerprint(
         pairs) together, or just hash presence/absence of edge types. Counting can help distinguish
         between graphs with different numbers of similar edges, but may also make the fingerprint more sensitive to
         small changes.
+    :return: A fixed-length numpy array representing the fingerprint of the graph. The dtype is uint16 if `counted` is True
+        to allow for counting features, otherwise uint8 for a binary fingerprint.
+    :raise ValueError: If the graph contains nodes missing the required name attribute, or if the substitution matrix is 
+        missing entries for any module names found in the graph, or if embeddings cannot be derived from the
+        substitution matrix.
+    :raise ImportError: If NetworkX is not available, since it is required for graph processing.
     """
+    if not NETWORKX_AVAILABLE:
+        raise ImportError("NetworkX is required for module graph fingerprinting! Please install it with `pip install networkx`!")
+
     def hash_to_index(*parts: Any) -> int:
         text = "|".join(map(str, parts))
         digest = hashlib.blake2b(text.encode("utf-8"), digest_size=16).digest()
