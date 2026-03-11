@@ -1,16 +1,12 @@
 [project]
 name = "retromol"
 version = "3.0.0"
-description = "RetroMol is retrosynthetic analysis framework for modular natural products"
+description = "RetroMol is retrobiosynthetic analysis framework for modular natural products."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-license-files = [
-    "LICENSE",
-]
-authors = [
-    { name = "David Meijer", email = "david.meijer@wur.nl" }
-]
+license-files = ["LICENSE"]
+authors = [{name="David Meijer", email="david.meijer@wur.nl"}]
 keywords = ["natural-products", "biosynthesis", "retrobiosynthesis", "monomers"]
 
 dependencies = [
@@ -68,7 +64,6 @@ packages = [
     "src/retromol_database",
     "src/retromol_fingerprint",
 ]
-sources = ["src"]
 include = [
     "src/retromol/data/mxn_other.yml",
     "src/retromol/data/mxn_pks_chiral.yml",
