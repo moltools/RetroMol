@@ -20,7 +20,8 @@ def match_mol(
     .. note:: This function uses a greedy approach to match a molecule to a motif.
     """
     for rl in rules:
-        if rl.is_match(mol, match_stereochemistry):
-            return MolIdentity(matched_rule=rl)
+        if not rl.stereochemistry or (rl.stereochemistry and match_stereochemistry):
+            if rl.is_match(mol, match_stereochemistry):
+                return MolIdentity(matched_rule=rl)
 
     return None
