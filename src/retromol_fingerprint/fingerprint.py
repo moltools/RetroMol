@@ -21,7 +21,8 @@ def module_graph_fingerprint(
     n_bits: int = 2048,
     radius: int = 2,
     node_name_attr: str = "name",
-    embedding_dim: int = 16,
+    # embedding_dim: int = 16,
+    embedding_dim: int = 4,
     count_similar_edges: bool = True,
     counted: bool = False,
 ) -> np.ndarray:
@@ -133,90 +134,90 @@ def module_graph_fingerprint(
         add_feature("module_presence", name, vec_q, weight=1, repeats=1)
 
 
-    # Hash edge-content features (helps compare adjacency while still being
-    # tolerant because names are represented by embeddings)
-    edge_counter = Counter()
-    for u, v in graph.edges():
-        a = node_names[u]
-        b = node_names[v]
-        pair = tuple(sorted((a, b)))
-        edge_counter[pair] += 1
+    # # Hash edge-content features (helps compare adjacency while still being
+    # # tolerant because names are represented by embeddings)
+    # edge_counter = Counter()
+    # for u, v in graph.edges():
+    #     a = node_names[u]
+    #     b = node_names[v]
+    #     pair = tuple(sorted((a, b)))
+    #     edge_counter[pair] += 1
     
-    for (a, b), count in edge_counter.items():
-        va = embeddings[a]
-        vb = embeddings[b]
-        pair_vec = (va + vb) / 2.0
-        pair_q = quantize(pair_vec, decimals=2)
+    # for (a, b), count in edge_counter.items():
+    #     va = embeddings[a]
+    #     vb = embeddings[b]
+    #     pair_vec = (va + vb) / 2.0
+    #     pair_q = quantize(pair_vec, decimals=2)
 
-        if count_similar_edges:
-            add_feature("edge", a, b, count, pair_q, weight=1, repeats=1)
+    #     if count_similar_edges:
+    #         add_feature("edge", a, b, count, pair_q, weight=1, repeats=1)
 
-        add_feature("edge_presence", a, b, pair_q, weight=1, repeats=1)
+    #     add_feature("edge_presence", a, b, pair_q, weight=1, repeats=1)
 
-    # WL-like neighborhood propagation: captures topology, cycles, branching,
-    # disconnected modules, etc
-    for r in range(radius + 1):
-        for node in graph.nodes():
-            h = states[node]
-            deg = graph.degree(node)
-            name = node_names[node]
+    # # WL-like neighborhood propagation: captures topology, cycles, branching,
+    # # disconnected modules, etc
+    # for r in range(radius + 1):
+    #     for node in graph.nodes():
+    #         h = states[node]
+    #         deg = graph.degree(node)
+    #         name = node_names[node]
 
-            # Hash local state
-            add_feature("node_state", "r", r, "name", name, "deg", deg, "state", quantize(h, decimals=2), weight=1, repeats=1)
+    #         # Hash local state
+    #         add_feature("node_state", "r", r, "name", name, "deg", deg, "state", quantize(h, decimals=2), weight=1, repeats=1)
 
-            # Also hash neighborhood composition a bit more explicitly
-            nbr_names = sorted(node_names[nbr] for nbr in graph.neighbors(node))
-            add_feature("node_nbr_names", "r", r, "name", name, "deg", deg, tuple(nbr_names), weight=1, repeats=1)
+    #         # Also hash neighborhood composition a bit more explicitly
+    #         nbr_names = sorted(node_names[nbr] for nbr in graph.neighbors(node))
+    #         add_feature("node_nbr_names", "r", r, "name", name, "deg", deg, tuple(nbr_names), weight=1, repeats=1)
 
-        if r == radius:
-            break
+    #     if r == radius:
+    #         break
 
-        new_states = {}
-        for node in graph.nodes():
-            h_self = states[node]
-            nbrs = list(graph.neighbors(node))
+    #     new_states = {}
+    #     for node in graph.nodes():
+    #         h_self = states[node]
+    #         nbrs = list(graph.neighbors(node))
 
-            if nbrs:
-                nbr_vecs = np.stack([states[n] for n in nbrs], axis=0)
-                h_nbr_mean = nbr_vecs.mean(axis=0)
-                h_nbr_max = nbr_vecs.max(axis=0)
-                deg_scale = 1.0 / math.sqrt(len(nbrs))
-            else:
-                h_nbr_mean = np.zeros_like(h_self)
-                h_nbr_max = np.zeros_like(h_self)
-                deg_scale = 1.0
+    #         if nbrs:
+    #             nbr_vecs = np.stack([states[n] for n in nbrs], axis=0)
+    #             h_nbr_mean = nbr_vecs.mean(axis=0)
+    #             h_nbr_max = nbr_vecs.max(axis=0)
+    #             deg_scale = 1.0 / math.sqrt(len(nbrs))
+    #         else:
+    #             h_nbr_mean = np.zeros_like(h_self)
+    #             h_nbr_max = np.zeros_like(h_self)
+    #             deg_scale = 1.0
 
-            # Fixed deterministic update, not learned
-            new_h = np.concatenate([
-                h_self,
-                deg_scale * h_nbr_mean,
-                0.5 * h_nbr_max,
-            ])
+    #         # Fixed deterministic update, not learned
+    #         new_h = np.concatenate([
+    #             h_self,
+    #             deg_scale * h_nbr_mean,
+    #             0.5 * h_nbr_max,
+    #         ])
 
-            # Compress back to embedding_dim deterministically by hashing chunks
-            compressed = np.zeros(k, dtype=np.float32)
-            for i, value in enumerate(new_h):
-                j = i % k
-                compressed[j] += float(value)
+    #         # Compress back to embedding_dim deterministically by hashing chunks
+    #         compressed = np.zeros(k, dtype=np.float32)
+    #         for i, value in enumerate(new_h):
+    #             j = i % k
+    #             compressed[j] += float(value)
 
-            # Nonlinearity + normalization for stability
-            compressed = np.tanh(compressed)
-            norm = np.linalg.norm(compressed)
-            if norm > 0:
-                compressed /= norm
+    #         # Nonlinearity + normalization for stability
+    #         compressed = np.tanh(compressed)
+    #         norm = np.linalg.norm(compressed)
+    #         if norm > 0:
+    #             compressed /= norm
             
-            new_states[node] = compressed
+    #         new_states[node] = compressed
 
-        states = new_states
+    #     states = new_states
 
-    # Hash a few global graph features lightly
-    n_components = nx.number_connected_components(graph)
-    component_sizes = sorted(len(c) for c in nx.connected_components(graph))
-    n_nodes = graph.number_of_nodes()
-    n_edges = graph.number_of_edges()
-    cyclomatic = n_edges - n_nodes + n_components
+    # # Hash a few global graph features lightly
+    # n_components = nx.number_connected_components(graph)
+    # component_sizes = sorted(len(c) for c in nx.connected_components(graph))
+    # n_nodes = graph.number_of_nodes()
+    # n_edges = graph.number_of_edges()
+    # cyclomatic = n_edges - n_nodes + n_components
 
-    add_feature("global", "components", n_components, tuple(component_sizes), weight=1, repeats=1)
-    add_feature("global", "nodes", n_nodes, "edges", n_edges, "cyclomatic", cyclomatic, weight=1, repeats=1)
+    # add_feature("global", "components", n_components, tuple(component_sizes), weight=1, repeats=1)
+    # add_feature("global", "nodes", n_nodes, "edges", n_edges, "cyclomatic", cyclomatic, weight=1, repeats=1)
 
     return fp

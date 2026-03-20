@@ -45,12 +45,12 @@ build-backend = "hatchling.build"
 [project.optional-dependencies]
 dev = ["pytest"]
 alignment = ["biopython"]
-antismash = []
+antismash = ["biopython", "pyhmmer"]
 database = []
-fingerprint = ["networkx]
+fingerprint = []
 all = [
     "biopython",
-    "networkx",
+    "pyhmmer",
 ]
 
 [tool.hatch.metadata]
@@ -66,10 +66,9 @@ packages = [
     "src/retromol_fingerprint",
 ]
 include = [
-    "src/retromol/data/mxn_other.yml",
-    "src/retromol/data/mxn_pks_chiral.yml",
-    "src/retromol/data/mxn_pks.yml",
-    "src/retromol/data/rxn.yml"
+    "src/retromol/data/mxn.yml",
+    "src/retromol/data/rxn.yml",
+    "src/retromol_antismash/data/AMP-binding_converted.hmm",
 ]
 
 [project.scripts]
