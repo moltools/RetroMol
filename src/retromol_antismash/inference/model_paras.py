@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import joblib
 import numpy as np
@@ -24,9 +24,12 @@ try:
         HMM_DB = list(hmm_file)
 
 except ImportError:
+    plan7 = None
     PYHMMER_AVAILABLE = False
     HMM_DB = None
 
+if TYPE_CHECKING:
+    from pyhmmer import easel, plan7, hmmer
 
 log = logging.getLogger(__name__)
 

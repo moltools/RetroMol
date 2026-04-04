@@ -3,6 +3,7 @@
 import logging
 import math
 import os
+from typing import TYPE_CHECKING
 
 try:
     from pyhmmer import easel, plan7, hmmer
@@ -11,6 +12,8 @@ except ImportError:
     PYHMMER_AVAILABLE = False
     HMM_DB = None
 
+if TYPE_CHECKING:
+    from pyhmmer import easel, plan7, hmmer
 
 from retromol_antismash.model import Gene
 from retromol_antismash.inference.base import GeneInferenceModel, InferenceResult
