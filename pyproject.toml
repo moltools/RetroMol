@@ -13,11 +13,12 @@ dependencies = [
     "rdkit==2025.9.1",
     "networkx==3.2.1",
     "tqdm",
-    "numpy",
+    "numpy<2",  # scikit-learn 1.2.0 requires numpy<2
     "pandas",
     "pyyaml",
     "ijson",
     "matplotlib",
+    "joblib",
 ]
 
 classifiers = [
@@ -45,12 +46,13 @@ build-backend = "hatchling.build"
 [project.optional-dependencies]
 dev = ["pytest"]
 alignment = ["biopython"]
-antismash = ["biopython", "pyhmmer"]
+antismash = ["biopython", "pyhmmer", "scikit-learn==1.2.0"]
 database = []
 fingerprint = []
 all = [
     "biopython",
     "pyhmmer",
+    "scikit-learn==1.2.0",
 ]
 
 [tool.hatch.metadata]
