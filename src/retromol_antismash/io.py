@@ -3,15 +3,18 @@
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Literal, Union, TypeAlias, Any, Iterable
+from typing import Literal, Union, TypeAlias, Any, Iterable, TYPE_CHECKING
 
 try:
     from Bio import SeqIO
-    from Bio.SeqFeature import FeatureLocation, SeqFeature
-    from Bio.SeqRecord import SeqRecord
     BIOPYTHON_AVAILABLE = True
 except ImportError:
+    SeqIO = None
     BIOPYTHON_AVAILABLE = False
+
+if TYPE_CHECKING:
+    from Bio.SeqFeature import FeatureLocation, SeqFeature
+    from Bio.SeqRecord import SeqRecord
 
 from retromol_antismash.model import Region, Gene, Strand, Domain
 
@@ -59,7 +62,7 @@ def _iter_regions(record: "SeqRecord", readout_level: AntismashReadoutLevel) -> 
     :param record: Biopython SeqRecord object.
     :return: List of region SeqFeature objects.
     """
-    return [f for f in record.features if f.type == readout_level]
+    return [f for f in (record.features or []) if f.type == readout_level]
 
 
 def _iter_cds(record: "SeqRecord", gene_identifiers: list[str] | None = None) -> list["SeqFeature"]:
@@ -74,7 +77,7 @@ def _iter_cds(record: "SeqRecord", gene_identifiers: list[str] | None = None) ->
     if gene_identifiers is None:
         gene_identifiers = ["CDS"]
 
-    return [f for f in record.features if f.type in gene_identifiers]
+    return [f for f in (record.features or []) if f.type in gene_identifiers]
 
 
 def _iter_domains(record: "SeqRecord", domain_identifiers: list[str] | None = None) -> list["SeqFeature"]:
@@ -89,7 +92,7 @@ def _iter_domains(record: "SeqRecord", domain_identifiers: list[str] | None = No
     if domain_identifiers is None:
         domain_identifiers = ["aSDomain"]
 
-    return [f for f in record.features if f.type in domain_identifiers]
+    return [f for f in (record.features or []) if f.type in domain_identifiers]
 
 
 def _start_end(feat: "SeqFeature") -> tuple[Strand, int, int]:
@@ -167,10 +170,14 @@ def _gene_rec_from_feat(feat: "SeqFeature") -> Gene:
 
     :param feat: Biopython SeqFeature object.
     :return: Gene instance.
+    :raises ValueError: If gene is not a Gene instance.
     """
     strand, s, e = _start_end(feat)
     name = _gene_name(feat)
     aa_seq = _q1(feat, ("translation",))
+
+    if aa_seq is None:
+        raise ValueError(f"Gene {name} has no sequence.")
 
     return Gene(
         id=name,
@@ -187,11 +194,21 @@ def _domain_rec_from_feat(feat: "SeqFeature") -> Domain:
 
     :param feat: Biopython SeqFeature object.
     :return: Domain instance.
+    :raises ValueError: If gene has no name, kind, or sequence.
     """
     _, s, e = _start_end(feat)
     name = _q1(feat, ("label", "product", "note"))
     kind = _q1(feat, ("aSDomain", "domain", "label"))
     aa_seq = _q1(feat, ("translation",))
+
+    if name is None:
+        raise ValueError(f"Gene {name} has no domain.")
+
+    if kind is None:
+        raise ValueError(f"Gene {name} has no domain.")
+
+    if aa_seq is None:
+        raise ValueError(f"Gene {name} has no domain.")
 
     return Domain(
         id=name,
@@ -215,11 +232,16 @@ def collect_antismash_regions(
     :param record: GenBank record.
     :param options: Parsing options.
     :return: List of parsed regions.
+    :raises ValueError: If record has no id.
     """
+    # Quick check if record does contain id
+    if record.id is None:
+        raise ValueError(f"GenBank record has no ID.")
+
     # Get the file name without extension
     if isinstance(input_file_path, str):
         input_file_path = Path(input_file_path)
-    file_name = input_file_path.stem
+    file_name = Path(input_file_path).stem
 
     regions = _iter_regions(record, readout_level=options.readout_level)
     cds_list = _iter_cds(record, gene_identifiers=options.gene_identifiers)
@@ -232,7 +254,7 @@ def collect_antismash_regions(
 
         # Search for wanted qualifiers
         found_qualifiers: dict[str, Any] = {}
-        for wanted in options.wanted_qualifiers:
+        for wanted in options.wanted_qualifiers or []:
             qualifiers = reg.qualifiers.get(wanted, []) or []
             found_qualifiers[wanted] = qualifiers
 
@@ -275,6 +297,9 @@ def parse_antismash_gbk(path: Path, options: AntiSmashOptions) -> list:
     """
     log.info(f"parsing antiSMASH GenBank file: {path}")
 
+    if not BIOPYTHON_AVAILABLE:
+        raise ImportError("BioPython not available")
+
     out: list[Region] = []
 
     with open(path) as handle:
@@ -301,4 +326,4 @@ def load_regions(path: Path | str, options: RegionLoadOptions) -> list[Region]:
         case AntiSmashOptions():
             return parse_antismash_gbk(Path(path), options)
         case _:
-            raise NotImplementedError(f"loading regions from source {options.source} is not implemented")
+            raise NotImplementedError(f"loading regions from source '{options}' is not implemented")
