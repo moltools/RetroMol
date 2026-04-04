@@ -289,7 +289,7 @@ def load_regions(path: Path | str, options: RegionLoadOptions) -> list[Region]:
     Load biosynthetic regions from a GenBank file.
     
     :param path: Path to the GenBank file.
-    :param source: Source of the biosynthetic regions.
+    :param options: Options for loading regions, including source type and parsing parameters.
     :return: List of biosynthetic regions.
     :raises NotImplementedError: If the source is not implemented.
     """
@@ -299,6 +299,6 @@ def load_regions(path: Path | str, options: RegionLoadOptions) -> list[Region]:
 
     match options:
         case AntiSmashOptions():
-            return parse_antismash_gbk(path, options)
+            return parse_antismash_gbk(Path(path), options)
         case _:
             raise NotImplementedError(f"loading regions from source {options.source} is not implemented")
