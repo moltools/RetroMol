@@ -48,9 +48,9 @@ class PfamModel(GeneInferenceModel):
     evalue_cutoff: float = 1e-5
     use_gathering_cutoff: bool = True
 
-    _alphabet: "easel.Alphabet" | None = None
-    _pipeline: "plan7.Pipeline" | None = None
-    _hmm: "plan7.HMM" | None = None
+    _alphabet: easel.Alphabet | None = None
+    _pipeline: plan7.Pipeline | None = None
+    _hmm: plan7.HMM | None = None
 
     def __init__(self, hmm_path: str, label: str) -> None:
         """
