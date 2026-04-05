@@ -1,0 +1,155 @@
+"""Module for configuring the Flask app."""
+
+import logging
+import os
+import time
+
+from flask import Flask, jsonify
+
+from routes.session import (
+    blp_create_session,
+    blp_delete_session,
+    blp_get_session,
+    blp_save_session,
+)
+from routes.session_store import get_or_init_app_start_epoch
+from routes.query import dsn_from_env, blp as query_blp
+# from routes.jobs import (
+#     blp_submit_compound,
+#     blp_submit_gene_cluster,
+# )
+# from routes.views import (
+#     blp_get_embedding_space,
+#     blp_enrich,
+#     blp_run_msa,
+# )
+# from routes.drawing import (
+#     blp_draw_compound_item,
+#     blp_draw_gene_cluster_item,
+# )
+
+# Initialize the Flask app
+app = Flask(__name__)
+
+# Logging setup
+# In development: simple basicConfig
+# In production (under gunicorn): reuse gunicorn's error logger handlers
+if os.getenv("FLASK_ENV") == "development":
+    logging.basicConfig(level=logging.DEBUG)
+    app.logger.setLevel(logging.DEBUG)
+else:
+    gunicorn_logger = logging.getLogger("gunicorn.error")
+    if gunicorn_logger.handlers:
+        app.logger.handlers = gunicorn_logger.handlers
+        app.logger.setLevel(gunicorn_logger.level)
+    else:
+        # Fallback if not under gunicorn
+        logging.basicConfig(level=logging.INFO)
+        app.logger.setLevel(logging.INFO)
+
+app.logger.info("Flask logger configured")
+
+# Set environment and debug mode
+app.config["ENV"] = os.getenv("FLASK_ENV", "production")  # defaults to "production"
+app.config["DEBUG"] = app.config["ENV"] == "development"
+print("starting app in environment:", app.config["ENV"])
+print("debug mode is:", app.debug)
+
+# Log the environment
+if app.config["ENV"] == "production":
+    print("production environment detected")
+elif app.config["ENV"] == "development":
+    print("development environment detected")
+else:
+    print(f"unknown environment: {app.config['ENV']}")
+
+
+# Register api endpoints
+@app.errorhandler(404)
+def not_found(_) -> str:
+    """
+    Handle 404 errors by returning the main index page.
+
+    :param _: the error, not used
+    :return: the index HTML page
+    """
+    return app.send_static_file("index.html")
+
+
+@app.route("/")
+def index() -> str:
+    """
+    Serve the main index page.
+
+    :return: the index HTML page
+    """
+    return app.send_static_file("index.html")
+
+
+@app.route("/api/startup")
+def startup() -> tuple[dict[str, int], int]:
+    """
+    Get the startup time of the server.
+
+    :return: a dictionary with startup, current time, uptime and HTTP status code
+    """
+    startup_epoch = get_or_init_app_start_epoch()
+    return jsonify({
+        "startup": startup_epoch,
+        "current": int(time.time()),
+        "uptime": int(time.time()) - startup_epoch,
+    }), 200
+
+
+@app.route("/api/health", methods=["GET"])
+def health() -> tuple[dict[str, str], int]:
+    """
+    Health check endpoint.
+
+    :return: a dictionary indicating the server is healthy and HTTP status code
+    """
+    return jsonify({
+        "status": "ok",
+        "time": int(time.time()),
+        "uptime": int(time.time()) - app.config["START_EPOCH"],
+    }), 200
+
+
+@app.route("/api/ready", methods=["GET"])
+def ready() -> tuple[dict[str, str], int]:
+    """
+    Returns 200 only if the app can read from Postgres.
+
+    :return: a dictionary indicating readiness and HTTP status code
+    .. note:: this requires the `psycopg` package to be installed
+    """
+    try:
+        import psycopg
+    except ImportError:
+        return jsonify({"status": "psycopg not installed"}), 500
+
+    dsn = dsn_from_env()
+
+    try:
+        with psycopg.connect(dsn, connect_timeout=3) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1;")
+                cur.fetchone()
+        return jsonify({"status": "ready"}), 200
+    except Exception as e:
+        return jsonify({"status": "not ready", "error": str(e)}), 503
+
+
+# Register blueprints
+app.register_blueprint(blp_create_session)
+app.register_blueprint(blp_delete_session)
+app.register_blueprint(blp_get_session)
+app.register_blueprint(blp_save_session)
+app.register_blueprint(query_blp)
+# app.register_blueprint(blp_submit_compound)
+# app.register_blueprint(blp_submit_gene_cluster)
+# app.register_blueprint(blp_get_embedding_space)
+# app.register_blueprint(blp_enrich)
+# app.register_blueprint(blp_run_msa)
+# app.register_blueprint(blp_draw_compound_item)
+# app.register_blueprint(blp_draw_gene_cluster_item)

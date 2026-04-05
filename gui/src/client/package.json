@@ -1,0 +1,59 @@
+{
+  "name": "retromol-gui",
+  "version": "2.0.0",
+  "private": true,
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.5",
+    "@mui/material": "^7.3.5",
+    "@mui/x-charts": "^8.17.0",
+    "@mui/x-data-grid": "^8.18.0",
+    "@react-spring/web": "^10.0.3",
+    "@react-three/drei": "^8.20.2",
+    "@react-three/fiber": "^8.13.5",
+    "@tanstack/react-query": "^5.76.1",
+    "@types/react": "18.3.10",
+    "@types/react-dom": "18.3.1",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.19",
+    "framer-motion": "^12.6.3",
+    "html2canvas": "^1.4.1",
+    "lodash.debounce": "^4.0.8",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-force-graph-2d": "^1.27.1",
+    "react-router-dom": "^7.9.5",
+    "react-window": "^1.8.11",
+    "smiles-drawer": "^2.1.7",
+    "three": "^0.175.0",
+    "typescript": "4.9.5",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "@types/lodash.debounce": "^4.0.9",
+    "@types/react-window": "^1.8.8",
+    "react-scripts": "^5.0.1"
+  },
+  "scripts": {
+    "start": "DISABLE_ESLINT_PLUGIN=true craco start",
+    "build": "DISABLE_ESLINT_PLUGIN=true craco build",
+    "test": "craco test"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:4000"
+}

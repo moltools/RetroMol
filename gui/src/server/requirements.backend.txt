@@ -1,0 +1,8 @@
+python-dotenv
+flask
+gunicorn
+SQLAlchemy
+psycopg[binary]>=3.2,<4.0
+pgvector
+redis>=5.0
+#retromol

@@ -2,8 +2,12 @@
 .pytest_cache/
 .vscode/
 .idea/
+.env
 scratch/
 __pycache__/
 dist/
 lib/
+
+cache/
 paras_cache/
+models/
