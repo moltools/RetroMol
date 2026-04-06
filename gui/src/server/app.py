@@ -14,10 +14,10 @@ from routes.session import (
 )
 from routes.session_store import get_or_init_app_start_epoch
 from routes.query import dsn_from_env, blp as query_blp
-# from routes.jobs import (
-#     blp_submit_compound,
-#     blp_submit_gene_cluster,
-# )
+from routes.jobs import (
+    blp_submit_compound,
+    blp_submit_gene_cluster,
+)
 # from routes.views import (
 #     blp_get_embedding_space,
 #     blp_enrich,
@@ -146,8 +146,8 @@ app.register_blueprint(blp_delete_session)
 app.register_blueprint(blp_get_session)
 app.register_blueprint(blp_save_session)
 app.register_blueprint(query_blp)
-# app.register_blueprint(blp_submit_compound)
-# app.register_blueprint(blp_submit_gene_cluster)
+app.register_blueprint(blp_submit_compound)
+app.register_blueprint(blp_submit_gene_cluster)
 # app.register_blueprint(blp_get_embedding_space)
 # app.register_blueprint(blp_enrich)
 # app.register_blueprint(blp_run_msa)

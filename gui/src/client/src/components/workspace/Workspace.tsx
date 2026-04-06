@@ -11,8 +11,8 @@ import { getSession, refreshSession, saveSession } from "../../features/session/
 import { WorkspaceNavbar } from "./WorkspaceNavbar";
 import { WorkspaceSideMenu } from "./WorkspaceSideMenu";
 import { WorkspaceHeader } from "./WorkspaceHeader";
-// import { WorkspaceDashboard } from "./WorkspaceDashboard";
-// import { WorkspaceUpload } from "./WorkspaceUpload";
+import { WorkspaceDashboard } from "./WorkspaceDashboard";
+import { WorkspaceUpload } from "./WorkspaceUpload";
 // import { WorkspaceExplore } from "./WorkspaceExplore";
 // import { WorkspaceQuery } from "./WorkspaceQuery";
 
@@ -135,8 +135,8 @@ export const Workspace: React.FC = () => {
             <Fade in={showContent} timeout={200} unmountOnExit>
               <Box sx={{ width: "100%" }}>
                 <Routes>
-                  {/*<Route index element={<WorkspaceDashboard />} />*/}
-                  {/*<Route path="upload" element={<WorkspaceUpload session={session} setSession={setSessionLocal} />} />*/}
+                  <Route index element={<WorkspaceDashboard />} />
+                  <Route path="upload" element={<WorkspaceUpload session={session} setSession={setSessionLocal} />} />
                   {/*<Route path="explore" element={<WorkspaceExplore session={session} setSession={setSessionLocal} />} />*/}
                   {/*<Route path="query" element={<WorkspaceQuery session={session} setSession={setSessionLocal} />} />*/}
                 </Routes>
