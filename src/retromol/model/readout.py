@@ -38,27 +38,19 @@ class LinearReadout:
         cls,
         root_enc: str,
         reaction_graph: ReactionGraph,
-        exclude_identities: list[MatchingRule] | None = None,
-        include_identities: list[MatchingRule] | None = None,
+        identified_only: bool = False,
+        include_unassigned: bool = True,
     ) -> "LinearReadout":
         """
         Create a LinearReadout from a Result object.
 
         :param root_enc: Encoding of the root molecule.
         :param reaction_graph: ReactionGraph object.
-        :param exclude_identities: List of matching rules to exclude identities (not used here).
-        :param include_identities: List of matching rules to include identities (not used here).
+        :param identified_only: Whether to only include identified monomers.
+        :param include_unassigned: Whether to include an unassigned node in the assembly graph.
         :return: LinearReadout instance.
         :raises ValueError: If root_enc not found in reaction graph nodes.
         """
-        exclude_identities = exclude_identities or []
-        include_identities = include_identities  # keep None meaning "no whitelist"
-
-        # Convert identities to their IDs for easier checking
-        exclude_identities = set([r.id for r in exclude_identities])
-        if include_identities is not None:
-            include_identities = set([r.id for r in include_identities])
-
         g = reaction_graph
         if root_enc not in g.nodes:
             raise ValueError(f"The root_enc {root_enc} not found in reaction graph nodes!")
@@ -67,8 +59,8 @@ class LinearReadout:
         root = g.nodes[root_enc].mol
 
         # Create assembly graph of monomers; first collect nodes to include
-        collected = g.get_leaf_nodes(identified_only=False)
-        a = AssemblyGraph.build(root_mol=root, monomers=collected, include_unassigned=True)
+        collected = g.get_leaf_nodes(identified_only=identified_only)
+        a = AssemblyGraph.build(root_mol=root, monomers=collected, include_unassigned=include_unassigned)
 
         # Break bonds between monomers that are not backbone-related bonds (i.e., keep C-C and C-N bonds only)
         f = a.filtered_by_root_bond_elements(allow_pairs={frozenset(("C", "C")), frozenset(("C", "N"))}, drop_isolated=False)
