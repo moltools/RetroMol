@@ -64,7 +64,7 @@ class Submission:
 
         :return: string representation of the Submission
         """
-        return f"Submission(name={self.name})"
+        return f"Submission(name={self.name}; smiles={self.smiles[:10] + '...' if len(self.smiles) > 10 else self.smiles})"
     
     def to_dict(self) -> dict[str, Any]:
         """
