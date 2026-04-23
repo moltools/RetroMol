@@ -7,7 +7,7 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1
 
 # Copy only server code (includes maintenance.py and routes/)
-COPY src/server /app
+COPY gui/src/server /app
 
 # Install the same dependencies as the backend (could be slimmed down)
 RUN pip install --no-cache-dir -r requirements.maintenance.txt

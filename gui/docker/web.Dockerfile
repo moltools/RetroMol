@@ -3,15 +3,15 @@ FROM node:20-alpine AS build
 WORKDIR /usr/src/app
 
 # Client code lives in src/client
-COPY src/client/package*.json ./
+COPY gui/src/client/package*.json ./
 RUN npm ci
-COPY src/client ./
+COPY gui/src/client ./
 RUN npm run build
 
 # nginx stage
 FROM nginx:alpine
 # nginx config (proxies /api to backend)
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY gui/docker/nginx.conf /etc/nginx/conf.d/default.conf
 # Static build
 COPY --from=build /usr/src/app/build /usr/share/nginx/html
 EXPOSE 80

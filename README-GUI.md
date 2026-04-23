@@ -124,14 +124,14 @@ port: 6379
 First create a virtual environment and install backend dependencies:
 
 ```bash
-CONDA_SUBDIR=osx-64 conda env create -f ./src/server/environment.backend.dev.yml 
+CONDA_SUBDIR=osx-64 conda env create -f ./gui/src/server/environment.backend.dev.yml 
 conda activate retromol-gui
 ```
 
 Then, run the helper script:
 
 ```bash
-bash ./scripts/dev_backend.sh
+bash ./gui/scripts/dev_backend.sh
 ```
 
 This script:
@@ -149,7 +149,7 @@ curl -i http://localhost:4000/api/health
 From the React client directory `src/client`, install dependencies and start the development server:
 
 ```bash
-cd src/client
+cd ./gui/src/client
 npm install
 npm start
 ```
@@ -174,6 +174,6 @@ docker compose up -d --build
 Local development:
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db redis
-bash ./scripts/dev_backend.sh
-cd src/client && npm start
+bash ./gui/scripts/dev_backend.sh
+cd ./gui/src/client && npm start
 ```

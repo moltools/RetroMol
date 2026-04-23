@@ -12,9 +12,9 @@ services:
       # Mount dump file from anywhere on host; fixed name inside container
       - ${DB_DUMP_HOST_PATH}:/docker-entrypoint-initdb.d/dump.dump:ro
       # Init scripts: restore + make read-only app role
-      - ./db/init/00_enable_vector.sql:/docker-entrypoint-initdb.d/00_enable_vector.sql:ro
-      - ./db/init/01_restore.sh:/docker-entrypoint-initdb.d/01_restore.sh:ro
-      - ./db/init/02_app_ro.sql:/docker-entrypoint-initdb.d/02_app_ro.sql:ro
+      - ./gui/db/init/00_enable_vector.sql:/docker-entrypoint-initdb.d/00_enable_vector.sql:ro
+      - ./gui/db/init/01_restore.sh:/docker-entrypoint-initdb.d/01_restore.sh:ro
+      - ./gui/db/init/02_app_ro.sql:/docker-entrypoint-initdb.d/02_app_ro.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER:-owner} -d ${POSTGRES_DB:-retromol}"]
       interval: 5s
@@ -33,11 +33,11 @@ services:
   maintenance:
     build:
       context: .
-      dockerfile: ./docker/maintenance.Dockerfile
+      dockerfile: gui/docker/maintenance.Dockerfile
     container_name: retromol_maintenance
     restart: unless-stopped
     env_file:
-      - ./docker/backend.env
+      - gui/docker/backend.env
     depends_on:
       redis:
         condition: service_started
@@ -46,11 +46,11 @@ services:
   backend:
     build:
       context: .
-      dockerfile: ./docker/backend.Dockerfile
+      dockerfile: gui/docker/backend.Dockerfile
     container_name: retromol_backend
     restart: unless-stopped
     env_file:
-      - ./docker/backend.env
+      - gui/docker/backend.env
     environment:
       PARAS_MODEL_PATH: ${PARAS_MODEL_PATH}
     volumes:
@@ -65,7 +65,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: ./docker/web.Dockerfile
+      dockerfile: gui/docker/web.Dockerfile
     container_name: retromol_web
     restart: unless-stopped
     depends_on:

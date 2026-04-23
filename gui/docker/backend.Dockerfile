@@ -18,15 +18,23 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev git && rm -rf /var/lib/apt/lists/*
 
 # Copy env + requirements before env creation for caching
-COPY src/server/environment.backend.yml /app/
-COPY src/server/requirements.backend.txt /app/
+COPY gui/src/server/environment.backend.yml /app/
+COPY gui/src/server/requirements.backend.txt /app/
 
 # Build conda env (includes pip deps via environment.backend.yml)
 RUN mamba env create -n retromol-gui -f environment.backend.yml && conda clean -afy
 
+# copy retromol package source + pyproject
+COPY pyproject.toml /app/pyproject.toml
+COPY README.md /app/README.md
+COPY src /app/src
+
+# install local retromol into the conda env
+RUN conda run -n retromol-gui pip install -e /app
+
 # Copy backend; Flask code lives in src/server
 # Set ownership to non-root user
-COPY src/server /app
+COPY gui/src/server /app
 
 # Ensure model/cache dirs exist
 RUN mkdir -p /app/models /app/cache && chown -R ${USER_UID}:${USER_GID} /app
