@@ -9,12 +9,16 @@ from routes.session_store import (
     load_session_with_items,
     merge_session_from_client,
     count_sessions,
+    delete_item as redis_delete_item,
+    strip_property_from_dict,
 )
+
 
 blp_create_session = Blueprint("create_session", __name__)
 blp_delete_session = Blueprint("delete_session", __name__)
 blp_get_session = Blueprint("get_session", __name__)
 blp_save_session = Blueprint("save_session", __name__)
+blp_delete_item = Blueprint("delete_item", __name__)
 
 
 @blp_create_session.post("/api/createSession")
@@ -94,6 +98,9 @@ def get_session() -> tuple[dict[str, str], int]:
         items = []
         full["items"] = items
 
+    # We don't want to send payloads back to the client
+    full["items"] = [strip_property_from_dict(item, "payload") for item in items]
+
     return jsonify({"sessionId": full["sessionId"], "session": full}), 200
 
 
@@ -130,3 +137,27 @@ def save_session() -> tuple[dict[str, str], int]:
     session_id = new_session.get("sessionId")
 
     return jsonify({"sessionId": session_id}), 200
+
+
+@blp_delete_item.post("/api/deleteSessionItem")
+def delete_item() -> tuple[dict[str, str], int]:
+    """
+    Delete a single item from a session.
+
+    :return: a tuple containing a dictionary with the operation status and an HTTP status code.
+    """
+    payload = request.get_json(force=True) or {}
+    session_id = payload.get("sessionId")
+    item_id = payload.get("itemId")
+
+    if not isinstance(session_id, str) or not session_id:
+        return {"error": "Missing or invalid sessionId"}, 400
+
+    if not isinstance(item_id, str) or not item_id:
+        return {"error": "Missing or invalid itemId"}, 400
+
+    ok = redis_delete_item(session_id, item_id)
+    if not ok:
+        return {"error": "Session or item not found"}, 404
+
+    return jsonify({"ok": True}), 200

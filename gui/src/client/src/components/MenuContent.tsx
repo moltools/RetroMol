@@ -6,9 +6,9 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import ExploreIcon from "@mui/icons-material/Explore";
+import BarChartIcon from "@mui/icons-material/BarChart";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const mainListItems = [
@@ -23,14 +23,14 @@ const mainListItems = [
     to: `/dashboard/upload`
   },
   {
-    text: "Explore",
+    text: "Discovery",
     icon: <ExploreIcon />,
-    to: `/dashboard/explore`
+    to: `/dashboard/discovery`
   },
   {
-    text: "Query",
-    icon: <QueryStatsIcon />,
-    to: `/dashboard/query`
+    text: "Enrichment",
+    icon: <BarChartIcon />,
+    to: `/dashboard/enrichment`
   },
 ]
 

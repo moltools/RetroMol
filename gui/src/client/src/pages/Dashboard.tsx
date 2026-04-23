@@ -6,7 +6,7 @@ import { Workspace } from "../components/workspace/Workspace";
 
 interface DashboardProps {
   disableCustomTheme?: boolean;
-}
+};
 
 export default function Dashboard(props: DashboardProps) {
   return (
@@ -18,5 +18,5 @@ export default function Dashboard(props: DashboardProps) {
         </NotificationProvider>
       </OverlayProvider>
     </AppTheme>
-  )
-}
+  );
+};

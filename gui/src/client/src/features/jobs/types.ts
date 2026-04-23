@@ -1,20 +1,12 @@
 import type { Session } from "../session/types";
-import type { NotificationSeverity } from "../notifications/types";
+import type { NotificationSeverity } from "../../features/notifications/types";
 import { z } from "zod";
 
+export type SetSession = (updater: (prev: Session) => Session) => void;
+
 export const WorkspaceImportDepsSchema = z.object({
-  setSession: z.function().args(
-    z.function()
-      .args(z.custom<Session>())
-      .returns(z.custom<Session>())
-  )
-  .returns(z.void()),
-  pushNotification: z.function()
-    .args(
-      z.string(),
-      z.custom<NotificationSeverity>()
-    )
-    .returns(z.void()),
+  setSession: z.custom<SetSession>(),
+  pushNotification: z.function().args(z.string(), z.custom<NotificationSeverity>()).returns(z.void()),
   sessionId: z.string().min(1, "Session ID cannot be empty"),
 })
 
@@ -26,11 +18,7 @@ export const BaseNewJobSchema = z.object({
 
 export const NewCompoundJobSchema = BaseNewJobSchema.extend({
   smiles: z.string().min(1, "SMILES cannot be empty"),
-})
-
-export const NewGeneClusterJobSchema = BaseNewJobSchema.extend({
-  fileContent: z.string().min(1, "File content cannot be empty"),
+  matchStereochemistry: z.boolean().default(false),
 })
 
 export type NewCompoundJob = z.infer<typeof NewCompoundJobSchema>;
-export type NewGeneClusterJob = z.infer<typeof NewGeneClusterJobSchema>;

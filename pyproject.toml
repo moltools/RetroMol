@@ -66,6 +66,7 @@ packages = [
     "src/retromol_antismash",
     "src/retromol_database",
     "src/retromol_fingerprint",
+    "src/retromol_genesis",
 ]
 include = [
     "src/retromol/data/mxn.yml",

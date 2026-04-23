@@ -55,86 +55,85 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ open, ha
           display: "flex",
         }}
       >
-      <Stack spacing={2} width="100%">
-
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            px: 3,
-            pb: 0,
-          }}
-        >
-          <Typography variant="subtitle1">Notifications</Typography>
-          <Box>
-            <ClearAllIcon
-              onClick={clearNotifications}
-              aria-label="Clear all notifications"
-              sx={{
-                mr: 2,
-                cursor: "pointer",
-              }}
-            />
-            <CloseIcon
-              onClick={handleClose}
-              aria-label="Close notifications"
-              sx={{
-                position: "absolute",
-                right: 16,
-                cursor: "pointer",
-              }}
-            />
-          </Box>
-        </Box>
-
-        {notifications.length === 0 ? (
-          <Typography
-            variant="body2"
+        <Stack spacing={2} width="100%">
+          <Box
             sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
               px: 3,
-              pt: "4px",
-              pb: 2,
+              pb: 0,
             }}
           >
-            No notifications to show.
-          </Typography>
-        ) : (
-          <Stack
-            sx={{
-              overflowY: "auto",
-              px: 3,
-              pt: "4px",
-              pb: 2,
-            }}
-          >
-            {notifications.slice(0).reverse().map((notification) => (
-              <ListItem
-                key={crypto.randomUUID()}
-                divider
+            <Typography variant="subtitle1">Notifications</Typography>
+            <Box>
+              <ClearAllIcon
+                onClick={clearNotifications}
+                aria-label="Clear all notifications"
                 sx={{
-                  borderLeft: `4px solid ${theme.palette[notification.level].main}`,
-                  backgroundColor: "transparent",
-                  transition: "background-color 0.3s ease",
+                  mr: 3,
+                  cursor: "pointer",
                 }}
-              >
-                <ListItemText
-                  primary={ new Date(notification.timestamp).toLocaleString() }
-                  secondary={
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: notification.isNew ? 600 : 400 }}
-                    >
-                      {notification.content}
-                    </Typography>
-                  }
-                  secondaryTypographyProps={{ component: "div" }}  // render wrapper as div instead of p
-                />
-              </ListItem>
-            ))}
-          </Stack>
-        )}
-      </Stack>
+              />
+              <CloseIcon
+                onClick={handleClose}
+                aria-label="Close notifications"
+                sx={{
+                  position: "absolute",
+                  right: 16,
+                  cursor: "pointer",
+                }}
+              />
+            </Box>
+          </Box>
+
+          {notifications.length === 0 ? (
+            <Typography
+              variant="body2"
+              sx={{
+                px: 3,
+                pt: "4px",
+                pb: 2,
+              }}
+            >
+              No notifications to show.
+            </Typography>
+          ) : (
+            <Stack
+              sx={{
+                overflowY: "auto",
+                px: 3,
+                pt: "4px",
+                pb: 2,
+              }}
+            >
+              {notifications.slice(0).reverse().map((notification) => (
+                <ListItem
+                  key={crypto.randomUUID()}
+                  divider
+                  sx={{
+                    borderLeft: `4px solid ${theme.palette[notification.level].main}`,
+                    backgroundColor: "transparent",
+                    transition: "background-color 0.3s ease",
+                  }}
+                >
+                  <ListItemText
+                    primary={ new Date(notification.timestamp).toLocaleString() }
+                    secondary={
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: notification.isNew ? 600 : 400 }}
+                      >
+                        {notification.content}
+                      </Typography>
+                    }
+                    secondaryTypographyProps={{ component: "div" }}  // render wrapper as div instead of p
+                  />
+                </ListItem>
+              ))}
+            </Stack>
+          )}
+        </Stack>
       </Box>
     </Drawer>
   )

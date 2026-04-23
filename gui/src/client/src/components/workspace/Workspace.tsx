@@ -7,108 +7,102 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import { useNotifications } from "../NotificationProvider";
 import { useOverlay } from "../OverlayProvider";
 import { Session } from "../../features/session/types";
-import { getSession, refreshSession, saveSession } from "../../features/session/api";
+import { getSession, refreshSession } from "../../features/session/api";
 import { WorkspaceNavbar } from "./WorkspaceNavbar";
 import { WorkspaceSideMenu } from "./WorkspaceSideMenu";
 import { WorkspaceHeader } from "./WorkspaceHeader";
-import { WorkspaceDashboard } from "./WorkspaceDashboard";
+import { WorkspaceHome } from "./WorkspaceHome";
 import { WorkspaceUpload } from "./WorkspaceUpload";
-// import { WorkspaceExplore } from "./WorkspaceExplore";
-// import { WorkspaceQuery } from "./WorkspaceQuery";
+// import { WorkspaceDiscovery } from "./tabs/discovery/WorkspaceDiscovery";
+// import { WorkspaceEnrichment } from "./tabs/enrichment/WorkspaceEnrichment";
 
 export const Workspace: React.FC = () => {
   const { showOverlay, hideOverlay } = useOverlay();
   const { pushNotification } = useNotifications();
   const navigate = useNavigate();
+
   const [loading, setLoading] = React.useState<boolean>(true);
   const [session, setSession] = React.useState<Session | null>(null);
 
-  // Track source of last update to session; prevents race conditions
-  const lastUpdatedSourceRef = React.useRef<"local" | "remote" | null>(null);
-
-  const setSessionLocal = React.useCallback(
-    (updater: (prev: Session) => Session) => {
-      lastUpdatedSourceRef.current = "local";
-      setSession((prev) => (prev ? updater(prev) : prev));
-    },
-    []
-  );
-
-  const setSessionRemote = React.useCallback(
-    (next: Session) => {
-      lastUpdatedSourceRef.current = "remote";
-      setSession(next);
-    },
-    []
-  );
-
-  // Retrieve session from the server on component mount
+  // Load session on mount
   React.useEffect(() => {
     let alive = true;
     setLoading(true);
+
     getSession()
-      .then(sess => {
+      .then((sess) => {
         if (!alive) return;
-        setSessionRemote(sess);
+        setSession(sess);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Error loading session:", err);
         navigate("/notfound");
       })
-      .finally(() => { if (alive) setLoading(false); })
-    return () => { alive = false; }
-  }, [navigate])
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
+      });
 
-  // Periodically refresh session data
-  React.useEffect(() => {
-    if (!session) return;
-
-    let alive = true;
-    const intervalMs = 5000; // 5 seconds
-
-    const intervalId = window.setInterval(() => {
-      refreshSession(session.sessionId)
-        .then((fresh) => {
-          if (!alive) return;
-          setSessionRemote(fresh);
-        })
-        .catch((err) => {
-          pushNotification(`Failed to refresh session: ${err instanceof Error ? err.message : String(err)}`, "error");
-        })
-    }, intervalMs);
-
-    return () => {
-      alive = false;
-      window.clearInterval(intervalId);
-    }
-  }, [session?.sessionId, setSessionRemote]);
+    return () => { alive = false; };
+  }, [navigate]);
 
   // Overlay follows loading state
   React.useEffect(() => {
-    if (loading) showOverlay(); else hideOverlay();
-  }, [loading, showOverlay, hideOverlay])
+    if (loading) showOverlay();
+    else hideOverlay();
+  }, [loading, showOverlay, hideOverlay]);
 
-  // Auto-save session whenever session changes
+  // SSE: refresh session when server says something changed
   React.useEffect(() => {
-    if (!session) return;
-    if (lastUpdatedSourceRef.current !== "local") return; // only auto-save if local changes
+    if (!session?.sessionId) return;
 
-    // Reset source so we don't double-save
-    lastUpdatedSourceRef.current = null;
+    let alive = true;
+    let refreshTimer: number | null = null;
 
-    saveSession(session).catch(err => {
-      const msg = err instanceof Error ? err.message : String(err);
-      pushNotification(`Failed to save session: ${msg}`, "error");
-    })
-  }, [session]);
+    const scheduleRefresh = () => {
+      if (!alive) return;
+      if (refreshTimer !== null) return;
 
-  if (!session && !loading) {
-    // Hard failure; couldn't load session at all
-    return null;
-  }
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+
+        refreshSession(session.sessionId)
+          .then((fresh) => {
+            if (!alive) return;
+            setSession(fresh);
+          })
+          .catch((err) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            pushNotification(`Failed to refresh session: ${msg}`, "error");
+          });
+      }, 250);
+    };
+
+    const SSE_BASE = process.env.REACT_APP_SSE_BASE ?? "";
+    const es = new EventSource(
+      `${SSE_BASE}/api/sessionEvents?sessionId=${encodeURIComponent(session.sessionId)}`
+    );
+
+    // Attach scheduleRefresh to all relevant events
+    es.addEventListener("hello", scheduleRefresh);
+    es.addEventListener("item_updated", scheduleRefresh);
+    es.addEventListener("session_merged", scheduleRefresh);
+
+    es.onopen = () => {
+      // EventSource retries automatically; avoid spamming notifications
+    };
+
+    return () => {
+      alive = false;
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      es.close();
+    };
+  }, [session?.sessionId, pushNotification]);
 
   // Determine what to show
   const showContent = !!session && !loading;
+
+  if (!session && !loading) return null;
 
   return (
     <Box sx={{ display: "flex"}}>
@@ -135,10 +129,12 @@ export const Workspace: React.FC = () => {
             <Fade in={showContent} timeout={200} unmountOnExit>
               <Box sx={{ width: "100%" }}>
                 <Routes>
-                  <Route index element={<WorkspaceDashboard />} />
-                  <Route path="upload" element={<WorkspaceUpload session={session} setSession={setSessionLocal} />} />
-                  {/*<Route path="explore" element={<WorkspaceExplore session={session} setSession={setSessionLocal} />} />*/}
-                  {/*<Route path="query" element={<WorkspaceQuery session={session} setSession={setSessionLocal} />} />*/}
+                  <Route index element={<WorkspaceHome />} />
+                  <Route path="upload" element={<WorkspaceUpload session={session} setSession={setSession} />} />
+                  {/*<Route path="discovery" element={<WorkspaceDiscovery session={session} setSession={setSession} />} />*/}
+                    <Route path="discovery" element={<div>Analysis currently available. Check back later.</div>} />
+                  {/*<Route path="enrichment" element={<WorkspaceEnrichment session={session} setSession={setSession} />} />*/}
+                    <Route path="enrichment" element={<div>Analysis currently available. Check back later.</div>} />
                 </Routes>
               </Box>
             </Fade>
@@ -148,4 +144,4 @@ export const Workspace: React.FC = () => {
       </Box>
     </Box>
   )
-}
+};

@@ -1,141 +1,195 @@
 import React from "react";
 import Alert from "@mui/material/Alert";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import FormControl from "@mui/material/FormControl";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import MuiLink from "@mui/material/Link";
 import CircularProgress from "@mui/material/CircularProgress";
-import { useNotifications } from "../NotificationProvider";
-import { DialogWindow } from "../DialogWindow";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import { SessionItem } from "../../features/session/types";
-import { SvgViewer } from "../SvgViewer";
-import { drawCompoundItem, drawGeneClusterItem } from "../../features/drawing/api";
+import { DialogWindow } from "../DialogWindow";
+import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
+
+export type PrimarySequenceItem = [string, number[]];
+
+export type Reconstruction = {
+  tagged_input_smiles: string;
+  tagged_backbone_smiles: string;
+  primary_sequence: PrimarySequenceItem[];
+};
+
+type HighlightAtom = [number, string];
 
 type DialogViewItemProps = {
+  sessionId: string;
+  item: SessionItem;
   open: boolean;
-  item?: SessionItem | null;
   onClose: () => void;
+};
+
+function AnnotatedArrow({ annotation }: { annotation: string }) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0, // don’t let it compress
+      }}
+    >
+      <Typography variant='caption' gutterBottom>
+        {annotation}
+      </Typography>
+      <Box
+        component='svg'
+        width={140} // total width of arrow+shaft
+        height={32}
+        viewBox='0 0 140 32'
+      >
+        {/* horizontal line */}
+        <line
+          x1='0'
+          y1='16'
+          x2='120'
+          y2='16'
+          stroke='currentColor'
+          strokeWidth='2'
+        />
+        {/* arrow head */}
+        <polygon
+          points='120,8 120,24 140,16'
+          fill='currentColor'
+        />
+      </Box>
+    </Box>
+  );
+};
+
+function DescriptionBox({ title, description }: { title: string; description: string }) {
+  return (
+    <Box sx={{ width: '100%' }}>
+      <Typography variant='subtitle2' fontWeight='bold'>
+        {title}
+      </Typography>
+      <Typography variant='body2'>
+        {description}
+      </Typography>
+    </Box>
+  );
+};
+
+function PrimarySequence({
+  sequence,
+  selectedTags,
+  onToggleMotif,
+}: {
+  sequence: PrimarySequenceItem[];
+  selectedTags: number[];
+  onToggleMotif: (tags: number[]) => void;
+}) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexWrap: "nowrap",
+        gap: 1,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      {sequence.map(([name, tags], idx) => {
+        const isSelected =
+          tags.length > 0 && tags.every((tag) => selectedTags.includes(tag));
+
+        return (
+          <Box
+            key={`${name}-${idx}`}
+            onClick={() => onToggleMotif(tags)}
+            sx={{
+              px: 1.25,
+              py: 0.75,
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: isSelected ? "primary.main" : "divider",
+              bgcolor: isSelected ? "primary.main" : "background.paper",
+              color: isSelected ? "primary.contrastText" : "text.primary",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              cursor: "pointer",
+              userSelect: "none",
+              whiteSpace: "nowrap",
+              "&:hover": {
+                borderColor: "primary.main",
+                bgcolor: isSelected ? "primary.dark" : "action.hover",
+              },
+            }}
+          >
+            {name}
+          </Box>
+        )
+      })}
+    </Box>
+  )
 }
 
 export const DialogViewItem: React.FC<DialogViewItemProps> = ({
-  open,
+  sessionId,
   item,
+  open,
   onClose,
 }) => {
-  const { pushNotification } = useNotifications();
+  const isCompound = item.kind === "compound"; // there are only two types: "compound" and "cluster"
+
   const [loading, setLoading] = React.useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [data, setData] = React.useState<Reconstruction | null>(null);
+  const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
 
-  const [initializedItemId, setInitializedItemId] = React.useState<string | null>(null);
-  const [selectPrimarySequenceId, setSelectPrimarySequenceId] = React.useState<string>("");
-  const [svg, setSvg] = React.useState<string | null>(null);
-
-  const generateSvg = React.useCallback(async (primarySequenceId: string) => {
-    if (!item) {
-      setSvg(null);
-      setErrorMsg(null);
-      return;
-    }
-
-    // Get Item primarySequence for primarySequenceId
-    const primarySequence = item.primarySequences?.find(seq => seq.id === primarySequenceId);
-    if (!primarySequence) {
-      pushNotification("Selected primary sequence not found in item.", "error");
-      setSvg(null);
-      setErrorMsg(null);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      if (item.kind === "compound") {
-        const taggedParentSmiles = item.taggedSmiles;
-
-        // Check if taggedParentSmiles is available
-        if (!taggedParentSmiles) {
-          pushNotification("No tagged SMILES available for this compound item.", "error");
-          setSvg(null);
-          return;
-        }
-
-        // Call drawing API
-        const drawingSvg = await drawCompoundItem(
-          taggedParentSmiles,
-          primarySequence
-        );
-        setSvg(drawingSvg);
-        setErrorMsg(null);
-      } else if (item.kind === "gene_cluster") {
-        // Call drawing API
-        const drawingSvg = await drawGeneClusterItem(item.fileContent || "");
-        setSvg(drawingSvg);
-        setErrorMsg(null);
-      } else {
-        const errorMsg = "SVG drawing not supported for this item type.";
-        pushNotification(errorMsg, "error");
-        setSvg(null);
-        setErrorMsg(errorMsg);
-        return;
+  const handleToggleMotif = (tags: number[]) => {
+    setSelectedTags((prev) => {
+      const allSelected = tags.every((tag) => prev.includes(tag));
+      if (allSelected) {
+        return prev.filter((tag) => !tags.includes(tag));
       }
-    } catch (error) {
-      let errorMsg = "Error generating SVG drawing";
-      const errorBody = (error as any)?.body as string | undefined
-      if (errorBody) {
-        try {
-          const parsed = JSON.parse(errorBody);
-          if (typeof parsed?.error === "string") errorMsg = `${errorMsg}: ${parsed.error}`;
-        } catch (e) {
-          errorMsg = `${errorMsg}.`
-        }
-      }
-      pushNotification(errorMsg, "error");
-      setSvg(null);
-      setErrorMsg(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  }, [item]);
-
-  const initializePrimarySequence = React.useCallback(() => {
-    if (item && item.primarySequences && item.primarySequences.length > 0) {
-      const firstSeqId = item.primarySequences[0].id;
-      setSelectPrimarySequenceId(firstSeqId);
-      generateSvg(firstSeqId);
-    } else {
-      setSelectPrimarySequenceId("");
-      setSvg(null);
-      setErrorMsg(null);
-    }
-  }, [item, generateSvg]);
-
-  // Initialize primary sequence selection when item changes
-  // Also avoid re-initializing if the same item is passed again
-  React.useEffect(() => {
-    if (!item) {
-      setInitializedItemId(null);
-      setSelectPrimarySequenceId("");
-      setSvg(null);
-      setErrorMsg(null);
-      return;
-    }
-
-    // No redraw if same item
-    if (initializedItemId === item.id) {
-      return;
-    }
-
-    // New item is passed
-    setInitializedItemId(item.id);
-    initializePrimarySequence();
-  }, [item, initializedItemId, initializePrimarySequence]);
-
-  const handlePrimarySequenceChange = (sequenceId: string) => {
-    setSelectPrimarySequenceId(sequenceId);
-    generateSvg(sequenceId);
+      return Array.from(new Set([...prev, ...tags]));
+    })
   }
+
+  const highlightAtoms: HighlightAtom[] = selectedTags.map((tag) => [tag, "#027bf3"])
+
+  // Clear selection when dialog/item changes
+  React.useEffect(() => {
+    if (open) {
+      setSelectedTags([]);
+    }
+  }, [open, item.id]);
+
+  React.useEffect(() => {
+    if (!open) { return; };
+    if (!isCompound) { return; };
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch("/api/reconstructCompound", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sessionId,
+            itemId: item.id,
+          }),
+        });
+        if (!response.ok) { throw new Error(`Error fetching data for linear view: ${response.statusText}`); };
+        const data = await response.json();
+        setData(data.data);
+      } catch (err: any) {
+        setError(err.message || "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [open, isCompound, sessionId, item.id]);
 
   return (
     <DialogWindow
@@ -143,92 +197,110 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
       onClose={onClose}
       title="View item"
       dividers
-      maxWidth="xl"
       actions={[
         { label: "Close", variant: "text", color: "inherit", onClick: onClose },
       ]}
+      maxWidth={"lg"}
     >
-      { loading ? (
-        <Stack direction="row" justifyContent="center" alignItems="center" height={400}>
-          <CircularProgress />
-        </Stack>
-      ) : errorMsg ? (
-        <Alert severity="error">{errorMsg}</Alert>
-      ) : !item ? (
-        <Typography variant="body1">
-          No item selected.
-        </Typography>
-      ) : svg === null || svg.length === 0 ? (
-        <Typography variant="body1">
-          No SVG drawing available for this item.
-        </Typography>
-      ) : item.kind === "compound" ? (
-        <Stack direction="column" gap={1} alignItems="flex-start">
-          <Typography variant="body1">
-            To get started, select a primary sequence to map onto the input compound structure.
-            A downloadable SVG will be generated showing the mapping below the selector upon successful mapping.
-            All structures in this view are drawn using&nbsp;
-            <MuiLink href="https://research.wur.nl/en/publications/pikachu-a-python-based-informatics-kit-for-analysing-chemical-uni/" target="_blank" rel="noopener noreferrer">
-              PIKAChU
-            </MuiLink>
-            &nbsp;. Please cite PIKAChU if you use these drawings in your work.
-          </Typography>
-          <FormControl fullWidth size="small">
-            <Select
-              label="Primary sequence"
-              value={selectPrimarySequenceId}
-              onChange={(e) => handlePrimarySequenceChange(e.target.value)}
-              disabled={!item.primarySequences || item.primarySequences.length === 0}
-            >
-              {item.primarySequences && item.primarySequences.map((seq) => (
-                <MenuItem key={seq.id} value={seq.id}>
-                  {seq.name || seq.id}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {svg && (
-            <SvgViewer
-              svg={svg}
-              onZoomChange={() => {}}
-              onElementClick={() => {}}
-              height={600}
-            />
-          )}
-        </Stack>
-      ) : item.kind === "gene_cluster" ? (
-        <Stack direction="column" spacing={2} alignItems="flex-start">
-          <Typography variant="body1">
-            <MuiLink href="https://research.wur.nl/en/publications/raichu-automating-the-visualisation-of-natural-product-biosynthes/" target="_blank" rel="noopener noreferrer">
-              RAIChU
-            </MuiLink>
-            &nbsp;is used to generate the gene cluster visualization below.
-            The SVG rendered below is included for informative purposes and does not reflect the exact encoding mechanism of the gene clustering by RetroMol.
-            This viewer serves as a wrapper around the RAIChU SVG generation API. For more information on RAIChU, please refer to the link provided.
-            Substrate predictions for non-ribosomal peptide (NRP) A-domains and polyketide synthase (PKS) acyltransferase (AT)-domains are taken directly from the&nbsp;
-            <MuiLink href="https://antismash.secondarymetabolites.org/#!/start" target="_blank" rel="noopener noreferrer">
-              antiSMASH
-            </MuiLink>
-            &nbsp;output.
-            This wrapper viewer around RAIChU currently does not use any of the PARAS substrate specificity predictions provided and used by RetroMol for similarity searches.
-            Additionally, this wrapper view around RAIChU only provided a visualization of the full region readout, not of individual candidate clusters found within the region.
-            Please cite RAIChU if you use these drawings in your work.
-          </Typography>
-          {svg && (
-            <SvgViewer
-              svg={svg}
-              onZoomChange={() => {}}
-              onElementClick={() => {}}
-              height={600}
-            />
-          )}
-        </Stack>
-      ) : (
-        <Typography variant="body1">
-          No preview available for this item type.
-        </Typography>
+      {!isCompound && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Viewing is only available for compounds.
+        </Alert>
       )}
 
+      {loading && (
+        <CircularProgress size={24} />
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {(isCompound && !loading && !error) && (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: 2,
+              alignItems: 'center',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              scrollbarGutter: 'stable',
+              '&::-webkit-scrollbar': {
+                height: 12,
+              },
+              '&::-webkit-scrollbar-track': {
+                background: '#f1f1f1',
+                borderRadius: 4,
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#ccc',
+                borderRadius: 4,
+                '&:hover': {
+                  backgroundColor: '#aaa',
+                  cursor: 'pointer',
+                },
+              },
+            }}
+          >
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                pl: 2
+              }}
+            >
+              <SmilesDrawerContainer
+                identifier={`smiles-drawer-${sessionId}-${item.id}-full`}
+                smiles={data?.tagged_input_smiles ?? ""}
+                size={300}
+                highlightAtoms={highlightAtoms}
+              />
+            </Box>
+            <AnnotatedArrow annotation={'Linearization'} />
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <SmilesDrawerContainer
+                identifier={`smiles-drawer-${sessionId}-${item.id}-preprocessed`}
+                smiles={data?.tagged_backbone_smiles ?? ""}
+                size={300}
+                highlightAtoms={highlightAtoms}
+              />
+            </Box>
+            <AnnotatedArrow annotation={'Sequencing'} />
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                pr: 2
+              }}
+            >
+              <PrimarySequence
+                sequence={data?.primary_sequence ?? []}
+                selectedTags={selectedTags}
+                onToggleMotif={handleToggleMotif}
+              />
+            </Box>
+          </Box>
+          <DescriptionBox
+            title={'Explanation'}
+            description={'The input SMILES (right) is processed by RetroMol into non-overlapping building blocks, and from these building blocks a linear backbone is reconstructed (middle). The primary sequence, a text representation of the linear backbone, is seen on the right. You can highlight individual motifs by clicking them in the primary sequence above.'}
+          />
+        </Box>
+      )}
     </DialogWindow>
-  )
-}
+  );
+};

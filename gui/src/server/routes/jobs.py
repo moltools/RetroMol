@@ -4,13 +4,75 @@ import time
 
 from flask import Response, Blueprint, current_app, request, jsonify
 
-from routes.helpers import get_unique_identifier
 from routes.session_store import load_session_with_items, update_item
+from routes.database import SessionLocal
 
+from retromol.model.submission import Submission
+from retromol.model.rules import RuleSet
+from retromol.model.result import Result
 from retromol.pipelines.parsing import run_retromol
+from retromol_genesis.reconstruction import Reconstruction, reconstruct_linear_readout
 
+blp_search_compound = Blueprint("search_compound", __name__)
 blp_submit_compound = Blueprint("submit_compound", __name__)
+blp_reconstruct_compound = Blueprint("reconstruct_compound", __name__)
 blp_submit_gene_cluster = Blueprint("submit_gene_cluster", __name__)
+
+
+DEFAULT_LIMIT = 10
+MAX_LIMIT = 50
+
+
+@blp_search_compound.get("/api/searchCompound")
+def search_compound_by_name():
+    """
+    Autocomplete endpoint for compounds by name-like query.
+    """
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({"rows": [], "rowCount": 0}), 200
+
+    try:
+        limit = int(request.args.get("limit", DEFAULT_LIMIT))
+    except ValueError:
+        limit = DEFAULT_LIMIT
+    limit = max(1, min(MAX_LIMIT, limit))
+
+    like = f"%{q}%"
+
+    # stmt = (
+    #     select(
+    #         Reference.name,
+    #         Reference.database_name,
+    #         Reference.database_identifier,
+    #         Compound.smiles,
+    #     )
+    #     .join(Reference.compounds)
+    #     .where(Reference.name.ilike(like))
+    #     .order_by(Reference.name.asc())
+    #     .limit(limit)
+    # )
+    #
+    # with SessionLocal() as session:
+    #     rows = session.execute(stmt).all()
+
+    # Dummy
+    rows = [
+        ("erythromycin", "custom", "C001", r"CC[C@@H]1[C@@]([C@@H]([C@H](C(=O)[C@@H](C[C@@]([C@@H]([C@H]([C@@H]([C@H](C(=O)O1)C)O[C@H]2C[C@@]([C@H]([C@@H](O2)C)O)(C)OC)C)O[C@H]3[C@@H]([C@H](C[C@H](O3)C)N(C)C)O)(C)O)C)C)O)(C)O"),
+    ]
+
+    out = [
+        {
+            "name": name,
+            "smiles": smiles,
+            "databaseName": database_name,
+            "databaseIdentifier": database_identifier,
+        }
+        for (name, database_name, database_identifier, smiles) in rows
+        if name and smiles and database_name and database_identifier
+    ]
+
+    return jsonify({"rows": out, "rowCount": len(out)}), 200
 
 
 def _set_item_status_inplace(item: dict, status: str, error_message: str | None = None) -> None:
@@ -41,7 +103,12 @@ def submit_compound() -> tuple[Response, int]:
     session_id = payload.get("sessionId")
     item_id = payload.get("itemId")
     name = payload.get("name")
-    smiles = payload.get("smiles")
+    smiles = payload.get("smiles", None)
+    match_stereochemistry = payload.get("matchStereochemistry", False)
+
+    if smiles is None or not isinstance(smiles, str):
+        current_app.logger.warning(f"submit_compound: smiles is not a string")
+        return jsonify({"error": "smiles is not a string"}), 400
 
     current_app.logger.info(f"submit_compound called: session_id={session_id} item_id={item_id}")
 
@@ -83,38 +150,23 @@ def submit_compound() -> tuple[Response, int]:
         return jsonify({"error": "Item not found during update"}), 404
 
     try:
-        # # Heavy work
-        # generator = _setup_fingerprint_generator()
-        # (
-        #     tagged_smiles,
-        #     coverages,
-        #     fp_hex_strings,
-        #     linear_readout
-        # ) = _compute_compound(generator, smiles)
-        #
-        # # Set final status=done and store results on this item only
-        # def mark_done(it: dict) -> None:
-        #     it["name"] = name or it.get("name")
-        #     it["smiles"] = smiles or it.get("smiles")
-        #     it["taggedSmiles"] = tagged_smiles
-        #     it["retrofingerprints"] = [
-        #         {
-        #             "id": get_unique_identifier(),
-        #             "retrofingerprint512": fp_hex,
-        #             "score": cov,
-        #         }
-        #         for cov, fp_hex in zip(coverages, fp_hex_strings, strict=True)
-        #     ]
-        #     it["primarySequences"] = linear_readout
-        #     _set_item_status_inplace(it, "done")
-        #
-        # update_item(session_id, item_id, mark_done)
+        # Heavy work
+        submission = Submission(name="app_submission", smiles=smiles)
+        rules = RuleSet.load_default(match_stereochemistry=match_stereochemistry)
+        result = run_retromol(submission=submission, rules=rules)
+        coverage = result.calculate_coverage()
+        result_as_dict = result.to_dict()
 
-        # TODO: users need to be able to supply their own parsing rules, supplying own monomers should disallow fingerprinting though
-        # TODO: users should be able to view the reaction graph
-        # TODO: users should be able to view the 'compound->linear view->primary sequence' visualization; select from reaction graph
+        def mark_done(it: dict) -> None:
+            it["name"] = name or it.get("name")
+            it["smiles"] = smiles or it.get("smiles")
+            it["matchStereochemistry"] = match_stereochemistry
+            it["score"] = coverage
+            it["payload"] = result_as_dict
 
-        raise NotImplementedError("Compound parsing not available!")
+            _set_item_status_inplace(it, "done")
+
+        update_item(session_id, item_id, mark_done)
 
     except Exception as e:
         current_app.logger.exception(f"submit_compound: error for item_id={item_id}")
@@ -140,6 +192,41 @@ def submit_compound() -> tuple[Response, int]:
         "status": "done",
         "elapsed_ms": elapsed,
     }), 200
+
+
+@blp_reconstruct_compound.post("/api/reconstructCompound")
+def reconstruct_compound() -> tuple[Response, int]:
+    """
+    Endpoint for reconstructing a compound from a RetroMol result.
+    """
+    payload = request.get_json(force=True) or {}
+
+    session_id = payload.get("sessionId")
+    item_id = payload.get("itemId")
+
+    full_sess = load_session_with_items(session_id)
+    if full_sess is None:
+        current_app.logger.warning(f"reconstruct_compound: session not found: {session_id}")
+        return jsonify({"error": "Session not found"}), 404
+
+    item = next((it for it in full_sess.get("items", []) if it.get("id") == item_id), None)
+    if item is None:
+        current_app.logger.warning(f"submit_compound: item not found: {item_id}")
+        return jsonify({"error": "Item not found"}), 404
+
+    if item.get("kind") != "compound":
+        current_app.logger.warning(f"submit_compound: wrong kind={item.get('kind')}")
+        return jsonify({"error": "Item is not a compound"}), 400
+
+    try:
+        result = Result.from_dict(item["payload"])
+        reconstruction = reconstruct_linear_readout(result)
+        reconstruction_as_dict = reconstruction.to_dict()
+        return jsonify({"ok": True, "status": "done", "data": reconstruction_as_dict}), 200
+
+    except Exception as e:
+        current_app.logger.exception(f"submit_compound: error for item_id={item_id}")
+        return jsonify({"ok": False, "error": "Item not found during update"}), 404
 
 
 @blp_submit_gene_cluster.post("/api/submitGeneCluster")

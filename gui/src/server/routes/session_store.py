@@ -18,6 +18,48 @@ SESSION_PREFIX = "session:"
 ITEM_PREFIX = "session_item:"  # key pattern: session_item:{sessionId}:{itemId}
 
 
+EVENTS_CHANNEL_PREFIX = "session_events:"
+
+
+# Fields that are owned by the server and should not be overwritten by client data
+# Item 'name' and 'updatedAt' are client-editable
+SERVER_OWNED_FIELDS = {
+    "name",
+    "score",
+    "payload",
+    "status",
+    "errorMessage",
+    "smiles",
+    "fileContent",
+}
+
+
+def _event_channel(session_id: str) -> str:
+    """
+    Get the Redis Pub/Sub channel name for session events.
+
+    :param session_id: the session ID
+    :return: the Redis channel name for session events
+    """
+    return f"{EVENTS_CHANNEL_PREFIX}{session_id}"
+
+
+def publish_session_event(session_id: str, event: dict[str, Any]) -> None:
+    """
+    Publish a session event to the Redis Pub/Sub channel.
+
+    :param session_id: the session ID
+    :param event: the event data to publish
+    """
+    try:
+        event = dict(event)
+        event.setdefault("sessionId", session_id)
+        event.setdefault("ts", int(time.time() * 1000))
+        redis_client.publish(_event_channel(session_id), json.dumps(event))
+    except Exception:
+        pass
+
+
 def _get_redis() -> "redis.Redis":
     """
     Get a Redis client instance.
@@ -255,6 +297,21 @@ def load_item(session_id: str, item_id: str) -> dict[str, Any] | None:
     return json.loads(data)
 
 
+def strip_property_from_dict(d: dict[str, Any], prop: str) -> dict[str, Any]:
+    """
+    Recursively strip a property from a nested dictionary.
+
+    :param d: the dictionary to process
+    :param prop: the property name to strip
+    :return: a new dictionary with the property stripped
+    """
+    out = dict(d)
+    if prop in out:
+        out.pop(prop, None)
+
+    return out
+
+
 def save_item(session_id: str, item: dict[str, Any]) -> None:
     """
     Save a specific item to a session.
@@ -305,22 +362,56 @@ def update_item(session_id: str, item_id: str, mutator: Callable[[dict[str, Any]
     mutator(item)
 
     save_item(session_id, item)
+
+    publish_session_event(session_id, {
+        "type": "item_updated",
+        "itemId": item_id,
+        "status": item.get("status"),
+        "updatedAt": item.get("updatedAt"),
+    })
+
     return True
 
 
-# Fields that are owned by the server and should not be overwritten by client data
-SERVER_OWNED_FIELDS = {
-    "status",
-    "errorMessage",
-    "retrofingerprints",
-    "retrofingerprint512",
-    "morganfingerprint2048r2",
-    "primarySequences",
-    "smiles",
-    "taggedSmiles",
-    "coverage",
-    "updatedAt",
-}
+def delete_item(session_id: str, item_id: str) -> None:
+    """
+    Delete  a single item from a session (both item blob and its id in session meta).
+
+    :return: True if deleted, False if session/item not found
+    .. note:: publishes a session_merged event so clients refresh via SSE
+    """
+    meta = load_session_meta(session_id)
+    if meta is None:
+        return False
+
+    item_ids = meta.get("items", []) or []
+    if not isinstance(item_ids, list):
+        item_ids = []
+
+    if item_id not in item_ids:
+        return False
+
+    # Remove id from meta list
+    item_ids = [x for x in item_ids if x != item_id]
+    meta["items"] = item_ids
+
+    # Delete item blob
+    redis_client.delete(_item_key(session_id, item_id))
+
+    # Save updated session meta
+    redis_client.set(
+        _session_key(session_id),
+        json.dumps(meta),
+        ex=SESSION_TTL_SECONDS,
+    )
+
+    # Tell SSE clients to refresh
+    publish_session_event(session_id, {
+        "type": "session_merged",
+        "deletedItemId": item_id,
+    })
+
+    return True
 
 
 def merge_session_from_client(new_session: dict[str, Any]) -> None:
@@ -361,7 +452,8 @@ def merge_session_from_client(new_session: dict[str, Any]) -> None:
 
         if old_item is None:
             # New item: accept as-is (client owns everything initially)
-            merged_items.append(new_item)
+            item = strip_property_from_dict(new_item, "payload")  # remove payload if present
+            merged_items.append(item)
             new_item_ids.append(item_id)
         else:
             # Existing item: merge client fields into old item, presevering server-owned fields
@@ -398,3 +490,8 @@ def merge_session_from_client(new_session: dict[str, Any]) -> None:
         json.dumps(meta),
         ex=SESSION_TTL_SECONDS,
     )
+
+    # Publish session updated event
+    publish_session_event(session_id, {
+        "type": "session_merged",
+    })
