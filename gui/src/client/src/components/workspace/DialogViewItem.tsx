@@ -76,6 +76,34 @@ function DescriptionBox({ title, description }: { title: string; description: st
   );
 };
 
+function MotifName({ name }: { name: string }) {
+  const parts = name.split(/(\^[SR])/g);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part === "^S" || part === "^R") {
+          return (
+            <Box
+              key={i}
+              component="sup"
+              sx={{
+                fontSize: "0.7em",
+                lineHeight: 0,
+                verticalAlign: "super",
+              }}
+            >
+              {part.slice(1)}
+            </Box>
+          );
+        }
+
+        return <React.Fragment key={i}>{part}</React.Fragment>;
+      })}
+    </>
+  );
+}
+
 function PrimarySequence({
   sequence,
   selectedTags,
@@ -122,7 +150,7 @@ function PrimarySequence({
               },
             }}
           >
-            {name}
+            <MotifName name={name} />
           </Box>
         )
       })}
@@ -140,7 +168,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
 
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [data, setData] = React.useState<Reconstruction | null>(null);
+  const [data, setData] = React.useState<Reconstruction[] | null>(null);
   const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
 
   const handleToggleMotif = (tags: number[]) => {
@@ -257,7 +285,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
             >
               <SmilesDrawerContainer
                 identifier={`smiles-drawer-${sessionId}-${item.id}-full`}
-                smiles={data?.tagged_input_smiles ?? ""}
+                smiles={data?.[0]?.tagged_input_smiles ?? ""}
                 size={300}
                 highlightAtoms={highlightAtoms}
               />
@@ -271,12 +299,40 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
                 alignItems: 'center'
               }}
             >
-              <SmilesDrawerContainer
-                identifier={`smiles-drawer-${sessionId}-${item.id}-preprocessed`}
-                smiles={data?.tagged_backbone_smiles ?? ""}
-                size={300}
-                highlightAtoms={highlightAtoms}
-              />
+              <Box
+                sx={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                {(data ?? []).map((reconstruction, idx) => (
+                  <React.Fragment key={`backbone-fragment-${idx}`}>
+                    <SmilesDrawerContainer
+                      identifier={`smiles-drawer-${sessionId}-${item.id}-preprocessed-${idx}`}
+                      smiles={reconstruction.tagged_backbone_smiles}
+                      size={260}
+                      highlightAtoms={highlightAtoms}
+                    />
+
+                    {idx < (data?.length ?? 0) - 1 && (
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          lineHeight: 1,
+                          color: "text.secondary",
+                          fontWeight: 500,
+                        }}
+                      >
+                        +
+                      </Typography>
+                    )}
+                  </React.Fragment>
+                ))}
+              </Box>
             </Box>
             <AnnotatedArrow annotation={'Sequencing'} />
             <Box
@@ -288,11 +344,58 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
                 pr: 2
               }}
             >
-              <PrimarySequence
-                sequence={data?.primary_sequence ?? []}
-                selectedTags={selectedTags}
-                onToggleMotif={handleToggleMotif}
-              />
+              <Box
+                sx={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  pr: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                    alignItems: "flex-start",
+                    pr: 2,
+                  }}
+                >
+                  {(data ?? []).map((reconstruction, idx) => (
+                    <Box
+                      key={`primary-sequence-row-${idx}`}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 1,
+                        width: "100%",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          minWidth: 130,
+                          color: "text.secondary",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {`primary sequence ${idx + 1}`}
+                      </Typography>
+
+                      <PrimarySequence
+                        sequence={reconstruction.primary_sequence}
+                        selectedTags={selectedTags}
+                        onToggleMotif={handleToggleMotif}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
             </Box>
           </Box>
           <DescriptionBox

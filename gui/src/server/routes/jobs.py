@@ -59,6 +59,7 @@ def search_compound_by_name():
     # Dummy
     rows = [
         ("erythromycin", "custom", "C001", r"CC[C@@H]1[C@@]([C@@H]([C@H](C(=O)[C@@H](C[C@@]([C@@H]([C@H]([C@@H]([C@H](C(=O)O1)C)O[C@H]2C[C@@]([C@H]([C@@H](O2)C)O)(C)OC)C)O[C@H]3[C@@H]([C@H](C[C@H](O3)C)N(C)C)O)(C)O)C)C)O)(C)O"),
+        ("neopeltolide", "custom", "C002", r"CCC[C@@H]1C[C@@H](C[C@@H](C[C@@H]2C[C@H](C[C@@H](O2)CC(=O)O1)OC(=O)/C=C\CCC3=COC(=N3)/C=C\CNC(=O)OC)C)OC"),
     ]
 
     out = [
@@ -220,9 +221,9 @@ def reconstruct_compound() -> tuple[Response, int]:
 
     try:
         result = Result.from_dict(item["payload"])
-        reconstruction = reconstruct_linear_readout(result)
-        reconstruction_as_dict = reconstruction.to_dict()
-        return jsonify({"ok": True, "status": "done", "data": reconstruction_as_dict}), 200
+        reconstructions = reconstruct_linear_readout(result)
+        reconstructions_as_dicts = [rec.to_dict() for rec in reconstructions]
+        return jsonify({"ok": True, "status": "done", "data": reconstructions_as_dicts}), 200
 
     except Exception as e:
         current_app.logger.exception(f"submit_compound: error for item_id={item_id}")

@@ -1,10 +1,22 @@
+#- name: methylation
+#  smiles: "C"
+#  props: {"polyketide_motif": false, "paras_motif": false}
+
 - name: cysteine
   smiles: "C(C(C(=O)O)N)S"
   props: {"polyketide_motif": false, "paras_motif": true}
 
+- name: glycine
+  smiles: "NCC(=O)O"
+  props: { "polyketide_motif": false, "paras_motif": true }
+
 - name: kynurenine
   smiles: "C1=CC=C(C(=C1)C(=O)CC(C(=O)O)N)N"
   props: {"polyketide_motif": false, "paras_motif": true}
+
+- name: serine
+  smiles: "NC(CO)C(=O)O"
+  props: {"polyketide_motif": false, "paras_motif": false}
 
 - name: 3-methylglutamic acid
   smiles: "CC(CC(=O)O)C(C(=O)O)N"
@@ -444,6 +456,12 @@
 - name: D8
   smiles: "CC(C[SnH])[PbH]"
   props: {"polyketide_motif": true, "paras_motif": false}
+- name: D8
+  smiles: "[SnH]C(C)C[PbH]"
+  props: { "polyketide_motif": true, "paras_motif": false }
+- name: D8
+  smiles: "[PbH]C(C)C[SnH]"
+  props: { "polyketide_motif": true, "paras_motif": false }
 
 - name: D^R10^R
   smiles: "C[C@H]([C@@H]([SnH])O)[PbH]"

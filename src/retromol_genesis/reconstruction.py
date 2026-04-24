@@ -61,76 +61,88 @@ def filter_indicators(products):
     return results
 
 
-def reconstruct_linear_readout(result: Result) -> Reconstruction:
+def reconstruct_linear_readout(result: Result) -> list[Reconstruction]:
     """
     Reconstruct a linear backbone from RetroMol's linear readout.
 
     :param result: The result object returned by RetroMol, containing the reaction graph and the original molecule.
     :return: The reconstructed backbone.
+    :raises ValueError: If no successfull reconstructions are found.
     """
     root_enc = encode_mol(result.submission.mol)
     readout = LinearReadout.from_reaction_graph(root_enc, reaction_graph=result.reaction_graph, identified_only=True)
 
+    reconstructions: list[Reconstruction] = []
+
     # Get building blocks
     paths = readout.paths
     paths.sort(key=lambda x: len(x), reverse=True)
-    building_blocks = []
-    primary_sequence: list[tuple[str, set[int]]] = []
     for path in readout.paths:
-        for item in path:
-            item_name: str = item.identity.matched_rule.name if item.identified else "X"
-            item_tags: set[int] = get_tags_mol(item.mol)
-            primary_sequence.append((item_name, item_tags))
-            item_smiles = mol_to_smiles(item.mol, include_tags=True)
-            building_block = smiles_to_mol(item_smiles)
-            building_blocks.append(building_block)
-        break
 
-    # Start reconstruction
-    # TODO: capping start could also be an amino acid!
-    products = rxn_start_capping.RunReactants((building_blocks[0],))
-    assert len(products) == 1, "Expected exactly one product!"
-    products = list(products[0])
-    products = filter_indicators(products)
-    assert len(products) == 1, "Expected exactly one product!"
-    product = products[0]
+        try:
+            print(len(path))
 
-    # Loop through remaining items and attach to first building block
-    for building_block in building_blocks[1:]:
-        print(get_tags_mol(building_block))
-        if building_block.HasSubstructMatch(extension_1_pattern):
-            products = rxn_extension_1.RunReactants((product, building_block,))
-        elif building_block.HasSubstructMatch(extension_2_pattern):
-            products = rxn_extension_2.RunReactants((product, building_block,))
-        elif building_block.HasSubstructMatch(extension_3_pattern):
-            products = rxn_extension_3.RunReactants((product, building_block,))
-        else:
-            raise ValueError(f"Unknown building block: {building_block}")
+            building_blocks = []
+            primary_sequence: list[tuple[str, set[int]]] = []
 
-        products = products[0]
-        products = filter_indicators(products)
-        assert len(products) == 1, "Expected exactly one product!"
-        product = products[0]
+            for item in path:
+                item_name: str = item.identity.matched_rule.name if item.identified else "X"
+                item_tags: set[int] = get_tags_mol(item.mol)
+                primary_sequence.append((item_name, item_tags))
+                item_smiles = mol_to_smiles(item.mol, include_tags=True)
+                building_block = smiles_to_mol(item_smiles)
+                building_blocks.append(building_block)
 
-    # End reconstruction; cap
-    try:
-        products = rxn_end_capping.RunReactants((product,))
-        assert len(products) == 1, "Expected exactly one product!"
-        products = filter_indicators(products[0])
-        product = products[0]
-    except:
-        pass
+            # Start reconstruction
+            # TODO: capping start could also be an amino acid!
+            products = rxn_start_capping.RunReactants((building_blocks[0],))
+            assert len(products) == 1, f"Expected exactly one product from start capping! Found: {len(products)}"
+            products = list(products[0])
+            products = filter_indicators(products)
+            assert len(products) == 1, f"Expected exactly one product from filtering after start capping! Found: {len(products)}"
+            product = products[0]
 
-    product_smi = mol_to_smiles(product, include_tags=True)
-    print(product_smi)
+            # Loop through remaining items and attach to first building block
+            for building_block in building_blocks[1:]:
+                print(get_tags_mol(building_block))
+                if building_block.HasSubstructMatch(extension_1_pattern):
+                    products = rxn_extension_1.RunReactants((product, building_block,))
+                elif building_block.HasSubstructMatch(extension_2_pattern):
+                    products = rxn_extension_2.RunReactants((product, building_block,))
+                elif building_block.HasSubstructMatch(extension_3_pattern):
+                    products = rxn_extension_3.RunReactants((product, building_block,))
+                else:
+                    raise ValueError(f"Unknown building block: {building_block}")
 
-    input_smi = mol_to_smiles(result.submission.mol, include_tags=True)
-    print(input_smi)
+                products = products[0]
+                products = filter_indicators(products)
+                assert len(products) == 1, "Expected exactly one product!"
+                product = products[0]
 
-    print(primary_sequence)
+            # End reconstruction; cap
+            try:
+                products = rxn_end_capping.RunReactants((product,))
+                assert len(products) == 1, "Expected exactly one product!"
+                products = filter_indicators(products[0])
+                product = products[0]
+            except:
+                pass
 
-    return Reconstruction(
-        tagged_input_smiles=input_smi,
-        tagged_backbone_smiles=product_smi,
-        primary_sequence=primary_sequence,
-    )
+            product_smi = mol_to_smiles(product, include_tags=True)
+            input_smi = mol_to_smiles(result.submission.mol, include_tags=True)
+
+            reconstruction = Reconstruction(
+                tagged_input_smiles=input_smi,
+                tagged_backbone_smiles=product_smi,
+                primary_sequence=primary_sequence,
+            )
+            reconstructions.append(reconstruction)
+
+        except:
+            print("could not process path")
+            pass
+
+    if len(reconstructions) == 0:
+        raise ValueError("No successfull reconstructions!")
+
+    return reconstructions
