@@ -17,6 +17,7 @@ from routes.session import (
 from routes.session_store import get_or_init_app_start_epoch
 from routes.database import dsn_from_env
 from routes.jobs import blp_search_compound, blp_submit_compound, blp_reconstruct_compound, blp_submit_gene_cluster
+from routes.events import blp_events
 
 
 # Initialize the Flask app
@@ -152,3 +153,5 @@ app.register_blueprint(blp_search_compound)
 app.register_blueprint(blp_submit_compound)
 app.register_blueprint(blp_reconstruct_compound)
 app.register_blueprint(blp_submit_gene_cluster)
+
+app.register_blueprint(blp_events)

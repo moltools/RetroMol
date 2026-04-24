@@ -146,6 +146,12 @@ curl -i http://localhost:4000/api/health
 
 ### Run the frontend locally
 
+Make sure to add `.env.development.local` to `src/client` and add the following line for SSE:
+
+```
+REACT_APP_SSE_BASE=http://localhost:4000
+```
+
 From the React client directory `src/client`, install dependencies and start the development server:
 
 ```bash
