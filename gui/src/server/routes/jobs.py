@@ -11,7 +11,7 @@ from retromol.model.submission import Submission
 from retromol.model.rules import RuleSet
 from retromol.model.result import Result
 from retromol.pipelines.parsing import run_retromol
-from retromol_genesis.reconstruction import Reconstruction, reconstruct_linear_readout
+from retromol_synthesis.reconstruction import Reconstruction, reconstruct_linear_readout
 
 blp_search_compound = Blueprint("search_compound", __name__)
 blp_submit_compound = Blueprint("submit_compound", __name__)

@@ -58,7 +58,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "aculeximycin",
         r"CCCC(O[C@H]1C[C@](C)(N)[C@H](O)[C@H](C)O1)C(C)C(O)C(CC)\C=C\C(O)C(C)C1C\C=C(C)\C(O)C(C)C(CC(O)C(C)C(O)CC2CC(O)C(O)C(O)(CC(O[C@@H]3O[C@H](C)[C@@H](O)[C@H](O[C@H]4C[C@@H](N)[C@H](O)[C@@H](C)O4)[C@H]3O[C@@H]3O[C@H](C)[C@@H](O)[C@H](O)[C@H]3O)C(C)CCC(O)CC(O)C\C=C(CC)\C(=O)O1)O2)O[C@@H]1O[C@H](CO)[C@@H](O)[C@H](O)[C@@H]1O",
         1.0,
-        ["glycosylation", "A1", "B1", "B1", "B1", "B1", "B1", "B1", "B2", "B2", "B2", "B2", "B2", "B4", "B5", "C1", "C2", "C4", "D1", "D1", "acetic acid", "butanoic acid", "glucose", "glycosylation", "glycosylation", "glycosylation"],
+        ["glycosylation", "A1", "B1", "B1", "B1", "B1", "B1", "B1", "B2", "B2", "B2", "B2", "B2", "B4", "B5", "C1", "C2", "C4", "D1", "D1", "acetic acid", "butanoic acid", "glycosylation", "glycosylation", "glycosylation", "glycosylation"],
     ),
     (
         "acutiphycin",
@@ -118,13 +118,13 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "avilamycin A",
         r"C[C@@H]1[C@H]([C@@H](C[C@@H](O1)O[C@@H]2[C@H](OC3(C[C@@H]2O)O[C@@H]4[C@H](O[C@H](C[C@]4(O3)C)O[C@@H]5[C@H]([C@@H](O[C@@H]([C@@H]5OC)C)O[C@@H]6[C@H](O[C@H]([C@H]([C@H]6O)OC)O[C@H]7[C@@H]([C@H]8[C@H](CO7)O[C@@]9(O8)C1C([C@@]([C@H](O9)C)(C(=O)C)O)OCO1)OC(=O)C(C)C)COC)O)C)C)O)OC(=O)C1=C(C(=C(C(=C1OC)Cl)O)Cl)C",
         1.0,
-        ["glycosylation", "glycosylation", "glycosylation", "A1", "A1", "C1", "acetic acid", "glycosylation", "chlorination", "chlorination", "glucose", "isobutyric acid", "methanol", "methylation", "methylation", "methylation", "methylation", "orsellinic acid", "glycosylation", "glycosylation"],
+        ["glycosylation", "glycosylation", "glycosylation", "A1", "A1", "C1", "acetic acid", "glycosylation", "chlorination", "chlorination", "glycosylation", "isobutyric acid", "methanol", "methylation", "methylation", "methylation", "methylation", "orsellinic acid", "glycosylation", "glycosylation"],
     ),
     (
         "avilamycin C",
         r"C[C@@H]1[C@H]([C@@H](C[C@@H](O1)O[C@@H]2[C@H](OC3(C[C@H]2O)O[C@@H]4[C@H](O[C@H](C[C@]4(O3)C)O[C@@H]5[C@H]([C@@H](O[C@@H]([C@@H]5OC)C)O[C@@H]6[C@H](O[C@H]([C@H]([C@H]6O)OC)O[C@H]7[C@@H]([C@H]8[C@H](CO7)O[C@@]9(O8)[C@H]1[C@H]([C@@]([C@H](O9)C)(C(C)O)O)OCO1)OC(=O)C(C)C)COC)O)C)C)O)OC(=O)C1=C(C(=C(C(=C1OC)Cl)O)Cl)C",
         1.0,
-        ["glycosylation", "glycosylation", "glycosylation", "A1", "A1", "C1", "acetic acid", "glycosylation", "chlorination", "chlorination", "glucose", "isobutyric acid", "methanol", "methylation", "methylation", "methylation", "methylation", "orsellinic acid", "glycosylation", "glycosylation"],
+        ["glycosylation", "glycosylation", "glycosylation", "A1", "A1", "C1", "acetic acid", "glycosylation", "chlorination", "chlorination", "glycosylation", "isobutyric acid", "methanol", "methylation", "methylation", "methylation", "methylation", "orsellinic acid", "glycosylation", "glycosylation"],
     ),
     (
         "bitungolide F",

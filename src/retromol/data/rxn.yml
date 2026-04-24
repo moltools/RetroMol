@@ -306,19 +306,19 @@
   allowed_in_bulk: true
 
 - name: reversed polyketide synthesis (saturated)
-  smarts: "[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[PbH][C:2]-[C:3][SnH].[C:4](=[O:5])[O:6]"
+  smarts: "[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH:6]"
 
 - name: reversed polyketide synthesis (saturated anhydride)
-  smarts: "[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[CH2:6][CH3:7]>>[C,c:1]C(=O)[OH].[PbH]-[C:2]-[C:3]-[SnH].[C](=[O])([OH])[C:6][C:7].[C:4][O:5]"
+  smarts: "[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[CH2:6][CH3:7]>>[C,c:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH].[C](=[O])([OH])[C:6][C:7]"
 
 - name: reversed polyketide synthesis (unsaturated)
-  smarts: "[C,c:1][C;!R:2]=[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[PbH]-[C:2]=[C:3]-[SnH].[C:4](=[O:5])[O:6]"
+  smarts: "[C,c:1][C;!R:2]=[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]"
 
 - name: reversed polyketide synthesis (unsaturated and shifted type 1)
-  smarts: "[C,c:1]=[C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[PbH]-[C:2]=[C:3]-[SnH].[C:4](=[O:5])[O:6]"
+  smarts: "[C,c:1]=[C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]"
 
 - name: reversed polyketide synthesis (unsaturated and shifted type 2)
-  smarts: "[C:7][C:1]=[C;!R:2]-[C&D4;!R:3]-[C:4](=[O:5])[OH:6]>>[C:7]=[C:1]C(=O)[OH].[PbH]-[C:2]-[C:3]-[SnH].[C:4](=[O:5])[O:6]"
+  smarts: "[C:7][C:1]=[C;!R:2]-[C&D4;!R:3]-[C:4](=[O:5])[OH:6]>>[C:7]=[C:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH:6]"
 
 - name: reversed polyketide synthesis (shifted and late stage oxidation)
-  smarts: "[C,c:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[PbH]-[C:2]=[C:3]-[SnH].[O:7].[C:4](=[O:5])[O:6]"
+  smarts: "[C,c:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]"
