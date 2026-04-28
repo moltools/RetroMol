@@ -3,6 +3,7 @@ import SmilesDrawer from 'smiles-drawer';
 import { Box } from '@mui/material';
 import { useColorScheme } from '@mui/material/styles';
 
+
 class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
     constructor(options) {
         super(options);
@@ -56,7 +57,37 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         this.svgWrapper.highlights.push(line);
     };
 
+    prepareTinAsRightWildcard(element = 'Sn') {
+        const graph = this.preprocessor?.graph;
+        if (!graph) return;
+
+        const vertices = graph.vertices.filter((v) => v.position);
+        if (!vertices.length) return;
+
+        const snVertex = vertices.find((v) => v.value?.element === element);
+        if (!snVertex) return;
+
+        // 1) orient so Sn is on the right
+        const xs = vertices.map((v) => v.position.x);
+        const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+
+        if (snVertex.position.x < centerX) {
+            for (const vertex of vertices) {
+                vertex.position.x = 2 * centerX - vertex.position.x;
+            }
+        }
+
+        // 2) replace Sn with wildcard atom
+        const atom = snVertex.value;
+        atom.element = 'H';
+        atom.isDrawn = false;
+        atom.hasAttachedPseudoElements = false;
+        atom.bracket = null;
+    }
+
     drawAtomHighlights(highlights) {
+        this.prepareTinAsRightWildcard('Sn');
+
         let preprocessor = this.preprocessor;
         let opts = preprocessor.opts;
         let graph = preprocessor.graph;
@@ -132,6 +163,7 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
 
     };
 };
+
 
 /**
  * @typedef {[number, string]} HighlightAtom
