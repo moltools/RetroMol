@@ -1,5 +1,7 @@
 """Visualization utilities for ReactionGraph."""
 
+import re
+
 from retromol.model.reaction_graph import ReactionGraph
 from retromol.chem.mol import mol_to_smiles
 
@@ -58,7 +60,16 @@ def visualize_reaction_graph(g: ReactionGraph, html_path: str, root_enc: str | N
             identity = identified[enc].name
 
         label = str(identity) if identity else "mol"
-        net.add_node(mol_vid(enc), label=label, title=label, shape="ellipse", color=color, smiles=mol_to_smiles(node.mol, include_tags=False))
+
+        smiles = mol_to_smiles(node.mol, include_tags=False)
+
+        net.add_node(
+            mol_vid(enc),
+            label=label,
+            shape="ellipse",
+            color=color,
+            smiles=smiles,
+        )
 
     # Add reaction nodes, and edges between molecules and reactions
     for i, e in enumerate(g.edges):
@@ -81,10 +92,122 @@ def visualize_reaction_graph(g: ReactionGraph, html_path: str, root_enc: str | N
         """
         var options = {
           "edges": {"smooth": false},
-          "interaction": {"hover": true, "tooltipDelay": 80},
+          "interaction": {
+            "navigationButtons": true
+          },
           "physics": {"stabilization": true}
         }
         """
     )
 
     net.write_html(html_path, notebook=False)
+
+    _copy_popup_js = r"""
+    // Custom SMILES copy popup
+    const smilesPopup = document.createElement("div");
+    smilesPopup.id = "smiles-copy-popup";
+    smilesPopup.style.position = "fixed";
+    smilesPopup.style.display = "none";
+    smilesPopup.style.zIndex = "999999";
+    smilesPopup.style.background = "white";
+    smilesPopup.style.border = "1px solid #ccc";
+    smilesPopup.style.borderRadius = "6px";
+    smilesPopup.style.padding = "8px";
+    smilesPopup.style.boxShadow = "0 2px 8px rgba(0,0,0,0.25)";
+    smilesPopup.style.fontFamily = "sans-serif";
+
+    const smilesButton = document.createElement("button");
+    smilesButton.textContent = "Copy SMILES";
+    smilesButton.style.cursor = "pointer";
+
+    smilesPopup.appendChild(smilesButton);
+    document.body.appendChild(smilesPopup);
+
+    let currentSmiles = null;
+    let smilesHideTimer = null;
+
+    function showSmilesPopup(x, y, smiles) {
+      currentSmiles = smiles;
+      smilesButton.textContent = "Copy SMILES";
+      smilesPopup.style.left = `${x + 20}px`;
+      smilesPopup.style.top = `${y + 20}px`;
+      smilesPopup.style.display = "block";
+    }
+
+    function hideSmilesPopupSoon() {
+      clearTimeout(smilesHideTimer);
+      smilesHideTimer = setTimeout(() => {
+        smilesPopup.style.display = "none";
+        currentSmiles = null;
+      }, 700);
+    }
+
+    smilesPopup.addEventListener("mouseenter", function () {
+      clearTimeout(smilesHideTimer);
+    });
+
+    smilesPopup.addEventListener("mouseleave", hideSmilesPopupSoon);
+
+    smilesButton.addEventListener("click", function () {
+      if (!currentSmiles) return;
+
+      navigator.clipboard.writeText(currentSmiles).then(
+        function () {
+          smilesButton.textContent = "Copied!";
+        },
+        function () {
+          // fallback for file:// pages or older browsers
+          const ta = document.createElement("textarea");
+          ta.value = currentSmiles;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          smilesButton.textContent = "Copied!";
+        }
+      );
+    });
+
+    container.addEventListener("mousemove", function (ev) {
+      const nodeId = network.getNodeAt({
+        x: ev.offsetX,
+        y: ev.offsetY,
+      });
+
+      if (!nodeId) {
+        return;
+      }
+
+      const node = nodes.get(nodeId);
+
+      if (!node || !node.smiles) {
+        return;
+      }
+
+      clearTimeout(smilesHideTimer);
+      showSmilesPopup(ev.clientX, ev.clientY, node.smiles);
+    });
+
+    container.addEventListener("mouseleave", hideSmilesPopupSoon);
+    """
+
+    with open(html_path, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    pattern = r"(network\s*=\s*new\s+vis\.Network\s*\(\s*container\s*,\s*data\s*,\s*options\s*\)\s*;)"
+
+    if not re.search(pattern, html):
+        raise RuntimeError(
+            "Could not find PyVis network creation line. "
+            "Open the HTML and search for 'new vis.Network' to inspect the exact line."
+        )
+
+    html = re.sub(
+        pattern,
+        r"\1\n" + _copy_popup_js,
+        html,
+        count=1,
+    )
+
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html)
