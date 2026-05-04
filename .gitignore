@@ -11,3 +11,12 @@ lib/
 cache/
 paras_cache/
 models/
+
+*.py[cod]
+.venv/
+/data/
+/dumps/
+/pgdata/
+*.dump
+*.sql
+downloads/

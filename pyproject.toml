@@ -12,13 +12,24 @@ keywords = ["natural-products", "biosynthesis", "retrobiosynthesis", "monomers"]
 dependencies = [
     "rdkit==2025.9.1",
     "networkx==3.2.1",
+    "psycopg[binary]>=3.2,<4.0",
+    "biopython",
+    "pyhmmer",
     "tqdm",
     "numpy<2",  # scikit-learn 1.2.0 requires numpy<2
+    "scikit-learn==1.2.0",
     "pandas",
     "pyyaml",
     "ijson",
     "matplotlib",
     "joblib",
+    "SQLAlchemy",
+    "alembic",
+    "python-dotenv",
+    "pgvector",
+    "requests",
+    "aiohttp",
+    "asyncio",
 ]
 
 classifiers = [
@@ -45,15 +56,6 @@ build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 dev = ["pytest"]
-alignment = ["biopython"]
-antismash = ["biopython", "pyhmmer", "scikit-learn==1.2.0"]
-database = []
-fingerprint = []
-all = [
-    "biopython",
-    "pyhmmer",
-    "scikit-learn==1.2.0",
-]
 
 [tool.hatch.metadata]
 allow-direct-references = true
