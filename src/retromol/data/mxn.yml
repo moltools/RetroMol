@@ -394,10 +394,10 @@
   smiles: "O=C(C(C(C(O)=O)SO)O)O"
 
 # rare polyketide motifs found in bryostatin
-- name: A
-  smiles: "OSC(CC(O)=O)=CC(O)=O"
-- name: A
-  smiles: "OC(C(SO)=CC(O)=O)C(O)=O"
+#- name: A
+#  smiles: "OSC(CC(O)=O)=CC(O)=O"
+#- name: A
+#  smiles: "OC(C(SO)=CC(O)=O)C(O)=O"
 
 - name: methylation
   smiles: "C"

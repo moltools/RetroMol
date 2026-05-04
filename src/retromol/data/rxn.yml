@@ -322,3 +322,6 @@
 
 - name: reversed polyketide synthesis (shifted and late stage oxidation)
   smarts: "[C,c:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]"
+
+- name: reverse polyketide unit carbonylation
+  smarts: "[O:1][S:2][C:3]([C:4][C:5]([O:6])=[O:7])=[C:8][C:9]([O:10])=[O:11]>>[O:1][S:2][C:3]([C:4][C:5]([O:6])=[O:7])=O.[C:8][C:9]([O:10])=[O:11]"
