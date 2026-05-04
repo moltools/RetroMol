@@ -18,23 +18,26 @@ pattern_aa_alpha = smarts_to_mol(r"NCC(=O)[OH]")
 pattern_aa_beta = smarts_to_mol(r"NCCC(=O)[OH]")
 eligible_patterns = [pattern_pk_single, pattern_pk_double, pattern_aa_alpha, pattern_aa_beta]
 
-# rxn_starter = smarts_to_reaction(r"[*:1][C](=O)[OH]>>[*:1][SnH]")
+rxn_starter = smarts_to_reaction(r"[*:1][C:2](=[O:3])[OH:4]>>[*:1][C:2](=[O:3])[O:4]-[SnH]")
 rxn_pk_start_single = smarts_to_reaction(r"OS[C:1]-[C:2][C:3](=[O:4])[OH:5]>>[*][C:1]-[C:2][C:3](=[O:4])[O:5]-[SnH]")
 rxn_pk_start_double = smarts_to_reaction(r"OS[C:1]=[C:2][C:3](=[O:4])[OH:5]>>[*][C:1]=[C:2][C:3](=[O:4])[O:5]-[SnH]")
 rxn_pk_single = smarts_to_reaction(r"OS[C:1]-[C:2][C:3](=[O:4])[OH:5]>>[PbH][C:1]-[C:2][C:3](=[O:4])[O:5]-[SnH]")
 rxn_pk_double = smarts_to_reaction(r"OS[C:1]=[C:2][C:3](=[O:4])[OH:5]>>[PbH][C:1]=[C:2][C:3](=[O:4])[O:5]-[SnH]")
 
+rxn_fuse_starter_pk = smarts_to_reaction(r"[*:1]C(=O)O[SnH].[PbH][C:2]~[C:3][C:4](=[O:5])[O:6][SnH]>>[*:1][C:2]~[C:3][C:4](=[O:5])[O:6][SnH]")
+rxn_fuse_starter_aa_alpha = smarts_to_reaction(r"[*:1][C:2](=[O:3])O[SnH].[N:4][C:5]C(=O)[OH]>>[*:1][C:2](=[O:3])[N:4][C:5]C(=O)[OH]")
 rxn_fuse_pk_pk = smarts_to_reaction(r"[*:1][C:2]~[C:3]C(=O)O[SnH].[PbH][C:4]~[C:5][C:6](=[O:7])[O:8][SnH]>>[*:1][C:2]~[C:3][C:4]~[C:5][C:6](=[O:7])[O:8][SnH]")
 rxn_fuse_aa_alpha_pk = smarts_to_reaction(r"[N:1][C:2]C(=O)[OH].[PbH][C:3]~[C:4][C:5](=[O:6])[O:7][SnH:8]>>[N:1][C:2][C:3]~[C:4][C:5](=[O:6])[O:7][SnH:8]")
-rxn_fuse_pk_aa_alpha = smarts_to_reaction(r"[*:1][C:2]~[C:3]C(=O)O[SnH].[N:4][C:5]C(=O)[OH]>>[*:1][C:2]~[C:3][N:4][C:5]C(=O)[OH]")
+rxn_fuse_pk_aa_alpha = smarts_to_reaction(r"[*:1][C:2]~[C:3][C:4](=[O:5])O[SnH].[N:6][C:7]C(=O)[OH]>>[*:1][C:2]~[C:3][C:4](=[O:5])[N:6][C:7]C(=O)[OH]")
 rxn_fuse_aa_alpha_aa_alpha = smarts_to_reaction(r"[N:1][C:2]C(=O)[OH].[N:3][C:4]-,=[C:5](=[O:6])[OH:7]>>[N:1][C:2][N:3][C:4]-,=[C:5](=[O:6])[OH:7]")
 
 
 class MotifType(Enum):
+    STARTER = "STARTER"
     PK_SINGLE = "PK_SINGLE"
     PK_DOUBLE = "PK_DOUBLE"
     AA_ALPHA = "AA_ALPHA"
-    AA_BETA = "AA_BETA"
+    # AA_BETA = "AA_BETA"
 
 
 def determine_type(mol) -> MotifType | None:
@@ -42,9 +45,9 @@ def determine_type(mol) -> MotifType | None:
     if mol.HasSubstructMatch(pattern_aa_alpha):
         print("AA alpha")
         return MotifType.AA_ALPHA
-    elif mol.HasSubstructMatch(pattern_aa_beta):
-        print("AA beta")
-        return MotifType.AA_BETA
+    # elif mol.HasSubstructMatch(pattern_aa_beta):
+    #     print("AA beta")
+    #     return MotifType.AA_BETA
     elif mol.HasSubstructMatch(pattern_pk_single):
         print("PK")
         return MotifType.PK_SINGLE
@@ -57,6 +60,14 @@ def determine_type(mol) -> MotifType | None:
 
 def fuse(mol, ext_mol, prev_type, curr_type):
     match prev_type, curr_type:
+        case MotifType.STARTER, MotifType.PK_SINGLE | MotifType.PK_DOUBLE:
+            print("FUSE STARTER-PK", prev_type, curr_type)
+            print(mol_to_smiles(mol), mol_to_smiles(ext_mol))
+            return react(rxn_fuse_starter_pk, (mol, ext_mol,))
+        case MotifType.STARTER, MotifType.AA_ALPHA:
+            print("FUSE STARTER-AA alpha", prev_type, curr_type)
+            print(mol_to_smiles(mol), mol_to_smiles(ext_mol))
+            return react(rxn_fuse_starter_aa_alpha, (mol, ext_mol,))
         case MotifType.PK_SINGLE | MotifType.PK_DOUBLE, MotifType.PK_SINGLE | MotifType.PK_DOUBLE:
             print("FUSE PK-PK", prev_type, curr_type)
             print(mol_to_smiles(mol), mol_to_smiles(ext_mol))
@@ -159,28 +170,31 @@ def reconstruct_linear_readout(result: Result) -> list[Reconstruction]:
         # Re-orient path to have non-eligible item at start of sequence
         if all(eligible):
             # Nothing to orient, all aligible building blocks
-            pass
+            starter = None
         elif all(eligible[1:]):
             # Already good orientation, but remove the starter
-            eligible = eligible[1:]
+            starter = building_blocks[0]
             building_blocks = building_blocks[1:]
-            primary_sequence = primary_sequence[1:]
         else:
             # Flip orientation
-            eligible.reverse()
             building_blocks.reverse()
             primary_sequence.reverse()
 
             # Remove starter
-            eligible = eligible[1:]
+            starter = building_blocks[0]
             building_blocks = building_blocks[1:]
-            primary_sequence = primary_sequence[1:]
 
         # Reconstruct linear backbone, we can have either PK-PK, PK-AA, AA-AA or AA-AA
         if not len(building_blocks):
             continue
+
         prev_type = None
         prod = None
+
+        if starter is not None:
+            prev_type = MotifType.STARTER
+            prod = react(rxn_starter, (smiles_to_mol(starter),))
+
         while building_blocks:
             curr_smi = building_blocks.pop(0)
             curr_mol = smiles_to_mol(curr_smi)
