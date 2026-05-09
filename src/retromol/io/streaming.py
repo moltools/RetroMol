@@ -23,7 +23,6 @@ def _init_worker(ruleset: RuleSet) -> None:
     Initialize worker process with necessary global variables.
 
     :param ruleset: Reaction/matching rule set.
-    :param wave_configs: Wave configuration dicts.
     """
     global _G_RULESET
     _G_RULESET = ruleset

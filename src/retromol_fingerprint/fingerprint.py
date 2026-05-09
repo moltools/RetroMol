@@ -21,8 +21,7 @@ def module_graph_fingerprint(
     n_bits: int = 2048,
     radius: int = 2,
     node_name_attr: str = "name",
-    # embedding_dim: int = 16,
-    embedding_dim: int = 4,
+    embedding_dim: int = 4,  # previously 16
     count_similar_edges: bool = True,
     counted: bool = False,
 ) -> np.ndarray:
