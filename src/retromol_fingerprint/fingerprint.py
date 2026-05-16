@@ -4,20 +4,118 @@ import hashlib
 import math
 from collections import Counter
 from typing import Any
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
+import networkx as nx
+
+from retromol.model.reaction_graph import MolNode
+from retromol.model.result import Result
 
 
-try:
-    import networkx as nx
-    NETWORKX_AVAILABLE = True
-except ImportError:
-    NETWORKX_AVAILABLE = False
+def retromol_result_to_graph(
+    result: Result,
+    node_name_attr: str = "name",
+    unidentified_node_name: str = "unknown",
+) -> nx.Graph:
+    graph = result.linear_readout.assembly_graph.g
+
+    for node_enc, node_data in graph.nodes(data=True):
+        node: MolNode = node_data["molnode"]
+        if node and node.identified:
+            identified_name = node.identity.name
+        else:
+            identified_name = unidentified_node_name
+
+        # add prop name to node
+        node_data[node_name_attr] = identified_name
+
+    return graph
+
+
+def parse_substitution_matrix(
+    path: Path | str,
+    unknown_token: str = "unknown",
+    unknown_score: float = 0.0,
+    self_score: float = 1.0,
+) -> dict[str, dict[str, float]]:
+    path = Path(path)
+
+    df = pd.read_csv(
+        path,
+        sep="\t",
+        index_col=0,
+        comment="#",
+    )
+
+    if df.empty:
+        raise ValueError(f"Substitution matrix file {path} is empty!")
+
+    df = df.astype(float)
+
+    row_labels = set(map(str, df.index))
+    col_labels = set(map(str, df.columns))
+
+    if row_labels != col_labels:
+        raise ValueError(
+            "Substitution matrix must be square!\n"
+            f"Rows: {sorted(row_labels)}\n"
+            f"Cols: {sorted(col_labels)}"
+        )
+
+    # Add UNKNOWN row/column if missing
+    if unknown_token not in df.index:
+        df[unknown_token] = unknown_score
+        df.loc[unknown_token] = unknown_score
+        df.loc[unknown_token, unknown_token] = self_score
+
+    matrix: dict[str, dict[str, float]] = {
+        str(row): {
+            str(col): float(df.loc[row, col])
+            for col in df.columns
+        }
+        for row in df.index
+    }
+
+    return matrix
+
+
+def build_module_embeddings(
+    substitution_matrix: dict[str, dict[str, float]],
+    embedding_dim: int = 4,
+) -> dict[str, np.ndarray]:
+    vocab = sorted(substitution_matrix.keys())
+    vocab_index = {name: i for i, name in enumerate(vocab)}
+
+    S = np.zeros((len(vocab), len(vocab)), dtype=float)
+
+    for a in vocab:
+        for b in vocab:
+            S[vocab_index[a], vocab_index[b]] = float(
+                substitution_matrix[a].get(b, 0.0)
+            )
+
+    # center columns
+    S = S - S.mean(axis=0, keepdims=True)
+
+    U, sigma, _ = np.linalg.svd(S, full_matrices=False)
+
+    k = min(embedding_dim, len(sigma))
+    if k == 0:
+        raise ValueError("Could not derive embeddings from substitution matrix!")
+
+    E = U[:, :k] * np.sqrt(np.maximum(sigma[:k], 0.0))
+
+    return {
+        name: E[vocab_index[name]].astype(np.float32)
+        for name in vocab
+    }
 
 
 def module_graph_fingerprint(
     graph: "nx.Graph",
-    substitution_matrix: dict[str, dict[str, float]],
+    embeddings: dict[str, np.ndarray],
     n_bits: int = 2048,
     radius: int = 2,
     node_name_attr: str = "name",
@@ -26,8 +124,8 @@ def module_graph_fingerprint(
     counted: bool = False,
 ) -> np.ndarray:
     """
-    Compute a fixed-length fingerprint of a module graph, using a custom 
-    algorithm that incorporates substitution-aware module embeddings derived 
+    Compute a fixed-length fingerprint of a module graph, using a custom
+    algorithm that incorporates substitution-aware module embeddings derived
     from the provided matrix, as well as structural features of the graph.
 
     :param graph: The module graph to fingerprint. Nodes must have a string attribute
@@ -47,14 +145,11 @@ def module_graph_fingerprint(
         small changes.
     :return: A fixed-length numpy array representing the fingerprint of the graph. The dtype is uint16 if `counted` is True
         to allow for counting features, otherwise uint8 for a binary fingerprint.
-    :raise ValueError: If the graph contains nodes missing the required name attribute, or if the substitution matrix is 
+    :raise ValueError: If the graph contains nodes missing the required name attribute, or if the substitution matrix is
         missing entries for any module names found in the graph, or if embeddings cannot be derived from the
         substitution matrix.
     :raise ImportError: If NetworkX is not available, since it is required for graph processing.
     """
-    if not NETWORKX_AVAILABLE:
-        raise ImportError("NetworkX is required for module graph fingerprinting! Please install it with `pip install networkx`!")
-
     def hash_to_index(*parts: Any) -> int:
         text = "|".join(map(str, parts))
         digest = hashlib.blake2b(text.encode("utf-8"), digest_size=16).digest()
@@ -62,10 +157,10 @@ def module_graph_fingerprint(
 
     def quantize(vec: np.ndarray, decimals: int = 2) -> tuple[float, ...]:
         return tuple(np.round(vec.astype(float), decimals=decimals))
-    
+
     if graph.number_of_nodes() == 0:
         return np.zeros(n_bits, dtype=np.uint16 if counted else np.uint8)
-    
+
     if isinstance(graph, nx.DiGraph):
         graph = nx.Graph(graph)
 
@@ -75,30 +170,31 @@ def module_graph_fingerprint(
         if node_name_attr not in data:
             raise ValueError(f"Node {node!r} missing attribute {node_name_attr!r}!")
         name = str(data[node_name_attr])
-        if name not in substitution_matrix:
+        # if name not in substitution_matrix:
+        if name not in embeddings.keys():
             raise ValueError(f"Module name {name!r} not found in substitution matrix!")
         node_names[node] = name
+    #
+    # vocab = sorted(substitution_matrix.keys())
+    # vocab_index = {name: i for i, name in enumerate(vocab)}
+    #
+    # # Build substitution-aware module embeddings from the matrix rows, using truncated SVD
+    # S = np.zeros((len(vocab), len(vocab)), dtype=float)
+    # for a in vocab:
+    #     for b in vocab:
+    #         S[vocab_index[a], vocab_index[b]] = float(substitution_matrix[a].get(b, 0.0))
+    #
+    # # Column-center so very global offsets matter less
+    # S = S - S.mean(axis=0, keepdims=True)
+    #
+    # U, sigma, _ = np.linalg.svd(S, full_matrices=False)
+    # k = min(embedding_dim, len(sigma))
+    # if k == 0:
+    #     raise ValueError("Could not derive embeddings from substitution matrix!")
+    #
+    # E = U[:, :k] * np.sqrt(np.maximum(sigma[:k], 0.0))
+    # embeddings = {name: E[vocab_index[name]].astype(np.float32) for name in vocab}
 
-    vocab = sorted(substitution_matrix.keys())
-    vocab_index = {name: i for i, name in enumerate(vocab)}
-
-    # Build substitution-aware module embeddings from the matrix rows, using truncated SVD
-    S = np.zeros((len(vocab), len(vocab)), dtype=float)
-    for a in vocab:
-        for b in vocab:
-            S[vocab_index[a], vocab_index[b]] = float(substitution_matrix[a].get(b, 0.0))
-
-    # Column-center so very global offsets matter less
-    S = S - S.mean(axis=0, keepdims=True)
-
-    U, sigma, _ = np.linalg.svd(S, full_matrices=False)
-    k = min(embedding_dim, len(sigma))
-    if k == 0:
-        raise ValueError("Could not derive embeddings from substitution matrix!")
-    
-    E = U[:, :k] * np.sqrt(np.maximum(sigma[:k], 0.0))
-    embeddings = {name: E[vocab_index[name]].astype(np.float32) for name in vocab}
-    
     # Start fingerprinting
     fp = np.zeros(n_bits, dtype=np.uint16 if counted else np.uint8)
 
@@ -141,7 +237,7 @@ def module_graph_fingerprint(
     #     b = node_names[v]
     #     pair = tuple(sorted((a, b)))
     #     edge_counter[pair] += 1
-    
+
     # for (a, b), count in edge_counter.items():
     #     va = embeddings[a]
     #     vb = embeddings[b]
@@ -204,7 +300,7 @@ def module_graph_fingerprint(
     #         norm = np.linalg.norm(compressed)
     #         if norm > 0:
     #             compressed /= norm
-            
+
     #         new_states[node] = compressed
 
     #     states = new_states
