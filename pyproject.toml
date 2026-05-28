@@ -12,7 +12,6 @@ keywords = ["natural-products", "biosynthesis", "retrobiosynthesis", "monomers"]
 dependencies = [
     "rdkit==2025.9.1",
     "networkx==3.2.1",
-    "psycopg[binary]>=3.2,<4.0",
     "biopython",
     "pyhmmer",
     "tqdm",
@@ -24,12 +23,11 @@ dependencies = [
     "matplotlib",
     "joblib",
     "SQLAlchemy",
-    "alembic",
     "python-dotenv",
-    "pgvector",
     "requests",
     "aiohttp",
     "asyncio",
+    "duckdb",
 ]
 
 classifiers = [

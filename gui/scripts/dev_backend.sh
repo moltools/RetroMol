@@ -9,12 +9,8 @@ cd "$(dirname "$0")/.."  # go to repo root
 export FLASK_ENV=development
 export PORT=4000
 
-# DB connection (uses Dockerized Postgres)
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_NAME=bionexus
-export DB_USER=app_ro
-export DB_PASS=apppass_ro
+# DB connection
+export RETROMOL_DUCKDB_PATH="$HOME/Downloads/retromol.duckdb"
 
 # Redis connection (uses Dockerized Redis)
 export REDIS_URL="redis://localhost:6379/0"
@@ -30,7 +26,7 @@ export PARAS_MODEL_PATH="$(pwd)/models/all_substrates_model.paras.gz"
 export PYTHONPATH="$(pwd)/src/server"
 
 echo "Starting Flask backend on http://localhost:${PORT} (hot reload enabled)"
-echo "DB: ${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+echo "DuckDB: ${RETROMOL_DUCKDB_PATH}"
 echo
 
 # Run Flask dev server

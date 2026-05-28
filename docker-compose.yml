@@ -1,27 +1,4 @@
 services:
-  db:
-    image: pgvector/pgvector:pg16
-    container_name: retromol_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_SUPERUSER}
-      POSTGRES_PASSWORD: ${POSTGRES_SUPERPASS}
-    volumes:
-      - db_data:/var/lib/postgresql/data
-      # Mount dump file from anywhere on host; fixed name inside container
-      - ${DB_DUMP_HOST_PATH}:/docker-entrypoint-initdb.d/dump.dump:ro
-      # Init scripts: restore + make read-only app role
-      - ./gui/db/init/00_enable_vector.sql:/docker-entrypoint-initdb.d/00_enable_vector.sql:ro
-      - ./gui/db/init/01_restore.sh:/docker-entrypoint-initdb.d/01_restore.sh:ro
-      - ./gui/db/init/02_app_ro.sql:/docker-entrypoint-initdb.d/02_app_ro.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER:-owner} -d ${POSTGRES_DB:-retromol}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    networks: [ retromol_network ]
-
   redis:
     image: redis:7
     container_name: retromol_redis
@@ -53,11 +30,11 @@ services:
       - gui/docker/backend.env
     environment:
       PARAS_MODEL_PATH: ${PARAS_MODEL_PATH}
+      RETROMOL_DUCKDB_PATH: /data/retromol.duckdb
     volumes:
       - ${PARAS_MODEL_HOST_PATH}:${PARAS_MODEL_PATH}:ro
+      - ${RETROMOL_DUCKDB_HOST_PATH}:/data/retromol.duckdb:ro
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_started
     networks: [ retromol_network ]
@@ -73,9 +50,6 @@ services:
     ports:
       - "4005:80"
     networks: [ retromol_network ]
-
-volumes:
-  db_data:
 
 networks:
   retromol_network:

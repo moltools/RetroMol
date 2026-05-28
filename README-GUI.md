@@ -44,33 +44,6 @@ The backend itself loads Redis and DB configuration from `docker/backend.env`.
 
 For local user, `<server-ip>` is typically `localhost:4005`.
 
-### Database persistence
-
-Postgres persists data inside the named Docker volume `db_data`.
-
-Existing volumes can be listed with:
-
-```bash
-docker volume ls
-```
-
-To remove the volume (and all data inside), run:
-
-```bash
-docker volume rm <volume_name>
-```
-
-### Re-seed the database
-
-Postgres will initialize once from the dump file specified in `.env` (make sure to copy `.env.example` to `.env` and edit before first build).
-
-To re-seed the database:
-
-```bash
-docker compose down -v  # destroys db_data volume
-docker compose up -d --build
-```
-
 ### Check container health
 
 Check that the backend and database are reachable through the API:
@@ -94,23 +67,14 @@ curl -i http://localhost:4005/api/ready  # should return 200 OK (DB connection O
 
 ## Local development mode
 
-You can develop with hot-reloading for both backend and frontend, while still using the database from Docker.
+You can develop with hot-reloading for both backend and frontend.
 
-### Start only the database and Redis (in Docker)
+### Start only Redis (in Docker)
 
-Expose Postgres and Redis to your host for local development:
+Expose Redis to your host for local development:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db redis
-```
-
-This keeps the database running at:
-```
-Host: localhost
-Port: 5432
-User: app_ro
-Password: apppass_ro
-DB name: bionexus
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d redis
 ```
 
 Redis available at:
@@ -179,7 +143,7 @@ docker compose up -d --build
 
 Local development:
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db redis
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d redis
 bash ./gui/scripts/dev_backend.sh
 cd ./gui/src/client && npm start
 ```

@@ -339,6 +339,7 @@ class MatchingRule:
     :cvar name: Name of the matching rule.
     :cvar smiles: SMILES pattern defining the motif.
     :cvar props: Additional properties associated with the rule.
+    :cvar pseudonyms: Pseudonyms associated with the rule.
     :cvar terminal: Whether this rule is terminal (i.e., should not be expanded further).
     :cvar stereochemistry: Whether to consider stereochemistry in matching.
     """
@@ -346,6 +347,7 @@ class MatchingRule:
     name: str
     smiles: str
     props: dict[str, Any]
+    pseudonyms: list[str]
     terminal: bool = True
     stereochemistry: bool = False
 
@@ -377,6 +379,7 @@ class MatchingRule:
             "name": self.name,
             "smiles": self.smiles,
             "props": self.props,
+            "pseudonyms": self.pseudonyms,
             "terminal": self.terminal,
             "stereochemistry": self.stereochemistry,
         }
@@ -393,6 +396,7 @@ class MatchingRule:
             name=data["name"],
             smiles=data["smiles"],
             props=data.get("props", {}),
+            pseudonyms=data.get("pseudonyms", []),
             terminal=data.get("terminal", True),
             stereochemistry=data.get("stereochemistry", False),
         )

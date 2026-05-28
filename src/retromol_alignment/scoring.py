@@ -1,25 +1,52 @@
 """Scoring functionalities for sequence alignment."""
 
-import numpy as np
-import pandas as pd
+from typing import Sequence
 
+import numpy as np
+
+from retromol.chem.mol import smiles_to_mol
+from retromol.chem.fingerprint import mol_to_morgan_fingerprint, calculate_tanimoto_similarity
 from retromol_alignment.aligner import substitution_matrices
 
 
-def create_scoring_matrix(df: pd.DataFrame) -> substitution_matrices.Array:
-    """
-    Create a scoring matrix from a pandas DataFrame.
+def create_tanimoto_scoring_matrix(
+    records: Sequence[tuple[str, str]],
+    radius: int = 2,
+    num_bits: int = 2048,
+    stereochemistry: bool = False,
+    self_score_tokens: Sequence[str] | None = None,
+    self_score: float = 1.0,
+) -> substitution_matrices.Array:
+    names: list[str] = []
+    fps = []
 
-    :param df: Pandas DataFrame containing the scoring matrix, where the index and columns are the same and represent
-        the alphabet, and the values are the scoring values.
-    :return: Scoring matrix as a substitution_matrices.Array object.
-    """
-    if df.shape[0] != df.shape[1]:
-        raise ValueError("Substitution matrix must be square (same number of rows and columns)!")
+    for name, smiles in records:
+        mol = smiles_to_mol(smiles)
+        fp = mol_to_morgan_fingerprint(mol, radius=radius, num_bits=num_bits, use_chirality=stereochemistry)
+        names.append(name)
+        fps.append(fp)
 
-    alphabet = tuple(df.columns)
-    data = df.to_numpy(dtype=np.float64)
+    if self_score_tokens is not None:
+        names.extend(self_score_tokens)
 
-    sm = substitution_matrices.Array(alphabet, 2, data, np.float64)
+    n_mols = len(fps)
+    n = len(names)
 
-    return sm
+    data = np.zeros((n, n), dtype=np.float64)
+
+    for i in range(n_mols):
+        for j in range(i, n_mols):
+            if i == j:
+                score = 1.0
+            else:
+                score = calculate_tanimoto_similarity(fps[i], fps[j])
+
+            data[i, j] = score
+            data[j, i] = score
+
+    for i in range(n_mols, n):
+        data[i, i] = self_score
+
+    alphabet = tuple(names)
+
+    return substitution_matrices.Array(alphabet, 2, data, np.float64)

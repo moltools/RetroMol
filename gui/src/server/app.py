@@ -15,7 +15,7 @@ from routes.session import (
     blp_delete_item,
 )
 from routes.session_store import get_or_init_app_start_epoch
-from routes.database import dsn_from_env
+from routes.database import check_database_ready, duckdb_path_from_env
 from routes.jobs import blp_search_compound, blp_submit_compound, blp_reconstruct_compound, blp_submit_gene_cluster
 from routes.events import blp_events
 
@@ -120,27 +120,17 @@ def health() -> tuple[dict[str, str], int]:
 
 @app.route("/api/ready", methods=["GET"])
 def ready() -> tuple[dict[str, str], int]:
-    """
-    Returns 200 only if the app can read from Postgres.
-
-    :return: a dictionary indicating readiness and HTTP status code
-    .. note:: this requires the `psycopg` package to be installed
-    """
     try:
-        import psycopg
-    except ImportError:
-        return jsonify({"status": "psycopg not installed"}), 500
-
-    dsn = dsn_from_env()
-
-    try:
-        with psycopg.connect(dsn, connect_timeout=3) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1;")
-                cur.fetchone()
-        return jsonify({"status": "ready"}), 200
+        check_database_ready()
+        return jsonify({
+            "status": "ready",
+            "database": str(duckdb_path_from_env()),
+        }), 200
     except Exception as e:
-        return jsonify({"status": "not ready", "error": str(e)}), 503
+        return jsonify({
+            "status": "not ready",
+            "error": str(e),
+        }), 503
 
 
 # Register blueprints

@@ -34,7 +34,7 @@ export async function submitClusterJob(
   item: ClusterItem,
 ): Promise<void> {
   await postJson(
-    "/api/submitCluster",
+    "/api/submitGeneCluster",
     {
       sessionId,
       itemId: item.id,
