@@ -16,6 +16,7 @@ def create_tanimoto_scoring_matrix(
     stereochemistry: bool = False,
     self_score_tokens: Sequence[str] | None = None,
     self_score: float = 1.0,
+    hardcoded_scores: list[tuple[str, str, float]] | None = None,
 ) -> substitution_matrices.Array:
     names: list[str] = []
     fps = []
@@ -46,6 +47,15 @@ def create_tanimoto_scoring_matrix(
 
     for i in range(n_mols, n):
         data[i, i] = self_score
+
+    # Finally, supplement scores with hardcoded scores, if any
+    for a, b, score in hardcoded_scores or []:
+        if a not in names or b not in names:
+            raise ValueError(f"Hardcoded score tokens must be in the alphabet: {a}, {b}")
+        i = names.index(a)
+        j = names.index(b)
+        data[i, j] = score
+        data[j, i] = score
 
     alphabet = tuple(names)
 
