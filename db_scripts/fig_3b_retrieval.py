@@ -61,13 +61,40 @@ def main() -> None:
     )
 
     # Another test, very minimal fingerprint
+    # per_monomer_tokens = [
+    #     ["PK_B", "PK"],
+    #     ["PK_B", "PK"],
+    #     ["PK_A", "PK"],
+    #     ["PK_D", "PK"],
+    #     ["PK_B", "PK"],
+    #     ["PK_B", "PK"],
+    # ]
+    # per_monomer_tokens = [
+    #     ["PK_A", "PK"],
+    #     ["cysteine"],
+    #     ["PK_C", "PK"],
+    #     ["PK_B", "PK"],
+    #     ["PK_B", "PK"],
+    #     ["PK_D", "PK"],
+    #     ["PK_D", "PK"],
+    #     ["PK_B", "PK"],
+    #     ["PK_A", "PK"],
+    #     ["PK_D", "PK"],
+    # ]
     per_monomer_tokens = [
-        ["PK_B", "PK"],
-        ["PK_B", "PK"],
-        ["PK_A", "PK"],
-        ["PK_D", "PK"],
-        ["PK_B", "PK"],
-        ["PK_B", "PK"],
+        ["tryptophan"],
+        ["asparagine"],
+        ["aspartic acid"],
+        # ["THR"],
+        ["glycine"],
+        ["ornithine"],
+        # ["ASP"],
+        ["alanine"],
+        # ["ASP"],
+        ["glycine"],
+        ["serine"],
+        ["3-methylglutamic acid"],
+        ["kynurenine"]
     ]
     fingerprint = fingerprinter.encode(per_monomer_tokens)
     with open_database(db_path, read_only=True) as db:
@@ -75,7 +102,23 @@ def main() -> None:
 
         targets = [result.entry.primary_sequence for result in results]
         reranked = rerank(
-            query=["B", "B", "A", "D", "B", "B"],
+            # query=["B", "B", "A", "D", "B", "B"],
+            # query=["A", "cysteine", "C", "B", "B", "D", "D", "B", "A", "D"],
+            query=[
+                "tryptophan",
+                "asparagine",
+                "aspartic acid",
+                TOKEN_UNK,
+                "glycine",
+                "ornithine",
+                TOKEN_UNK,
+                "alanine",
+                TOKEN_UNK,
+                "glycine",
+                "serine",
+                "3-methylglutamic acid",
+                "kynurenine",
+            ],
             targets=targets,
             aligner=aligner,
             converter=converter,
@@ -101,7 +144,7 @@ def main() -> None:
 
         top_n = 10
         for score, inverted, result, primary_sequence in reranked_results[:top_n]:
-            print(score, result.similarity, result.entry.name)
+            print(score, result.similarity, result.entry.name, result.entry.raw)
 
 
 if __name__ == "__main__":
