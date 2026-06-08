@@ -285,10 +285,10 @@ class PKSExtenderUnit(Enum):
     :cvar UNCLASSIFIED: Unclassified extender unit type.
     """
 
-    PKS_A = "PKS_A"
-    PKS_B = "PKS_B"
-    PKS_C = "PKS_C"
-    PKS_D = "PKS_D"
+    PKS_A = "PK_A"
+    PKS_B = "PK_B"
+    PKS_C = "PK_C"
+    PKS_D = "PK_D"
     UNCLASSIFIED = "UNCLASSIFIED"
 
 

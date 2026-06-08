@@ -81,20 +81,34 @@ def main() -> None:
     #     ["PK_A", "PK"],
     #     ["PK_D", "PK"],
     # ]
+    # per_monomer_tokens = [
+    #     ["tryptophan"],
+    #     ["asparagine"],
+    #     ["aspartic acid"],
+    #     # ["THR"],
+    #     ["glycine"],
+    #     ["ornithine"],
+    #     # ["ASP"],
+    #     ["alanine"],
+    #     # ["ASP"],
+    #     ["glycine"],
+    #     ["serine"],
+    #     ["3-methylglutamic acid"],
+    #     ["kynurenine"]
+    # ]
     per_monomer_tokens = [
-        ["tryptophan"],
-        ["asparagine"],
-        ["aspartic acid"],
-        # ["THR"],
-        ["glycine"],
-        ["ornithine"],
-        # ["ASP"],
-        ["alanine"],
-        # ["ASP"],
-        ["glycine"],
+        # ["acetic acid"],
+        # ["PK_D", "D1"],
+        # ["PK_D", "D1"],
+        # ["PK_D", "D1"],
+        # ["PK_D", "D1"],
+        # ["PK_D", "D1"],
+        # ["PK_C", "C1"],
+        ["N-(5-aminopentyl)hydroxylamine", "siderophore"],
+        ["butanedioic acid", "siderophore"],
+        ["N-(5-aminopentyl)hydroxylamine", "siderophore"],
         ["serine"],
-        ["3-methylglutamic acid"],
-        ["kynurenine"]
+        ["salicylic acid"],
     ]
     fingerprint = fingerprinter.encode(per_monomer_tokens)
     with open_database(db_path, read_only=True) as db:
@@ -104,20 +118,34 @@ def main() -> None:
         reranked = rerank(
             # query=["B", "B", "A", "D", "B", "B"],
             # query=["A", "cysteine", "C", "B", "B", "D", "D", "B", "A", "D"],
+            # query=[
+            #     "tryptophan",
+            #     "asparagine",
+            #     "aspartic acid",
+            #     TOKEN_UNK,
+            #     "glycine",
+            #     "ornithine",
+            #     TOKEN_UNK,
+            #     "alanine",
+            #     TOKEN_UNK,
+            #     "glycine",
+            #     "serine",
+            #     "3-methylglutamic acid",
+            #     "kynurenine",
+            # ],
             query=[
-                "tryptophan",
-                "asparagine",
-                "aspartic acid",
-                TOKEN_UNK,
-                "glycine",
-                "ornithine",
-                TOKEN_UNK,
-                "alanine",
-                TOKEN_UNK,
-                "glycine",
+                # "acetic acid",
+                # "D",
+                # "D",
+                # "D",
+                # "D",
+                # "D",
+                # "C",
+                "N-(5-aminopentyl)hydroxylamine",
+                "butanedioic acid",
+                "N-(5-aminopentyl)hydroxylamine",
                 "serine",
-                "3-methylglutamic acid",
-                "kynurenine",
+                "salicylic acid",
             ],
             targets=targets,
             aligner=aligner,
@@ -142,7 +170,7 @@ def main() -> None:
 
         reranked_results.sort(key=lambda x: x[0], reverse=True)
 
-        top_n = 10
+        top_n = 20
         for score, inverted, result, primary_sequence in reranked_results[:top_n]:
             print(score, result.similarity, result.entry.name, result.entry.raw)
 
