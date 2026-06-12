@@ -61,10 +61,10 @@ PK_D_SUBTYPES = [
     "D17", "D^R17", "D^S17",
 ]
 HARDCODED_PK_SCORING = []
-HARDCODED_PK_SCORING.extend([("A", pk_subtype, 1.0) for pk_subtype in PK_A_SUBTYPES])
-HARDCODED_PK_SCORING.extend([("B", pk_subtype, 1.0) for pk_subtype in PK_B_SUBTYPES])
-HARDCODED_PK_SCORING.extend([("C", pk_subtype, 1.0) for pk_subtype in PK_C_SUBTYPES])
-HARDCODED_PK_SCORING.extend([("D", pk_subtype, 1.0) for pk_subtype in PK_D_SUBTYPES])
+HARDCODED_PK_SCORING.extend([("PK_A", pk_subtype, 1.0) for pk_subtype in PK_A_SUBTYPES])
+HARDCODED_PK_SCORING.extend([("PK_B", pk_subtype, 1.0) for pk_subtype in PK_B_SUBTYPES])
+HARDCODED_PK_SCORING.extend([("PK_C", pk_subtype, 1.0) for pk_subtype in PK_C_SUBTYPES])
+HARDCODED_PK_SCORING.extend([("PK_D", pk_subtype, 1.0) for pk_subtype in PK_D_SUBTYPES])
 
 
 

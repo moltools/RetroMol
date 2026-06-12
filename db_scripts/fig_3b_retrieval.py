@@ -61,14 +61,14 @@ def main() -> None:
     )
 
     # Another test, very minimal fingerprint
-    # per_monomer_tokens = [
-    #     ["PK_B", "PK"],
-    #     ["PK_B", "PK"],
-    #     ["PK_A", "PK"],
-    #     ["PK_D", "PK"],
-    #     ["PK_B", "PK"],
-    #     ["PK_B", "PK"],
-    # ]
+    per_monomer_tokens = [
+        ["PK_B", "PK"],
+        ["PK_B", "PK"],
+        ["PK_A", "PK"],
+        ["PK_D", "PK"],
+        ["PK_B", "PK"],
+        ["PK_B", "PK"],
+    ]
     # per_monomer_tokens = [
     #     ["PK_A", "PK"],
     #     ["cysteine"],
@@ -85,68 +85,68 @@ def main() -> None:
     #     ["tryptophan"],
     #     ["asparagine"],
     #     ["aspartic acid"],
-    #     # ["THR"],
+    #     ["threonine"],
     #     ["glycine"],
     #     ["ornithine"],
-    #     # ["ASP"],
+    #     ["aspartic acid"],
     #     ["alanine"],
-    #     # ["ASP"],
+    #     ["aspartic acid"],
     #     ["glycine"],
     #     ["serine"],
     #     ["3-methylglutamic acid"],
     #     ["kynurenine"]
     # ]
-    per_monomer_tokens = [
-        # ["acetic acid"],
-        # ["PK_D", "D1"],
-        # ["PK_D", "D1"],
-        # ["PK_D", "D1"],
-        # ["PK_D", "D1"],
-        # ["PK_D", "D1"],
-        # ["PK_C", "C1"],
-        ["N-(5-aminopentyl)hydroxylamine", "siderophore"],
-        ["butanedioic acid", "siderophore"],
-        ["N-(5-aminopentyl)hydroxylamine", "siderophore"],
-        ["serine"],
-        ["salicylic acid"],
-    ]
+    # per_monomer_tokens = [
+    #     # ["acetic acid"],
+    #     # ["PK_D", "D1"],
+    #     # ["PK_D", "D1"],
+    #     # ["PK_D", "D1"],
+    #     # ["PK_D", "D1"],
+    #     # ["PK_D", "D1"],
+    #     # ["PK_C", "C1"],
+    #     ["N-(5-aminopentyl)hydroxylamine", "siderophore"],
+    #     ["butanedioic acid", "siderophore"],
+    #     ["N-(5-aminopentyl)hydroxylamine", "siderophore"],
+    #     ["serine"],
+    #     ["salicylic acid"],
+    # ]
     fingerprint = fingerprinter.encode(per_monomer_tokens)
     with open_database(db_path, read_only=True) as db:
         results = db.closest(fingerprint, limit=1000)
 
         targets = [result.entry.primary_sequence for result in results]
         reranked = rerank(
-            # query=["B", "B", "A", "D", "B", "B"],
+            query=["B", "B", "A", "D", "B", "B"],
             # query=["A", "cysteine", "C", "B", "B", "D", "D", "B", "A", "D"],
             # query=[
             #     "tryptophan",
             #     "asparagine",
             #     "aspartic acid",
-            #     TOKEN_UNK,
+            #     "threonine",
             #     "glycine",
             #     "ornithine",
-            #     TOKEN_UNK,
+            #     "aspartic acid",
             #     "alanine",
-            #     TOKEN_UNK,
+            #     "aspartic acid",
             #     "glycine",
             #     "serine",
             #     "3-methylglutamic acid",
             #     "kynurenine",
             # ],
-            query=[
-                # "acetic acid",
-                # "D",
-                # "D",
-                # "D",
-                # "D",
-                # "D",
-                # "C",
-                "N-(5-aminopentyl)hydroxylamine",
-                "butanedioic acid",
-                "N-(5-aminopentyl)hydroxylamine",
-                "serine",
-                "salicylic acid",
-            ],
+            # query=[
+            #     # "acetic acid",
+            #     # "D",
+            #     # "D",
+            #     # "D",
+            #     # "D",
+            #     # "D",
+            #     # "C",
+            #     "N-(5-aminopentyl)hydroxylamine",
+            #     "butanedioic acid",
+            #     "N-(5-aminopentyl)hydroxylamine",
+            #     "serine",
+            #     "salicylic acid",
+            # ],
             targets=targets,
             aligner=aligner,
             converter=converter,
