@@ -35,12 +35,6 @@ The most recent code and data can be installed directly from GitHub with:
 pip install git+https://github.com/MolTools/RetroMol.git
 ```
 
-The latest stable release can be installed from PyPI with:
-
-```shell
-pip install retromol
-```
-
 RetroMol has been developed for Linux and MacOS.
 
 ## Getting started
@@ -62,8 +56,6 @@ Any column, field, or property in the input file, either CSV, TSV, SDF, or JSON,
 Stereochemistry parsing is supported by supplying the `-c` flag.
 
 Result JSONs or lines from a JSONL file can be loaded into Python using RetroMol's `Result` class for further downstream analyses.
-
-Check out the [examples](https://github.com/moltools/RetroMol/tree/main/examples) folder for example scripts demonstrating how to use RetroMol as a library.
 
 ### Using custom rules
 
