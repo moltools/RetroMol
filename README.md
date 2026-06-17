@@ -25,7 +25,7 @@ RetroMol is retrosynthetic parsing and fingerprinting tool for modular natural p
 
 RetroMol is designed to facilitate clustering modular natural products based on biosynthetic similarity, and to enable cross-modal retrieval between modular natural products and their coding biosynthetic gene clusters.
 
-RetroMol powers the RetroMol webapp, available at [here](https://retromol.bioinformatics.nl/). The webapp can be used to query NPAtlas, MIBiG, and antiSMASH database entries for modular natural products based on biosynthetic similarity.
+We are developing a user-friendly webapp for RetroMol, available at [here](https://retromol.bioinformatics.nl/). Although still under development, the webapp can ultimately be used to query NPAtlas, MIBiG, and antiSMASH database entries for modular natural products based on biosynthetic similarity.
 
 ## Installation
 
