@@ -443,14 +443,22 @@ class RuleSet:
         return f"RuleSet({len(self.reaction_rules)} reaction rules, {len(self.matching_rules)} matching rules, match_stereochemistry={self.match_stereochemistry})"
 
     @classmethod
-    def load_default(cls, match_stereochemistry: bool = False) -> "RuleSet":
+    def load_from_files(
+        cls,
+        reaction_rules_path: str | Path | None = None,
+        matching_rules_path: str | Path | None = None,
+        match_stereochemistry: bool = False,
+    ) -> "RuleSet":
         """
-        Load the default set of reaction and matching rules.
+        Load a set of reaction and matching rules from a file.
 
-        :return: The default RuleSet.
+        :param reaction_rules_path: Path to file containing reaction_rules.
+        :param matching_rules_path: Path to file containing matching rules.
+        :param match_stereochemistry: Whether to consider stereochemistry in matching rules.
+        :return: A set of reaction rules and matching rules.
         """
-        path_reaction_rules = Path(files(retromol.data).joinpath("rxn.yml"))
-        path_matching_rules = Path(files(retromol.data).joinpath("mxn.yml"))
+        path_reaction_rules = Path(reaction_rules_path) if reaction_rules_path else Path(files(retromol.data).joinpath("rxn.yml"))
+        path_matching_rules = Path(matching_rules_path) if matching_rules_path else Path(files(retromol.data).joinpath("mxn.yml"))
 
         with open(path_reaction_rules, "r") as fo:
             reaction_rules_data = yaml.safe_load(fo)
@@ -462,3 +470,13 @@ class RuleSet:
         matching_rules = [MatchingRule.from_dict(d) for d in matching_rules_data]
 
         return RuleSet(match_stereochemistry, reaction_rules, matching_rules)
+
+    @classmethod
+    def load_default(cls, match_stereochemistry: bool = False) -> "RuleSet":
+        """
+        Load the default RuleSet from package resources.
+
+        :param match_stereochemistry: Whether to consider stereochemistry in matching rules.
+        :return: The loaded RuleSet instance.
+        """
+        return cls.load_from_files(match_stereochemistry=match_stereochemistry)
