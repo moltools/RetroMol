@@ -39,8 +39,8 @@ except PackageNotFoundError:
 
 
 def add_rule_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--rxn-rules", type=str, default=None, help="path to reaction rules YAML")
-    parser.add_argument("--mxn-rules", type=str, default=None, help="path to matching rules YAML")
+    parser.add_argument("--rxn-rules", type=str, default=None, help="path to reaction rules YAML (default: None, default ruleset)")
+    parser.add_argument("--mxn-rules", type=str, default=None, help="path to matching rules YAML (default: None, default ruleset)")
 
 
 def cli() -> argparse.Namespace:
