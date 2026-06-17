@@ -38,6 +38,11 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 
+def add_rule_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--rxn-rules", type=str, default=None, help="path to reaction rules YAML")
+    parser.add_argument("--mxn-rules", type=str, default=None, help="path to matching rules YAML")
+
+
 def cli() -> argparse.Namespace:
     """
     Parse command line arguments.
@@ -81,6 +86,10 @@ def cli() -> argparse.Namespace:
 
     # Batch mode also allows for parallel processing
     batch_parser.add_argument("-w", "--workers", type=int, default=1, help="number of worker processes to use (default: 1)")
+
+    # Allow custom rule sets for both single and batch parsers
+    add_rule_args(single_parser)
+    add_rule_args(batch_parser)
 
     return parser.parse_args()
 
@@ -127,7 +136,11 @@ def main() -> None:
         log.info(f"\t{arg}: {val}")
 
     # Load default ruleset
-    ruleset = RuleSet.load_default(match_stereochemistry=args.c)
+    ruleset = RuleSet.load_from_files(
+        reaction_rules_path=args.rxn_rules,
+        matching_rules_path=args.matching_rules,
+        match_stereochemistry=args.c
+    )
     log.info(f"loaded default ruleset: {ruleset}")
 
     result_counts: Counter[str] = Counter()
