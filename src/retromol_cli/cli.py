@@ -138,7 +138,7 @@ def main() -> None:
     # Load default ruleset
     ruleset = RuleSet.load_from_files(
         reaction_rules_path=args.rxn_rules,
-        matching_rules_path=args.matching_rules,
+        matching_rules_path=args.mxn_rules,
         match_stereochemistry=args.c
     )
     log.info(f"loaded default ruleset: {ruleset}")
