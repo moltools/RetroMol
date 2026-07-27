@@ -7,7 +7,7 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import { useNotifications } from "../NotificationProvider";
 import { useOverlay } from "../OverlayProvider";
 import { Session } from "../../features/session/types";
-import { getSession, refreshSession } from "../../features/session/api";
+import { getSession, refreshSession, getSessionEventsTicket } from "../../features/session/api";
 import { WorkspaceNavbar } from "./WorkspaceNavbar";
 import { WorkspaceSideMenu } from "./WorkspaceSideMenu";
 import { WorkspaceHeader } from "./WorkspaceHeader";
@@ -51,12 +51,23 @@ export const Workspace: React.FC = () => {
     else hideOverlay();
   }, [loading, showOverlay, hideOverlay]);
 
-  // SSE: refresh session when server says something changed
+  // SSE: refresh session when server says something changed.
+  //
+  // EventSource can only ever issue a plain GET, so whatever authorizes the
+  // stream has to live in the URL. To avoid putting the real sessionId there
+  // (URLs end up in access logs, browser history, Referer headers), the
+  // stream is authorized by a short-lived, single-use ticket instead. That
+  // means we can't lean on EventSource's built-in auto-retry — it would just
+  // keep replaying the same already-spent ticket and 401 forever — so
+  // reconnection is handled manually here, minting a fresh ticket each time.
   React.useEffect(() => {
-    if (!session?.sessionId) return;
+    const sessionId = session?.sessionId;
+    if (!sessionId) return;
 
     let alive = true;
+    let es: EventSource | null = null;
     let refreshTimer: number | null = null;
+    let reconnectTimer: number | null = null;
 
     const scheduleRefresh = () => {
       if (!alive) return;
@@ -65,7 +76,7 @@ export const Workspace: React.FC = () => {
       refreshTimer = window.setTimeout(() => {
         refreshTimer = null;
 
-        refreshSession(session.sessionId)
+        refreshSession(sessionId)
           .then((fresh) => {
             if (!alive) return;
             setSession(fresh);
@@ -78,23 +89,50 @@ export const Workspace: React.FC = () => {
     };
 
     const SSE_BASE = process.env.REACT_APP_SSE_BASE ?? "";
-    const es = new EventSource(
-      `${SSE_BASE}/api/sessionEvents?sessionId=${encodeURIComponent(session.sessionId)}`
-    );
 
-    // Attach scheduleRefresh to all relevant events
-    es.addEventListener("hello", scheduleRefresh);
-    es.addEventListener("item_updated", scheduleRefresh);
-    es.addEventListener("session_merged", scheduleRefresh);
-
-    es.onopen = () => {
-      // EventSource retries automatically; avoid spamming notifications
+    const scheduleReconnect = () => {
+      if (!alive || reconnectTimer !== null) return;
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, 2000);
     };
+
+    const connect = () => {
+      if (!alive) return;
+
+      getSessionEventsTicket(sessionId)
+        .then((ticket) => {
+          if (!alive) return;
+
+          es = new EventSource(`${SSE_BASE}/api/sessionEvents?ticket=${encodeURIComponent(ticket)}`);
+
+          es.addEventListener("hello", scheduleRefresh);
+          es.addEventListener("item_updated", scheduleRefresh);
+          es.addEventListener("session_merged", scheduleRefresh);
+
+          es.onerror = () => {
+            // Don't let the browser's native retry replay this (now spent,
+            // or about to be stale) ticket — close it out and reconnect
+            // ourselves with a fresh one.
+            es?.close();
+            es = null;
+            scheduleReconnect();
+          };
+        })
+        .catch(() => {
+          // Couldn't even mint a ticket (e.g. backend briefly unreachable) — retry
+          scheduleReconnect();
+        });
+    };
+
+    connect();
 
     return () => {
       alive = false;
       if (refreshTimer !== null) window.clearTimeout(refreshTimer);
-      es.close();
+      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
+      es?.close();
     };
   }, [session?.sessionId, pushNotification]);
 

@@ -37,6 +37,10 @@ export type Session = z.output<typeof SessionSchema>;
 // Simple response wrappers
 export const CreateSessionRespSchema = z.object({ sessionId: z.string() });
 export const GetSessionRespSchema = z.object({ session: SessionSchema });
+export const SseTicketRespSchema = z.object({
+  ticket: z.string(),
+  expiresInSeconds: z.number().optional(),
+});
 
 export function initSession(): Session {
   const newSession = SessionSchema.parse({});
