@@ -14,6 +14,7 @@ import { SessionItem } from "../../features/session/types";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { DialogViewItem } from "./DialogViewItem";
+import { useTick } from "../../hooks/useTick";
 
 function getScoreColor(theme: Theme, value: number): string {
   const t = theme.vars || theme;
@@ -65,12 +66,8 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
 
   const [openViewItem, setOpenViewItem] = React.useState(false);
 
-  // Tick every 15s so "X ago" updates
-  const [, forceTick] = React.useState(0);
-  React.useEffect(() => {
-    const id = window.setInterval(() => forceTick(n => n + 1), 5000);
-    return () => { window.clearInterval(id); }
-  }, [])
+  // Re-render every 5s so "X ago" updates, via one shared timer for all cards
+  useTick(5000);
 
   const isQueued = item.status === "queued";
   const showSpinner = item.status === "processing";
@@ -150,7 +147,7 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
                   fontWeight: 600,
                 },
                 "& .MuiGauge-valueArc": {
-                  fill: (theme) => getScoreColor(theme, item.score!),
+                  fill: (theme) => getScoreColor(theme, itemScore),
                   transition: "stroke-dashoffset 0.3s ease",
                 },
               }}

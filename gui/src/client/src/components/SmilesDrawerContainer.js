@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import SmilesDrawer from 'smiles-drawer';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { useColorScheme } from '@mui/material/styles';
 
 
@@ -89,20 +89,17 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         this.prepareTinAsRightWildcard('Sn');
 
         let preprocessor = this.preprocessor;
-        let opts = preprocessor.opts;
         let graph = preprocessor.graph;
-        let rings = preprocessor.rings;
-        let svgWrapper = this.svgWrapper;
 
         // highlighted atom ids
         const highlightedAtomIds = [];
         const atomIdToHighlight = {};
 
-        for (var i = 0; i < graph.vertices.length; i++) {
+        for (let i = 0; i < graph.vertices.length; i++) {
             let vertex = graph.vertices[i];
             let atom = vertex.value;
 
-            for (var j = 0; j < preprocessor.highlight_atoms.length; j++) {
+            for (let j = 0; j < preprocessor.highlight_atoms.length; j++) {
                 let highlight = preprocessor.highlight_atoms[j]
 
                 // if atom.bracket !== null, then it is a bracket atom, and we continue
@@ -117,7 +114,7 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         };
 
         // loop over edges
-        for (var i = 0; i < graph.edges.length; i++) {
+        for (let i = 0; i < graph.edges.length; i++) {
             let edge = graph.edges[i];
             // if edge.sourceId and edge.targetId in highlightedAtomIds, then draw bond highlight, they also need to have same highlight color
             if (highlightedAtomIds.includes(edge.sourceId) && highlightedAtomIds.includes(edge.targetId)) {
@@ -130,7 +127,7 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         };
 
         // loop over all atoms and set atom.bracket to null
-        for (var i = 0; i < graph.vertices.length; i++) {
+        for (let i = 0; i < graph.vertices.length; i++) {
             let vertex = graph.vertices[i];
             let atom = vertex.value;
             atom.bracket = null;
@@ -152,7 +149,7 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         };
 
         // loop over all bonds
-        for (var i = 0; i < graph.edges.length; i++) {
+        for (let i = 0; i < graph.edges.length; i++) {
             let edge = graph.edges[i];
             // if aromatic bond
             if (edge.isPartOfAromaticRing) {
@@ -179,23 +176,53 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
  * @param {Props} props
  */
 const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], themeOverride = '' }) => {
-    // create a new drawer instance
-    let drawer = new CustomSvgDrawer({ width: size, height: size });
-
-    const { mode, systemMode, setMode } = useColorScheme();
+    const { mode, systemMode } = useColorScheme();
+    const [error, setError] = useState(null);
 
     // draw the molecule when the component is mounted
     useEffect(() => {
+        setError(null);
+
         let target = `structure-svg-${identifier}`
         let themeName = themeOverride !== '' ? themeOverride : (systemMode !== undefined) ? systemMode : mode;
         let weights = null;
         let infoOnly = false;
         let weightsNormalized = false;
 
-        SmilesDrawer.parse(smiles, function (tree) {
-            drawer.draw(tree, target, themeName, weights, infoOnly, highlightAtoms, weightsNormalized);
-        });
-    }, [smiles, highlightAtoms, size]);
+        // A fresh drawer instance per draw call, since it isn't safe to reuse
+        // once it holds a graph for a previous (possibly differently-sized) SMILES.
+        let drawer = new CustomSvgDrawer({ width: size, height: size });
+
+        try {
+            SmilesDrawer.parse(
+                smiles,
+                function (tree) {
+                    try {
+                        drawer.draw(tree, target, themeName, weights, infoOnly, highlightAtoms, weightsNormalized);
+                    } catch (drawErr) {
+                        console.error('SmilesDrawerContainer: draw failed', drawErr);
+                        setError('Could not render this structure.');
+                    }
+                },
+                function (parseErr) {
+                    console.error('SmilesDrawerContainer: parse failed', parseErr);
+                    setError('Could not parse this SMILES.');
+                }
+            );
+        } catch (err) {
+            // Some malformed input can throw synchronously instead of hitting the error callback
+            console.error('SmilesDrawerContainer: unexpected error', err);
+            setError('Could not render this structure.');
+        }
+    }, [identifier, smiles, highlightAtoms, size, themeOverride, mode, systemMode]);
+
+    if (error) {
+        return (
+            <Box key={identifier} sx={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', p: 1 }}>
+                <Typography variant="caption" color="text.secondary">{error}</Typography>
+            </Box>
+        );
+    }
 
     return (
         <Box key={identifier} sx={{ width: size, height: size }}>

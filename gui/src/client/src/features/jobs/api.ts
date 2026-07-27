@@ -6,6 +6,26 @@ import { z } from "zod";
 
 export const MAX_ITEMS = 50;
 
+// How many submit requests are allowed in flight at once. Bounded (rather than
+// unlimited Promise.all) so a large batch doesn't slam the backend with 50
+// concurrent compute-heavy jobs at the same instant.
+const SUBMIT_CONCURRENCY = 5;
+
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const item = items[cursor++];
+      await worker(item);
+    }
+  });
+  await Promise.all(runners);
+}
+
 const SubmitJobRespSchema = z.object({
   ok: z.boolean(),
   elapsed_ms: z.number().int().nonnegative(),
@@ -126,8 +146,8 @@ export async function importCompoundsBatch(
     return [];
   };
 
-  // Submit jobs sequentially
-  for (const item of newItems) {
+  // Submit jobs concurrently (bounded), instead of one-at-a-time
+  await runWithConcurrency(newItems, SUBMIT_CONCURRENCY, async (item) => {
     try {
       await submitCompoundJob(sessionId, item as CompoundItem);
     } catch (err) {
@@ -149,7 +169,7 @@ export async function importCompoundsBatch(
         )
       }));
     };
-  };
+  });
 
   return newItems;
 };
@@ -241,8 +261,8 @@ export async function importClustersBatch(
     return [];
   };
 
-  // Submit jobs sequentially
-  for (const item of newItems) {
+  // Submit jobs concurrently (bounded), instead of one-at-a-time
+  await runWithConcurrency(newItems, SUBMIT_CONCURRENCY, async (item) => {
     try {
       await submitClusterJob(sessionId, item as ClusterItem);
     } catch (err) {
@@ -264,7 +284,7 @@ export async function importClustersBatch(
         )
       }));
     };
-  };
+  });
 
   return newItems;
 };
