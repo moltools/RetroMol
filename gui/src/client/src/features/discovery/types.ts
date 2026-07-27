@@ -62,3 +62,29 @@ export const DiscoveryQueryRespSchema = z.object({
   results: z.array(DiscoveryResultSchema),
 });
 export type DiscoveryQueryResp = z.output<typeof DiscoveryQueryRespSchema>;
+
+export const DiscoveryMsaReqSchema = z.object({
+  querySequence: z.array(z.string().min(1)).min(1),
+  sequences: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        sequence: z.array(z.string().min(1)).min(1),
+      })
+    )
+    .min(1),
+});
+export type DiscoveryMsaReq = z.output<typeof DiscoveryMsaReqSchema>;
+
+// "query" is a reserved id identifying the query's own row in the response.
+export const DiscoveryMsaRowSchema = z.object({
+  id: z.string(),
+  alignedSequence: z.array(z.string().nullable()),
+});
+export type DiscoveryMsaRow = z.output<typeof DiscoveryMsaRowSchema>;
+
+export const DiscoveryMsaRespSchema = z.object({
+  ok: z.boolean().optional(),
+  rows: z.array(DiscoveryMsaRowSchema),
+});
+export type DiscoveryMsaResp = z.output<typeof DiscoveryMsaRespSchema>;

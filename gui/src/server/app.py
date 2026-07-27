@@ -18,7 +18,7 @@ from routes.session_store import get_or_init_app_start_epoch
 from routes.database import check_database_ready, duckdb_path_from_env
 from routes.jobs import blp_search_compound, blp_submit_compound, blp_reconstruct_compound, blp_submit_gene_cluster
 from routes.events import blp_events, blp_sse_ticket
-from routes.discovery import blp_discovery_monomer_names, blp_discovery_query, get_discovery_context
+from routes.discovery import blp_discovery_monomer_names, blp_discovery_query, blp_discovery_msa, get_discovery_context
 
 
 # Initialize the Flask app
@@ -149,6 +149,7 @@ app.register_blueprint(blp_events)
 app.register_blueprint(blp_sse_ticket)
 app.register_blueprint(blp_discovery_monomer_names)
 app.register_blueprint(blp_discovery_query)
+app.register_blueprint(blp_discovery_msa)
 
 # Warm the discovery context cache eagerly so the first user request isn't slow --
 # building it reparses the ruleset and computes an all-pairs Tanimoto scoring matrix

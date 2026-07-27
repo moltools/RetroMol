@@ -16,6 +16,7 @@ from flask import Blueprint, Response, current_app, jsonify, request
 
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol_alignment.aligner import setup_aligner
+from retromol_alignment.msa import calculate_msa
 from retromol_alignment.pairwise import Converter, align
 from retromol_alignment.ranking import rerank
 from retromol_alignment.scoring import create_tanimoto_scoring_matrix
@@ -26,10 +27,15 @@ from routes.database import open_retromol_db
 
 blp_discovery_monomer_names = Blueprint("discovery_monomer_names", __name__)
 blp_discovery_query = Blueprint("discovery_query", __name__)
+blp_discovery_msa = Blueprint("discovery_msa", __name__)
 
 
 MAX_N = 1000
 MAX_TOP_X = 200
+# Query plus up to MAX_TOP_X candidates, with a little headroom -- this endpoint is
+# meant to be called with sequences already returned by /api/discoveryQuery, which
+# already caps candidate count at MAX_TOP_X.
+MAX_MSA_SEQUENCES = 250
 ENTRY_TYPES_FOR_QUERY = ("compound", "bgc", "both")
 
 # What a candidate's alignment score gets normalized against, as a percentage.
@@ -379,3 +385,88 @@ def discovery_query() -> tuple[Response, int]:
         "candidatesSkipped": skipped,
         "results": results,
     }), 200
+
+
+@blp_discovery_msa.post("/api/discoveryMsa")
+def discovery_msa() -> tuple[Response, int]:
+    """
+    Compute a multiple sequence alignment of a query against a set of sequences,
+    anchored on the query as the star center (so every other sequence is ordered and
+    oriented relative to it, matching how the pairwise results are already anchored).
+
+    Intended to be called with the query and result sequences already returned by
+    /api/discoveryQuery -- scores for display are deliberately NOT recomputed here;
+    the frontend re-attaches each row's existing normalizedAlignmentScorePct by id,
+    so the number shown next to a row in the MSA always matches the pairwise view.
+
+    :return: a tuple containing the aligned rows (or an error) and an HTTP status code
+    """
+    payload = request.get_json(force=True) or {}
+
+    query_sequence = payload.get("querySequence")
+    sequences = payload.get("sequences")
+
+    if (
+        not isinstance(query_sequence, list)
+        or not query_sequence
+        or not all(isinstance(x, str) and x for x in query_sequence)
+    ):
+        return jsonify({"error": "querySequence must be a non-empty list of non-empty strings"}), 400
+
+    if not isinstance(sequences, list) or not sequences:
+        return jsonify({"error": "sequences must be a non-empty list"}), 400
+
+    if len(sequences) > MAX_MSA_SEQUENCES:
+        return jsonify({"error": f"sequences cannot have more than {MAX_MSA_SEQUENCES} entries"}), 400
+
+    ids: list[str] = []
+    raw_sequences: list[list[str]] = []
+    for item in sequences:
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("id"), str)
+            or not item.get("id")
+            or not isinstance(item.get("sequence"), list)
+            or not item.get("sequence")
+            or not all(isinstance(x, str) and x for x in item["sequence"])
+        ):
+            return jsonify({
+                "error": "each entry in sequences must have a non-empty 'id' and non-empty 'sequence'"
+            }), 400
+        ids.append(item["id"])
+        raw_sequences.append(item["sequence"])
+
+    ctx = get_discovery_context()
+
+    all_ids = ["query", *ids]
+    to_align = [
+        [_normalize_for_alignment(name, ctx) for name in seq]
+        for seq in [query_sequence, *raw_sequences]
+    ]
+
+    try:
+        aligned, new_order = calculate_msa(
+            ctx.aligner,
+            to_align,
+            ctx.converter,
+            center_star=0,
+            # Every sequence's orientation was already decided relative to the query
+            # by the pairwise alignment step; re-flipping here would risk showing a
+            # different orientation than the pairwise view already displayed.
+            can_reverse=[False] * len(to_align),
+        )
+    except Exception as e:
+        current_app.logger.exception("discovery_msa: MSA computation failed")
+        return jsonify({"error": f"Could not compute the multiple sequence alignment: {e}"}), 400
+
+    rows = [
+        {
+            "id": all_ids[original_index],
+            "alignedSequence": [
+                (_denormalize_for_display(t) if t is not None else None) for t in aligned_seq
+            ],
+        }
+        for (_, _, aligned_seq), original_index in zip(aligned, new_order)
+    ]
+
+    return jsonify({"ok": True, "rows": rows}), 200

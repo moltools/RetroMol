@@ -3,9 +3,13 @@ import {
   MonomerNameSearchRespSchema,
   DiscoveryQueryReqSchema,
   DiscoveryQueryRespSchema,
+  DiscoveryMsaReqSchema,
+  DiscoveryMsaRespSchema,
   type DiscoveryQueryReq,
   type MonomerNameOption,
   type DiscoveryQueryResp,
+  type DiscoveryMsaReq,
+  type DiscoveryMsaResp,
 } from "./types";
 
 export async function searchMonomerNames(
@@ -24,4 +28,9 @@ export async function runDiscoveryQuery(
 ): Promise<DiscoveryQueryResp> {
   const validated = DiscoveryQueryReqSchema.parse(payload);
   return postJson("/api/discoveryQuery", validated, DiscoveryQueryRespSchema, signal);
+}
+
+export async function runDiscoveryMsa(payload: DiscoveryMsaReq, signal?: AbortSignal): Promise<DiscoveryMsaResp> {
+  const validated = DiscoveryMsaReqSchema.parse(payload);
+  return postJson("/api/discoveryMsa", validated, DiscoveryMsaRespSchema, signal);
 }
