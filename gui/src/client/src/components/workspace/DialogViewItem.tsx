@@ -3,17 +3,13 @@ import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import { useQuery } from "@tanstack/react-query";
 import { SessionItem } from "../../features/session/types";
+import type { PrimarySequenceItem } from "../../features/reconstruction/types";
+import { reconstructCompound } from "../../features/reconstruction/api";
 import { DialogWindow } from "../DialogWindow";
+import { ErrorBoundary } from "../ErrorBoundary";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
-
-export type PrimarySequenceItem = [string, number[]];
-
-export type Reconstruction = {
-  tagged_input_smiles: string;
-  tagged_backbone_smiles: string;
-  primary_sequence: PrimarySequenceItem[];
-};
 
 type HighlightAtom = [number, string];
 
@@ -166,9 +162,6 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
 }) => {
   const isCompound = item.kind === "compound"; // there are only two types: "compound" and "cluster"
 
-  const [loading, setLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [data, setData] = React.useState<Reconstruction[] | null>(null);
   const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
 
   const handleToggleMotif = (tags: number[]) => {
@@ -181,7 +174,13 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
     })
   }
 
-  const highlightAtoms: HighlightAtom[] = selectedTags.map((tag) => [tag, "#027bf3"])
+  // Memoized so it's a stable reference across re-renders that don't touch
+  // selectedTags — otherwise SmilesDrawerContainer redraws on every unrelated
+  // parent re-render (e.g. the item card's periodic "updated Xs ago" tick).
+  const highlightAtoms = React.useMemo<HighlightAtom[]>(
+    () => selectedTags.map((tag) => [tag, "#027bf3"]),
+    [selectedTags]
+  );
 
   // Clear selection when dialog/item changes
   React.useEffect(() => {
@@ -190,34 +189,17 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
     }
   }, [open, item.id]);
 
-  React.useEffect(() => {
-    if (!open) { return; };
-    if (!isCompound) { return; };
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch("/api/reconstructCompound", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sessionId,
-            itemId: item.id,
-          }),
-        });
-        if (!response.ok) { throw new Error(`Error fetching data for linear view: ${response.statusText}`); };
-        const data = await response.json();
-        setData(data.data);
-      } catch (err: any) {
-        setError(err.message || "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [open, isCompound, sessionId, item.id]);
+  const reconstructionQuery = useQuery({
+    queryKey: ["reconstructCompound", sessionId, item.id],
+    queryFn: ({ signal }) => reconstructCompound(sessionId, item.id, signal),
+    enabled: open && isCompound,
+  });
+
+  const data = reconstructionQuery.data ?? null;
+  const loading = reconstructionQuery.isLoading;
+  const error = reconstructionQuery.error
+    ? (reconstructionQuery.error as Error).message || "Unknown error"
+    : null;
 
   return (
     <DialogWindow
@@ -283,12 +265,16 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
                 pl: 2
               }}
             >
-              <SmilesDrawerContainer
-                identifier={`smiles-drawer-${sessionId}-${item.id}-full`}
-                smiles={data?.[0]?.tagged_input_smiles ?? ""}
-                size={300}
-                highlightAtoms={highlightAtoms}
-              />
+              <ErrorBoundary what="molecule structure" fallback={
+                <Typography variant="caption" color="text.secondary">Could not render this structure.</Typography>
+              }>
+                <SmilesDrawerContainer
+                  identifier={`smiles-drawer-${sessionId}-${item.id}-full`}
+                  smiles={data?.[0]?.tagged_input_smiles ?? ""}
+                  size={300}
+                  highlightAtoms={highlightAtoms}
+                />
+              </ErrorBoundary>
             </Box>
             <AnnotatedArrow annotation={'Linearization'} />
             <Box
@@ -311,12 +297,16 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
               >
                 {(data ?? []).map((reconstruction, idx) => (
                   <React.Fragment key={`backbone-fragment-${idx}`}>
-                    <SmilesDrawerContainer
-                      identifier={`smiles-drawer-${sessionId}-${item.id}-preprocessed-${idx}`}
-                      smiles={reconstruction.tagged_backbone_smiles}
-                      size={260}
-                      highlightAtoms={highlightAtoms}
-                    />
+                    <ErrorBoundary what="molecule structure" fallback={
+                      <Typography variant="caption" color="text.secondary">Could not render this structure.</Typography>
+                    }>
+                      <SmilesDrawerContainer
+                        identifier={`smiles-drawer-${sessionId}-${item.id}-preprocessed-${idx}`}
+                        smiles={reconstruction.tagged_backbone_smiles}
+                        size={260}
+                        highlightAtoms={highlightAtoms}
+                      />
+                    </ErrorBoundary>
 
                     {idx < (data?.length ?? 0) - 1 && (
                       <Typography

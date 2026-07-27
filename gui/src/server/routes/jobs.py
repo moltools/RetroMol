@@ -4,7 +4,7 @@ import time
 
 from flask import Response, Blueprint, current_app, request, jsonify
 
-from routes.session_store import load_session_with_items, update_item
+from routes.session_store import load_session_with_items, update_item, MAX_FILE_CONTENT_BYTES
 from routes.database import open_retromol_db
 
 from retromol.model.submission import Submission
@@ -256,6 +256,10 @@ def submit_gene_cluster() -> tuple[Response, int]:
 
     if not isinstance(file_content, str) or not file_content:
         return jsonify({"error": "fileContent is required"}), 400
+
+    if len(file_content.encode("utf-8")) > MAX_FILE_CONTENT_BYTES:
+        max_mb = MAX_FILE_CONTENT_BYTES // (1024 * 1024)
+        return jsonify({"error": f"fileContent exceeds the {max_mb} MB limit"}), 400
 
     full_sess = load_session_with_items(session_id)
     if full_sess is None:

@@ -10,6 +10,13 @@ import redis
 MAX_SESSIONS = 1000
 JOB_TIMEOUT_SECONDS = int(os.getenv("JOB_TIMEOUT_SECONDS", "10"))
 
+# Mirrors the frontend's client-side guardrails (MAX_ITEMS / MAX_FILE_SIZE_MB in
+# gui/src/client). The frontend checks exist only for UX; they are trivially
+# bypassed by calling the API directly, so the limits must also be enforced
+# here to actually protect the backend/compute workers.
+MAX_SESSION_ITEMS = 50
+MAX_FILE_CONTENT_BYTES = 2 * 1024 * 1024  # 2 MB
+
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", str(7 * 24 * 3600)))
 
@@ -174,6 +181,27 @@ def count_sessions() -> int:
     return count
 
 
+def _validate_items(items: list[dict[str, Any]]) -> None:
+    """
+    Validate item count and per-item payload sizes before persisting a session.
+
+    These limits are also enforced client-side for UX purposes, but the client
+    check is trivially bypassed by calling the API directly, so it must be
+    re-checked here to actually protect storage and the compute workers.
+
+    :param items: the items to validate
+    :raises ValueError: if the item count or any item's fileContent is too large
+    """
+    if len(items) > MAX_SESSION_ITEMS:
+        raise ValueError(f"A session cannot have more than {MAX_SESSION_ITEMS} items")
+
+    max_mb = MAX_FILE_CONTENT_BYTES // (1024 * 1024)
+    for item in items:
+        file_content = item.get("fileContent")
+        if isinstance(file_content, str) and len(file_content.encode("utf-8")) > MAX_FILE_CONTENT_BYTES:
+            raise ValueError(f"Item '{item.get('id', '?')}' fileContent exceeds the {max_mb} MB limit")
+
+
 def create_session(session: dict[str, Any]) -> None:
     """
     Create a new session in Redis, storing items separately.
@@ -188,6 +216,8 @@ def create_session(session: dict[str, Any]) -> None:
     items = session.get("items", [])
     if not isinstance(items, list):
         items = []
+
+    _validate_items(items)
 
     item_ids: list[str] = []
 
@@ -432,6 +462,8 @@ def merge_session_from_client(new_session: dict[str, Any]) -> None:
 
     old_items_list = old_full.get("items", []) or []
     new_items_list = new_session.get("items", []) or []
+
+    _validate_items(new_items_list)
 
     old_ids = {it.get("id") for it in old_items_list if it.get("id")}
     old_by_id: dict[str, dict] = {

@@ -1,4 +1,5 @@
 import React from "react";
+import DOMPurify from "dompurify";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Slider from "@mui/material/Slider";
@@ -45,17 +46,25 @@ export const SvgViewer: React.FC<SvgViewerProps> = ({
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
-  const handleFit = () => {
+  // Server-provided SVG markup is untrusted input (derived from user-uploaded
+  // compounds/gene clusters) and gets injected raw via dangerouslySetInnerHTML,
+  // so it must be sanitized first to prevent stored/reflected XSS.
+  const sanitizedSvg = React.useMemo(
+    () => DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } }),
+    [svg]
+  );
+
+  const handleFit = React.useCallback(() => {
     // naive fit: reset zoom and pan
     setZoom(initialZoom);
     setPan({ x: 0, y: 0 });
     setPanOrigin({ x: 0, y: 0 });
-  }
+  }, [initialZoom]);
 
   // Reset zoom and pan whenever SVG changes
   React.useEffect(() => {
     handleFit();
-  }, [svg, initialZoom]);
+  }, [svg, handleFit]);
 
   // Notify parent about zoom changes
   React.useEffect(() => {
@@ -114,7 +123,9 @@ export const SvgViewer: React.FC<SvgViewerProps> = ({
   }
 
   const handleDownload = () => {
-    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    // Download the sanitized markup too — a raw SVG opened directly in a
+    // browser tab can still execute embedded <script> content.
+    const blob = new Blob([sanitizedSvg], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -221,7 +232,7 @@ export const SvgViewer: React.FC<SvgViewerProps> = ({
               display: "block",
             }
           }}
-          dangerouslySetInnerHTML={{ __html: svg }}
+          dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
         />
       </Box>
 
