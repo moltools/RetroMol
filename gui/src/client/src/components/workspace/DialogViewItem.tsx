@@ -9,6 +9,7 @@ import type { PrimarySequenceItem } from "../../features/reconstruction/types";
 import { reconstructCompound } from "../../features/reconstruction/api";
 import { DialogWindow } from "../DialogWindow";
 import { ErrorBoundary } from "../ErrorBoundary";
+import { MotifName } from "../MotifName";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
 
 type HighlightAtom = [number, string];
@@ -71,34 +72,6 @@ function DescriptionBox({ title, description }: { title: string; description: st
     </Box>
   );
 };
-
-function MotifName({ name }: { name: string }) {
-  const parts = name.split(/(\^[SR])/g);
-
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part === "^S" || part === "^R") {
-          return (
-            <Box
-              key={i}
-              component="sup"
-              sx={{
-                fontSize: "0.7em",
-                lineHeight: 0,
-                verticalAlign: "super",
-              }}
-            >
-              {part.slice(1)}
-            </Box>
-          );
-        }
-
-        return <React.Fragment key={i}>{part}</React.Fragment>;
-      })}
-    </>
-  );
-}
 
 function PrimarySequence({
   sequence,
