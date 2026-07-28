@@ -34,6 +34,14 @@ export const DiscoveryQueryReqSchema = z.object({
   scoreMode: DiscoveryScoreModeSchema,
   n: z.number().int().min(1).max(1000),
   topX: z.number().int().min(1),
+  // When true, the session's own uploaded compounds compete for a spot among the
+  // nearest-neighbor candidates alongside the persistent database entries. Requires
+  // sessionId so the backend can look up the session's uploads.
+  includeUserUploads: z.boolean().optional(),
+  // When true, skips the persistent database entirely and only aligns against the
+  // session's own uploads (implies includeUserUploads).
+  onlyUserUploads: z.boolean().optional(),
+  sessionId: z.string().optional(),
 });
 export type DiscoveryQueryReq = z.output<typeof DiscoveryQueryReqSchema>;
 
@@ -42,6 +50,9 @@ export const DiscoveryResultSchema = z.object({
   name: z.string(),
   url: z.string().nullable(),
   type: z.enum(["compound", "bgc"]),
+  // "upload" when this candidate came from the session's own uploads (via
+  // includeUserUploads) rather than the persistent database.
+  origin: z.enum(["database", "upload"]).default("database"),
   fingerprintSimilarity: z.number(),
   primarySequence: z.array(z.string()),
   inverted: z.boolean(),
