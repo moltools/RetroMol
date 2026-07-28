@@ -13,6 +13,7 @@ import { WorkspaceSideMenu } from "./WorkspaceSideMenu";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import { WorkspaceHome } from "./WorkspaceHome";
 import { WorkspaceUpload } from "./WorkspaceUpload";
+import { WorkspaceDiscovery } from "./WorkspaceDiscovery";
 // import { WorkspaceEnrichment } from "./tabs/enrichment/WorkspaceEnrichment";
 
 export const Workspace: React.FC = () => {
@@ -168,8 +169,7 @@ export const Workspace: React.FC = () => {
                 <Routes>
                   <Route index element={<WorkspaceHome />} />
                   <Route path="upload" element={<WorkspaceUpload session={session} setSession={setSession} />} />
-                  {/*<Route path="discovery" element={<WorkspaceDiscovery session={session} setSession={setSession} />} />*/}
-                  <Route path="discovery" element={<div>Analysis currently available. Check back later.</div>} />
+                  <Route path="discovery" element={<WorkspaceDiscovery session={session} setSession={setSession} />} />
                   {/*<Route path="enrichment" element={<WorkspaceEnrichment session={session} setSession={setSession} />} />*/}
                   <Route path="enrichment" element={<div>Analysis currently available. Check back later.</div>} />
                 </Routes>
