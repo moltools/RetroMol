@@ -519,7 +519,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
             Edit sequence
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-            Drag blocks to reorder, click × to delete, or click + to add a new block at the end.
+            Drag blocks to reorder, click × to delete, or click + to add a new block at the end. You can add stereochemistry-aware motifs by using the '^' symbol.
           </Typography>
 
           {blocks.length === 0 ? (
