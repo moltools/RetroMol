@@ -4,18 +4,18 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { useQuery } from "@tanstack/react-query";
-import { SessionItem } from "../../features/session/types";
-import type { PrimarySequenceItem } from "../../features/reconstruction/types";
+import { Session, SessionItem } from "../../features/session/types";
 import { reconstructCompound } from "../../features/reconstruction/api";
 import { DialogWindow } from "../DialogWindow";
 import { ErrorBoundary } from "../ErrorBoundary";
-import { MotifName } from "../MotifName";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
+import { PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
 
 type HighlightAtom = [number, string];
 
 type DialogViewItemProps = {
-  sessionId: string;
+  session: Session;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
   item: SessionItem;
   open: boolean;
   onClose: () => void;
@@ -73,66 +73,14 @@ function DescriptionBox({ title, description }: { title: string; description: st
   );
 };
 
-function PrimarySequence({
-  sequence,
-  selectedTags,
-  onToggleMotif,
-}: {
-  sequence: PrimarySequenceItem[];
-  selectedTags: number[];
-  onToggleMotif: (tags: number[]) => void;
-}) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "nowrap",
-        gap: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      {sequence.map(([name, tags], idx) => {
-        const isSelected =
-          tags.length > 0 && tags.every((tag) => selectedTags.includes(tag));
-
-        return (
-          <Box
-            key={`${name}-${idx}`}
-            onClick={() => onToggleMotif(tags)}
-            sx={{
-              px: 1.25,
-              py: 0.75,
-              borderRadius: 1,
-              border: "1px solid",
-              borderColor: isSelected ? "primary.main" : "divider",
-              bgcolor: isSelected ? "primary.main" : "background.paper",
-              color: isSelected ? "primary.contrastText" : "text.primary",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              cursor: "pointer",
-              userSelect: "none",
-              whiteSpace: "nowrap",
-              "&:hover": {
-                borderColor: "primary.main",
-                bgcolor: isSelected ? "primary.dark" : "action.hover",
-              },
-            }}
-          >
-            <MotifName name={name} />
-          </Box>
-        )
-      })}
-    </Box>
-  )
-}
-
 export const DialogViewItem: React.FC<DialogViewItemProps> = ({
-  sessionId,
+  session,
+  setSession,
   item,
   open,
   onClose,
 }) => {
+  const sessionId = session.sessionId;
   const isCompound = item.kind === "compound"; // there are only two types: "compound" and "cluster"
 
   const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
@@ -174,14 +122,46 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
     ? (reconstructionQuery.error as Error).message || "Unknown error"
     : null;
 
+  // resetSignal is `open` -- re-seeding on every open (even for the same item)
+  // matches the dialog's existing "fresh state each time" behavior for selectedTags.
+  const editor = usePrimarySequenceEditor(session, setSession, item, data, open);
+  const { editing, setEditing, anyDirty, saving, handleCancelEdit, handleSaveAll } = editor;
+
   return (
     <DialogWindow
       open={open}
       onClose={onClose}
       title="View item"
       dividers
+      dirty={editing && anyDirty}
       actions={[
-        { label: "Close", variant: "text", color: "inherit", onClick: onClose },
+        ...(isCompound && editing
+          ? [
+              { key: "cancel-edit", label: "Cancel", variant: "text" as const, color: "inherit" as const, onClick: handleCancelEdit },
+              {
+                key: "save",
+                label: saving ? "Saving..." : "Save changes",
+                variant: "contained" as const,
+                color: "primary" as const,
+                onClick: handleSaveAll,
+                disabled: !anyDirty || saving,
+                startIcon: saving ? <CircularProgress size={16} color="inherit" /> : undefined,
+              },
+            ]
+          : []),
+        ...(isCompound && !editing
+          ? [
+              {
+                key: "edit",
+                label: "Edit sequences",
+                variant: "outlined" as const,
+                color: "primary" as const,
+                onClick: () => setEditing(true),
+                disabled: loading || !data || data.length === 0,
+              },
+            ]
+          : []),
+        { key: "close", label: "Close", variant: "text" as const, color: "inherit" as const, onClick: onClose },
       ]}
       maxWidth={"lg"}
     >
@@ -328,42 +308,20 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
                     pr: 2,
                   }}
                 >
-                  {(data ?? []).map((reconstruction, idx) => (
-                    <Box
-                      key={`primary-sequence-row-${idx}`}
-                      sx={{
-                        display: "flex",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 1,
-                        width: "100%",
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          minWidth: 130,
-                          color: "text.secondary",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {`primary sequence ${idx + 1}`}
-                      </Typography>
-
-                      <PrimarySequence
-                        sequence={reconstruction.primary_sequence}
-                        selectedTags={selectedTags}
-                        onToggleMotif={handleToggleMotif}
-                      />
-                    </Box>
-                  ))}
+                  <PrimarySequenceRows
+                    item={item}
+                    data={data ?? []}
+                    state={editor}
+                    selectedTags={selectedTags}
+                    onToggleMotif={handleToggleMotif}
+                  />
                 </Box>
               </Box>
             </Box>
           </Box>
           <DescriptionBox
             title={'Explanation'}
-            description={'The input SMILES (right) is processed by RetroMol into non-overlapping building blocks, and from these building blocks a linear backbone is reconstructed (middle). The primary sequence, a text representation of the linear backbone, is seen on the right. You can highlight individual motifs by clicking them in the primary sequence above.'}
+            description={'The input SMILES (right) is processed by RetroMol into non-overlapping building blocks, and from these building blocks a linear backbone is reconstructed (middle). The primary sequence, a text representation of the linear backbone, is seen on the right. You can highlight individual motifs by clicking them in the primary sequence above. If a sequence was parsed wrong or incompletely, use "Edit sequences" to fix it by hand -- dashed blocks are not linked to the parsed structure. Saved edits are kept with this compound and reused when you query it from the Discovery tab; "Revert" on a row discards the edit and restores the algorithm’s own parse.'}
           />
         </Box>
       )}
