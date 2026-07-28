@@ -6,6 +6,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
@@ -20,7 +21,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, alpha, type Theme } from "@mui/material/styles";
 import { Session, SessionItem } from "../../features/session/types";
 import { reconstructCompound } from "../../features/reconstruction/api";
 import type { PrimarySequenceItem } from "../../features/reconstruction/types";
@@ -88,11 +89,26 @@ const ROW_CELL_BASE_SX = {
   boxSizing: "border-box" as const,
 };
 
-function alignedCellSx(name: string | null, columnWidthCh: number) {
+// Shading intensity range for per-unit similarity highlighting -- kept well short of
+// fully transparent/opaque so an occupied cell is always distinguishable from a gap
+// (similarity 0) and never drowns out the motif name (similarity 1).
+const MATCH_SHADE_MIN_ALPHA = 0.12;
+const MATCH_SHADE_MAX_ALPHA = 0.65;
+
+// similarity is a raw Tanimoto value in [0, 1] (identical structure = 1), from the same
+// scoring matrix used to compute the alignment -- not rescaled, since 0-1 is already a
+// meaningful, comparable scale across every column and every row.
+function similarityColor(theme: Theme, similarity: number | null | undefined): string | undefined {
+  if (similarity === null || similarity === undefined) return undefined;
+  const clamped = Math.max(0, Math.min(1, similarity));
+  return alpha(theme.palette.primary.main, MATCH_SHADE_MIN_ALPHA + clamped * (MATCH_SHADE_MAX_ALPHA - MATCH_SHADE_MIN_ALPHA));
+}
+
+function alignedCellSx(name: string | null, columnWidthCh: number, matchColor: string | undefined) {
   return {
     ...ROW_CELL_BASE_SX,
     borderColor: name === null ? "divider" : "primary.main",
-    bgcolor: name === null ? "transparent" : "action.hover",
+    bgcolor: name === null ? "transparent" : matchColor ?? "action.hover",
     width: `${columnWidthCh}ch`,
     textAlign: "center" as const,
     flexShrink: 0,
@@ -103,11 +119,16 @@ export type AlignmentGridRow = {
   id: string;
   label: string;
   score?: string; // pre-formatted, e.g. "82.3%" -- omit for rows with no score (e.g. the query)
+  // Per-column Tanimoto similarity (0-1) against the query's unit at that same column,
+  // null wherever either side is a gap. Index-aligned with `sequence`. Omit entirely for
+  // rows with nothing to compare against (e.g. the query row itself), which render with
+  // a neutral fill throughout.
+  matchStrengths?: (number | null)[];
   sequence: (string | null)[];
 };
 
 function toSvgRows(rows: AlignmentGridRow[]): AlignmentSvgRow[] {
-  return rows.map((row) => ({ label: row.label, score: row.score, sequence: row.sequence }));
+  return rows.map((row) => ({ label: row.label, score: row.score, matchStrengths: row.matchStrengths, sequence: row.sequence }));
 }
 
 function sanitizeFilenamePart(value: string): string {
@@ -120,6 +141,7 @@ function sanitizeFilenamePart(value: string): string {
 // "propionic acid" makes the alignment unreadable. All rows share one scroll
 // container so they always scroll in sync, keeping columns aligned.
 function AlignmentGrid({ rows }: { rows: AlignmentGridRow[] }) {
+  const theme = useTheme();
   const columnCount = Math.max(0, ...rows.map((r) => r.sequence.length));
   const columnWidths = Array.from({ length: columnCount }, (_, idx) => {
     let width = 1;
@@ -157,8 +179,9 @@ function AlignmentGrid({ rows }: { rows: AlignmentGridRow[] }) {
             <Stack key={row.id} direction="row" spacing={0.5} sx={{ flexWrap: "nowrap" }}>
               {columnWidths.map((width, idx) => {
                 const name = row.sequence[idx] ?? null;
+                const matchColor = similarityColor(theme, row.matchStrengths?.[idx]);
                 return (
-                  <Box key={idx} sx={alignedCellSx(name, width)}>
+                  <Box key={idx} sx={alignedCellSx(name, width, matchColor)}>
                     {name === null ? "–" : <MotifName name={name} />}
                   </Box>
                 );
@@ -197,13 +220,31 @@ function DownloadSvgButton({ rows, filename }: { rows: AlignmentGridRow[]; filen
   );
 }
 
-function ResultRow({ result, rank }: { result: DiscoveryResult; rank: number }) {
+function ResultRow({
+  result,
+  rank,
+  selectedForMsa,
+  onToggleSelectedForMsa,
+}: {
+  result: DiscoveryResult;
+  rank: number;
+  selectedForMsa: boolean;
+  onToggleSelectedForMsa: () => void;
+}) {
   const [expanded, setExpanded] = React.useState(false);
   const theme = useTheme();
 
   return (
     <Box sx={{ borderBottom: "1px solid", borderColor: "divider", py: 1 }}>
       <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Checkbox
+          size="small"
+          checked={selectedForMsa}
+          onChange={onToggleSelectedForMsa}
+          title="Include in multiple sequence alignment"
+          sx={{ p: 0.5 }}
+        />
+
         <Typography variant="body2" sx={{ width: 28, color: "text.secondary" }}>
           {rank}
         </Typography>
@@ -251,6 +292,7 @@ function ResultRow({ result, rank }: { result: DiscoveryResult; rank: number }) 
                 id: result.entryId,
                 label: result.type === "compound" ? "Compound" : "BGC",
                 score: `${result.normalizedAlignmentScorePct.toFixed(1)}%`,
+                matchStrengths: result.alignedSimilarity,
                 sequence: result.alignedTarget,
               },
             ]}
@@ -263,6 +305,7 @@ function ResultRow({ result, rank }: { result: DiscoveryResult; rank: number }) 
                   id: result.entryId,
                   label: result.name,
                   score: `${result.normalizedAlignmentScorePct.toFixed(1)}%`,
+                  matchStrengths: result.alignedSimilarity,
                   sequence: result.alignedTarget,
                 },
               ]}
@@ -289,6 +332,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   const [n, setN] = React.useState<number>(100);
   const [topX, setTopX] = React.useState<number>(20);
   const [resultsView, setResultsView] = React.useState<"pairwise" | "msa">("pairwise");
+  const [selectedForMsa, setSelectedForMsa] = React.useState<Set<string>>(new Set());
 
   const reconstructionQuery = useQuery({
     queryKey: ["reconstructCompound", session.sessionId, selectedItemId],
@@ -309,32 +353,50 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
       const msg = err instanceof Error ? err.message : String(err);
       pushNotification(`Discovery query failed: ${msg}`, "error");
     },
+    onSuccess: (data) => {
+      // Fresh results default to "everyone's in" for the MSA; the user can narrow from there.
+      setSelectedForMsa(new Set(data.results.map((r) => r.entryId)));
+    },
   });
+
+  const toggleSelectedForMsa = React.useCallback((entryId: string) => {
+    setSelectedForMsa((prev) => {
+      const next = new Set(prev);
+      if (next.has(entryId)) next.delete(entryId);
+      else next.add(entryId);
+      return next;
+    });
+  }, []);
+
+  const selectedResults = React.useMemo(
+    () => discoveryMutation.data?.results.filter((r) => selectedForMsa.has(r.entryId)) ?? [],
+    [discoveryMutation.data, selectedForMsa]
+  );
 
   // Anchored on the query as the star center, so every result is ordered/oriented
   // relative to it -- matching how the pairwise view is already anchored. Keyed off
-  // the current results so switching view modes back and forth doesn't refetch, but
-  // running a new query naturally does.
+  // the selected members so switching view modes back and forth doesn't refetch, but
+  // running a new query or changing the selection naturally does.
   const msaQuery = useQuery({
     queryKey: [
       "discoveryMsa",
       discoveryMutation.data?.querySequence,
-      discoveryMutation.data?.results.map((r) => r.entryId),
+      selectedResults.map((r) => r.entryId),
     ],
     queryFn: ({ signal }) =>
       runDiscoveryMsa(
         {
           querySequence: discoveryMutation.data!.querySequence,
-          sequences: discoveryMutation.data!.results.map((r) => ({ id: r.entryId, sequence: r.primarySequence })),
+          sequences: selectedResults.map((r) => ({ id: r.entryId, sequence: r.primarySequence })),
         },
         signal
       ),
-    enabled: resultsView === "msa" && !!discoveryMutation.data && discoveryMutation.data.results.length > 0,
+    enabled: resultsView === "msa" && selectedResults.length > 0,
   });
 
   // Scores aren't recomputed for the MSA -- each row's score is the same
   // normalizedAlignmentScorePct already shown in the pairwise view, re-attached by id,
-  // so the two views never disagree on a number.
+  // so the two views never disagree on a number (and shade the same way, too).
   const msaRows: AlignmentGridRow[] = React.useMemo(() => {
     if (!msaQuery.data || !discoveryMutation.data) return [];
     const resultsById = new Map(discoveryMutation.data.results.map((r) => [r.entryId, r]));
@@ -347,6 +409,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
         id: row.id,
         label: result?.name ?? row.id,
         score: result ? `${result.normalizedAlignmentScorePct.toFixed(1)}%` : undefined,
+        matchStrengths: row.similarityToQuery,
         sequence: row.alignedSequence,
       };
     });
@@ -554,23 +617,49 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
               </Typography>
             ) : (
               <>
-                <ToggleButtonGroup
-                  size="small"
-                  exclusive
-                  value={resultsView}
-                  onChange={(_, value) => value && setResultsView(value)}
-                  sx={{ mb: 1.5 }}
-                >
-                  <ToggleButton value="pairwise">Pairwise</ToggleButton>
-                  <ToggleButton value="msa">Multiple sequence alignment</ToggleButton>
-                </ToggleButtonGroup>
+                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ mb: 1 }}>
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={resultsView}
+                    onChange={(_, value) => value && setResultsView(value)}
+                  >
+                    <ToggleButton value="pairwise">Pairwise</ToggleButton>
+                    <ToggleButton value="msa">Multiple sequence alignment</ToggleButton>
+                  </ToggleButtonGroup>
+
+                  <Typography variant="caption" color="text.secondary">
+                    {selectedForMsa.size} of {discoveryMutation.data.results.length} selected for MSA
+                  </Typography>
+                  <Button size="small" onClick={() => setSelectedForMsa(new Set(discoveryMutation.data!.results.map((r) => r.entryId)))}>
+                    Select all
+                  </Button>
+                  <Button size="small" onClick={() => setSelectedForMsa(new Set())}>
+                    Clear
+                  </Button>
+                </Stack>
+
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                  Cell shading reflects each unit's structural similarity to the query's aligned unit in that column.
+                  Darker means a closer match, so a sequence's weak spots stand out at a glance.
+                </Typography>
 
                 <Divider sx={{ mb: 1 }} />
 
                 {resultsView === "pairwise" ? (
                   discoveryMutation.data.results.map((result, idx) => (
-                    <ResultRow key={result.entryId} result={result} rank={idx + 1} />
+                    <ResultRow
+                      key={result.entryId}
+                      result={result}
+                      rank={idx + 1}
+                      selectedForMsa={selectedForMsa.has(result.entryId)}
+                      onToggleSelectedForMsa={() => toggleSelectedForMsa(result.entryId)}
+                    />
                   ))
+                ) : selectedResults.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Select at least one result above to compute a multiple sequence alignment.
+                  </Typography>
                 ) : msaQuery.isLoading ? (
                   <CircularProgress size={20} />
                 ) : msaQuery.error ? (

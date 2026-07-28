@@ -152,6 +152,22 @@ def _denormalize_for_display(name: str) -> str:
     return "X" if name == TOKEN_UNK else name
 
 
+def _pair_similarity(ctx: DiscoveryContext, a: str | None, b: str | None) -> float | None:
+    """
+    Look up the Tanimoto similarity between two normalized (pre-display) tokens from the
+    same scoring matrix used to compute the alignment -- so this is exactly "how similar
+    is this substitution", not a re-derived or approximated number.
+
+    :param ctx: the discovery context
+    :param a: a normalized token, or None for a gap
+    :param b: a normalized token, or None for a gap
+    :return: the Tanimoto similarity in [0, 1], or None if either side is a gap
+    """
+    if a is None or b is None:
+        return None
+    return float(ctx.aligner.substitution_matrix[a, b])
+
+
 def _self_alignment_score(sequence: list[str], ctx: DiscoveryContext) -> float:
     """
     Align a sequence against itself -- its own best-possible alignment score.
@@ -358,6 +374,10 @@ def discovery_query() -> tuple[Response, int]:
         denom = max(self_score, target_self_score) if target_self_score is not None else self_score
         normalized_pct = _normalized_pct(align_score, denom)
 
+        aligned_similarity = [
+            _pair_similarity(ctx, q_tok, t_tok) for q_tok, t_tok in zip(aligned_query_display, aligned_target_display)
+        ]
+
         results.append({
             "entryId": candidate.entry.id,
             "name": candidate.entry.name,
@@ -374,6 +394,10 @@ def discovery_query() -> tuple[Response, int]:
             "alignedTarget": [
                 (_denormalize_for_display(t) if t is not None else None) for t in aligned_target_display
             ],
+            # Per-column Tanimoto similarity between alignedQuery[i] and alignedTarget[i],
+            # None wherever either side is a gap -- lets the frontend shade each unit by
+            # how good its own match was, rather than by the row's overall score.
+            "alignedSimilarity": aligned_similarity,
         })
 
     return jsonify({
@@ -459,14 +483,27 @@ def discovery_msa() -> tuple[Response, int]:
         current_app.logger.exception("discovery_msa: MSA computation failed")
         return jsonify({"error": f"Could not compute the multiple sequence alignment: {e}"}), 400
 
-    rows = [
-        {
-            "id": all_ids[original_index],
+    # center_star=0 above pins the query (to_align[0]) as the star center, so aligned[0]
+    # is always the query's own row, already in the shared MSA column coordinate system --
+    # every other row's per-column similarity is computed against this exact sequence.
+    query_aligned_tokens = aligned[0][2]
+
+    rows = []
+    for (_, _, aligned_seq), original_index in zip(aligned, new_order):
+        entry_id = all_ids[original_index]
+        similarity_to_query = (
+            [None] * len(aligned_seq)
+            if entry_id == "query"
+            else [_pair_similarity(ctx, q_tok, tok) for q_tok, tok in zip(query_aligned_tokens, aligned_seq)]
+        )
+        rows.append({
+            "id": entry_id,
             "alignedSequence": [
                 (_denormalize_for_display(t) if t is not None else None) for t in aligned_seq
             ],
-        }
-        for (_, _, aligned_seq), original_index in zip(aligned, new_order)
-    ]
+            # Per-column Tanimoto similarity against the query's own row at that same MSA
+            # column; all None for the query's row itself (nothing to compare it against).
+            "similarityToQuery": similarity_to_query,
+        })
 
     return jsonify({"ok": True, "rows": rows}), 200

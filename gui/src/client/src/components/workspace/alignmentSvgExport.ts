@@ -18,8 +18,26 @@ const MIN_CELL_WIDTH = 22;
 export type AlignmentSvgRow = {
   label: string;
   score?: string; // pre-formatted for display, e.g. "82.3%" — omit for rows with no score (e.g. the query)
+  // Per-column Tanimoto similarity (0-1) against the query's unit in that column, mirroring
+  // the on-screen shading; index-aligned with `sequence`. Omit entirely for a neutral fill
+  // throughout (e.g. the query row).
+  matchStrengths?: (number | null)[];
   sequence: (string | null)[]; // null = gap
 };
+
+// Mirrors the on-screen shading scale (see similarityColor in WorkspaceDiscovery.tsx),
+// but computed as a flat hex since this file has no access to the live MUI theme.
+const MATCH_SHADE_MIN_ALPHA = 0.12;
+const MATCH_SHADE_MAX_ALPHA = 0.65;
+const MATCH_COLOR_RGB = [25, 118, 210]; // MUI default primary.main (#1976d2)
+
+function matchFillColor(similarity: number | null | undefined): string {
+  if (similarity === null || similarity === undefined) return "#ffffff";
+  const clamped = Math.max(0, Math.min(1, similarity));
+  const a = MATCH_SHADE_MIN_ALPHA + clamped * (MATCH_SHADE_MAX_ALPHA - MATCH_SHADE_MIN_ALPHA);
+  const [r, g, b] = MATCH_COLOR_RGB.map((channel) => Math.round(channel * a + 255 * (1 - a)));
+  return `rgb(${r}, ${g}, ${b})`;
+}
 
 function escapeXml(value: string): string {
   return value
@@ -138,7 +156,7 @@ export function buildAlignmentSvg(rows: AlignmentSvgRow[]): string {
 
       svg.push(
         `<rect x="${x.toFixed(1)}" y="${y}" width="${width.toFixed(1)}" height="${ROW_HEIGHT}" rx="3" ` +
-          `fill="${isGap ? "#f2f2f2" : "#ffffff"}" stroke="${isGap ? "#dddddd" : "#333333"}" stroke-width="1" ` +
+          `fill="${isGap ? "#f2f2f2" : matchFillColor(row.matchStrengths?.[col])}" stroke="${isGap ? "#dddddd" : "#333333"}" stroke-width="1" ` +
           `${isGap ? 'stroke-dasharray="2,2"' : ""} />`
       );
 

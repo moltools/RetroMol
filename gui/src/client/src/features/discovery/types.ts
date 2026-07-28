@@ -49,6 +49,10 @@ export const DiscoveryResultSchema = z.object({
   normalizedAlignmentScorePct: z.number(),
   alignedQuery: z.array(z.string().nullable()),
   alignedTarget: z.array(z.string().nullable()),
+  // Per-column Tanimoto similarity (0-1) between alignedQuery[i] and alignedTarget[i],
+  // from the same scoring matrix used to compute the alignment; null wherever either
+  // side is a gap. Index-aligned with alignedQuery/alignedTarget.
+  alignedSimilarity: z.array(z.number().nullable()),
 });
 export type DiscoveryResult = z.output<typeof DiscoveryResultSchema>;
 
@@ -80,6 +84,9 @@ export type DiscoveryMsaReq = z.output<typeof DiscoveryMsaReqSchema>;
 export const DiscoveryMsaRowSchema = z.object({
   id: z.string(),
   alignedSequence: z.array(z.string().nullable()),
+  // Per-column Tanimoto similarity (0-1) against the query's own row at that same MSA
+  // column; all null for the query's row itself. Index-aligned with alignedSequence.
+  similarityToQuery: z.array(z.number().nullable()),
 });
 export type DiscoveryMsaRow = z.output<typeof DiscoveryMsaRowSchema>;
 
