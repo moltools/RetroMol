@@ -11,6 +11,7 @@ import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
@@ -268,7 +269,12 @@ function ResultRow({
           )}
         </Box>
 
-        <Chip label={result.type === "compound" ? "Compound" : "BGC"} size="small" sx={{ fontSize: "0.7rem" }} />
+        <Chip
+          label={result.origin === "upload" ? "User upload" : result.type === "compound" ? "Compound" : "BGC"}
+          size="small"
+          color={result.origin === "upload" ? "info" : "default"}
+          sx={{ fontSize: "0.7rem" }}
+        />
 
         <Typography variant="caption" sx={{ minWidth: 90, textAlign: "right" }}>
           fp {(result.fingerprintSimilarity * 100).toFixed(1)}%
@@ -332,6 +338,8 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   const [scoreMode, setScoreMode] = React.useState<DiscoveryScoreMode>("subsequence");
   const [n, setN] = React.useState<number>(100);
   const [topX, setTopX] = React.useState<number>(20);
+  const [includeUserUploads, setIncludeUserUploads] = React.useState<boolean>(false);
+  const [onlyUserUploads, setOnlyUserUploads] = React.useState<boolean>(false);
   const [resultsView, setResultsView] = React.useState<"pairwise" | "msa">("pairwise");
   const [selectedForMsa, setSelectedForMsa] = React.useState<Set<string>>(new Set());
 
@@ -349,6 +357,9 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
         scoreMode,
         n,
         topX,
+        includeUserUploads: (includeUserUploads || onlyUserUploads) && entryType !== "bgc",
+        onlyUserUploads: onlyUserUploads && entryType !== "bgc",
+        sessionId: session.sessionId,
       }),
     onError: (err) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -591,6 +602,34 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
               slotProps={{ htmlInput: { min: 1, max: maxTopX } }}
               sx={{ width: 140 }}
               disabled={discoveryMutation.isPending}
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={includeUserUploads || onlyUserUploads}
+                  onChange={(e) => setIncludeUserUploads(e.target.checked)}
+                  disabled={
+                    discoveryMutation.isPending || entryType === "bgc" || compoundItems.length === 0 || onlyUserUploads
+                  }
+                />
+              }
+              label="Include my uploaded compounds"
+              title="Uploaded compounds compete for a spot among the nearest N candidates, then follow the usual top-X ranking. BGC uploads aren't supported yet."
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={onlyUserUploads}
+                  onChange={(e) => setOnlyUserUploads(e.target.checked)}
+                  disabled={discoveryMutation.isPending || entryType === "bgc" || compoundItems.length === 0}
+                />
+              }
+              label="Only use my uploads"
+              title="Skip the shared database entirely and align only against your own uploaded compounds."
             />
 
             <Button
