@@ -1,6 +1,9 @@
 """Module for defining job endpoints."""
 
+import os
+import tempfile
 import time
+from pathlib import Path
 
 from flask import Response, Blueprint, current_app, request, jsonify
 
@@ -13,14 +16,37 @@ from retromol.model.result import Result
 from retromol.pipelines.parsing import run_retromol
 from retromol_synthesis.reconstruction import reconstruct_linear_readout
 
+from retromol_antismash.io import parse_antismash_gbk, AntiSmashOptions
+from retromol_antismash.modules import linear_readout, ModuleType
+from retromol_antismash.inference.registry import annotate_region, register_domain_model
+from retromol_antismash.inference.model_paras import ParasModel
+
 blp_search_compound = Blueprint("search_compound", __name__)
 blp_submit_compound = Blueprint("submit_compound", __name__)
 blp_reconstruct_compound = Blueprint("reconstruct_compound", __name__)
 blp_submit_gene_cluster = Blueprint("submit_gene_cluster", __name__)
+blp_get_cluster_readout = Blueprint("get_cluster_readout", __name__)
 
 
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
+
+
+def _ensure_paras_model_registered() -> None:
+    """
+    Register the PARAS A-domain substrate specificity model, if not already registered.
+
+    .. note::
+        `register_domain_model` no-ops if a model with the same name is already
+        registered, so this is safe to call on every request. Constructing
+        `ParasModel` here is cheap -- the actual model file is only downloaded/loaded
+        lazily, the first time `.predict()` runs. No gene-level (PFAM/HMM) model is
+        registered here, since gene-level classification isn't part of this feature.
+    """
+    register_domain_model(ParasModel(
+        model_path=os.getenv("PARAS_MODEL_PATH"),
+        cache_dir=os.getenv("PARAS_CACHE_DIR", "paras_cache"),
+    ))
 
 
 @blp_search_compound.get("/api/searchCompound")
@@ -283,9 +309,45 @@ def submit_gene_cluster() -> tuple[Response, int]:
         return jsonify({"error": "Item not found during update"}), 404
 
     try:
-        # Fill this in with your BGC parsing / fingerprinting / scoring logic.
-        result_payload = {}
-        score = None
+        _ensure_paras_model_registered()
+
+        tmp_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".gbk", delete=False) as tmp:
+                tmp.write(file_content)
+                tmp_path = Path(tmp.name)
+
+            regions = parse_antismash_gbk(tmp_path, AntiSmashOptions())
+        finally:
+            if tmp_path is not None:
+                tmp_path.unlink(missing_ok=True)
+
+        if not regions:
+            raise ValueError(
+                "No antiSMASH regions found in this GenBank file. "
+                "Make sure it is a GenBank file annotated by antiSMASH."
+            )
+
+        readouts = []
+        for region in regions:
+            annotate_region(region)
+            readouts.append(linear_readout(region))
+
+        # Rough analog of a compound's parse "coverage" score: fraction of modules
+        # with a confident identification. PKS modules are classified directly from
+        # domain anatomy (no ML model involved), so they always count as confident;
+        # NRPS (A-domain) modules only count if PARAS resolved a non-"unknown"
+        # substrate. Without this, a PKS-only cluster would score 0%/blank even
+        # though every module parsed correctly, since PARAS never runs on PKS.
+        all_modules = [m for r in readouts for m in r.modules]
+        confident_modules = [
+            m for m in all_modules
+            if m.type == ModuleType.PKS
+            or (m.predicted_substrate and m.predicted_substrate.name != "unknown")
+        ]
+        score = (len(confident_modules) / len(all_modules)) if all_modules else None
+
+        result_payload = {"readouts": [r.to_dict() for r in readouts]}
 
         def mark_done(it: dict) -> None:
             it["name"] = name or it.get("name")
@@ -310,3 +372,35 @@ def submit_gene_cluster() -> tuple[Response, int]:
 
     elapsed = int((time.time() - t0) * 1000)
     return jsonify({"ok": True, "status": "done", "elapsed_ms": elapsed}), 200
+
+
+@blp_get_cluster_readout.post("/api/getClusterReadout")
+def get_cluster_readout() -> tuple[Response, int]:
+    """
+    Endpoint for fetching a gene cluster's parsed linear module readout(s).
+
+    .. note::
+        `payload` is deliberately stripped from items before they're sent to the
+        client as part of the session (see `strip_property_from_dict` in
+        session_store.py), the same way a compound's `payload` never reaches the
+        client directly -- only via `/api/reconstructCompound`. This is the
+        gene-cluster equivalent of that endpoint.
+    """
+    payload = request.get_json(force=True) or {}
+
+    session_id = payload.get("sessionId")
+    item_id = payload.get("itemId")
+
+    full_sess = load_session_with_items(session_id)
+    if full_sess is None:
+        return jsonify({"error": "Session not found"}), 404
+
+    item = next((it for it in full_sess.get("items", []) if it.get("id") == item_id), None)
+    if item is None:
+        return jsonify({"error": "Item not found"}), 404
+
+    if item.get("kind") != "cluster":
+        return jsonify({"error": "Item is not a gene cluster"}), 400
+
+    data = item.get("payload") or {"readouts": []}
+    return jsonify({"ok": True, "status": "done", "data": data}), 200

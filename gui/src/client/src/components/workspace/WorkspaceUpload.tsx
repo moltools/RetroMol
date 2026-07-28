@@ -306,7 +306,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
               Import compounds
             </Button>
 
-            <Button variant="contained" onClick={handleOpenBGCs} disabled>
+            <Button variant="contained" onClick={handleOpenBGCs}>
               Import BGCs
             </Button>
           </Stack>

@@ -22,7 +22,9 @@ import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { DialogViewItem } from "./DialogViewItem";
 import { PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
+import { ClusterReadoutRows } from "./ClusterReadoutRows";
 import { reconstructCompound } from "../../features/reconstruction/api";
+import { getClusterReadout } from "../../features/clusters/api";
 import { useTick } from "../../hooks/useTick";
 
 function getScoreColor(theme: Theme, value: number): string {
@@ -115,6 +117,15 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
   });
   const reconstructions = reconstructionQuery.data ?? null;
   const editor = usePrimarySequenceEditor(session, setSession, item, reconstructions);
+
+  // Same idea as reconstructionQuery, but for gene clusters -- the parsed module
+  // readout is computed server-side at submit time and only ever handed over via
+  // this dedicated endpoint (item.payload is stripped from the session itself).
+  const clusterReadoutQuery = useQuery({
+    queryKey: ["getClusterReadout", session.sessionId, item.id],
+    queryFn: ({ signal }) => getClusterReadout(session.sessionId, item.id, signal),
+    enabled: expanded && !isCompound && isDone,
+  });
 
   return (
     <>
@@ -293,7 +304,7 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
             )}
             <IconButton
               size="small"
-              disabled={disabled || !isCompound}
+              disabled={disabled}
               onClick={(event) => {
                 event.stopPropagation();
                 if (disabled) return;
@@ -313,11 +324,11 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
-            <Tooltip title={isCompound ? "Show primary sequences" : "Not available for BGCs"} arrow>
+            <Tooltip title={isCompound ? "Show primary sequences" : "Show parsed modules"} arrow>
               <span>
                 <IconButton
                   size="small"
-                  disabled={disabled || !isCompound}
+                  disabled={disabled}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (disabled) return;
@@ -386,6 +397,40 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
                     )}
                   </Stack>
                 </Stack>
+              )}
+            </Box>
+          </Collapse>
+        )}
+
+        {!isCompound && (
+          <Collapse in={expanded} timeout="auto" unmountOnExit>
+            <Box onClick={(e) => e.stopPropagation()} sx={{ pt: 0.5 }}>
+              <Divider sx={{ mb: 1.5 }} />
+
+              {isQueued && (
+                <Typography variant="body2" color="text.secondary">
+                  Waiting to be parsed...
+                </Typography>
+              )}
+
+              {showSpinner && <CircularProgress size={20} />}
+
+              {isError && (
+                <Typography variant="body2" color="text.secondary">
+                  Parsing failed -- see the error above for details.
+                </Typography>
+              )}
+
+              {isDone && clusterReadoutQuery.isLoading && <CircularProgress size={20} />}
+
+              {isDone && clusterReadoutQuery.error && (
+                <Alert severity="error">
+                  {(clusterReadoutQuery.error as Error).message || "Failed to load parsed gene cluster."}
+                </Alert>
+              )}
+
+              {isDone && clusterReadoutQuery.data && (
+                <ClusterReadoutRows readouts={clusterReadoutQuery.data.readouts} />
               )}
             </Box>
           </Collapse>

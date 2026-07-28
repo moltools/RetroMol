@@ -448,7 +448,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
 
           {clusterCount > 0 && (
             <Alert severity="info" sx={{ mb: 1.5 }}>
-              {clusterCount} gene cluster upload(s) aren't shown here — primary-sequence picking isn't available for BGCs yet.
+              {clusterCount} gene cluster upload(s) aren't shown here: primary-sequence picking isn't available for BGCs yet.
             </Alert>
           )}
 

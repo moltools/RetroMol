@@ -16,7 +16,13 @@ from routes.session import (
 )
 from routes.session_store import get_or_init_app_start_epoch
 from routes.database import check_database_ready, duckdb_path_from_env
-from routes.jobs import blp_search_compound, blp_submit_compound, blp_reconstruct_compound, blp_submit_gene_cluster
+from routes.jobs import (
+    blp_search_compound,
+    blp_submit_compound,
+    blp_reconstruct_compound,
+    blp_submit_gene_cluster,
+    blp_get_cluster_readout,
+)
 from routes.events import blp_events, blp_sse_ticket
 from routes.discovery import blp_discovery_monomer_names, blp_discovery_query, blp_discovery_msa, get_discovery_context
 
@@ -144,6 +150,7 @@ app.register_blueprint(blp_search_compound)
 app.register_blueprint(blp_submit_compound)
 app.register_blueprint(blp_reconstruct_compound)
 app.register_blueprint(blp_submit_gene_cluster)
+app.register_blueprint(blp_get_cluster_readout)
 
 app.register_blueprint(blp_events)
 app.register_blueprint(blp_sse_ticket)
