@@ -12,18 +12,22 @@ import threading
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 from flask import Blueprint, Response, current_app, jsonify, request
 
+from retromol.model.result import Result
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol_alignment.aligner import setup_aligner
 from retromol_alignment.msa import calculate_msa
 from retromol_alignment.pairwise import Converter, align
 from retromol_alignment.ranking import rerank
 from retromol_alignment.scoring import create_tanimoto_scoring_matrix
-from retromol_database.duckdb import FINGERPRINT_SIZE, SearchResult
+from retromol_database.duckdb import FINGERPRINT_SIZE, Entry, SearchResult
 from retromol_fingerprint.fingerprint import TOKEN_UNK, Fingerprinter, Vocabulary
+from retromol_synthesis.reconstruction import reconstruct_linear_readout
 
 from routes.database import open_retromol_db
+from routes.session_store import load_session_with_items
 
 blp_discovery_monomer_names = Blueprint("discovery_monomer_names", __name__)
 blp_discovery_query = Blueprint("discovery_query", __name__)
@@ -193,6 +197,87 @@ def _normalized_pct(align_score: float, denom: float) -> float:
     return max(0.0, min(1.0, align_score / denom)) * 100.0
 
 
+UPLOAD_ENTRY_ID_PREFIX = "upload:"
+
+
+def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    """
+    Cosine similarity between two fingerprint vectors, matching the metric
+    `RetroMolDuckDB.closest` uses (`array_cosine_similarity`) so upload candidates
+    are ranked on the same scale as database candidates.
+
+    :param a: first fingerprint vector
+    :param b: second fingerprint vector
+    :return: cosine similarity, or 0.0 if either vector has zero norm
+    """
+    denom = float(np.linalg.norm(a) * np.linalg.norm(b))
+    if denom <= 0:
+        return 0.0
+    return float(np.dot(a, b) / denom)
+
+
+def _build_upload_candidates(session_id: str, ctx: DiscoveryContext, query_fp: np.ndarray) -> list[SearchResult]:
+    """
+    Build synthetic search candidates from the session's own uploaded (and successfully
+    parsed) compounds, so they can compete for a spot among the nearest-neighbor
+    candidates alongside the persistent database entries.
+
+    Each reconstructed primary sequence for an uploaded compound becomes its own
+    candidate (a compound can have more than one reconstruction), using whatever
+    sequence is currently effective for it -- the user's edited override if one was
+    saved, otherwise the algorithm's own parse. BGC uploads aren't included: primary-
+    sequence reconstruction isn't available for them yet (see WorkspaceDiscovery.tsx).
+
+    :param session_id: the session whose uploads should be considered
+    :param ctx: the discovery context
+    :param query_fp: the query's fingerprint, for scoring candidates against
+    :return: synthetic SearchResult candidates, one per reconstructed sequence
+    """
+    session = load_session_with_items(session_id)
+    if session is None:
+        current_app.logger.warning("discovery_query: sessionId not found for includeUserUploads: %s", session_id)
+        return []
+
+    candidates: list[SearchResult] = []
+    for item in session.get("items", []):
+        if item.get("kind") != "compound" or item.get("status") != "done" or not item.get("payload"):
+            continue
+
+        try:
+            reconstructions = reconstruct_linear_readout(Result.from_dict(item["payload"]))
+        except Exception:
+            current_app.logger.exception("discovery_query: failed to reconstruct upload item_id=%s", item.get("id"))
+            continue
+
+        overrides = item.get("editedPrimarySequences") or {}
+        label = item.get("name") or "Uploaded compound"
+
+        for idx, reconstruction in enumerate(reconstructions):
+            override = overrides.get(str(idx))
+            effective_sequence = override if override is not None else reconstruction.to_dict()["primary_sequence"]
+            names = [name for name, _tags in effective_sequence]
+            if not names:
+                continue
+
+            fp = ctx.fingerprinter.encode([_per_monomer_tokens(name, ctx) for name in names])
+            candidates.append(
+                SearchResult(
+                    entry=Entry(
+                        id=f"{UPLOAD_ENTRY_ID_PREFIX}{item['id']}:{idx}",
+                        name=label if len(reconstructions) == 1 else f"{label} #{idx + 1}",
+                        url=None,
+                        raw=None,
+                        type="compound",
+                        primary_sequence=names,
+                        fingerprint=fp.tolist(),
+                    ),
+                    similarity=_cosine_similarity(query_fp, fp),
+                )
+            )
+
+    return candidates
+
+
 def _per_monomer_tokens(name: str, ctx: DiscoveryContext) -> list[str]:
     """
     Build the fingerprinting token list for one primary-sequence block.
@@ -260,6 +345,9 @@ def discovery_query() -> tuple[Response, int]:
     n = payload.get("n")
     top_x = payload.get("topX")
     score_mode = payload.get("scoreMode", "subsequence")
+    only_user_uploads = bool(payload.get("onlyUserUploads", False))
+    include_user_uploads = bool(payload.get("includeUserUploads", False)) or only_user_uploads
+    session_id = payload.get("sessionId")
 
     if (
         not isinstance(primary_sequence, list)
@@ -281,6 +369,15 @@ def discovery_query() -> tuple[Response, int]:
     if not isinstance(top_x, int) or isinstance(top_x, bool) or not (1 <= top_x <= max_top_x):
         return jsonify({"error": f"topX must be an integer between 1 and {max_top_x}"}), 400
 
+    if include_user_uploads and not (isinstance(session_id, str) and session_id):
+        return jsonify({"error": "sessionId is required when includeUserUploads or onlyUserUploads is true"}), 400
+
+    if only_user_uploads and entry_type not in ("compound", "both"):
+        return jsonify({
+            "error": "onlyUserUploads is not supported for entryType 'bgc' -- "
+            "primary-sequence reconstruction isn't available for uploaded BGCs yet"
+        }), 400
+
     ctx = get_discovery_context()
 
     # Fingerprint is built from the display sequence directly (Fingerprinter.encode
@@ -293,15 +390,30 @@ def discovery_query() -> tuple[Response, int]:
     # unidentified/unrecognized blocks collapse to the single TOKEN_UNK placeholder.
     alignment_query = [_normalize_for_alignment(name, ctx) for name in primary_sequence]
 
-    with open_retromol_db() as db:
-        if entry_type == "both":
-            compound_hits = db.closest(query_fp, limit=n, entry_type="compound")
-            bgc_hits = db.closest(query_fp, limit=n, entry_type="bgc")
-            candidates: list[SearchResult] = sorted(
-                [*compound_hits, *bgc_hits], key=lambda r: r.similarity, reverse=True
-            )[:n]
-        else:
-            candidates = db.closest(query_fp, limit=n, entry_type=entry_type)
+    # onlyUserUploads skips the persistent database entirely, so a user who just
+    # wants to align their own uploads against each other never pays for a DB round-trip.
+    db_candidates: list[SearchResult] = []
+    if not only_user_uploads:
+        with open_retromol_db() as db:
+            if entry_type == "both":
+                compound_hits = db.closest(query_fp, limit=n, entry_type="compound")
+                bgc_hits = db.closest(query_fp, limit=n, entry_type="bgc")
+                db_candidates = [*compound_hits, *bgc_hits]
+            else:
+                db_candidates = db.closest(query_fp, limit=n, entry_type=entry_type)
+
+    # User uploads compete for a spot among the nearest N neighbors on the same
+    # fingerprint-similarity footing as database entries -- BGC uploads aren't
+    # included since primary-sequence reconstruction isn't available for them yet.
+    upload_candidates = (
+        _build_upload_candidates(session_id, ctx, query_fp)
+        if include_user_uploads and entry_type in ("compound", "both")
+        else []
+    )
+
+    candidates: list[SearchResult] = sorted(
+        [*db_candidates, *upload_candidates], key=lambda r: r.similarity, reverse=True
+    )[:n]
 
     if not candidates:
         return jsonify({
@@ -383,6 +495,7 @@ def discovery_query() -> tuple[Response, int]:
             "name": candidate.entry.name,
             "url": candidate.entry.url,
             "type": candidate.entry.type,
+            "origin": "upload" if candidate.entry.id.startswith(UPLOAD_ENTRY_ID_PREFIX) else "database",
             "fingerprintSimilarity": candidate.similarity,
             "primarySequence": [_denormalize_for_display(t) for t in oriented_target],
             "inverted": inverted,
