@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PrimarySequenceItemSchema } from "../reconstruction/types";
 
 export const BaseItemSchema = z.object({
   id: z.string(),
@@ -13,6 +14,12 @@ export const CompoundItemSchema = BaseItemSchema.extend({
   kind: z.literal("compound"),
   smiles: z.string(),
   matchStereochemistry: z.boolean(),
+  // User overrides for the primary sequence(s) RetroMol parsed out of this
+  // compound, keyed by reconstruction index (stringified, for JSON-safe object
+  // keys). A missing key means "use the algorithm's own parse" -- reverting an
+  // edit just deletes that key rather than storing a copy of the original, so
+  // the original can never go stale.
+  editedPrimarySequences: z.record(z.string(), z.array(PrimarySequenceItemSchema)).nullable().optional(),
 });
 
 export const ClusterItemSchema = BaseItemSchema.extend({

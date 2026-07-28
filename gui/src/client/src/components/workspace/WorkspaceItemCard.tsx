@@ -1,5 +1,9 @@
 import React from "react";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Collapse from "@mui/material/Collapse";
+import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Checkbox from "@mui/material/Checkbox";
@@ -8,12 +12,17 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ViewIcon from "@mui/icons-material/Visibility";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import CircularProgress from "@mui/material/CircularProgress";
+import { useQuery } from "@tanstack/react-query";
 import { Gauge } from "@mui/x-charts/Gauge";
-import { SessionItem } from "../../features/session/types";
+import { Session, SessionItem } from "../../features/session/types";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { DialogViewItem } from "./DialogViewItem";
+import { PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
+import { reconstructCompound } from "../../features/reconstruction/api";
 import { useTick } from "../../hooks/useTick";
 
 function getScoreColor(theme: Theme, value: number): string {
@@ -24,7 +33,8 @@ function getScoreColor(theme: Theme, value: number): string {
 };
 
 type WorkspaceItemCardProps = {
-  sessionId: string;
+  session: Session;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
   item: SessionItem;
   selected: boolean;
   disabled?: boolean;
@@ -54,7 +64,8 @@ function formatUpdatedAgo(updatedAt?: number): string {
 };
 
 export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
-  sessionId,
+  session,
+  setSession,
   item,
   selected,
   disabled = false,
@@ -65,6 +76,8 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
   const itemScore = typeof item.score === "number" ? item.score : 0.0;
 
   const [openViewItem, setOpenViewItem] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
+  const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
 
   // Re-render every 5s so "X ago" updates, via one shared timer for all cards
   useTick(5000);
@@ -84,6 +97,24 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
     event.currentTarget.blur(); // prevents 'Blocked aria-hidden on an element' warning
     setOpenViewItem(true);
   };
+
+  const handleToggleMotif = (tags: number[]) => {
+    setSelectedTags((prev) => {
+      const allSelected = tags.every((tag) => prev.includes(tag));
+      if (allSelected) return prev.filter((tag) => !tags.includes(tag));
+      return Array.from(new Set([...prev, ...tags]));
+    });
+  };
+
+  // Shares its query cache (and edit state machine) with DialogViewItem -- expanding
+  // here and opening "View item" for the same compound don't refetch or diverge.
+  const reconstructionQuery = useQuery({
+    queryKey: ["reconstructCompound", session.sessionId, item.id],
+    queryFn: ({ signal }) => reconstructCompound(session.sessionId, item.id, signal),
+    enabled: expanded && isCompound,
+  });
+  const reconstructions = reconstructionQuery.data ?? null;
+  const editor = usePrimarySequenceEditor(session, setSession, item, reconstructions);
 
   return (
     <>
@@ -282,12 +313,88 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
+            <Tooltip title={isCompound ? "Show primary sequences" : "Not available for BGCs"} arrow>
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={disabled || !isCompound}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (disabled) return;
+                    setExpanded((prev) => !prev);
+                  }}
+                >
+                  {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                </IconButton>
+              </span>
+            </Tooltip>
           </Stack>
         </Box>
+
+        {isCompound && (
+          <Collapse in={expanded} timeout="auto" unmountOnExit>
+            <Box onClick={(e) => e.stopPropagation()} sx={{ pt: 0.5 }}>
+              <Divider sx={{ mb: 1.5 }} />
+
+              {reconstructionQuery.isLoading && <CircularProgress size={20} />}
+
+              {reconstructionQuery.error && (
+                <Alert severity="error">
+                  {(reconstructionQuery.error as Error).message || "Failed to load reconstruction."}
+                </Alert>
+              )}
+
+              {reconstructions && reconstructions.length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  No reconstructed primary sequences found for this compound.
+                </Typography>
+              )}
+
+              {reconstructions && reconstructions.length > 0 && (
+                <Stack spacing={1.5}>
+                  <Stack direction="column" spacing={1.5}>
+                    <PrimarySequenceRows
+                      item={item}
+                      data={reconstructions}
+                      state={editor}
+                      selectedTags={selectedTags}
+                      onToggleMotif={handleToggleMotif}
+                      labelWidth={110}
+                    />
+                  </Stack>
+
+                  <Stack direction="row" spacing={1}>
+                    {editor.editing ? (
+                      <>
+                        <Button size="small" variant="text" color="inherit" onClick={editor.handleCancelEdit}>
+                          Cancel
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={editor.handleSaveAll}
+                          disabled={!editor.anyDirty || editor.saving}
+                          startIcon={editor.saving ? <CircularProgress size={14} color="inherit" /> : undefined}
+                        >
+                          {editor.saving ? "Saving..." : "Save changes"}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button size="small" variant="outlined" onClick={() => editor.setEditing(true)}>
+                        Edit sequences
+                      </Button>
+                    )}
+                  </Stack>
+                </Stack>
+              )}
+            </Box>
+          </Collapse>
+        )}
       </Stack>
 
       <DialogViewItem
-        sessionId={sessionId}
+        session={session}
+        setSession={setSession}
         item={item}
         open={openViewItem}
         onClose={() => setOpenViewItem(false)}

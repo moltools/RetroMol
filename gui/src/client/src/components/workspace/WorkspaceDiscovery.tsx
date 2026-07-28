@@ -325,6 +325,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   const clusterCount = session.items.length - compoundItems.length;
 
   const [selectedItemId, setSelectedItemId] = React.useState<string>("");
+  const selectedItem = compoundItems.find((item) => item.id === selectedItemId);
   const [blocks, setBlocks] = React.useState<SequenceBlock[]>([]);
 
   const [entryType, setEntryType] = React.useState<DiscoveryEntryType>("compound");
@@ -475,26 +476,37 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                 </Typography>
               )}
               <Stack spacing={1}>
-                {(reconstructionQuery.data ?? []).map((reconstruction, idx) => (
-                  <Box
-                    key={idx}
-                    sx={{
-                      p: 1,
-                      borderRadius: 1,
-                      border: "1px solid",
-                      borderColor: "divider",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1.5,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <ReconstructionPreview sequence={reconstruction.primary_sequence} />
-                    <Button size="small" variant="outlined" onClick={() => handlePickReconstruction(reconstruction.primary_sequence)}>
-                      Use this
-                    </Button>
-                  </Box>
-                ))}
+                {(reconstructionQuery.data ?? []).map((reconstruction, idx) => {
+                  // Prefer whatever was saved for this reconstruction in the Upload
+                  // tab's viewer over the raw algorithm output, so a correction made
+                  // there is what actually gets queried here.
+                  const override = selectedItem?.editedPrimarySequences?.[String(idx)];
+                  const effectiveSequence = override ?? reconstruction.primary_sequence;
+
+                  return (
+                    <Box
+                      key={idx}
+                      sx={{
+                        p: 1,
+                        borderRadius: 1,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <ReconstructionPreview sequence={effectiveSequence} />
+                      {override && (
+                        <Chip label="Edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem" }} />
+                      )}
+                      <Button size="small" variant="outlined" onClick={() => handlePickReconstruction(effectiveSequence)}>
+                        Use this
+                      </Button>
+                    </Box>
+                  );
+                })}
               </Stack>
             </Box>
           )}

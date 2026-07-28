@@ -392,7 +392,8 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
               {session.items.map((item) => (
                 <WorkspaceItemCard
                   key={item.id}
-                  sessionId={session.sessionId}
+                  session={session}
+                  setSession={setSession}
                   item={item}
                   selected={selectedIds.has(item.id)}
                   disabled={deletingIds.has(item.id)}

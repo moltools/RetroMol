@@ -2,6 +2,7 @@ import React from "react";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Autocomplete from "@mui/material/Autocomplete";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CloseIcon from "@mui/icons-material/Close";
@@ -29,31 +30,51 @@ import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { searchMonomerNames } from "../../features/discovery/api";
 import type { MonomerNameOption } from "../../features/discovery/types";
 
-export type SequenceBlock = { id: string; name: string };
+// tags carries the source atom indices this block was mined from (if any). A
+// block with no tags (freshly added, or otherwise hand-edited) has no atoms to
+// highlight -- see `showProvenance` below.
+export type SequenceBlock = { id: string; name: string; tags?: number[] };
 
 type SequenceEditorProps = {
   blocks: SequenceBlock[];
   onChange: (blocks: SequenceBlock[]) => void;
   disabled?: boolean;
+  // When true, visually distinguishes blocks that are still linked to real
+  // parsed atoms (solid border, clickable) from ones that aren't (dashed
+  // border) -- e.g. when this editor sits next to the structure it was mined
+  // from and edits shouldn't be mistaken for algorithm output.
+  showProvenance?: boolean;
+  selectedTags?: number[];
+  onBlockClick?: (tags: number[]) => void;
 };
 
 function SortableBlock({
   block,
   disabled,
+  showProvenance,
+  selected,
   onDelete,
+  onClick,
 }: {
   block: SequenceBlock;
   disabled?: boolean;
+  showProvenance?: boolean;
+  selected?: boolean;
   onDelete: (id: string) => void;
+  onClick?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
     disabled,
   });
 
-  return (
+  const linked = (block.tags?.length ?? 0) > 0;
+  const clickable = showProvenance && linked && !!onClick;
+
+  const content = (
     <Box
       ref={setNodeRef}
+      onClick={clickable ? onClick : undefined}
       sx={{
         transform: CSS.Transform.toString(transform),
         transition: transition ?? undefined,
@@ -65,12 +86,16 @@ function SortableBlock({
         py: 0.75,
         borderRadius: 1,
         border: "1px solid",
-        borderColor: "divider",
-        bgcolor: "background.paper",
+        borderStyle: showProvenance && !linked ? "dashed" : "solid",
+        borderColor: selected ? "primary.main" : "divider",
+        bgcolor: selected ? "primary.main" : "background.paper",
+        color: selected ? "primary.contrastText" : "text.primary",
         fontSize: "0.875rem",
         fontWeight: 500,
         whiteSpace: "nowrap",
         flexShrink: 0,
+        cursor: clickable ? "pointer" : undefined,
+        userSelect: clickable ? "none" : undefined,
       }}
     >
       <Box
@@ -80,7 +105,7 @@ function SortableBlock({
           display: "flex",
           alignItems: "center",
           cursor: disabled ? "default" : "grab",
-          color: "text.secondary",
+          color: selected ? "inherit" : "text.secondary",
           touchAction: "none",
         }}
       >
@@ -90,11 +115,29 @@ function SortableBlock({
         <MotifName name={block.name} />
       </Box>
       {!disabled && (
-        <IconButton size="small" onClick={() => onDelete(block.id)} sx={{ p: 0.25 }}>
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(block.id);
+          }}
+          sx={{ p: 0.25, color: selected ? "inherit" : undefined }}
+        >
           <CloseIcon fontSize="inherit" />
         </IconButton>
       )}
     </Box>
+  );
+
+  if (!showProvenance) return content;
+
+  return (
+    <Tooltip
+      title={linked ? "Click to highlight the source atoms" : "Not linked to the original structure (added or edited by hand)"}
+      arrow
+    >
+      {content}
+    </Tooltip>
   );
 }
 
@@ -148,9 +191,15 @@ function AddBlockControl({ disabled, onAdd }: { disabled?: boolean; onAdd: (name
         getOptionLabel={(option) => option.name}
         isOptionEqualToValue={(option, value) => option.name === value.name}
         inputValue={inputValue}
-        onInputChange={(_, value) => {
+        onInputChange={(_, value, reason) => {
           setInputValue(value);
-          setSelected(null);
+          // MUI fires this right after onChange too (reason "reset", syncing the
+          // input text to the newly-picked option's label) -- clearing `selected`
+          // unconditionally here would immediately undo that selection. Only clear
+          // it when the user is actually typing.
+          if (reason === "input") {
+            setSelected(null);
+          }
         }}
         value={selected}
         onChange={(_, value) => setSelected(value)}
@@ -168,7 +217,14 @@ function AddBlockControl({ disabled, onAdd }: { disabled?: boolean; onAdd: (name
   );
 }
 
-export const SequenceEditor: React.FC<SequenceEditorProps> = ({ blocks, onChange, disabled = false }) => {
+export const SequenceEditor: React.FC<SequenceEditorProps> = ({
+  blocks,
+  onChange,
+  disabled = false,
+  showProvenance = false,
+  selectedTags = [],
+  onBlockClick,
+}) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -189,18 +245,31 @@ export const SequenceEditor: React.FC<SequenceEditorProps> = ({ blocks, onChange
     onChange(blocks.filter((b) => b.id !== id));
   };
 
-  // Requirement: adding always appends to the end.
+  // Requirement: adding always appends to the end. Manually added blocks carry
+  // no tags -- there's no parsed atom range for them to link to.
   const handleAdd = (name: string) => {
-    onChange([...blocks, { id: crypto.randomUUID(), name }]);
+    onChange([...blocks, { id: crypto.randomUUID(), name, tags: [] }]);
   };
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <Box sx={{ display: "flex", flexWrap: "nowrap", gap: 1, alignItems: "center", ...horizontalScrollSx }}>
         <SortableContext items={blocks.map((b) => b.id)} strategy={horizontalListSortingStrategy}>
-          {blocks.map((block) => (
-            <SortableBlock key={block.id} block={block} disabled={disabled} onDelete={handleDelete} />
-          ))}
+          {blocks.map((block) => {
+            const linked = (block.tags?.length ?? 0) > 0;
+            const selected = linked && block.tags!.every((tag) => selectedTags.includes(tag));
+            return (
+              <SortableBlock
+                key={block.id}
+                block={block}
+                disabled={disabled}
+                showProvenance={showProvenance}
+                selected={selected}
+                onDelete={handleDelete}
+                onClick={block.tags ? () => onBlockClick?.(block.tags!) : undefined}
+              />
+            );
+          })}
         </SortableContext>
         {!disabled && <AddBlockControl disabled={disabled} onAdd={handleAdd} />}
       </Box>
