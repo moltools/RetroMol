@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Literal, overload
 
+from retromol.chem.mol import smiles_to_mol
+from retromol.model.rules import RuleSet
 from retromol_antismash.model import Region, Gene, Strand, Domain
 
 
@@ -1029,3 +1031,88 @@ def linear_readout(region: Region) -> LinearReadout:
         modules=collected,
         modifiers=modifiers,
     )
+
+
+def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[str, list[str]]:
+    """
+    Map a single module's predicted substrate onto the ruleset's monomer vocabulary,
+    so BGC readouts land in the same name/fingerprint-token space as compound primary
+    sequences (see `retromol_synthesis.reconstruction.reconstruct_linear_readout`,
+    whose `primary_sequence` entries are matching-rule names drawn from the same
+    ruleset).
+
+    The two module types resolve very differently, because they carry different kinds
+    of evidence:
+
+    - A PKS module's extender unit is only ever known at the reduction-level (its
+      `PKSSubstrate.extender_unit`, e.g. "PK_A") -- there's no model predicting which
+      specific side chain (e.g. "A2" vs "A3") was used. So it maps to the group-level
+      pseudonym tokens every rule at that reduction level shares (e.g. ["PK_A", "PK"])
+      rather than to one specific rule name -- naming a specific rule would claim
+      identity information we don't actually have.
+    - An NRPS module carries a PARAS-predicted substrate SMILES for a *specific*
+      molecule. That SMILES is matched against every rule in the ruleset by structure,
+      ignoring stereochemistry (`RuleSet.find_structural_matches`) rather than by
+      name, since PARAS' substrate labels aren't guaranteed to match a rule's `name`
+      string verbatim (naming/spelling can differ even when the two rules describe the
+      same molecule) and PARAS' predicted stereochemistry need not match the rule's.
+
+    :param module: a PKS or NRPS module from a BGC's LinearReadout.
+    :param ruleset: the rule set to resolve the module's substrate against.
+    :return: a tuple of (display name, fingerprint tokens) for this module. The
+        display name is "X" and tokens are empty whenever nothing could be resolved --
+        the same "unidentified block" convention used for compound primary sequences.
+    """
+    if module.type is ModuleType.PKS:
+        extender_unit = module.substrate.extender_unit
+        if extender_unit is PKSExtenderUnit.UNCLASSIFIED:
+            return "X", []
+        return extender_unit.value, [extender_unit.value, "PK"]
+
+    # NRPS: resolve the PARAS-predicted substrate SMILES by structure.
+    substrate = module.substrate
+    smiles = substrate.smiles if substrate else None
+    if not smiles:
+        return "X", []
+
+    try:
+        mol = smiles_to_mol(smiles)
+    except ValueError:
+        return "X", []
+
+    matches = ruleset.find_structural_matches(mol, match_stereochemistry=False)
+    if not matches:
+        return "X", []
+
+    tokens: set[str] = set()
+    for rule in matches:
+        tokens.add(rule.name)
+        tokens.update(rule.pseudonyms)
+
+    # Deterministic choice among structurally-tied rules (e.g. two rules that
+    # describe the same free-molecule structure but differ in which atom continues
+    # the polymer chain, such as "aspartic acid" vs. an isoAsp-linked variant).
+    name = min(rule.name for rule in matches)
+
+    return name, sorted(tokens)
+
+
+def bgc_primary_sequence(readout: LinearReadout, ruleset: RuleSet) -> tuple[list[str], list[list[str]]]:
+    """
+    Convert a BGC's linear readout into a primary-sequence representation comparable
+    to a compound's: one display name and one fingerprint token list per module, both
+    drawn from the same matching-rule vocabulary, in biosynthetic order.
+
+    :param readout: the BGC linear readout to convert.
+    :param ruleset: the rule set to resolve each module's substrate against.
+    :return: a tuple of (display names, per-module fingerprint tokens), one entry per module in biosynthetic order.
+    """
+    names: list[str] = []
+    tokens: list[list[str]] = []
+
+    for module in readout.biosynthetic_order():
+        name, module_tokens = module_primary_sequence_tokens(module, ruleset)
+        names.append(name)
+        tokens.append(module_tokens)
+
+    return names, tokens

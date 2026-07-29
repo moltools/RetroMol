@@ -12,6 +12,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import ListSubheader from "@mui/material/ListSubheader";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
@@ -26,6 +27,8 @@ import { useTheme, alpha, type Theme } from "@mui/material/styles";
 import { Session, SessionItem } from "../../features/session/types";
 import { reconstructCompound } from "../../features/reconstruction/api";
 import type { PrimarySequenceItem } from "../../features/reconstruction/types";
+import { reconstructGeneCluster } from "../../features/clusters/api";
+import type { ClusterPrimarySequence } from "../../features/clusters/types";
 import { runDiscoveryQuery, runDiscoveryMsa } from "../../features/discovery/api";
 import {
   DISCOVERY_SCORE_MODE_OPTIONS,
@@ -52,9 +55,16 @@ function blocksFromNames(names: string[]): SequenceBlock[] {
 
 // Read-only preview of a candidate reconstruction path, for picking which one seeds the editor.
 function ReconstructionPreview({ sequence }: { sequence: PrimarySequenceItem[] }) {
+  return <NamesPreview names={sequence.map(([name]) => name)} />;
+}
+
+// Read-only preview of one BGC region's primary sequence, for picking which one seeds
+// the editor. Unlike a compound reconstruction there are no per-block tags to carry,
+// just names -- see retromol_antismash.modules.bgc_primary_sequence.
+function NamesPreview({ names }: { names: string[] }) {
   return (
     <Box sx={{ display: "flex", flexWrap: "nowrap", gap: 0.5, minWidth: 0, flex: "1 1 0%", ...horizontalScrollSx }}>
-      {sequence.map(([name], idx) => (
+      {names.map((name, idx) => (
         <Box
           key={`${name}-${idx}`}
           sx={{
@@ -328,10 +338,10 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   const { pushNotification } = useNotifications();
 
   const compoundItems = session.items.filter((item): item is SessionItem & { kind: "compound" } => item.kind === "compound");
-  const clusterCount = session.items.length - compoundItems.length;
+  const clusterItems = session.items.filter((item): item is SessionItem & { kind: "cluster" } => item.kind === "cluster");
 
   const [selectedItemId, setSelectedItemId] = React.useState<string>("");
-  const selectedItem = compoundItems.find((item) => item.id === selectedItemId);
+  const selectedItem = session.items.find((item) => item.id === selectedItemId);
   const [blocks, setBlocks] = React.useState<SequenceBlock[]>([]);
 
   const [entryType, setEntryType] = React.useState<DiscoveryEntryType>("compound");
@@ -346,7 +356,13 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   const reconstructionQuery = useQuery({
     queryKey: ["reconstructCompound", session.sessionId, selectedItemId],
     queryFn: ({ signal }) => reconstructCompound(session.sessionId, selectedItemId, signal),
-    enabled: selectedItemId.length > 0,
+    enabled: selectedItem?.kind === "compound",
+  });
+
+  const clusterReconstructionQuery = useQuery({
+    queryKey: ["reconstructGeneCluster", session.sessionId, selectedItemId],
+    queryFn: ({ signal }) => reconstructGeneCluster(session.sessionId, selectedItemId, signal),
+    enabled: selectedItem?.kind === "cluster",
   });
 
   const discoveryMutation = useMutation({
@@ -357,8 +373,8 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
         scoreMode,
         n,
         topX,
-        includeUserUploads: (includeUserUploads || onlyUserUploads) && entryType !== "bgc",
-        onlyUserUploads: onlyUserUploads && entryType !== "bgc",
+        includeUserUploads: includeUserUploads || onlyUserUploads,
+        onlyUserUploads,
         sessionId: session.sessionId,
       }),
     onError: (err) => {
@@ -427,8 +443,8 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
     });
   }, [msaQuery.data, discoveryMutation.data]);
 
-  const handlePickReconstruction = (sequence: PrimarySequenceItem[]) => {
-    setBlocks(blocksFromNames(sequence.map(([name]) => name)));
+  const handlePickNames = (names: string[]) => {
+    setBlocks(blocksFromNames(names));
   };
 
   const maxTopX = Math.max(1, Math.min(n, MAX_TOP_X));
@@ -443,37 +459,40 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
             Pick a starting sequence
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-            Seed the editor below from one of your uploaded compounds, or build a sequence from scratch by adding blocks directly.
+            Seed the editor below from one of your uploaded compounds or gene clusters, or build a sequence from scratch by adding blocks directly.
           </Typography>
 
-          {clusterCount > 0 && (
-            <Alert severity="info" sx={{ mb: 1.5 }}>
-              {clusterCount} gene cluster upload(s) aren't shown here: primary-sequence picking isn't available for BGCs yet.
-            </Alert>
-          )}
-
-          {compoundItems.length === 0 ? (
+          {compoundItems.length === 0 && clusterItems.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
-              No compounds uploaded yet. Import one from the Upload tab first.
+              Nothing uploaded yet. Import a compound or gene cluster from the Upload tab first.
             </Typography>
           ) : (
             <TextField
               select
               size="small"
-              label="Compound"
+              label="Compound or gene cluster"
               value={selectedItemId}
               onChange={(e) => setSelectedItemId(e.target.value)}
               sx={{ minWidth: 260 }}
             >
-              {compoundItems.map((item) => (
-                <MenuItem key={item.id} value={item.id} disabled={item.status !== "done"}>
-                  {item.name} {item.status !== "done" ? `(${item.status})` : ""}
-                </MenuItem>
-              ))}
+              {[
+                ...(compoundItems.length > 0 ? [<ListSubheader key="compounds-header">Compounds</ListSubheader>] : []),
+                ...compoundItems.map((item) => (
+                  <MenuItem key={item.id} value={item.id} disabled={item.status !== "done"}>
+                    {item.name} {item.status !== "done" ? `(${item.status})` : ""}
+                  </MenuItem>
+                )),
+                ...(clusterItems.length > 0 ? [<ListSubheader key="clusters-header">Gene clusters</ListSubheader>] : []),
+                ...clusterItems.map((item) => (
+                  <MenuItem key={item.id} value={item.id} disabled={item.status !== "done"}>
+                    {item.name} {item.status !== "done" ? `(${item.status})` : ""}
+                  </MenuItem>
+                )),
+              ]}
             </TextField>
           )}
 
-          {selectedItemId && (
+          {selectedItem?.kind === "compound" && (
             <Box sx={{ mt: 2 }}>
               {reconstructionQuery.isLoading && <CircularProgress size={20} />}
               {reconstructionQuery.error && (
@@ -491,7 +510,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                   // Prefer whatever was saved for this reconstruction in the Upload
                   // tab's viewer over the raw algorithm output, so a correction made
                   // there is what actually gets queried here.
-                  const override = selectedItem?.editedPrimarySequences?.[String(idx)];
+                  const override = selectedItem.editedPrimarySequences?.[String(idx)];
                   const effectiveSequence = override ?? reconstruction.primary_sequence;
 
                   return (
@@ -512,12 +531,57 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                       {override && (
                         <Chip label="Edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem" }} />
                       )}
-                      <Button size="small" variant="outlined" onClick={() => handlePickReconstruction(effectiveSequence)}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => handlePickNames(effectiveSequence.map(([name]) => name))}
+                      >
                         Use this
                       </Button>
                     </Box>
                   );
                 })}
+              </Stack>
+            </Box>
+          )}
+
+          {selectedItem?.kind === "cluster" && (
+            <Box sx={{ mt: 2 }}>
+              {clusterReconstructionQuery.isLoading && <CircularProgress size={20} />}
+              {clusterReconstructionQuery.error && (
+                <Alert severity="error">
+                  {(clusterReconstructionQuery.error as Error).message || "Failed to load gene cluster readout."}
+                </Alert>
+              )}
+              {clusterReconstructionQuery.data && clusterReconstructionQuery.data.length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  No antiSMASH regions found for this gene cluster.
+                </Typography>
+              )}
+              <Stack spacing={1}>
+                {(clusterReconstructionQuery.data ?? []).map((region: ClusterPrimarySequence) => (
+                  <Box
+                    key={region.id}
+                    sx={{
+                      p: 1,
+                      borderRadius: 1,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                      {region.id}
+                    </Typography>
+                    <NamesPreview names={region.primary_sequence} />
+                    <Button size="small" variant="outlined" onClick={() => handlePickNames(region.primary_sequence)}>
+                      Use this
+                    </Button>
+                  </Box>
+                ))}
               </Stack>
             </Box>
           )}
@@ -610,13 +674,11 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                   size="small"
                   checked={includeUserUploads || onlyUserUploads}
                   onChange={(e) => setIncludeUserUploads(e.target.checked)}
-                  disabled={
-                    discoveryMutation.isPending || entryType === "bgc" || compoundItems.length === 0 || onlyUserUploads
-                  }
+                  disabled={discoveryMutation.isPending || compoundItems.length === 0 || onlyUserUploads}
                 />
               }
-              label="Include my uploaded compounds"
-              title="Uploaded compounds compete for a spot among the nearest N candidates, then follow the usual top-X ranking. BGC uploads aren't supported yet."
+              label="Include my uploads"
+              title="Uploaded compounds and gene clusters compete for a spot among the nearest N candidates, then follow the usual top-X ranking."
             />
 
             <FormControlLabel
@@ -625,11 +687,11 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                   size="small"
                   checked={onlyUserUploads}
                   onChange={(e) => setOnlyUserUploads(e.target.checked)}
-                  disabled={discoveryMutation.isPending || entryType === "bgc" || compoundItems.length === 0}
+                  disabled={discoveryMutation.isPending || compoundItems.length === 0}
                 />
               }
               label="Only use my uploads"
-              title="Skip the shared database entirely and align only against your own uploaded compounds."
+              title="Skip the shared database entirely and align only against your own uploaded compounds and gene clusters."
             />
 
             <Button

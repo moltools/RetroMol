@@ -66,6 +66,23 @@ export const GetClusterReadoutRespSchema = z.object({
   data: ClusterPayloadSchema,
 });
 
+// One antiSMASH region's readout, mapped onto the same matching-rule vocabulary a
+// compound's primary sequence is drawn from (see
+// retromol_antismash.modules.bgc_primary_sequence on the backend). Unlike a
+// compound's reconstruction, this is just names -- no per-block tags, and no edited
+// overrides yet.
+export const ClusterPrimarySequenceSchema = z.object({
+  id: z.string(),
+  primary_sequence: z.array(z.string()),
+});
+
+export const ReconstructGeneClusterRespSchema = z.object({
+  ok: z.boolean().optional(),
+  status: z.string().optional(),
+  data: z.array(ClusterPrimarySequenceSchema).default([]),
+});
+
 export type ClusterModule = z.output<typeof ClusterModuleSchema>;
 export type ClusterReadout = z.output<typeof ClusterReadoutSchema>;
 export type ClusterPayload = z.output<typeof ClusterPayloadSchema>;
+export type ClusterPrimarySequence = z.output<typeof ClusterPrimarySequenceSchema>;

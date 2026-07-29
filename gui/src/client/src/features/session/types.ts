@@ -25,6 +25,10 @@ export const CompoundItemSchema = BaseItemSchema.extend({
 export const ClusterItemSchema = BaseItemSchema.extend({
   kind: z.literal("cluster"),
   fileContent: z.string(),
+  // Minimum PARAS prediction probability required to call a substrate for an NRPS
+  // A-domain module (see retromol_antismash.inference.model_paras.ParasModel).
+  // Doesn't affect PKS modules, which are classified directly from domain anatomy.
+  parasThreshold: z.number().min(0).max(1).default(0.1),
 });
 
 export const SessionItemSchema = z.discriminatedUnion("kind", [CompoundItemSchema, ClusterItemSchema]);

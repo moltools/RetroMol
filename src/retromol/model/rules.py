@@ -442,6 +442,27 @@ class RuleSet:
         """
         return f"RuleSet({len(self.reaction_rules)} reaction rules, {len(self.matching_rules)} matching rules, match_stereochemistry={self.match_stereochemistry})"
 
+    def find_structural_matches(self, mol: Mol, match_stereochemistry: bool = False) -> list["MatchingRule"]:
+        """
+        Find every matching rule whose motif has the same structure as `mol`.
+
+        Unlike a name lookup, this doesn't require knowing which specific monomer a
+        molecule is -- useful for reconciling a molecule from outside the ruleset
+        (e.g. a substrate-specificity model's predicted SMILES) with whatever
+        monomer(s) in this ruleset it is chemically identical to. Matching with
+        `match_stereochemistry=False` (the default) means two rules that only differ
+        by stereochemistry (e.g. "A2^R" and "A2^S") both match a molecule with
+        undetermined or different stereochemistry, and multiple rules can match at
+        once (e.g. distinct rules that describe the same free-molecule structure but
+        differ in which atom continues the polymer chain, such as "aspartic acid" vs.
+        an isoAsp-linked variant sharing the same 2D graph).
+
+        :param mol: Molecule to match against every rule in this ruleset.
+        :param match_stereochemistry: Whether to consider stereochemistry in matching.
+        :return: Every MatchingRule whose motif has the same structure as `mol`, in ruleset order (possibly empty).
+        """
+        return [rule for rule in self.matching_rules if rule.is_match(mol, match_stereochemistry=match_stereochemistry)]
+
     @classmethod
     def load_from_files(
         cls,

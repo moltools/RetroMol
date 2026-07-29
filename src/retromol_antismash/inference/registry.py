@@ -104,12 +104,27 @@ class Ctx:
         return ("[" + " ".join(parts) + "] ") if parts else ""
 
 
-def annotate_region(region: Region) -> None:
+def annotate_region(
+    region: Region,
+    gene_models: list[GeneInferenceModel] | None = None,
+    domain_models: list[DomainInferenceModel] | None = None,
+) -> None:
     """
-    Annotate all domains in all genes of the given region using registered models.
-    
+    Annotate all domains in all genes of the given region.
+
     :param region: the genomic region to annotate
+    :param gene_models: gene inference models to run, or None to use every globally
+        registered gene model (`get_gene_models()`).
+    :param domain_models: domain inference models to run, or None to use every
+        globally registered domain model (`get_domain_models()`). Pass this
+        explicitly rather than registering globally when a model needs per-call
+        configuration (e.g. PARAS' probability threshold) -- `register_domain_model`
+        keeps whichever instance was registered first, so it can't express "use a
+        different threshold for this call."
     """
+    gene_models = get_gene_models() if gene_models is None else gene_models
+    domain_models = get_domain_models() if domain_models is None else domain_models
+
     log.debug(Ctx(region=region.id).prefix() + f"annotating {len(region.genes)} genes")
 
     for gene in region.iter_genes():
@@ -117,7 +132,7 @@ def annotate_region(region: Region) -> None:
         log.debug(gctx.prefix() + "annotating gene")
 
         # Gene inference
-        for m in get_gene_models():
+        for m in gene_models:
             mctx = Ctx(region=region.id, gene=gene.id, model=m.name)
             log.debug(mctx.prefix() + "running gene inference")
 
@@ -131,7 +146,7 @@ def annotate_region(region: Region) -> None:
         for domain in gene.iter_domains():
             dctx = Ctx(region=region.id, gene=gene.id, domain=domain.id)
 
-            for m in get_domain_models():
+            for m in domain_models:
                 mctx = Ctx(region=region.id, gene=gene.id, domain=domain.id, model=m.name)
                 log.debug(mctx.prefix() + f"running domain inference ({domain.type})")
 

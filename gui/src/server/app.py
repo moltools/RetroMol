@@ -22,6 +22,7 @@ from routes.jobs import (
     blp_reconstruct_compound,
     blp_submit_gene_cluster,
     blp_get_cluster_readout,
+    blp_reconstruct_gene_cluster,
 )
 from routes.events import blp_events, blp_sse_ticket
 from routes.discovery import blp_discovery_monomer_names, blp_discovery_query, blp_discovery_msa, get_discovery_context
@@ -151,6 +152,7 @@ app.register_blueprint(blp_submit_compound)
 app.register_blueprint(blp_reconstruct_compound)
 app.register_blueprint(blp_submit_gene_cluster)
 app.register_blueprint(blp_get_cluster_readout)
+app.register_blueprint(blp_reconstruct_gene_cluster)
 
 app.register_blueprint(blp_events)
 app.register_blueprint(blp_sse_ticket)

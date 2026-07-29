@@ -268,6 +268,15 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
               />
             )}
 
+            {!isCompound && (
+              <Chip
+                label={`PARAS ≥ ${item.parasThreshold.toFixed(2)}`}
+                size="small"
+                title="Minimum PARAS prediction probability required to call an NRPS substrate"
+                sx={{ fontSize: "0.7rem", height: 20 }}
+              />
+            )}
+
             {isQueued && (
               <Chip
                 label="Queued"

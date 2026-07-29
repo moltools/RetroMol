@@ -21,7 +21,8 @@ from retromol_alignment.aligner import setup_aligner
 from retromol_alignment.msa import calculate_msa
 from retromol_alignment.pairwise import Converter, align
 from retromol_alignment.ranking import rerank
-from retromol_alignment.scoring import create_tanimoto_scoring_matrix
+from retromol_alignment.scoring import HARDCODED_PK_SCORING, create_tanimoto_scoring_matrix
+from retromol_antismash.modules import LinearReadout as BgcLinearReadout, bgc_primary_sequence
 from retromol_database.duckdb import FINGERPRINT_SIZE, Entry, SearchResult
 from retromol_fingerprint.fingerprint import TOKEN_UNK, Fingerprinter, Vocabulary
 from retromol_synthesis.reconstruction import reconstruct_linear_readout
@@ -53,10 +54,25 @@ ENTRY_TYPES_FOR_QUERY = ("compound", "bgc", "both")
 ALIGNMENT_SCORE_MODES = ("subsequence", "longest_sequence")
 
 
+
+# Group-level PKS pseudo-tokens: a BGC's PKS module only ever resolves to a reduction
+# level (see retromol_antismash.modules.PKSExtenderUnit), never a specific side chain,
+# so it can't be named as one specific matching rule the way an NRPS module can. These
+# aren't matching-rule names themselves -- they're the pseudonym every rule at that
+# reduction level shares (already part of the fingerprint vocabulary via `pseudonyms`;
+# see `_per_monomer_tokens`) -- but they must also be added to the *alignment* alphabet
+# for a coarse BGC call to be alignable against specific compound-side rule names at
+# all. HARDCODED_PK_SCORING (retromol_alignment.scoring) pre-declares a 1.0 similarity
+# between each group token and every rule name at that reduction level; every other
+# pairing (including between different group tokens) defaults to 0 similarity.
+PK_GROUP_TOKENS = ("PK_A", "PK_B", "PK_C", "PK_D")
+
+
 @dataclass(frozen=True)
 class DiscoveryContext:
     """Everything expensive to (re)build: the ruleset, fingerprint vocab, and alignment scoring matrix."""
 
+    ruleset: RuleSet
     name_to_rule: dict[str, MatchingRule]
     rule_names_sorted: list[str]
     fingerprinter: Fingerprinter
@@ -90,8 +106,9 @@ def _build_context() -> DiscoveryContext:
         radius=2,
         num_bits=2048,
         stereochemistry=False,
-        self_score_tokens=[TOKEN_UNK],
+        self_score_tokens=[TOKEN_UNK, *PK_GROUP_TOKENS],
         self_score=1.0,
+        hardcoded_scores=HARDCODED_PK_SCORING,
     )
     aligner = setup_aligner(scoring_matrix, mode="global")
     alphabet = scoring_matrix.alphabet
@@ -101,8 +118,13 @@ def _build_context() -> DiscoveryContext:
     )
 
     return DiscoveryContext(
+        ruleset=rules,
         name_to_rule=name_to_rule,
-        rule_names_sorted=sorted(name_to_rule),
+        # PK_GROUP_TOKENS aren't matching-rule names (name_to_rule.get would miss
+        # them), but they are valid primary-sequence block names -- both
+        # _per_monomer_tokens and _normalize_for_alignment special-case them -- so
+        # they belong in the autocomplete list the Sequence Editor searches.
+        rule_names_sorted=sorted({*name_to_rule, *PK_GROUP_TOKENS}),
         fingerprinter=fingerprinter,
         aligner=aligner,
         converter=converter,
@@ -135,13 +157,17 @@ def _normalize_for_alignment(name: str, ctx: DiscoveryContext) -> str:
 
     "X" is how the app's existing reconstruction endpoint displays an unidentified
     block; TOKEN_UNK ("<UNK>") is what the database actually stores for the same
-    concept. Any other name we don't recognize is treated the same way.
+    concept. Any other name we don't recognize is treated the same way. Membership is
+    checked against the full alphabet rather than just `name_to_rule`, since the
+    alphabet also contains the PK_GROUP_TOKENS pseudo-names (e.g. "PK_A") a BGC's PKS
+    module resolves to -- those aren't matching-rule names, so they'd otherwise be
+    mistaken for unrecognized names and collapsed to TOKEN_UNK.
 
     :param name: the display-layer block name
     :param ctx: the discovery context
     :return: a token guaranteed to exist in the scoring-matrix alphabet
     """
-    if name == "X" or name not in ctx.name_to_rule:
+    if name == "X" or name not in ctx.alphabet:
         return TOKEN_UNK
     return name
 
@@ -216,64 +242,152 @@ def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / denom)
 
 
-def _build_upload_candidates(session_id: str, ctx: DiscoveryContext, query_fp: np.ndarray) -> list[SearchResult]:
+# Which uploaded item kinds count for a given requested entryType -- mirrors
+# ENTRY_TYPES_FOR_QUERY, but in terms of session item "kind" rather than stored
+# entry "type" (an uploaded gene cluster item has kind "cluster", stored/queried as
+# entry type "bgc").
+_UPLOAD_KINDS_FOR_ENTRY_TYPE: dict[str, frozenset[str]] = {
+    "compound": frozenset({"compound"}),
+    "bgc": frozenset({"cluster"}),
+    "both": frozenset({"compound", "cluster"}),
+}
+
+
+def _build_compound_upload_candidate(item: dict, ctx: DiscoveryContext, query_fp: np.ndarray) -> list[SearchResult]:
+    """
+    Build synthetic search candidates from one uploaded (and successfully parsed)
+    compound -- each of its reconstructed primary sequences becomes its own candidate,
+    using whatever sequence is currently effective for it (the user's edited override
+    if one was saved, otherwise the algorithm's own parse).
+
+    :param item: the session item (kind "compound", status "done", with a payload)
+    :param ctx: the discovery context
+    :param query_fp: the query's fingerprint, for scoring candidates against
+    :return: synthetic SearchResult candidates, one per reconstructed sequence
+    """
+    try:
+        reconstructions = reconstruct_linear_readout(Result.from_dict(item["payload"]))
+    except Exception:
+        current_app.logger.exception("discovery_query: failed to reconstruct upload item_id=%s", item.get("id"))
+        return []
+
+    overrides = item.get("editedPrimarySequences") or {}
+    label = item.get("name") or "Uploaded compound"
+
+    candidates: list[SearchResult] = []
+    for idx, reconstruction in enumerate(reconstructions):
+        override = overrides.get(str(idx))
+        effective_sequence = override if override is not None else reconstruction.to_dict()["primary_sequence"]
+        names = [name for name, _tags in effective_sequence]
+        if not names:
+            continue
+
+        fp = ctx.fingerprinter.encode([_per_monomer_tokens(name, ctx) for name in names])
+        candidates.append(
+            SearchResult(
+                entry=Entry(
+                    id=f"{UPLOAD_ENTRY_ID_PREFIX}{item['id']}:{idx}",
+                    name=label if len(reconstructions) == 1 else f"{label} #{idx + 1}",
+                    url=None,
+                    raw=None,
+                    type="compound",
+                    primary_sequence=names,
+                    fingerprint=fp.tolist(),
+                ),
+                similarity=_cosine_similarity(query_fp, fp),
+            )
+        )
+
+    return candidates
+
+
+def _build_bgc_upload_candidate(item: dict, ctx: DiscoveryContext, query_fp: np.ndarray) -> list[SearchResult]:
+    """
+    Build synthetic search candidates from one uploaded (and successfully parsed) gene
+    cluster -- each antiSMASH region's linear readout becomes its own candidate.
+
+    Each module's predicted substrate is mapped onto the same matching-rule vocabulary
+    compound primary sequences use, via `bgc_primary_sequence` -- PKS modules resolve
+    to their reduction-level pseudonym (e.g. "PK_A"), NRPS modules resolve to whichever
+    rule(s) their PARAS-predicted substrate matches by structure (see
+    `retromol_antismash.modules.module_primary_sequence_tokens` for why the two module
+    types resolve differently). This is what makes a BGC candidate's fingerprint and
+    primary sequence comparable to a compound's in the first place -- unlike compounds,
+    there's no per-item edited-sequence override for gene clusters yet.
+
+    :param item: the session item (kind "cluster", status "done", with a payload)
+    :param ctx: the discovery context
+    :param query_fp: the query's fingerprint, for scoring candidates against
+    :return: synthetic SearchResult candidates, one per region's linear readout
+    """
+    readouts_data = (item.get("payload") or {}).get("readouts") or []
+    label = item.get("name") or "Uploaded gene cluster"
+
+    candidates: list[SearchResult] = []
+    for idx, readout_data in enumerate(readouts_data):
+        try:
+            readout = BgcLinearReadout.from_dict(readout_data)
+            names, tokens = bgc_primary_sequence(readout, ctx.ruleset)
+        except Exception:
+            current_app.logger.exception(
+                "discovery_query: failed to build primary sequence for upload item_id=%s region=%s",
+                item.get("id"), readout_data.get("id"),
+            )
+            continue
+
+        if not names:
+            continue
+
+        fp = ctx.fingerprinter.encode(tokens)
+        candidates.append(
+            SearchResult(
+                entry=Entry(
+                    id=f"{UPLOAD_ENTRY_ID_PREFIX}{item['id']}:{idx}",
+                    name=label if len(readouts_data) == 1 else f"{label} #{idx + 1}",
+                    url=None,
+                    raw=None,
+                    type="bgc",
+                    primary_sequence=names,
+                    fingerprint=fp.tolist(),
+                ),
+                similarity=_cosine_similarity(query_fp, fp),
+            )
+        )
+
+    return candidates
+
+
+def _build_upload_candidates(
+    session_id: str, ctx: DiscoveryContext, query_fp: np.ndarray, entry_type: str
+) -> list[SearchResult]:
     """
     Build synthetic search candidates from the session's own uploaded (and successfully
-    parsed) compounds, so they can compete for a spot among the nearest-neighbor
-    candidates alongside the persistent database entries.
-
-    Each reconstructed primary sequence for an uploaded compound becomes its own
-    candidate (a compound can have more than one reconstruction), using whatever
-    sequence is currently effective for it -- the user's edited override if one was
-    saved, otherwise the algorithm's own parse. BGC uploads aren't included: primary-
-    sequence reconstruction isn't available for them yet (see WorkspaceDiscovery.tsx).
+    parsed) compounds and/or gene clusters, so they can compete for a spot among the
+    nearest-neighbor candidates alongside the persistent database entries.
 
     :param session_id: the session whose uploads should be considered
     :param ctx: the discovery context
     :param query_fp: the query's fingerprint, for scoring candidates against
-    :return: synthetic SearchResult candidates, one per reconstructed sequence
+    :param entry_type: one of ENTRY_TYPES_FOR_QUERY, restricting which upload kinds are considered
+    :return: synthetic SearchResult candidates, one per reconstructed/readout sequence
     """
     session = load_session_with_items(session_id)
     if session is None:
         current_app.logger.warning("discovery_query: sessionId not found for includeUserUploads: %s", session_id)
         return []
 
+    allowed_kinds = _UPLOAD_KINDS_FOR_ENTRY_TYPE[entry_type]
+
     candidates: list[SearchResult] = []
     for item in session.get("items", []):
-        if item.get("kind") != "compound" or item.get("status") != "done" or not item.get("payload"):
+        kind = item.get("kind")
+        if kind not in allowed_kinds or item.get("status") != "done" or not item.get("payload"):
             continue
 
-        try:
-            reconstructions = reconstruct_linear_readout(Result.from_dict(item["payload"]))
-        except Exception:
-            current_app.logger.exception("discovery_query: failed to reconstruct upload item_id=%s", item.get("id"))
-            continue
-
-        overrides = item.get("editedPrimarySequences") or {}
-        label = item.get("name") or "Uploaded compound"
-
-        for idx, reconstruction in enumerate(reconstructions):
-            override = overrides.get(str(idx))
-            effective_sequence = override if override is not None else reconstruction.to_dict()["primary_sequence"]
-            names = [name for name, _tags in effective_sequence]
-            if not names:
-                continue
-
-            fp = ctx.fingerprinter.encode([_per_monomer_tokens(name, ctx) for name in names])
-            candidates.append(
-                SearchResult(
-                    entry=Entry(
-                        id=f"{UPLOAD_ENTRY_ID_PREFIX}{item['id']}:{idx}",
-                        name=label if len(reconstructions) == 1 else f"{label} #{idx + 1}",
-                        url=None,
-                        raw=None,
-                        type="compound",
-                        primary_sequence=names,
-                        fingerprint=fp.tolist(),
-                    ),
-                    similarity=_cosine_similarity(query_fp, fp),
-                )
-            )
+        if kind == "compound":
+            candidates.extend(_build_compound_upload_candidate(item, ctx, query_fp))
+        else:
+            candidates.extend(_build_bgc_upload_candidate(item, ctx, query_fp))
 
     return candidates
 
@@ -286,6 +400,13 @@ def _per_monomer_tokens(name: str, ctx: DiscoveryContext) -> list[str]:
     :param ctx: the discovery context
     :return: tokens for Fingerprinter.encode (empty list -> falls back to the unknown token)
     """
+    if name in PK_GROUP_TOKENS:
+        # Not a matching-rule name -- the group-level pseudonym a BGC's PKS module
+        # resolves to (see PK_GROUP_TOKENS). Still resolvable to fingerprint tokens
+        # directly since it, and "PK", are already pseudonyms of every rule at that
+        # reduction level and so already part of the fingerprint vocabulary.
+        return [name, "PK"]
+
     rule = ctx.name_to_rule.get(name)
     if rule is None:
         return []
@@ -297,7 +418,9 @@ def _per_monomer_tokens(name: str, ctx: DiscoveryContext) -> list[str]:
 @blp_discovery_monomer_names.get("/api/discoveryMonomerNames")
 def discovery_monomer_names() -> tuple[Response, int]:
     """
-    Autocomplete endpoint for valid primary-sequence block names (real matching rule names).
+    Autocomplete endpoint for valid primary-sequence block names -- matching rule
+    names plus the PK_GROUP_TOKENS pseudo-names (e.g. "PK_A") used for a
+    reduction-level-only PKS call.
 
     :return: a tuple containing a dictionary with matching names and an HTTP status code
     """
@@ -372,12 +495,6 @@ def discovery_query() -> tuple[Response, int]:
     if include_user_uploads and not (isinstance(session_id, str) and session_id):
         return jsonify({"error": "sessionId is required when includeUserUploads or onlyUserUploads is true"}), 400
 
-    if only_user_uploads and entry_type not in ("compound", "both"):
-        return jsonify({
-            "error": "onlyUserUploads is not supported for entryType 'bgc' -- "
-            "primary-sequence reconstruction isn't available for uploaded BGCs yet"
-        }), 400
-
     ctx = get_discovery_context()
 
     # Fingerprint is built from the display sequence directly (Fingerprinter.encode
@@ -403,11 +520,10 @@ def discovery_query() -> tuple[Response, int]:
                 db_candidates = db.closest(query_fp, limit=n, entry_type=entry_type)
 
     # User uploads compete for a spot among the nearest N neighbors on the same
-    # fingerprint-similarity footing as database entries -- BGC uploads aren't
-    # included since primary-sequence reconstruction isn't available for them yet.
+    # fingerprint-similarity footing as database entries.
     upload_candidates = (
-        _build_upload_candidates(session_id, ctx, query_fp)
-        if include_user_uploads and entry_type in ("compound", "both")
+        _build_upload_candidates(session_id, ctx, query_fp, entry_type)
+        if include_user_uploads
         else []
     )
 

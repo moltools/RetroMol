@@ -1,5 +1,5 @@
 import { postJson } from "../http";
-import { ClusterPayload, GetClusterReadoutRespSchema } from "./types";
+import { ClusterPayload, ClusterPrimarySequence, GetClusterReadoutRespSchema, ReconstructGeneClusterRespSchema } from "./types";
 
 // A gene cluster's parsed linear module readout(s) are computed once at submit
 // time and stashed server-side on the item -- but `payload` is deliberately
@@ -16,6 +16,23 @@ export async function getClusterReadout(
     "/api/getClusterReadout",
     { sessionId, itemId },
     GetClusterReadoutRespSchema,
+    signal
+  );
+  return resp.data;
+}
+
+// Maps a gene cluster's readout(s) onto the same matching-rule vocabulary a
+// compound's primary sequence is drawn from -- the gene-cluster equivalent of
+// reconstructCompound, so a BGC upload can seed a discovery query the same way.
+export async function reconstructGeneCluster(
+  sessionId: string,
+  itemId: string,
+  signal?: AbortSignal
+): Promise<ClusterPrimarySequence[]> {
+  const resp = await postJson(
+    "/api/reconstructGeneCluster",
+    { sessionId, itemId },
+    ReconstructGeneClusterRespSchema,
     signal
   );
   return resp.data;
