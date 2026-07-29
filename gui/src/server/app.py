@@ -16,6 +16,7 @@ from routes.session import (
 )
 from routes.session_store import get_or_init_app_start_epoch
 from routes.database import check_database_ready, duckdb_path_from_env
+from routes.stats import blp_database_stats
 from routes.jobs import (
     blp_search_compound,
     blp_submit_compound,
@@ -153,6 +154,7 @@ app.register_blueprint(blp_reconstruct_compound)
 app.register_blueprint(blp_submit_gene_cluster)
 app.register_blueprint(blp_get_cluster_readout)
 app.register_blueprint(blp_reconstruct_gene_cluster)
+app.register_blueprint(blp_database_stats)
 
 app.register_blueprint(blp_events)
 app.register_blueprint(blp_sse_ticket)

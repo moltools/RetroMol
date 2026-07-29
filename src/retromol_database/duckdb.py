@@ -7,9 +7,16 @@ from typing import Iterable, Iterator, Literal, Sequence
 import duckdb
 import numpy as np
 
+from retromol_fingerprint.fingerprint import TOKEN_UNK
+
 ENTRY_TYPES = ("compound", "bgc")
 EntryType = Literal["compound", "bgc"]
 FINGERPRINT_SIZE = 1024
+
+# Upper bound on primary-sequence length that still gets its own histogram bucket;
+# anything longer is folded into a single overflow bucket so a handful of very long
+# sequences can't blow up the number of bars in a chart.
+STATS_SEQUENCE_LENGTH_BUCKET_MAX = 10
 
 
 @dataclass(frozen=True)
@@ -27,6 +34,28 @@ class Entry:
 class SearchResult:
     entry: Entry
     similarity: float
+
+
+@dataclass(frozen=True)
+class Count:
+    label: str
+    count: int
+
+
+@dataclass(frozen=True)
+class DatabaseStats:
+    total_entries: int
+    counts_by_type: list[Count]
+    sequence_length_min: int
+    sequence_length_max: int
+    sequence_length_avg: float
+    sequence_length_buckets: list[Count]
+    top_blocks: list[Count]
+    unique_block_count: int
+    fully_resolved_count: int
+    has_unknown_block_count: int
+    with_source_url_count: int
+    without_source_url_count: int
 
 
 def _normalize_entry_type(entry_type: str) -> EntryType:
@@ -200,6 +229,121 @@ class RetroMolDuckDB:
 
     def count(self) -> int:
         return int(self.con.execute("SELECT count(*) FROM entries").fetchone()[0])
+
+    def stats(self, *, top_blocks_limit: int = 12) -> DatabaseStats:
+        """
+        Compute summary statistics over the whole entries table, for display on a
+        dashboard/overview page.
+
+        Building blocks are the tokens in each entry's primary_sequence -- e.g. amino
+        acid names, PK reduction-state groups, or tailoring events like "methylation".
+        TOKEN_UNK ("<UNK>") marks a block RetroMol couldn't identify and is excluded
+        from top_blocks/unique_block_count since it isn't a real building block, but is
+        still reflected in fully_resolved_count/has_unknown_block_count.
+
+        :param top_blocks_limit: how many of the most frequent building blocks to return
+        :return: a DatabaseStats snapshot
+        """
+        total_entries = self.count()
+
+        type_rows = self.con.execute(
+            "SELECT type, count(*) FROM entries GROUP BY type ORDER BY type"
+        ).fetchall()
+        counts_by_type = [Count(label=str(row[0]), count=int(row[1])) for row in type_rows]
+
+        length_row = self.con.execute(
+            """
+            SELECT
+                min(len(primary_sequence)),
+                max(len(primary_sequence)),
+                avg(len(primary_sequence))
+            FROM entries
+            """
+        ).fetchone()
+        sequence_length_min = int(length_row[0]) if length_row[0] is not None else 0
+        sequence_length_max = int(length_row[1]) if length_row[1] is not None else 0
+        sequence_length_avg = float(length_row[2]) if length_row[2] is not None else 0.0
+
+        bucket_rows = self.con.execute(
+            f"""
+            SELECT bucket_label, count(*) AS n
+            FROM (
+                SELECT
+                    CASE
+                        WHEN len(primary_sequence) >= {STATS_SEQUENCE_LENGTH_BUCKET_MAX}
+                            THEN '{STATS_SEQUENCE_LENGTH_BUCKET_MAX}+'
+                        ELSE len(primary_sequence)::VARCHAR
+                    END AS bucket_label,
+                    least(len(primary_sequence), {STATS_SEQUENCE_LENGTH_BUCKET_MAX}) AS bucket_order
+                FROM entries
+            )
+            GROUP BY bucket_label, bucket_order
+            ORDER BY bucket_order
+            """
+        ).fetchall()
+        sequence_length_buckets = [Count(label=str(row[0]), count=int(row[1])) for row in bucket_rows]
+
+        top_block_rows = self.con.execute(
+            """
+            SELECT token, count(*) AS n
+            FROM (SELECT unnest(primary_sequence) AS token FROM entries)
+            WHERE token != ?
+            GROUP BY token
+            ORDER BY n DESC, token
+            LIMIT ?
+            """,
+            [TOKEN_UNK, top_blocks_limit],
+        ).fetchall()
+        top_blocks = [Count(label=str(row[0]), count=int(row[1])) for row in top_block_rows]
+
+        unique_block_count = int(
+            self.con.execute(
+                """
+                SELECT count(DISTINCT token)
+                FROM (SELECT unnest(primary_sequence) AS token FROM entries)
+                WHERE token != ?
+                """,
+                [TOKEN_UNK],
+            ).fetchone()[0]
+        )
+
+        resolution_row = self.con.execute(
+            """
+            SELECT
+                count(*) FILTER (WHERE NOT list_contains(primary_sequence, ?)),
+                count(*) FILTER (WHERE list_contains(primary_sequence, ?))
+            FROM entries
+            """,
+            [TOKEN_UNK, TOKEN_UNK],
+        ).fetchone()
+        fully_resolved_count = int(resolution_row[0])
+        has_unknown_block_count = int(resolution_row[1])
+
+        url_row = self.con.execute(
+            """
+            SELECT
+                count(*) FILTER (WHERE url IS NOT NULL),
+                count(*) FILTER (WHERE url IS NULL)
+            FROM entries
+            """
+        ).fetchone()
+        with_source_url_count = int(url_row[0])
+        without_source_url_count = int(url_row[1])
+
+        return DatabaseStats(
+            total_entries=total_entries,
+            counts_by_type=counts_by_type,
+            sequence_length_min=sequence_length_min,
+            sequence_length_max=sequence_length_max,
+            sequence_length_avg=sequence_length_avg,
+            sequence_length_buckets=sequence_length_buckets,
+            top_blocks=top_blocks,
+            unique_block_count=unique_block_count,
+            fully_resolved_count=fully_resolved_count,
+            has_unknown_block_count=has_unknown_block_count,
+            with_source_url_count=with_source_url_count,
+            without_source_url_count=without_source_url_count,
+        )
 
     def get_entry(self, entry_id: str) -> Entry | None:
         row = self.con.execute(
