@@ -6,10 +6,12 @@ import Typography from "@mui/material/Typography";
 import { useQuery } from "@tanstack/react-query";
 import { Session, SessionItem } from "../../features/session/types";
 import { reconstructCompound } from "../../features/reconstruction/api";
+import { getClusterReadout } from "../../features/clusters/api";
 import { DialogWindow } from "../DialogWindow";
 import { ErrorBoundary } from "../ErrorBoundary";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
 import { PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
+import { ClusterReadoutRows } from "./ClusterReadoutRows";
 
 type HighlightAtom = [number, string];
 
@@ -122,6 +124,12 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
     ? (reconstructionQuery.error as Error).message || "Unknown error"
     : null;
 
+  const clusterReadoutQuery = useQuery({
+    queryKey: ["getClusterReadout", sessionId, item.id],
+    queryFn: ({ signal }) => getClusterReadout(sessionId, item.id, signal),
+    enabled: open && !isCompound && item.status === "done",
+  });
+
   // resetSignal is `open` -- re-seeding on every open (even for the same item)
   // matches the dialog's existing "fresh state each time" behavior for selectedTags.
   const editor = usePrimarySequenceEditor(session, setSession, item, data, open);
@@ -165,10 +173,34 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
       ]}
       maxWidth={"lg"}
     >
-      {!isCompound && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Viewing is only available for compounds.
-        </Alert>
+      {!isCompound && item.kind === "cluster" && (
+        <>
+          {item.status === "queued" && (
+            <Typography variant="body2" color="text.secondary">
+              Waiting to be parsed...
+            </Typography>
+          )}
+
+          {item.status === "processing" && <CircularProgress size={24} />}
+
+          {item.status === "error" && (
+            <Alert severity="error">
+              {item.errorMessage || "Parsing failed."}
+            </Alert>
+          )}
+
+          {item.status === "done" && clusterReadoutQuery.isLoading && <CircularProgress size={24} />}
+
+          {item.status === "done" && clusterReadoutQuery.error && (
+            <Alert severity="error">
+              {(clusterReadoutQuery.error as Error).message || "Failed to load parsed gene cluster."}
+            </Alert>
+          )}
+
+          {item.status === "done" && clusterReadoutQuery.data && (
+            <ClusterReadoutRows readouts={clusterReadoutQuery.data.readouts} />
+          )}
+        </>
       )}
 
       {loading && (

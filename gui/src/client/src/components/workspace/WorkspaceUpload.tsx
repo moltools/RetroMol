@@ -217,7 +217,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
   };
 
   // Import cluster handler
-  const handleImportClusters = async (files: File[]) => {
+  const handleImportClusters = async (files: File[], parasThreshold: number) => {
     if (!files.length) return;
 
     const oversized = files.filter(f => f.size > MAX_FILE_SIZE_BYTES);
@@ -234,13 +234,14 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
       return;
     };
 
-    let payloads: { name: string; fileContent: string }[] = [];
+    let payloads: { name: string; fileContent: string; parasThreshold: number }[] = [];
 
     try {
       payloads = await Promise.all(
         files.map(async (file) => ({
           name: file.name,
           fileContent: await file.text(),
+          parasThreshold,
         }))
       )
       await importClustersBatch(deps, payloads);
@@ -306,7 +307,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
               Import compounds
             </Button>
 
-            <Button variant="contained" onClick={handleOpenBGCs} disabled>
+            <Button variant="contained" onClick={handleOpenBGCs}>
               Import BGCs
             </Button>
           </Stack>

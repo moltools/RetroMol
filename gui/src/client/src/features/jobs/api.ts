@@ -60,6 +60,7 @@ export async function submitClusterJob(
       itemId: item.id,
       name: item.name,
       fileContent: item.fileContent,
+      parasThreshold: item.parasThreshold,
     },
     SubmitJobRespSchema
   );
@@ -186,7 +187,7 @@ export async function importCompound(
 // Batch cluster import
 export async function importClustersBatch(
   deps: WorkspaceImportDeps,
-  clusters: { name: string; fileContent: string }[],
+  clusters: { name: string; fileContent: string; parasThreshold: number }[],
 ): Promise<SessionItem[]> {
   const { pushNotification, setSession, sessionId } = deps;
 
@@ -216,11 +217,12 @@ export async function importClustersBatch(
       pushNotification(`Only importing ${limited.length} clusters to avoid exceeding maximum of ${MAX_ITEMS} items`, "warning");
     };
 
-    const createdItems: SessionItem[] = limited.map(({ name, fileContent }) => ({
+    const createdItems: SessionItem[] = limited.map(({ name, fileContent, parasThreshold }) => ({
       id: crypto.randomUUID(),
       kind: "cluster",
       name,
       fileContent,
+      parasThreshold,
       status: "queued",
       errorMessage: null,
       updatedAt: Date.now(),
