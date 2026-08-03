@@ -26,7 +26,13 @@ from routes.jobs import (
     blp_reconstruct_gene_cluster,
 )
 from routes.events import blp_events, blp_sse_ticket
-from routes.discovery import blp_discovery_monomer_names, blp_discovery_query, blp_discovery_msa, get_discovery_context
+from routes.discovery import (
+    blp_discovery_monomer_names,
+    blp_discovery_query,
+    blp_discovery_msa,
+    blp_discovery_compare_tanimoto,
+    get_discovery_context,
+)
 
 
 # Initialize the Flask app
@@ -161,6 +167,7 @@ app.register_blueprint(blp_sse_ticket)
 app.register_blueprint(blp_discovery_monomer_names)
 app.register_blueprint(blp_discovery_query)
 app.register_blueprint(blp_discovery_msa)
+app.register_blueprint(blp_discovery_compare_tanimoto)
 
 # Warm the discovery context cache eagerly so the first user request isn't slow --
 # building it reparses the ruleset and computes an all-pairs Tanimoto scoring matrix

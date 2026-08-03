@@ -53,6 +53,11 @@ export const DiscoveryResultSchema = z.object({
   // "upload" when this candidate came from the session's own uploads (via
   // includeUserUploads) rather than the persistent database.
   origin: z.enum(["database", "upload"]).default("database"),
+  // The candidate's own molecular SMILES, when known -- only ever set for compound
+  // entries (never BGCs). Used by the Compare view's Tanimoto metric, which needs
+  // each side's actual structure rather than the coarse per-monomer-token fingerprint
+  // fingerprintSimilarity below is based on.
+  smiles: z.string().nullable().default(null),
   fingerprintSimilarity: z.number(),
   primarySequence: z.array(z.string()),
   inverted: z.boolean(),
@@ -106,3 +111,31 @@ export const DiscoveryMsaRespSchema = z.object({
   rows: z.array(DiscoveryMsaRowSchema),
 });
 export type DiscoveryMsaResp = z.output<typeof DiscoveryMsaRespSchema>;
+
+export const MORGAN_RADIUS_DEFAULT = 2;
+export const MORGAN_NBITS_DEFAULT = 2048;
+export const MORGAN_NBITS_OPTIONS = [256, 512, 1024, 2048, 4096] as const;
+
+export const DiscoveryCompareTanimotoReqSchema = z.object({
+  querySmiles: z.string().min(1),
+  radius: z.number().int().min(1).max(6),
+  nBits: z.number().int().min(16).max(8192),
+  entries: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        smiles: z.string().min(1),
+      })
+    )
+    .min(1),
+});
+export type DiscoveryCompareTanimotoReq = z.output<typeof DiscoveryCompareTanimotoReqSchema>;
+
+export const DiscoveryCompareTanimotoRespSchema = z.object({
+  ok: z.boolean().optional(),
+  radius: z.number(),
+  nBits: z.number(),
+  values: z.array(z.object({ id: z.string(), tanimotoSimilarity: z.number() })),
+  invalidCount: z.number().int().nonnegative().default(0),
+});
+export type DiscoveryCompareTanimotoResp = z.output<typeof DiscoveryCompareTanimotoRespSchema>;

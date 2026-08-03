@@ -41,6 +41,7 @@ import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { buildAlignmentSvg, downloadSvg, type AlignmentSvgRow } from "./alignmentSvgExport";
 import { SequenceEditor, type SequenceBlock } from "./SequenceEditor";
+import { WorkspaceCompare } from "./WorkspaceCompare";
 
 type WorkspaceDiscoveryProps = {
   session: Session;
@@ -252,7 +253,7 @@ function ResultRow({
           size="small"
           checked={selectedForMsa}
           onChange={onToggleSelectedForMsa}
-          title="Include in multiple sequence alignment"
+          title="Include in multiple sequence alignment and compound comparison"
           sx={{ p: 0.5 }}
         />
 
@@ -350,8 +351,14 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   const [topX, setTopX] = React.useState<number>(20);
   const [includeUserUploads, setIncludeUserUploads] = React.useState<boolean>(false);
   const [onlyUserUploads, setOnlyUserUploads] = React.useState<boolean>(false);
-  const [resultsView, setResultsView] = React.useState<"pairwise" | "msa">("pairwise");
+  const [resultsView, setResultsView] = React.useState<"pairwise" | "msa" | "compare">("pairwise");
   const [selectedForMsa, setSelectedForMsa] = React.useState<Set<string>>(new Set());
+  // The originating compound's own SMILES, captured at query time -- needed for the
+  // Compare view's structure-based Tanimoto metric, which has nothing to do with a
+  // sequence of blocks and can't be recovered from `blocks` after the fact. Null
+  // whenever the query wasn't seeded from a compound with a known structure (e.g.
+  // built from scratch in the sequence editor, or from a gene cluster).
+  const [queryOriginSmiles, setQueryOriginSmiles] = React.useState<string | null>(null);
 
   const reconstructionQuery = useQuery({
     queryKey: ["reconstructCompound", session.sessionId, selectedItemId],
@@ -697,7 +704,10 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
             <Button
               variant="contained"
               disabled={!canQuery}
-              onClick={() => discoveryMutation.mutate()}
+              onClick={() => {
+                setQueryOriginSmiles(selectedItem?.kind === "compound" ? selectedItem.smiles : null);
+                discoveryMutation.mutate();
+              }}
               startIcon={discoveryMutation.isPending ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
               {discoveryMutation.isPending ? "Querying..." : "Query"}
@@ -739,10 +749,11 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                   >
                     <ToggleButton value="pairwise">Pairwise</ToggleButton>
                     <ToggleButton value="msa">Multiple sequence alignment</ToggleButton>
+                    <ToggleButton value="compare">Compare compounds</ToggleButton>
                   </ToggleButtonGroup>
 
                   <Typography variant="caption" color="text.secondary">
-                    {selectedForMsa.size} of {discoveryMutation.data.results.length} selected for MSA
+                    {selectedForMsa.size} of {discoveryMutation.data.results.length} selected
                   </Typography>
                   <Button size="small" onClick={() => setSelectedForMsa(new Set(discoveryMutation.data!.results.map((r) => r.entryId)))}>
                     Select all
@@ -752,10 +763,12 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                   </Button>
                 </Stack>
 
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-                  Cell shading reflects each unit's structural similarity to the query's aligned unit in that column.
-                  Darker means a closer match, so a sequence's weak spots stand out at a glance.
-                </Typography>
+                {resultsView !== "compare" && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                    Cell shading reflects each unit's structural similarity to the query's aligned unit in that
+                    column. Darker means a closer match, so a sequence's weak spots stand out at a glance.
+                  </Typography>
+                )}
 
                 <Divider sx={{ mb: 1 }} />
 
@@ -769,22 +782,32 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                       onToggleSelectedForMsa={() => toggleSelectedForMsa(result.entryId)}
                     />
                   ))
+                ) : resultsView === "msa" ? (
+                  selectedResults.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      Select at least one result above to compute a multiple sequence alignment.
+                    </Typography>
+                  ) : msaQuery.isLoading ? (
+                    <CircularProgress size={20} />
+                  ) : msaQuery.error ? (
+                    <Alert severity="error">
+                      {(msaQuery.error as Error).message || "Failed to compute the multiple sequence alignment."}
+                    </Alert>
+                  ) : (
+                    <Box sx={{ py: 1 }}>
+                      <AlignmentGrid rows={msaRows} />
+                      <Box sx={{ mt: 1 }}>
+                        <DownloadSvgButton rows={msaRows} filename="msa_alignment.svg" />
+                      </Box>
+                    </Box>
+                  )
                 ) : selectedResults.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
-                    Select at least one result above to compute a multiple sequence alignment.
+                    Select at least one result above to compare compounds.
                   </Typography>
-                ) : msaQuery.isLoading ? (
-                  <CircularProgress size={20} />
-                ) : msaQuery.error ? (
-                  <Alert severity="error">
-                    {(msaQuery.error as Error).message || "Failed to compute the multiple sequence alignment."}
-                  </Alert>
                 ) : (
                   <Box sx={{ py: 1 }}>
-                    <AlignmentGrid rows={msaRows} />
-                    <Box sx={{ mt: 1 }}>
-                      <DownloadSvgButton rows={msaRows} filename="msa_alignment.svg" />
-                    </Box>
+                    <WorkspaceCompare results={selectedResults} queryOriginSmiles={queryOriginSmiles} />
                   </Box>
                 )}
               </>
