@@ -5,11 +5,15 @@ import {
   DiscoveryQueryRespSchema,
   DiscoveryMsaReqSchema,
   DiscoveryMsaRespSchema,
+  DiscoveryCompareTanimotoReqSchema,
+  DiscoveryCompareTanimotoRespSchema,
   type DiscoveryQueryReq,
   type MonomerNameOption,
   type DiscoveryQueryResp,
   type DiscoveryMsaReq,
   type DiscoveryMsaResp,
+  type DiscoveryCompareTanimotoReq,
+  type DiscoveryCompareTanimotoResp,
 } from "./types";
 
 export async function searchMonomerNames(
@@ -33,4 +37,12 @@ export async function runDiscoveryQuery(
 export async function runDiscoveryMsa(payload: DiscoveryMsaReq, signal?: AbortSignal): Promise<DiscoveryMsaResp> {
   const validated = DiscoveryMsaReqSchema.parse(payload);
   return postJson("/api/discoveryMsa", validated, DiscoveryMsaRespSchema, signal);
+}
+
+export async function runDiscoveryCompareTanimoto(
+  payload: DiscoveryCompareTanimotoReq,
+  signal?: AbortSignal
+): Promise<DiscoveryCompareTanimotoResp> {
+  const validated = DiscoveryCompareTanimotoReqSchema.parse(payload);
+  return postJson("/api/discoveryCompareTanimoto", validated, DiscoveryCompareTanimotoRespSchema, signal);
 }

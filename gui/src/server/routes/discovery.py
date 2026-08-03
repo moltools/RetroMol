@@ -14,7 +14,9 @@ from typing import Any
 
 import numpy as np
 from flask import Blueprint, Response, current_app, jsonify, request
+from rdkit import Chem
 
+from retromol.chem.fingerprint import calculate_tanimoto_similarity, mol_to_morgan_fingerprint
 from retromol.model.result import Result
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol_alignment.aligner import setup_aligner
@@ -33,6 +35,7 @@ from routes.session_store import load_session_with_items
 blp_discovery_monomer_names = Blueprint("discovery_monomer_names", __name__)
 blp_discovery_query = Blueprint("discovery_query", __name__)
 blp_discovery_msa = Blueprint("discovery_msa", __name__)
+blp_discovery_compare_tanimoto = Blueprint("discovery_compare_tanimoto", __name__)
 
 
 MAX_N = 1000
@@ -42,6 +45,14 @@ MAX_TOP_X = 200
 # already caps candidate count at MAX_TOP_X.
 MAX_MSA_SEQUENCES = 250
 ENTRY_TYPES_FOR_QUERY = ("compound", "bgc", "both")
+
+# Same headroom as MAX_MSA_SEQUENCES -- this endpoint is also meant to be called with
+# candidates already returned by /api/discoveryQuery (capped at MAX_TOP_X).
+MAX_COMPARE_ENTRIES = 250
+MIN_MORGAN_RADIUS = 1
+MAX_MORGAN_RADIUS = 6
+MIN_MORGAN_NBITS = 16
+MAX_MORGAN_NBITS = 8192
 
 # What a candidate's alignment score gets normalized against, as a percentage.
 # "subsequence" only considers the query's own length, so a short query that
@@ -289,7 +300,12 @@ def _build_compound_upload_candidate(item: dict, ctx: DiscoveryContext, query_fp
                     id=f"{UPLOAD_ENTRY_ID_PREFIX}{item['id']}:{idx}",
                     name=label if len(reconstructions) == 1 else f"{label} #{idx + 1}",
                     url=None,
-                    raw=None,
+                    # The uploaded compound's own SMILES -- same molecule for every
+                    # reconstruction candidate derived from it. Carried through as `raw`
+                    # so it lines up with how database compound entries store their
+                    # SMILES (see the module docstring / _build_context), letting the
+                    # Tanimoto compare endpoint treat both origins identically.
+                    raw=item.get("smiles"),
                     type="compound",
                     primary_sequence=names,
                     fingerprint=fp.tolist(),
@@ -612,6 +628,14 @@ def discovery_query() -> tuple[Response, int]:
             "url": candidate.entry.url,
             "type": candidate.entry.type,
             "origin": "upload" if candidate.entry.id.startswith(UPLOAD_ENTRY_ID_PREFIX) else "database",
+            # The candidate's own molecular SMILES, when known -- only ever set for
+            # compound entries (database compounds store it as `raw`; uploaded
+            # compounds carry their own `smiles` through the same field, see
+            # _build_compound_upload_candidate). None for BGCs and for any compound
+            # entry that predates SMILES being stored. Lets the frontend compute a
+            # real structure-based Tanimoto comparison without a second round trip
+            # to look up what SMILES a given entryId corresponds to.
+            "smiles": candidate.entry.raw if candidate.entry.type == "compound" else None,
             "fingerprintSimilarity": candidate.similarity,
             "primarySequence": [_denormalize_for_display(t) for t in oriented_target],
             "inverted": inverted,
@@ -736,3 +760,80 @@ def discovery_msa() -> tuple[Response, int]:
         })
 
     return jsonify({"ok": True, "rows": rows}), 200
+
+
+@blp_discovery_compare_tanimoto.post("/api/discoveryCompareTanimoto")
+def discovery_compare_tanimoto() -> tuple[Response, int]:
+    """
+    Compute a real (whole-molecule) Morgan/ECFP Tanimoto similarity between a query
+    SMILES and a batch of candidate SMILES.
+
+    Unlike fingerprintSimilarity and normalizedAlignmentScorePct (both already
+    returned by /api/discoveryQuery, computed over the coarse per-monomer-token
+    representation used for database retrieval), this operates on each side's actual
+    molecular structure -- meant for the Discovery "Compare" view, where the user can
+    pick a radius/fingerprint size and see the metric recomputed on demand. Entries
+    are meant to be exactly the `smiles` field already present on results from
+    /api/discoveryQuery (null/omitted for BGCs and any compound missing one), pre-
+    filtered by the frontend before calling this endpoint.
+
+    :return: a tuple containing per-entry Tanimoto similarities (or an error) and an HTTP status code
+    """
+    payload = request.get_json(force=True) or {}
+
+    query_smiles = payload.get("querySmiles")
+    radius = payload.get("radius", 2)
+    n_bits = payload.get("nBits", 2048)
+    entries = payload.get("entries")
+
+    if not isinstance(query_smiles, str) or not query_smiles.strip():
+        return jsonify({"error": "querySmiles must be a non-empty string"}), 400
+
+    if not isinstance(radius, int) or isinstance(radius, bool) or not (MIN_MORGAN_RADIUS <= radius <= MAX_MORGAN_RADIUS):
+        return jsonify({"error": f"radius must be an integer between {MIN_MORGAN_RADIUS} and {MAX_MORGAN_RADIUS}"}), 400
+
+    if not isinstance(n_bits, int) or isinstance(n_bits, bool) or not (MIN_MORGAN_NBITS <= n_bits <= MAX_MORGAN_NBITS):
+        return jsonify({"error": f"nBits must be an integer between {MIN_MORGAN_NBITS} and {MAX_MORGAN_NBITS}"}), 400
+
+    if not isinstance(entries, list) or not entries:
+        return jsonify({"error": "entries must be a non-empty list"}), 400
+
+    if len(entries) > MAX_COMPARE_ENTRIES:
+        return jsonify({"error": f"entries cannot have more than {MAX_COMPARE_ENTRIES} entries"}), 400
+
+    ids: list[str] = []
+    smiles_list: list[str] = []
+    for entry in entries:
+        if (
+            not isinstance(entry, dict)
+            or not isinstance(entry.get("id"), str)
+            or not entry.get("id")
+            or not isinstance(entry.get("smiles"), str)
+            or not entry.get("smiles")
+        ):
+            return jsonify({"error": "each entry must have a non-empty 'id' and non-empty 'smiles'"}), 400
+        ids.append(entry["id"])
+        smiles_list.append(entry["smiles"])
+
+    query_mol = Chem.MolFromSmiles(query_smiles)
+    if query_mol is None:
+        return jsonify({"error": "querySmiles could not be parsed as a valid molecule"}), 400
+    query_fp = mol_to_morgan_fingerprint(query_mol, radius=radius, num_bits=n_bits)
+
+    values: list[dict[str, Any]] = []
+    invalid_count = 0
+    for entry_id, smiles in zip(ids, smiles_list):
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            invalid_count += 1
+            continue
+        fp = mol_to_morgan_fingerprint(mol, radius=radius, num_bits=n_bits)
+        values.append({"id": entry_id, "tanimotoSimilarity": calculate_tanimoto_similarity(query_fp, fp)})
+
+    return jsonify({
+        "ok": True,
+        "radius": radius,
+        "nBits": n_bits,
+        "values": values,
+        "invalidCount": invalid_count,
+    }), 200
