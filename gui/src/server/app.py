@@ -33,6 +33,7 @@ from routes.discovery import (
     blp_discovery_compare_tanimoto,
     get_discovery_context,
 )
+from routes.shape import blp_discovery_shape
 
 
 # Initialize the Flask app
@@ -168,6 +169,7 @@ app.register_blueprint(blp_discovery_monomer_names)
 app.register_blueprint(blp_discovery_query)
 app.register_blueprint(blp_discovery_msa)
 app.register_blueprint(blp_discovery_compare_tanimoto)
+app.register_blueprint(blp_discovery_shape)
 
 # Warm the discovery context cache eagerly so the first user request isn't slow --
 # building it reparses the ruleset and computes an all-pairs Tanimoto scoring matrix

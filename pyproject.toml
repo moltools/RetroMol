@@ -17,6 +17,7 @@ dependencies = [
     "tqdm",
     "numpy<2",  # scikit-learn 1.2.0 requires numpy<2
     "scikit-learn==1.2.0",
+    "scipy",
     "pandas",
     "pyyaml",
     "ijson",
