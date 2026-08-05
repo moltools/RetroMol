@@ -42,6 +42,7 @@ import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { buildAlignmentSvg, downloadSvg, type AlignmentSvgRow } from "./alignmentSvgExport";
 import { SequenceEditor, type SequenceBlock } from "./SequenceEditor";
 import { WorkspaceCompare } from "./WorkspaceCompare";
+import { WorkspaceShape } from "./WorkspaceShape";
 
 type WorkspaceDiscoveryProps = {
   session: Session;
@@ -351,7 +352,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   const [topX, setTopX] = React.useState<number>(20);
   const [includeUserUploads, setIncludeUserUploads] = React.useState<boolean>(false);
   const [onlyUserUploads, setOnlyUserUploads] = React.useState<boolean>(false);
-  const [resultsView, setResultsView] = React.useState<"pairwise" | "msa" | "compare">("pairwise");
+  const [resultsView, setResultsView] = React.useState<"pairwise" | "msa" | "compare" | "shape">("pairwise");
   const [selectedForMsa, setSelectedForMsa] = React.useState<Set<string>>(new Set());
   // The originating compound's own SMILES, captured at query time -- needed for the
   // Compare view's structure-based Tanimoto metric, which has nothing to do with a
@@ -411,7 +412,10 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   // Anchored on the query as the star center, so every result is ordered/oriented
   // relative to it -- matching how the pairwise view is already anchored. Keyed off
   // the selected members so switching view modes back and forth doesn't refetch, but
-  // running a new query or changing the selection naturally does.
+  // running a new query or changing the selection naturally does. staleTime is what
+  // actually enforces that: without it, toggling `enabled` back to true (i.e.
+  // re-entering this view) would refetch regardless of the key being unchanged,
+  // since a query is stale-on-mount/re-enable by default (staleTime 0).
   const msaQuery = useQuery({
     queryKey: [
       "discoveryMsa",
@@ -427,6 +431,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
         signal
       ),
     enabled: resultsView === "msa" && selectedResults.length > 0,
+    staleTime: Infinity,
   });
 
   // Scores aren't recomputed for the MSA -- each row's score is the same
@@ -750,6 +755,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                     <ToggleButton value="pairwise">Pairwise</ToggleButton>
                     <ToggleButton value="msa">Multiple sequence alignment</ToggleButton>
                     <ToggleButton value="compare">Compare compounds</ToggleButton>
+                    <ToggleButton value="shape">Shape (PMI)</ToggleButton>
                   </ToggleButtonGroup>
 
                   <Typography variant="caption" color="text.secondary">
@@ -763,7 +769,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                   </Button>
                 </Stack>
 
-                {resultsView !== "compare" && (
+                {resultsView !== "compare" && resultsView !== "shape" && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
                     Cell shading reflects each unit's structural similarity to the query's aligned unit in that
                     column. Darker means a closer match, so a sequence's weak spots stand out at a glance.
@@ -801,13 +807,23 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                       </Box>
                     </Box>
                   )
+                ) : resultsView === "compare" ? (
+                  selectedResults.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      Select at least one result above to compare compounds.
+                    </Typography>
+                  ) : (
+                    <Box sx={{ py: 1 }}>
+                      <WorkspaceCompare results={selectedResults} queryOriginSmiles={queryOriginSmiles} />
+                    </Box>
+                  )
                 ) : selectedResults.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
-                    Select at least one result above to compare compounds.
+                    Select at least one result above to analyze molecular shape.
                   </Typography>
                 ) : (
                   <Box sx={{ py: 1 }}>
-                    <WorkspaceCompare results={selectedResults} queryOriginSmiles={queryOriginSmiles} />
+                    <WorkspaceShape results={selectedResults} queryOriginSmiles={queryOriginSmiles} />
                   </Box>
                 )}
               </>

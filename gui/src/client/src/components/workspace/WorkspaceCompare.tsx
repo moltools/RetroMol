@@ -24,7 +24,7 @@ import {
   MORGAN_RADIUS_DEFAULT,
   type DiscoveryResult,
 } from "../../features/discovery/types";
-import { exportViolinSvg } from "./compareSvgExport";
+import { exportChartSvg } from "./chartSvgExport";
 
 type CompareMetricId = "fingerprintCosine" | "normalizedAlignment" | "tanimoto";
 
@@ -167,7 +167,7 @@ function ViolinChart({ metrics, svgRef }: { metrics: CompareMetricResult[]; svgR
       >
         {/* Gridlines + y-axis labels, shared across every violin (one axis, one scale).
             data-export-role marks colors the SVG export overrides for a white background --
-            see compareSvgExport.ts. */}
+            see chartSvgExport.ts. */}
         {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
           const y = valueToY(tick);
           return (
@@ -394,6 +394,10 @@ export function WorkspaceCompare({
         signal
       ),
     enabled: tanimotoEnabled && !!queryOriginSmiles && tanimotoCandidates.length > 0,
+    // Result is a pure function of the query key (query smiles + candidate smiles +
+    // radius/nBits) -- never go stale, so toggling the metric off/on or switching
+    // Discovery views and back doesn't re-run the RDKit fingerprinting server-side.
+    staleTime: Infinity,
   });
 
   const metrics: CompareMetricResult[] = [];
@@ -584,7 +588,7 @@ export function WorkspaceCompare({
             size="small"
             variant="text"
             startIcon={<DownloadIcon fontSize="small" />}
-            onClick={() => svgRef.current && exportViolinSvg(svgRef.current, "compound_comparison.svg")}
+            onClick={() => svgRef.current && exportChartSvg(svgRef.current, "compound_comparison.svg")}
             sx={{ mt: 0.5 }}
           >
             Download SVG

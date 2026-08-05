@@ -29,6 +29,7 @@ from retromol_database.duckdb import FINGERPRINT_SIZE, Entry, SearchResult
 from retromol_fingerprint.fingerprint import TOKEN_UNK, Fingerprinter, Vocabulary
 from retromol_synthesis.reconstruction import reconstruct_linear_readout
 
+from routes.concurrency import ServerBusyError, heavy_compute_slot
 from routes.database import open_retromol_db
 from routes.session_store import load_session_with_items
 
@@ -815,20 +816,24 @@ def discovery_compare_tanimoto() -> tuple[Response, int]:
         ids.append(entry["id"])
         smiles_list.append(entry["smiles"])
 
-    query_mol = Chem.MolFromSmiles(query_smiles)
-    if query_mol is None:
-        return jsonify({"error": "querySmiles could not be parsed as a valid molecule"}), 400
-    query_fp = mol_to_morgan_fingerprint(query_mol, radius=radius, num_bits=n_bits)
+    try:
+        with heavy_compute_slot():
+            query_mol = Chem.MolFromSmiles(query_smiles)
+            if query_mol is None:
+                return jsonify({"error": "querySmiles could not be parsed as a valid molecule"}), 400
+            query_fp = mol_to_morgan_fingerprint(query_mol, radius=radius, num_bits=n_bits)
 
-    values: list[dict[str, Any]] = []
-    invalid_count = 0
-    for entry_id, smiles in zip(ids, smiles_list):
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            invalid_count += 1
-            continue
-        fp = mol_to_morgan_fingerprint(mol, radius=radius, num_bits=n_bits)
-        values.append({"id": entry_id, "tanimotoSimilarity": calculate_tanimoto_similarity(query_fp, fp)})
+            values: list[dict[str, Any]] = []
+            invalid_count = 0
+            for entry_id, smiles in zip(ids, smiles_list):
+                mol = Chem.MolFromSmiles(smiles)
+                if mol is None:
+                    invalid_count += 1
+                    continue
+                fp = mol_to_morgan_fingerprint(mol, radius=radius, num_bits=n_bits)
+                values.append({"id": entry_id, "tanimotoSimilarity": calculate_tanimoto_similarity(query_fp, fp)})
+    except ServerBusyError as e:
+        return jsonify({"error": str(e)}), 503
 
     return jsonify({
         "ok": True,
