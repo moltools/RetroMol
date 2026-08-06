@@ -6,28 +6,30 @@ This directory contains both a production-ready Docker setup and a developer-fri
 
 ## Overview
 
-The system runs five services:
-- web: React UI served by nginx
-- backend: FLask API served by gunicorn
-- db: PostgreSQL with pgvector
-- redis: in-memory session and job state store
-- maintenance: periodically relabels stale processing jobs
+The system runs four services:
+- **web**: React UI served by nginx (reverse-proxies `/api/*` to backend)
+- **backend**: Flask API served by gunicorn (2 worker processes by default, see [Sizing the backend](#sizing-the-backend))
+- **worker**: RQ background workers that execute every compute-heavy request (RetroMol parsing, PARAS inference, sequence alignment, RDKit fingerprinting/conformer search) off the `heavy_compute` queue -- 2 replicas by default. Runs the same image as backend, just a different command; see [Background job queue](#background-job-queue)
+- **redis**: session/job state store, RQ's job queue broker, and the rate limiter's shared counter store
 
-Redis ensures that sessions and job states survive worker restarts and that all backend workers share consistent shared state.
+There is no database *service* -- the compound/BGC database is a read-only DuckDB file, mounted directly into backend and worker (see `RETROMOL_DUCKDB_HOST_PATH` below).
+
+Redis ensures that sessions, job state, and the job queue itself survive individual container restarts, and that backend/worker can scale to multiple replicas while sharing consistent state.
+
+A background maintenance loop (relabeling any session item stuck in `"processing"`, e.g. after a crashed job) runs inside the backend container itself -- started once, in gunicorn's arbiter process, regardless of worker count. There is no separate maintenance container.
 
 ## Build and run with Docker (production mode)
 
 The default setup runs everything containerized:
 - Builds and serves the frontend React app behind nginx
 - Runs the Flask backend with gunicorn
-- Runs an additional backend maintenance script that periodically checks for stale jobs
-- Runs PostgreSQL and initializes it from a dump file
-- Runs Redis for session/job state
-- Exposes a read-only DB user for the backend
+- Runs RQ workers that pick up and execute every heavy-compute request
+- Runs Redis for session/job state and the job queue
+- Mounts a read-only DuckDB file and the PARAS model file into backend and worker
 
 ### Start the full stack
 
-First make sure to copy `.env.example` to `.env` and adjust any environment variables as needed.
+First make sure to copy `.env.example` to `.env` and adjust any environment variables as needed (paths to your DuckDB file and PARAS model, `REDIS_PASSWORD`).
 
 Then run:
 
@@ -35,9 +37,9 @@ Then run:
 docker compose up -d --build
 ```
 
-The backend itself loads Redis and DB configuration from `docker/backend.env`.
+The backend and worker load their Redis/DuckDB/PARAS configuration from `gui/docker/backend.env` (both services share the same environment block in `docker-compose.yml`).
 
-### Access the application 
+### Access the application
 
 - App UI: `http://<server-ip>/**`
 - API endpoints: `http://<server-ip>/api/...**`
@@ -46,24 +48,45 @@ For local user, `<server-ip>` is typically `localhost:4005`.
 
 ### Check container health
 
-Check that the backend and database are reachable through the API:
+`backend`, `redis`, and `web` each have a Docker healthcheck; `docker compose ps` shows `(healthy)`/`(unhealthy)` directly. `worker` has no HTTP surface to probe -- it relies on `restart: unless-stopped` reacting to the process itself exiting.
+
+You can also check the backend's health endpoints directly:
 
 ```bash
-curl -i http://<server-ip>/api/health  # should return 200 OK (backend alive)
-curl -i http://<server-ip>/api/ready  # should return 200 OK (DB connection OK)
+curl -i http://<server-ip>/api/health  # 200 OK: the process is up
+curl -i http://<server-ip>/api/ready   # 200 OK: DuckDB *and* Redis are both reachable
 ```
 
-For local runs, use:
+For local runs, use `http://localhost:4005` in place of `<server-ip>`.
 
-```bash
-curl -i http://localhost:4005/api/health  # should return 200 OK (backend alive)
-curl -i http://localhost:4005/api/ready  # should return 200 OK (DB connection OK)
-```
+### Sizing the backend
 
-> Make sure scripts in `/db/init` are executable before first build:
-> ```bash
-> chmod +x db/init/*.sh
-> ```
+Gunicorn worker/thread counts and timeouts live in `gui/src/server/gunicorn.conf.py`, driven by env vars set in `gui/docker/backend.env` -- change them there without rebuilding the image:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `GUNICORN_WORKERS` | `2` | gunicorn worker processes |
+| `GUNICORN_THREADS` | `4` | threads per worker |
+| `GUNICORN_TIMEOUT` | `120` | seconds before gunicorn considers a worker hung |
+| `RQ_WORKER_REPLICAS` | `2` | how many `worker` containers process the heavy_compute queue (`docker compose up --scale worker=N` also works if your Compose version doesn't apply `deploy.replicas` outside swarm) |
+| `HEAVY_JOB_WAIT_TIMEOUT_SECONDS` | `90` | how long a request blocks waiting on a queued job before returning 503 (kept under `GUNICORN_TIMEOUT`) |
+
+### Background job queue
+
+Every endpoint that actually computes something (compound/gene-cluster parsing, reconstruction, Discovery search/alignment, Tanimoto comparison, PMI shape analysis) enqueues its work on Redis via RQ and blocks briefly for the result, rather than running in the request thread -- the request/response contract is unchanged, but the actual compute happens on the `worker` containers, isolated from the web tier. If the queue is backed up, a request returns `503` with a "try again in a moment" message instead of hanging.
+
+### Observability
+
+- `/metrics` (Prometheus format) is exposed on the backend, including request latency/count by endpoint and custom counters for job outcomes and rate-limit rejections. It is **not** proxied through nginx (only `/api/*` is), so it isn't publicly reachable -- point Prometheus at the `backend` container directly on the Docker network, or `docker exec` in to check it locally:
+  ```bash
+  docker exec retromol_backend conda run -n retromol-gui --no-capture-output \
+    python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:4000/metrics').read().decode())"
+  ```
+- In production, backend logs are structured JSON (one line per request with method/path/status/duration, plus app events) -- pipe `docker compose logs backend` into `jq` to filter/query them.
+
+### Rate limiting
+
+Per-client request limits (keyed by the `X-Real-IP` header nginx sets) apply on top of a `120/minute` app-wide default: `60/minute` on parsing/reconstruction/Discovery-search endpoints (generous enough for a full batch compound import), `10/minute` on the heavier Tanimoto/PMI-shape comparison endpoints. A breached limit returns `429`.
 
 ## Local development mode
 
@@ -99,13 +122,21 @@ bash ./gui/scripts/dev_backend.sh
 ```
 
 This script:
-- Exports DB_HOST=localhost and REDIS_URL=redis://localhost:6379/0
+- Exports `RETROMOL_DUCKDB_PATH` and `REDIS_URL=redis://localhost:6379/0`
 - Runs Flask in debug mode with auto-reload on port 4000
 
 Verify health endpoint to check backend is running:
 
 ```bash
 curl -i http://localhost:4000/api/health
+```
+
+**Also start an RQ worker in a second terminal** (same conda env, same Redis) -- every compute-heavy request (compound/cluster submission, Discovery search, Compare, Shape) now blocks waiting on the `heavy_compute` queue, so without a worker running those requests will just time out after `HEAVY_JOB_WAIT_TIMEOUT_SECONDS` (90s) and return a 503:
+
+```bash
+conda activate retromol-gui
+export REDIS_URL=redis://localhost:6379/0
+rq worker --url "$REDIS_URL" heavy_compute
 ```
 
 ### Run the frontend locally
@@ -141,9 +172,10 @@ Production:
 docker compose up -d --build
 ```
 
-Local development:
+Local development (three terminals: Redis, backend + RQ worker, frontend):
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d redis
-bash ./gui/scripts/dev_backend.sh
-cd ./gui/src/client && npm start
+bash ./gui/scripts/dev_backend.sh              # terminal 2
+rq worker --url redis://localhost:6379/0 heavy_compute   # terminal 2b, same conda env
+cd ./gui/src/client && npm start               # terminal 3
 ```

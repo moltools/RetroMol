@@ -1,12 +1,16 @@
 python-dotenv
 flask
 flask-cors
+flask-limiter
 gunicorn
 joblib
 redis>=5.0
+rq
 scikit-learn
 umap-learn
 tqdm
 duckdb
 biopython
 pyhmmer
+prometheus-flask-exporter
+python-json-logger

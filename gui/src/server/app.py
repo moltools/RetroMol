@@ -4,8 +4,10 @@ import logging
 import os
 import time
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
+from pythonjsonlogger import jsonlogger
+from prometheus_flask_exporter import PrometheusMetrics
 
 from routes.session import (
     blp_create_session,
@@ -14,7 +16,7 @@ from routes.session import (
     blp_save_session,
     blp_delete_item,
 )
-from routes.session_store import get_or_init_app_start_epoch
+from routes.session_store import get_or_init_app_start_epoch, redis_client
 from routes.database import check_database_ready, duckdb_path_from_env
 from routes.stats import blp_database_stats
 from routes.jobs import (
@@ -34,6 +36,7 @@ from routes.discovery import (
     get_discovery_context,
 )
 from routes.shape import blp_discovery_shape
+from routes.rate_limit import limiter, RATE_LIMIT_REJECTIONS
 
 
 # Initialize the Flask app
@@ -49,8 +52,10 @@ if os.getenv("FLASK_ENV") == "development":
     )
 
 # Logging setup
-# In development: simple basicConfig
-# In production (under gunicorn): reuse gunicorn's error logger handlers
+# In development: simple basicConfig, human-readable.
+# In production (under gunicorn): reuse gunicorn's error logger handlers, but with a
+# JSON formatter -- turns "is the concurrency cap actually being hit" from a
+# question into something `docker logs | jq` can answer directly.
 if os.getenv("FLASK_ENV") == "development":
     logging.basicConfig(level=logging.DEBUG)
     app.logger.setLevel(logging.DEBUG)
@@ -64,12 +69,25 @@ else:
         logging.basicConfig(level=logging.INFO)
         app.logger.setLevel(logging.INFO)
 
+    json_formatter = jsonlogger.JsonFormatter(
+        "%(asctime)s %(name)s %(levelname)s %(message)s", rename_fields={"asctime": "timestamp", "levelname": "level"}
+    )
+    for handler in app.logger.handlers:
+        handler.setFormatter(json_formatter)
+
+    # Without this, records also propagate to the root logger (which gunicorn
+    # configures separately, with its own plain formatter) -- every app.logger call
+    # would print twice: once JSON, once plain. app.logger.handlers already covers
+    # everywhere these records need to go.
+    app.logger.propagate = False
+
 app.logger.info("Flask logger configured")
 
 
 # Set environment and debug mode
 app.config["ENV"] = os.getenv("FLASK_ENV", "production")  # defaults to "production"
 app.config["DEBUG"] = app.config["ENV"] == "development"
+app.config["START_EPOCH"] = get_or_init_app_start_epoch()
 print("starting app in environment:", app.config["ENV"])
 print("debug mode is:", app.debug)
 
@@ -81,6 +99,56 @@ elif app.config["ENV"] == "development":
     print("development environment detected")
 else:
     print(f"unknown environment: {app.config['ENV']}")
+
+
+# Rate limiting (see routes/rate_limit.py) and Prometheus metrics at /metrics --
+# request count/latency/in-progress by endpoint+status are auto-instrumented;
+# routes/queue.py and routes/rate_limit.py add a couple of custom counters on top
+# for job outcomes and rate-limit rejections specifically.
+limiter.init_app(app)
+metrics = PrometheusMetrics(app)
+
+
+@app.after_request
+def _log_request(response):
+    """
+    Log one structured JSON line per request: method, path, status, duration.
+
+    :param response: the outgoing Flask response
+    :return: the same response, unmodified
+    """
+    duration_ms = None
+    if hasattr(request, "_start_time"):
+        duration_ms = int((time.time() - request._start_time) * 1000)
+
+    app.logger.info(
+        "request",
+        extra={
+            "method": request.method,
+            "path": request.path,
+            "status": response.status_code,
+            "duration_ms": duration_ms,
+        },
+    )
+    return response
+
+
+@app.before_request
+def _mark_request_start():
+    """Stamp the request with a start time for _log_request's duration calculation."""
+    request._start_time = time.time()
+
+
+@app.errorhandler(429)
+def rate_limited(e) -> tuple[dict, int]:
+    """
+    Handle rate-limit rejections (Flask-Limiter raises a 429 on breach).
+
+    :param e: the raised exception (its description holds Flask-Limiter's own message)
+    :return: a dictionary describing the rejection and an HTTP status code
+    """
+    RATE_LIMIT_REJECTIONS.labels(path=request.path).inc()
+    return jsonify({"error": f"Rate limit exceeded: {e.description}"}), 429
 
 
 # Register api endpoints
@@ -136,17 +204,27 @@ def health() -> tuple[dict[str, str], int]:
 
 @app.route("/api/ready", methods=["GET"])
 def ready() -> tuple[dict[str, str], int]:
+    """
+    Readiness check: confirms both DuckDB and Redis are actually reachable, not just
+    that the process is up -- what container healthchecks are wired to (see
+    gui/docker/backend.Dockerfile).
+
+    :return: a dictionary indicating readiness (or which dependency failed) and an HTTP status code
+    """
     try:
         check_database_ready()
-        return jsonify({
-            "status": "ready",
-            "database": str(duckdb_path_from_env()),
-        }), 200
     except Exception as e:
-        return jsonify({
-            "status": "not ready",
-            "error": str(e),
-        }), 503
+        return jsonify({"status": "not ready", "error": f"duckdb: {e}"}), 503
+
+    try:
+        redis_client.ping()
+    except Exception as e:
+        return jsonify({"status": "not ready", "error": f"redis: {e}"}), 503
+
+    return jsonify({
+        "status": "ready",
+        "database": str(duckdb_path_from_env()),
+    }), 200
 
 
 # Register blueprints
@@ -170,6 +248,12 @@ app.register_blueprint(blp_discovery_query)
 app.register_blueprint(blp_discovery_msa)
 app.register_blueprint(blp_discovery_compare_tanimoto)
 app.register_blueprint(blp_discovery_shape)
+
+# The two rate-limit tiers on top of the app-wide default (see routes/rate_limit.py)
+# are applied as @limiter.limit(...) decorators directly on each route function, in
+# jobs.py/discovery.py/shape.py -- Flask-Limiter's documented pattern for a limiter
+# instance created in a separate module from the app (decorate at definition time,
+# call limiter.init_app(app) once the app exists, as done above).
 
 # Warm the discovery context cache eagerly so the first user request isn't slow --
 # building it reparses the ruleset and computes an all-pairs Tanimoto scoring matrix

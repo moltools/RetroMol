@@ -1,5 +1,6 @@
 """Module for defining job endpoints."""
 
+import logging
 import os
 import tempfile
 import time
@@ -9,6 +10,8 @@ from flask import Response, Blueprint, current_app, request, jsonify
 
 from routes.session_store import load_session_with_items, update_item, MAX_FILE_CONTENT_BYTES
 from routes.database import open_retromol_db
+from routes.queue import JobStillRunningError, enqueue_and_wait
+from routes.rate_limit import limiter
 
 from retromol.model.submission import Submission
 from retromol.model.rules import RuleSet
@@ -29,6 +32,11 @@ blp_reconstruct_compound = Blueprint("reconstruct_compound", __name__)
 blp_submit_gene_cluster = Blueprint("submit_gene_cluster", __name__)
 blp_get_cluster_readout = Blueprint("get_cluster_readout", __name__)
 blp_reconstruct_gene_cluster = Blueprint("reconstruct_gene_cluster", __name__)
+
+# Task functions below run inside an RQ worker process, not a Flask request context --
+# current_app.logger isn't available there, so they use a plain module logger instead.
+# Route handlers (still running in-request) keep using current_app.logger as before.
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_LIMIT = 10
@@ -143,7 +151,73 @@ def _set_item_status_inplace(item: dict, status: str, error_message: str | None 
             item["errorMessage"] = None
 
 
+def run_compound_parse(
+    session_id: str, item_id: str, name: str | None, smiles: str, match_stereochemistry: bool
+) -> tuple[dict, int]:
+    """
+    Parse a compound with RetroMol and persist the result onto its session item.
+
+    Runs as an RQ job (see routes/queue.py). Marks the item "processing" itself,
+    once a worker actually starts this job -- not when the HTTP request was
+    received -- so the SSE-driven status badge reflects real queue wait time rather
+    than jumping to "processing" the instant a request lands, even if the queue is
+    backed up and no worker has picked it up yet.
+
+    :param session_id: the session the item belongs to
+    :param item_id: the item to update
+    :param name: display name to (re)apply to the item
+    :param smiles: the SMILES to parse
+    :param match_stereochemistry: whether to match stereochemistry-aware rules
+    :return: a (response body, HTTP status code) pair
+    """
+    t0 = time.time()
+
+    def mark_processing(it: dict) -> None:
+        it["name"] = name or it.get("name")
+        it["smiles"] = smiles or it.get("smiles")
+        _set_item_status_inplace(it, "processing")
+
+    if not update_item(session_id, item_id, mark_processing):
+        logger.warning("run_compound_parse: failed to mark item as processing: %s", item_id)
+        return {"error": "Item not found during update"}, 404
+
+    try:
+        submission = Submission(name="app_submission", smiles=smiles)
+        rules = RuleSet.load_default(match_stereochemistry=match_stereochemistry)
+        result = run_retromol(submission=submission, rules=rules)
+        coverage = result.calculate_coverage()
+        result_as_dict = result.to_dict()
+
+        def mark_done(it: dict) -> None:
+            it["name"] = name or it.get("name")
+            it["smiles"] = smiles or it.get("smiles")
+            it["matchStereochemistry"] = match_stereochemistry
+            it["score"] = coverage
+            it["payload"] = result_as_dict
+
+            _set_item_status_inplace(it, "done")
+
+        update_item(session_id, item_id, mark_done)
+
+    except Exception as e:
+        logger.exception("run_compound_parse: error for item_id=%s", item_id)
+
+        def mark_error(it: dict) -> None:
+            _set_item_status_inplace(it, "error", error_message=str(e))
+
+        update_item(session_id, item_id, mark_error)
+
+        elapsed = int((time.time() - t0) * 1000)
+        return {"ok": False, "status": "error", "elapsed_ms": elapsed, "error": str(e)}, 500
+
+    elapsed = int((time.time() - t0) * 1000)
+    logger.info("run_compound_parse: finished item_id=%s elapsed_ms=%s", item_id, elapsed)
+
+    return {"ok": True, "status": "done", "elapsed_ms": elapsed}, 200
+
+
 @blp_submit_compound.post("/api/submitCompound")
+@limiter.limit("60 per minute")
 def submit_compound() -> tuple[Response, int]:
     """
     Endpoint to submit a compound for processing.
@@ -181,70 +255,36 @@ def submit_compound() -> tuple[Response, int]:
         current_app.logger.warning(f"submit_compound: wrong kind={item.get('kind')}")
         return jsonify({"error": "Item is not a compound"}), 400
 
-    t0 = time.time()
-
-    # Set status=processing early on this item only
-    def mark_processing(it: dict) -> None:
-        """
-        Update item details and mark as processing.
-
-        :param it: the item dictionary to update
-        """
-        it["name"] = name or it.get("name")
-        it["smiles"] = smiles or it.get("smiles")
-        _set_item_status_inplace(it, "processing")
-
-    ok = update_item(session_id, item_id, mark_processing)
-    if not ok:
-        current_app.logger.warning(f"submit_compound: failed to mark item as processing: {item_id}")
-        return jsonify({"error": "Item not found during update"}), 404
-
     try:
-        # Heavy work
-        submission = Submission(name="app_submission", smiles=smiles)
-        rules = RuleSet.load_default(match_stereochemistry=match_stereochemistry)
-        result = run_retromol(submission=submission, rules=rules)
-        coverage = result.calculate_coverage()
-        result_as_dict = result.to_dict()
+        body, status = enqueue_and_wait(run_compound_parse, session_id, item_id, name, smiles, match_stereochemistry)
+    except JobStillRunningError as e:
+        return jsonify({"error": str(e)}), 503
 
-        def mark_done(it: dict) -> None:
-            it["name"] = name or it.get("name")
-            it["smiles"] = smiles or it.get("smiles")
-            it["matchStereochemistry"] = match_stereochemistry
-            it["score"] = coverage
-            it["payload"] = result_as_dict
+    return jsonify(body), status
 
-            _set_item_status_inplace(it, "done")
 
-        update_item(session_id, item_id, mark_done)
+def run_compound_reconstruction(item_payload: dict | None) -> tuple[dict, int]:
+    """
+    Reconstruct candidate primary sequences from an already-parsed compound Result.
 
-    except Exception as e:
-        current_app.logger.exception(f"submit_compound: error for item_id={item_id}")
+    Runs as an RQ job (see routes/queue.py).
 
-        def mark_error(it: dict) -> None:
-            _set_item_status_inplace(it, "error", error_message=str(e))
+    :param item_payload: the session item's stored RetroMol Result payload
+    :return: a (response body, HTTP status code) pair
+    """
+    try:
+        result = Result.from_dict(item_payload)
+        reconstructions = reconstruct_linear_readout(result)
+        reconstructions_as_dicts = [rec.to_dict() for rec in reconstructions]
+        return {"ok": True, "status": "done", "data": reconstructions_as_dicts}, 200
 
-        update_item(session_id, item_id, mark_error)
-
-        elapsed = int((time.time() - t0) * 1000)
-        return jsonify({
-            "ok": False,
-            "status": "error",
-            "elapsed_ms": elapsed,
-            "error": str(e),
-        }), 500
-
-    elapsed = int((time.time() - t0) * 1000)
-    current_app.logger.info(f"submit_compound: finished item_id={item_id} elapsed_ms={elapsed}")
-
-    return jsonify({
-        "ok": True,
-        "status": "done",
-        "elapsed_ms": elapsed,
-    }), 200
+    except Exception:
+        logger.exception("run_compound_reconstruction: failed")
+        return {"ok": False, "error": "Item not found during update"}, 404
 
 
 @blp_reconstruct_compound.post("/api/reconstructCompound")
+@limiter.limit("60 per minute")
 def reconstruct_compound() -> tuple[Response, int]:
     """
     Endpoint for reconstructing a compound from a RetroMol result.
@@ -269,64 +309,29 @@ def reconstruct_compound() -> tuple[Response, int]:
         return jsonify({"error": "Item is not a compound"}), 400
 
     try:
-        result = Result.from_dict(item["payload"])
-        reconstructions = reconstruct_linear_readout(result)
-        reconstructions_as_dicts = [rec.to_dict() for rec in reconstructions]
-        return jsonify({"ok": True, "status": "done", "data": reconstructions_as_dicts}), 200
+        body, status = enqueue_and_wait(run_compound_reconstruction, item.get("payload"))
+    except JobStillRunningError as e:
+        return jsonify({"error": str(e)}), 503
 
-    except Exception as e:
-        current_app.logger.exception(f"submit_compound: error for item_id={item_id}")
-        return jsonify({"ok": False, "error": "Item not found during update"}), 404
+    return jsonify(body), status
 
 
-@blp_submit_gene_cluster.post("/api/submitGeneCluster")
-def submit_gene_cluster() -> tuple[Response, int]:
+def run_gene_cluster_parse(
+    session_id: str, item_id: str, name: str | None, file_content: str, paras_threshold: float
+) -> tuple[dict, int]:
     """
-    Endpoint to submit a gene cluster for processing.
+    Parse an antiSMASH GenBank file into a linear module readout and persist it.
 
-    `parasThreshold` (optional, default PARAS_THRESHOLD_DEFAULT) sets the minimum
-    prediction probability PARAS requires to call a substrate for an NRPS A-domain
-    module -- lower surfaces more (lower-confidence) predictions, higher keeps only
-    the most confident ones. Doesn't affect PKS modules, which are classified
-    directly from domain anatomy rather than through PARAS.
+    Runs as an RQ job (see routes/queue.py); see run_compound_parse for why status
+    marking happens here rather than in the route handler.
+
+    :param session_id: the session the item belongs to
+    :param item_id: the item to update
+    :param name: display name to (re)apply to the item
+    :param file_content: the raw antiSMASH GenBank file contents
+    :param paras_threshold: minimum PARAS prediction probability to call a substrate
+    :return: a (response body, HTTP status code) pair
     """
-    payload = request.get_json(force=True) or {}
-
-    session_id = payload.get("sessionId")
-    item_id = payload.get("itemId")
-    name = payload.get("name")
-    file_content = payload.get("fileContent")
-    paras_threshold = payload.get("parasThreshold", PARAS_THRESHOLD_DEFAULT)
-
-    if not session_id or not item_id:
-        return jsonify({"error": "Missing sessionId or itemId"}), 400
-
-    if not isinstance(file_content, str) or not file_content:
-        return jsonify({"error": "fileContent is required"}), 400
-
-    if len(file_content.encode("utf-8")) > MAX_FILE_CONTENT_BYTES:
-        max_mb = MAX_FILE_CONTENT_BYTES // (1024 * 1024)
-        return jsonify({"error": f"fileContent exceeds the {max_mb} MB limit"}), 400
-
-    if (
-        not isinstance(paras_threshold, (int, float))
-        or isinstance(paras_threshold, bool)
-        or not (0.0 <= paras_threshold <= 1.0)
-    ):
-        return jsonify({"error": "parasThreshold must be a number between 0 and 1"}), 400
-    paras_threshold = float(paras_threshold)
-
-    full_sess = load_session_with_items(session_id)
-    if full_sess is None:
-        return jsonify({"error": "Session not found"}), 404
-
-    item = next((it for it in full_sess.get("items", []) if it.get("id") == item_id), None)
-    if item is None:
-        return jsonify({"error": "Item not found"}), 404
-
-    if item.get("kind") != "cluster":
-        return jsonify({"error": "Item is not a gene cluster"}), 400
-
     t0 = time.time()
 
     def mark_processing(it: dict) -> None:
@@ -336,7 +341,8 @@ def submit_gene_cluster() -> tuple[Response, int]:
         _set_item_status_inplace(it, "processing")
 
     if not update_item(session_id, item_id, mark_processing):
-        return jsonify({"error": "Item not found during update"}), 404
+        logger.warning("run_gene_cluster_parse: failed to mark item as processing: %s", item_id)
+        return {"error": "Item not found during update"}, 404
 
     try:
         paras_model = _build_paras_model(paras_threshold)
@@ -394,7 +400,7 @@ def submit_gene_cluster() -> tuple[Response, int]:
         update_item(session_id, item_id, mark_done)
 
     except Exception as e:
-        current_app.logger.exception(f"submit_gene_cluster: error for item_id={item_id}")
+        logger.exception("run_gene_cluster_parse: error for item_id=%s", item_id)
 
         def mark_error(it: dict) -> None:
             _set_item_status_inplace(it, "error", error_message=str(e))
@@ -402,10 +408,67 @@ def submit_gene_cluster() -> tuple[Response, int]:
         update_item(session_id, item_id, mark_error)
 
         elapsed = int((time.time() - t0) * 1000)
-        return jsonify({"ok": False, "status": "error", "elapsed_ms": elapsed, "error": str(e)}), 500
+        return {"ok": False, "status": "error", "elapsed_ms": elapsed, "error": str(e)}, 500
 
     elapsed = int((time.time() - t0) * 1000)
-    return jsonify({"ok": True, "status": "done", "elapsed_ms": elapsed}), 200
+    return {"ok": True, "status": "done", "elapsed_ms": elapsed}, 200
+
+
+@blp_submit_gene_cluster.post("/api/submitGeneCluster")
+@limiter.limit("60 per minute")
+def submit_gene_cluster() -> tuple[Response, int]:
+    """
+    Endpoint to submit a gene cluster for processing.
+
+    `parasThreshold` (optional, default PARAS_THRESHOLD_DEFAULT) sets the minimum
+    prediction probability PARAS requires to call a substrate for an NRPS A-domain
+    module -- lower surfaces more (lower-confidence) predictions, higher keeps only
+    the most confident ones. Doesn't affect PKS modules, which are classified
+    directly from domain anatomy rather than through PARAS.
+    """
+    payload = request.get_json(force=True) or {}
+
+    session_id = payload.get("sessionId")
+    item_id = payload.get("itemId")
+    name = payload.get("name")
+    file_content = payload.get("fileContent")
+    paras_threshold = payload.get("parasThreshold", PARAS_THRESHOLD_DEFAULT)
+
+    if not session_id or not item_id:
+        return jsonify({"error": "Missing sessionId or itemId"}), 400
+
+    if not isinstance(file_content, str) or not file_content:
+        return jsonify({"error": "fileContent is required"}), 400
+
+    if len(file_content.encode("utf-8")) > MAX_FILE_CONTENT_BYTES:
+        max_mb = MAX_FILE_CONTENT_BYTES // (1024 * 1024)
+        return jsonify({"error": f"fileContent exceeds the {max_mb} MB limit"}), 400
+
+    if (
+        not isinstance(paras_threshold, (int, float))
+        or isinstance(paras_threshold, bool)
+        or not (0.0 <= paras_threshold <= 1.0)
+    ):
+        return jsonify({"error": "parasThreshold must be a number between 0 and 1"}), 400
+    paras_threshold = float(paras_threshold)
+
+    full_sess = load_session_with_items(session_id)
+    if full_sess is None:
+        return jsonify({"error": "Session not found"}), 404
+
+    item = next((it for it in full_sess.get("items", []) if it.get("id") == item_id), None)
+    if item is None:
+        return jsonify({"error": "Item not found"}), 404
+
+    if item.get("kind") != "cluster":
+        return jsonify({"error": "Item is not a gene cluster"}), 400
+
+    try:
+        body, status = enqueue_and_wait(run_gene_cluster_parse, session_id, item_id, name, file_content, paras_threshold)
+    except JobStillRunningError as e:
+        return jsonify({"error": str(e)}), 503
+
+    return jsonify(body), status
 
 
 @blp_get_cluster_readout.post("/api/getClusterReadout")
@@ -419,6 +482,9 @@ def get_cluster_readout() -> tuple[Response, int]:
         session_store.py), the same way a compound's `payload` never reaches the
         client directly -- only via `/api/reconstructCompound`. This is the
         gene-cluster equivalent of that endpoint.
+
+        A plain Redis dict read -- no compute to isolate, so this stays direct
+        rather than going through the job queue.
     """
     payload = request.get_json(force=True) or {}
 
@@ -440,7 +506,35 @@ def get_cluster_readout() -> tuple[Response, int]:
     return jsonify({"ok": True, "status": "done", "data": data}), 200
 
 
+def run_gene_cluster_reconstruction(item_payload: dict | None) -> tuple[dict, int]:
+    """
+    Map a gene cluster's parsed linear module readout(s) onto the same
+    matching-rule vocabulary a compound's primary sequence is drawn from.
+
+    Runs as an RQ job (see routes/queue.py).
+
+    :param item_payload: the session item's stored antiSMASH readouts payload
+    :return: a (response body, HTTP status code) pair
+    """
+    try:
+        ctx = get_discovery_context()
+        readouts_data = (item_payload or {}).get("readouts") or []
+
+        data = []
+        for readout_data in readouts_data:
+            readout = LinearReadout.from_dict(readout_data)
+            names, _tokens = bgc_primary_sequence(readout, ctx.ruleset)
+            data.append({"id": readout.id, "primary_sequence": names})
+
+        return {"ok": True, "status": "done", "data": data}, 200
+
+    except Exception as e:
+        logger.exception("run_gene_cluster_reconstruction: failed")
+        return {"ok": False, "error": str(e)}, 404
+
+
 @blp_reconstruct_gene_cluster.post("/api/reconstructGeneCluster")
+@limiter.limit("60 per minute")
 def reconstruct_gene_cluster() -> tuple[Response, int]:
     """
     Endpoint for mapping a gene cluster's parsed linear module readout(s) onto the
@@ -472,17 +566,8 @@ def reconstruct_gene_cluster() -> tuple[Response, int]:
         return jsonify({"error": "Item is not a gene cluster"}), 400
 
     try:
-        ctx = get_discovery_context()
-        readouts_data = (item.get("payload") or {}).get("readouts") or []
+        body, status = enqueue_and_wait(run_gene_cluster_reconstruction, item.get("payload"))
+    except JobStillRunningError as e:
+        return jsonify({"error": str(e)}), 503
 
-        data = []
-        for readout_data in readouts_data:
-            readout = LinearReadout.from_dict(readout_data)
-            names, _tokens = bgc_primary_sequence(readout, ctx.ruleset)
-            data.append({"id": readout.id, "primary_sequence": names})
-
-        return jsonify({"ok": True, "status": "done", "data": data}), 200
-
-    except Exception as e:
-        current_app.logger.exception(f"reconstruct_gene_cluster: error for item_id={item_id}")
-        return jsonify({"ok": False, "error": str(e)}), 404
+    return jsonify(body), status
