@@ -115,6 +115,18 @@ CONDA_SUBDIR=osx-64 conda env create -f ./gui/src/server/environment.backend.dev
 conda activate retromol-gui
 ```
 
+`environment.backend.dev.yml` only installs the GUI's own dependencies
+(`requirements.backend.txt` -- Flask, gunicorn, RQ, etc.). The backend imports
+`retromol`, `retromol_alignment`, `retromol_antismash`, `retromol_database`,
+`retromol_fingerprint`, and `retromol_synthesis` directly (see e.g.
+`gui/src/server/routes/discovery.py`) -- those come from the root package, not from
+that env file, so install it in editable mode too, from the repo root (same
+`pip install -e /app` step `backend.Dockerfile` runs for the Docker image):
+
+```bash
+pip install -e .
+```
+
 Then, run the helper script:
 
 ```bash
@@ -131,12 +143,13 @@ Verify health endpoint to check backend is running:
 curl -i http://localhost:4000/api/health
 ```
 
-**Also start an RQ worker in a second terminal** (same conda env, same Redis) -- every compute-heavy request (compound/cluster submission, Discovery search, Compare, Shape) now blocks waiting on the `heavy_compute` queue, so without a worker running those requests will just time out after `HEAVY_JOB_WAIT_TIMEOUT_SECONDS` (90s) and return a 503:
+**Also start an RQ worker in a second terminal** (same conda env, same Redis) -- every compute-heavy request (compound/cluster submission, Discovery search, Compare, Shape) now blocks waiting on the `heavy_compute` queue, so without a worker running those requests will just time out after `HEAVY_JOB_WAIT_TIMEOUT_SECONDS` (90s) and return a 503.
+
+The worker runs the task functions itself, so it needs the same environment as the Flask backend (`PYTHONPATH` to import `routes.*`, plus `PARAS_MODEL_PATH`, `CACHE_DIR`, `RETROMOL_DUCKDB_PATH`) -- not just `REDIS_URL`. Use the helper script rather than a bare `rq worker` command:
 
 ```bash
 conda activate retromol-gui
-export REDIS_URL=redis://localhost:6379/0
-rq worker --url "$REDIS_URL" heavy_compute
+bash ./gui/scripts/dev_worker.sh
 ```
 
 ### Run the frontend locally
@@ -172,10 +185,10 @@ Production:
 docker compose up -d --build
 ```
 
-Local development (three terminals: Redis, backend + RQ worker, frontend):
+Local development (three terminals: Redis, backend + RQ worker, frontend; run once, before terminal 2: `pip install -e .` from the repo root, in the activated `retromol-gui` conda env):
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d redis
 bash ./gui/scripts/dev_backend.sh              # terminal 2
-rq worker --url redis://localhost:6379/0 heavy_compute   # terminal 2b, same conda env
+bash ./gui/scripts/dev_worker.sh               # terminal 2b, same conda env
 cd ./gui/src/client && npm start               # terminal 3
 ```

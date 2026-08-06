@@ -7,7 +7,6 @@ joblib
 redis>=5.0
 rq
 scikit-learn
-umap-learn
 tqdm
 duckdb
 biopython
