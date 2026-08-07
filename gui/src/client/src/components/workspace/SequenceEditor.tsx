@@ -29,6 +29,7 @@ import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { searchMonomerNames } from "../../features/discovery/api";
 import type { MonomerNameOption } from "../../features/discovery/types";
+import { MinimalIconButton } from "../MinimalIconButton";
 
 // tags carries the source atom indices this block was mined from (if any). A
 // block with no tags (freshly added, or otherwise hand-edited) has no atoms to
@@ -85,6 +86,8 @@ function SortableBlock({
         px: 1,
         py: 0.75,
         borderRadius: 1,
+        position: "relative",
+        zIndex: 1,
         border: "1px solid",
         borderStyle: showProvenance && !linked ? "dashed" : "solid",
         borderColor: selected ? "primary.main" : "divider",
@@ -115,7 +118,7 @@ function SortableBlock({
         <MotifName name={block.name} />
       </Box>
       {!disabled && (
-        <IconButton
+        <MinimalIconButton
           size="small"
           onClick={(e) => {
             e.stopPropagation();
@@ -124,18 +127,26 @@ function SortableBlock({
           sx={{ p: 0.25, color: selected ? "inherit" : undefined }}
         >
           <CloseIcon fontSize="inherit" />
-        </IconButton>
+        </MinimalIconButton>
       )}
     </Box>
   );
 
   if (!showProvenance) return content;
 
+  // Only claim it's clickable when it actually is -- e.g. the inline Upload-list
+  // editor has no molecule view alongside it to highlight, so onClick is omitted
+  // there and linked blocks get no tooltip at all.
+  const title = !linked
+    ? "Not linked to the original structure (added or edited by hand)"
+    : clickable
+    ? "Click to highlight the source atoms"
+    : "";
+
+  if (!title) return content;
+
   return (
-    <Tooltip
-      title={linked ? "Click to highlight the source atoms" : "Not linked to the original structure (added or edited by hand)"}
-      arrow
-    >
+    <Tooltip title={title} arrow>
       {content}
     </Tooltip>
   );
@@ -173,7 +184,15 @@ function AddBlockControl({ disabled, onAdd }: { disabled?: boolean; onAdd: (name
         size="small"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        sx={{ border: "1px dashed", borderColor: "divider", borderRadius: 1, flexShrink: 0 }}
+        sx={{
+          border: "1px dashed",
+          borderColor: "divider",
+          borderRadius: 1,
+          flexShrink: 0,
+          position: "relative",
+          zIndex: 1,
+          bgcolor: "background.paper",
+        }}
       >
         <AddIcon fontSize="small" />
       </IconButton>
@@ -181,7 +200,7 @@ function AddBlockControl({ disabled, onAdd }: { disabled?: boolean; onAdd: (name
   }
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0, position: "relative", zIndex: 1, bgcolor: "background.paper" }}>
       {/* freeSolo is intentionally off: block names must resolve to a real monomer identity */}
       <Autocomplete<MonomerNameOption, false, false, false>
         size="small"
@@ -253,25 +272,48 @@ export const SequenceEditor: React.FC<SequenceEditorProps> = ({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <Box sx={{ display: "flex", flexWrap: "nowrap", gap: 1, alignItems: "center", ...horizontalScrollSx }}>
-        <SortableContext items={blocks.map((b) => b.id)} strategy={horizontalListSortingStrategy}>
-          {blocks.map((block) => {
-            const linked = (block.tags?.length ?? 0) > 0;
-            const selected = linked && block.tags!.every((tag) => selectedTags.includes(tag));
-            return (
-              <SortableBlock
-                key={block.id}
-                block={block}
-                disabled={disabled}
-                showProvenance={showProvenance}
-                selected={selected}
-                onDelete={handleDelete}
-                onClick={block.tags ? () => onBlockClick?.(block.tags!) : undefined}
-              />
-            );
-          })}
-        </SortableContext>
-        {!disabled && <AddBlockControl disabled={disabled} onAdd={handleAdd} />}
+      <Box sx={{ ...horizontalScrollSx }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "nowrap",
+            gap: 0.5,
+            alignItems: "center",
+            width: "max-content",
+            position: "relative",
+
+            // The connecting "string"
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: "50%",
+              height: "2px",
+              backgroundColor: "divider",
+              zIndex: 0,
+            },
+          }}
+        >
+          <SortableContext items={blocks.map((b) => b.id)} strategy={horizontalListSortingStrategy}>
+            {blocks.map((block) => {
+              const linked = (block.tags?.length ?? 0) > 0;
+              const selected = linked && block.tags!.every((tag) => selectedTags.includes(tag));
+              return (
+                <SortableBlock
+                  key={block.id}
+                  block={block}
+                  disabled={disabled}
+                  showProvenance={showProvenance}
+                  selected={selected}
+                  onDelete={handleDelete}
+                  onClick={block.tags && onBlockClick ? () => onBlockClick(block.tags!) : undefined}
+                />
+              );
+            })}
+          </SortableContext>
+          {!disabled && <AddBlockControl disabled={disabled} onAdd={handleAdd} />}
+        </Box>
       </Box>
     </DndContext>
   );

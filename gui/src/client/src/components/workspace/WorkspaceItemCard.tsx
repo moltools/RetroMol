@@ -88,7 +88,6 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
 
   const [openViewItem, setOpenViewItem] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
-  const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
 
   const [editingName, setEditingName] = React.useState(false);
   const [nameDraft, setNameDraft] = React.useState(item.name);
@@ -117,14 +116,6 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
   const handleOpenViewItem = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     event.currentTarget.blur(); // prevents 'Blocked aria-hidden on an element' warning
     setOpenViewItem(true);
-  };
-
-  const handleToggleMotif = (tags: number[]) => {
-    setSelectedTags((prev) => {
-      const allSelected = tags.every((tag) => prev.includes(tag));
-      if (allSelected) return prev.filter((tag) => !tags.includes(tag));
-      return Array.from(new Set([...prev, ...tags]));
-    });
   };
 
   const handleStartEditName = (e: React.SyntheticEvent) => {
@@ -506,9 +497,7 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
                       item={item}
                       data={reconstructions}
                       state={editor}
-                      selectedTags={selectedTags}
-                      onToggleMotif={handleToggleMotif}
-                      labelWidth={110}
+                      selectedTags={[]}
                     />
                   </Stack>
 
@@ -529,7 +518,7 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
                         </Button>
                       </>
                     ) : (
-                      <Button size="small" variant="outlined" onClick={() => editor.setEditing(true)}>
+                      <Button size="small" variant="contained" onClick={() => editor.setEditing(true)}>
                         Edit sequences
                       </Button>
                     )}

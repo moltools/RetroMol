@@ -332,7 +332,11 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
             <AnnotatedArrow annotation={'Sequencing'} />
             <Box
               sx={{
-                flex: 1,
+                // Sized to its natural content width (not squeezed by the other
+                // flex:1 siblings) -- the full sequence should be readable without
+                // an extra inner scrollbar; the outer row above already scrolls
+                // horizontally for anything that doesn't fit.
+                flex: '0 0 auto',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -373,7 +377,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
           </Box>
           <DescriptionBox
             title={'Explanation'}
-            description={'The input SMILES (right) is processed by RetroMol into non-overlapping building blocks, and from these building blocks a linear backbone is reconstructed (middle). The primary sequence, a text representation of the linear backbone, is seen on the right. You can highlight individual motifs by clicking them in the primary sequence above. If a sequence was parsed wrong or incompletely, use "Edit sequences" to fix it by hand -- dashed blocks are not linked to the parsed structure. Saved edits are kept with this compound and reused when you query it from the Discovery tab; "Revert" on a row discards the edit and restores the algorithm’s own parse.'}
+            description={'The input SMILES structure (left) is processed by RetroMol into non-overlapping building blocks, and from these building blocks a linear backbone is reconstructed (middle). The primary sequence, a text representation of the linear backbone, is seen on the right. You can highlight individual motifs by clicking them in the primary sequence above. If a sequence was parsed wrong or incompletely, use "Edit sequences" to fix it by hand. Saved edits are kept with this compound and reused when you query it from the Discovery tab; "Revert" on a row discards the edit and restores the algorithm’s own parse.'}
           />
         </Box>
       )}
