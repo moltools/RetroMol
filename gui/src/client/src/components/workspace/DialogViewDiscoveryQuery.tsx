@@ -29,10 +29,9 @@ import { DISCOVERY_SCORE_MODE_OPTIONS } from "../../features/discovery/types";
 import { getDiscoveryQueryResult } from "../../features/discovery/api";
 import { AlignmentGrid, ResultRow, DownloadSvgButton, sanitizeFilenamePart, type AlignmentGridRow } from "./AlignmentGrid";
 import { WorkspaceCompare } from "./WorkspaceCompare";
-import { WorkspaceShape } from "./WorkspaceShape";
 import { downloadJson } from "./downloadJson";
 
-type ViewMode = "pairwise" | "msa" | "compare" | "shape";
+type ViewMode = "pairwise" | "msa" | "compare";
 
 type DialogViewDiscoveryQueryProps = {
   item: DiscoveryQueryItem;
@@ -198,14 +197,6 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                       </ToggleButton>
                     </span>
                   </Tooltip>
-
-                  <Tooltip title={item.flags.computePmi ? "" : disabledReason("Compute shape (PMI)")} arrow>
-                    <span>
-                      <ToggleButton value="shape" disabled={!item.flags.computePmi}>
-                        Shape (PMI)
-                      </ToggleButton>
-                    </span>
-                  </Tooltip>
                 </ToggleButtonGroup>
 
                 <Typography variant="caption" color="text.secondary">
@@ -219,7 +210,7 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                 </Button>
               </Stack>
 
-              {resultsView !== "compare" && resultsView !== "shape" && (
+              {resultsView !== "compare" && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
                   Cell shading reflects each unit's structural similarity to the query's aligned unit in that
                   column. Darker means a closer match, so a sequence's weak spots stand out at a glance.
@@ -251,34 +242,20 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                     </Box>
                   </Box>
                 )
-              ) : resultsView === "compare" ? (
-                selectedResults.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Select at least one result above to compare compounds.
-                  </Typography>
-                ) : (
-                  <Box sx={{ py: 1 }}>
-                    <WorkspaceCompare
-                      results={selectedResults}
-                      queryOriginSmiles={queryOriginSmiles}
-                      precomputedTanimoto={
-                        payload.compareValues && payload.compareRadius !== undefined && payload.compareNBits !== undefined
-                          ? { radius: payload.compareRadius, nBits: payload.compareNBits, values: payload.compareValues }
-                          : null
-                      }
-                    />
-                  </Box>
-                )
               ) : selectedResults.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                  Select at least one result above to analyze molecular shape.
+                  Select at least one result above to compare compounds.
                 </Typography>
               ) : (
                 <Box sx={{ py: 1 }}>
-                  <WorkspaceShape
+                  <WorkspaceCompare
                     results={selectedResults}
                     queryOriginSmiles={queryOriginSmiles}
-                    precomputedShape={payload.pmiResults ? { results: payload.pmiResults, skipped: payload.pmiSkipped ?? [] } : null}
+                    precomputedTanimoto={
+                      payload.compareValues && payload.compareRadius !== undefined && payload.compareNBits !== undefined
+                        ? { radius: payload.compareRadius, nBits: payload.compareNBits, values: payload.compareValues }
+                        : null
+                    }
                   />
                 </Box>
               )}

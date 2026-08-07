@@ -20,7 +20,6 @@ import Tooltip from "@mui/material/Tooltip";
 import DeleteIcon from "@mui/icons-material/Delete";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import ViewIcon from "@mui/icons-material/Visibility";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useQuery } from "@tanstack/react-query";
 import { Session, SessionItem, DiscoveryQueryItem, DiscoveryQueryItemSchema } from "../../features/session/types";
 import { deleteSessionItem } from "../../features/session/api";
@@ -106,7 +105,6 @@ function DiscoveryQueryListItem({
   const flagChips = [
     item.flags.computeMsa ? "MSA" : null,
     item.flags.computeCompare ? "Compare" : null,
-    item.flags.computePmi ? "PMI" : null,
   ].filter((label): label is string => label !== null);
 
   return (
@@ -190,7 +188,6 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
   const [onlyUserUploads, setOnlyUserUploads] = React.useState<boolean>(false);
   const [computeMsa, setComputeMsa] = React.useState<boolean>(false);
   const [computeCompare, setComputeCompare] = React.useState<boolean>(false);
-  const [computePmi, setComputePmi] = React.useState<boolean>(false);
   const [submitting, setSubmitting] = React.useState<boolean>(false);
 
   const [deletingIds, setDeletingIds] = React.useState<Set<string>>(new Set());
@@ -250,7 +247,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
         includeUserUploads: includeUserUploads || onlyUserUploads,
         onlyUserUploads,
         queryOriginSmiles,
-        flags: { computeMsa, computeCompare, computePmi },
+        flags: { computeMsa, computeCompare },
       });
       setSession((prev) => (prev ? { ...prev, items: [...prev.items, item] } : prev));
       setViewingItemId(item.id);
@@ -573,27 +570,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
               }
               label="Compute compound comparison"
             />
-            <FormControlLabel
-              control={
-                <Checkbox size="small" checked={computePmi} onChange={(e) => setComputePmi(e.target.checked)} disabled={submitting} />
-              }
-              label={
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  <span>Compute shape (PMI)</span>
-                  <Tooltip title="Conformer search is slow -- this can take noticeably longer than the rest of the query." arrow>
-                    <WarningAmberIcon fontSize="inherit" color="warning" />
-                  </Tooltip>
-                </Stack>
-              }
-            />
           </Stack>
-          {computePmi && (
-            <Alert severity="warning" sx={{ mt: 1 }}>
-              Shape (PMI) runs a conformer search per compound and can take noticeably longer than the rest of the
-              query. It's routed to a separate queue so it won't block other users' faster queries, but this query
-              itself will stay "processing" until it's done.
-            </Alert>
-          )}
 
           <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5 }}>
             <Button

@@ -37,7 +37,6 @@ from routes.discovery import (
     blp_get_discovery_query_result,
     get_discovery_context,
 )
-from routes.shape import blp_discovery_shape
 from routes.rate_limit import limiter, RATE_LIMIT_REJECTIONS
 
 
@@ -251,11 +250,10 @@ app.register_blueprint(blp_discovery_msa)
 app.register_blueprint(blp_discovery_compare_tanimoto)
 app.register_blueprint(blp_submit_discovery_query)
 app.register_blueprint(blp_get_discovery_query_result)
-app.register_blueprint(blp_discovery_shape)
 
 # The two rate-limit tiers on top of the app-wide default (see routes/rate_limit.py)
 # are applied as @limiter.limit(...) decorators directly on each route function, in
-# jobs.py/discovery.py/shape.py -- Flask-Limiter's documented pattern for a limiter
+# jobs.py/discovery.py -- Flask-Limiter's documented pattern for a limiter
 # instance created in a separate module from the app (decorate at definition time,
 # call limiter.init_app(app) once the app exists, as done above).
 
