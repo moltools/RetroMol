@@ -39,6 +39,15 @@ export async function deleteSessionItem(sessionId: string, itemId: string): Prom
   await postJson("/api/deleteSessionItem", { sessionId, itemId }, OkRespSchema);
 };
 
+export async function renameSessionItem(session: Session, itemId: string, name: string): Promise<Session> {
+  const nextSession: Session = {
+    ...session,
+    items: session.items.map((it) => (it.id === itemId ? { ...it, name } : it)),
+  };
+  await saveSession(nextSession);
+  return nextSession;
+};
+
 // EventSource can only issue a plain GET (no custom headers/body), so the SSE
 // endpoint can't be authorized with a POSTed sessionId like everything else
 // here. Instead we mint a short-lived, single-use ticket via a normal POST,

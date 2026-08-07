@@ -9,15 +9,20 @@ import Typography from "@mui/material/Typography";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ViewIcon from "@mui/icons-material/Visibility";
+import EditIcon from "@mui/icons-material/Edit";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useQuery } from "@tanstack/react-query";
 import { Gauge } from "@mui/x-charts/Gauge";
 import { Session, SessionItem } from "../../features/session/types";
+import { renameSessionItem } from "../../features/session/api";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { DialogViewItem } from "./DialogViewItem";
@@ -26,6 +31,8 @@ import { ClusterReadoutRows } from "./ClusterReadoutRows";
 import { reconstructCompound } from "../../features/reconstruction/api";
 import { getClusterReadout } from "../../features/clusters/api";
 import { useTick } from "../../hooks/useTick";
+import { useNotifications } from "../NotificationProvider";
+import { MinimalIconButton } from "../MinimalIconButton";
 
 function getScoreColor(theme: Theme, value: number): string {
   const t = theme.vars || theme;
@@ -77,9 +84,21 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
   const isCompound = item.kind === "compound"; // there are only two types: "compound" and "cluster"
   const itemScore = typeof item.score === "number" ? item.score : 0.0;
 
+  const { pushNotification } = useNotifications();
+
   const [openViewItem, setOpenViewItem] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
   const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
+
+  const [editingName, setEditingName] = React.useState(false);
+  const [nameDraft, setNameDraft] = React.useState(item.name);
+  const [savingName, setSavingName] = React.useState(false);
+
+  // Keep the draft in sync with the persisted name as long as we're not mid-edit
+  // (e.g. another tab/session update coming through).
+  React.useEffect(() => {
+    if (!editingName) setNameDraft(item.name);
+  }, [item.name, editingName]);
 
   // Re-render every 5s so "X ago" updates, via one shared timer for all cards
   useTick(5000);
@@ -106,6 +125,42 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
       if (allSelected) return prev.filter((tag) => !tags.includes(tag));
       return Array.from(new Set([...prev, ...tags]));
     });
+  };
+
+  const handleStartEditName = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    if (disabled) return;
+    setNameDraft(item.name);
+    setEditingName(true);
+  };
+
+  const handleCancelEditName = () => {
+    setNameDraft(item.name);
+    setEditingName(false);
+  };
+
+  const handleSaveName = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) {
+      pushNotification("Name cannot be empty.", "error");
+      return;
+    }
+    if (trimmed === item.name) {
+      setEditingName(false);
+      return;
+    }
+
+    setSavingName(true);
+    try {
+      const nextSession = await renameSessionItem(session, item.id, trimmed);
+      setSession(() => nextSession);
+      setEditingName(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      pushNotification(`Failed to rename item: ${msg}`, "error");
+    } finally {
+      setSavingName(false);
+    }
   };
 
   // Shares its query cache (and edit state machine) with DialogViewItem -- expanding
@@ -207,15 +262,66 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
               />
             </Tooltip>
 
-            <Stack direction="column" spacing={0.5} sx={{ minWidth: 0, flex: 1 }}>
+            <Stack direction="column" spacing={0.5} sx={{ minWidth: 0 }}>
               <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: 1 }}>
+                {editingName ? (
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    spacing={0.5}
+                    sx={{ minWidth: 0, width: "fit-content", maxWidth: "100%" }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <TextField
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSaveName();
+                        } else if (e.key === "Escape") {
+                          e.preventDefault();
+                          handleCancelEditName();
+                        }
+                      }}
+                      size="small"
+                      variant="standard"
+                      autoFocus
+                      disabled={savingName}
+                      sx={{ minWidth: 0, width: "auto" }}
+                    />
+                    <Tooltip title="Save name" arrow>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={handleSaveName}
+                          disabled={savingName || !nameDraft.trim()}
+                          sx={{ p: 0.25, flexShrink: 0 }}
+                        >
+                          {savingName ? <CircularProgress size={14} /> : <CheckIcon fontSize="small" />}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title="Cancel" arrow>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={handleCancelEditName}
+                          disabled={savingName}
+                          sx={{ p: 0.25, flexShrink: 0 }}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Stack>
+                ) : (
+                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
                     <Typography
                       variant="body2"
                       fontWeight={500}
                       noWrap
                       sx={{
-                        flex: 1,
                         minWidth: 0,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -224,7 +330,15 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
                     >
                       {item.name}
                     </Typography>
-                </Stack>
+                    <Tooltip title="Rename" arrow>
+                      <span>
+                        <MinimalIconButton onClick={handleStartEditName} disabled={disabled}>
+                          <EditIcon sx={{ fontSize: "0.9rem", transform: "translateY(-2px)" }} />
+                        </MinimalIconButton>
+                      </span>
+                    </Tooltip>
+                  </Stack>
+                )}
               </Stack>
 
               <Typography variant="caption" color="text.secondary">

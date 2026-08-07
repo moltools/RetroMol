@@ -40,7 +40,6 @@ SSE_TICKET_TTL_SECONDS = 30
 # Fields that are owned by the server and should not be overwritten by client data
 # Item 'name' and 'updatedAt' are client-editable
 SERVER_OWNED_FIELDS = {
-    "name",
     "score",
     "payload",
     "status",
