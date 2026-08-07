@@ -181,12 +181,12 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
   const [blocks, setBlocks] = React.useState<SequenceBlock[]>([]);
 
   const [entryType, setEntryType] = React.useState<DiscoveryEntryType>("compound");
-  const [scoreMode, setScoreMode] = React.useState<DiscoveryScoreMode>("subsequence");
-  const [n, setN] = React.useState<number>(100);
+  const [scoreMode, setScoreMode] = React.useState<DiscoveryScoreMode>("longest_sequence");
+  const [n, setN] = React.useState<number>(1000);
   const [topX, setTopX] = React.useState<number>(20);
   const [includeUserUploads, setIncludeUserUploads] = React.useState<boolean>(false);
   const [onlyUserUploads, setOnlyUserUploads] = React.useState<boolean>(false);
-  const [computeMsa, setComputeMsa] = React.useState<boolean>(false);
+  const [computeMsa, setComputeMsa] = React.useState<boolean>(true);
   const [computeCompare, setComputeCompare] = React.useState<boolean>(false);
   const [submitting, setSubmitting] = React.useState<boolean>(false);
 
