@@ -60,5 +60,15 @@ USER $USERNAME
 # Run everything inside the conda env without manual activation
 ENTRYPOINT ["conda", "run", "-n", "retromol-gui", "--no-capture-output"]
 
+# Worker/thread/timeout sizing lives in gunicorn.conf.py (env-var overridable via
+# gui/docker/backend.env), not hardcoded here.
 # Let Flask/gunicorn find the app: "app:app"
-CMD ["gunicorn", "-w", "1", "--threads", "4", "-b", "0.0.0.0:4000", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "--timeout", "120", "app:app"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
+
+# /api/ready checks both DuckDB and Redis connectivity -- a more meaningful signal
+# than "the process is up" for whether this container should receive traffic. Uses
+# stdlib urllib rather than curl/wget (neither is installed in this image, and
+# adding one just for a healthcheck isn't worth the extra apt layer).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD conda run -n retromol-gui --no-capture-output python -c \
+    "import urllib.request; urllib.request.urlopen('http://localhost:4000/api/ready', timeout=3)" || exit 1

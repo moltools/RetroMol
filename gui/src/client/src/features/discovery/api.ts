@@ -1,5 +1,11 @@
 import { getJson, postJson } from "../http";
 import {
+  SubmitDiscoveryQueryRespSchema,
+  GetDiscoveryQueryResultRespSchema,
+  type DiscoveryQueryItem,
+  type DiscoveryQueryPayload,
+} from "../session/types";
+import {
   MonomerNameSearchRespSchema,
   DiscoveryQueryReqSchema,
   DiscoveryQueryRespSchema,
@@ -9,6 +15,7 @@ import {
   DiscoveryCompareTanimotoRespSchema,
   DiscoveryShapeReqSchema,
   DiscoveryShapeRespSchema,
+  SubmitDiscoveryQueryReqSchema,
   type DiscoveryQueryReq,
   type MonomerNameOption,
   type DiscoveryQueryResp,
@@ -18,6 +25,7 @@ import {
   type DiscoveryCompareTanimotoResp,
   type DiscoveryShapeReq,
   type DiscoveryShapeResp,
+  type SubmitDiscoveryQueryReq,
 } from "./types";
 
 export async function searchMonomerNames(
@@ -54,4 +62,26 @@ export async function runDiscoveryCompareTanimoto(
 export async function runDiscoveryShape(payload: DiscoveryShapeReq, signal?: AbortSignal): Promise<DiscoveryShapeResp> {
   const validated = DiscoveryShapeReqSchema.parse(payload);
   return postJson("/api/discoveryShape", validated, DiscoveryShapeRespSchema, signal);
+}
+
+// Fire-and-forget: the created item (status "queued") comes back immediately, and its
+// status/payload updates flow through the existing SSE + getSession mechanism from
+// there -- same pattern as jobs/api.ts's submitCompoundJob, just returning the item
+// since (unlike a compound) it isn't created client-side first.
+export async function submitDiscoveryQuery(payload: SubmitDiscoveryQueryReq): Promise<DiscoveryQueryItem> {
+  const validated = SubmitDiscoveryQueryReqSchema.parse(payload);
+  const data = await postJson("/api/submitDiscoveryQuery", validated, SubmitDiscoveryQueryRespSchema);
+  return data.item;
+}
+
+// payload is stripped from session items by getSession -- this fetches a discovery
+// query's actual computed payload on demand, the same way reconstructCompound/
+// getClusterReadout do for the other item kinds.
+export async function getDiscoveryQueryResult(
+  sessionId: string,
+  itemId: string,
+  signal?: AbortSignal
+): Promise<DiscoveryQueryPayload | null> {
+  const data = await postJson("/api/getDiscoveryQueryResult", { sessionId, itemId }, GetDiscoveryQueryResultRespSchema, signal);
+  return data.payload;
 }

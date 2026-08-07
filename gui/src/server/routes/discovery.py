@@ -8,7 +8,10 @@ from this recipe would silently make query fingerprints incomparable to the ones
 stored in the database, so it must be reproduced exactly rather than "improved".
 """
 
+import logging
 import threading
+import time
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -29,14 +32,24 @@ from retromol_database.duckdb import FINGERPRINT_SIZE, Entry, SearchResult
 from retromol_fingerprint.fingerprint import TOKEN_UNK, Fingerprinter, Vocabulary
 from retromol_synthesis.reconstruction import reconstruct_linear_readout
 
-from routes.concurrency import ServerBusyError, heavy_compute_slot
 from routes.database import open_retromol_db
-from routes.session_store import load_session_with_items
+from routes.queue import JobStillRunningError, enqueue_and_wait, enqueue_job
+from routes.rate_limit import limiter
+from routes.session_store import load_session_with_items, save_item, update_item
+from routes.shape import DEFAULT_MAX_ITERS, DEFAULT_NUM_CONFS, MAX_SHAPE_ENTRIES, run_pmi_shape_batch
 
 blp_discovery_monomer_names = Blueprint("discovery_monomer_names", __name__)
 blp_discovery_query = Blueprint("discovery_query", __name__)
 blp_discovery_msa = Blueprint("discovery_msa", __name__)
 blp_discovery_compare_tanimoto = Blueprint("discovery_compare_tanimoto", __name__)
+blp_submit_discovery_query = Blueprint("submit_discovery_query", __name__)
+blp_get_discovery_query_result = Blueprint("get_discovery_query_result", __name__)
+
+# Task functions below (run_discovery_query, run_discovery_msa, run_tanimoto_batch)
+# run inside an RQ worker process, not a Flask request context -- current_app.logger
+# isn't available there, so they use a plain module logger instead. Route handlers
+# (still running in-request) keep using current_app.logger as before.
+logger = logging.getLogger(__name__)
 
 
 MAX_N = 1000
@@ -54,6 +67,17 @@ MIN_MORGAN_RADIUS = 1
 MAX_MORGAN_RADIUS = 6
 MIN_MORGAN_NBITS = 16
 MAX_MORGAN_NBITS = 8192
+
+# Radius/fingerprint size used when precomputing the Compare metric at query-submit
+# time (see run_discovery_query_job) -- mirrors discovery_compare_tanimoto's own
+# defaults (payload.get("radius", 2) / payload.get("nBits", 2048)) so the precomputed
+# value matches what a user would get from the interactive picker's default state.
+DEFAULT_COMPARE_RADIUS = 2
+DEFAULT_COMPARE_NBITS = 2048
+
+# A saved discovery-query session item -- see run_discovery_query_job/submit_discovery_query.
+DISCOVERY_QUERY_KIND = "discoveryQuery"
+MAX_DISCOVERY_QUERY_ITEMS = 5
 
 # What a candidate's alignment score gets normalized against, as a percentage.
 # "subsequence" only considers the query's own length, so a short query that
@@ -470,48 +494,26 @@ def discovery_monomer_names() -> tuple[Response, int]:
     return jsonify({"rows": [{"name": n} for n in ordered], "rowCount": len(ordered)}), 200
 
 
-@blp_discovery_query.post("/api/discoveryQuery")
-def discovery_query() -> tuple[Response, int]:
+def run_discovery_query(
+    primary_sequence: list[str],
+    entry_type: str,
+    n: int,
+    top_x: int,
+    score_mode: str,
+    only_user_uploads: bool,
+    include_user_uploads: bool,
+    session_id: str | None,
+) -> tuple[dict, int]:
     """
     Fingerprint a primary sequence, retrieve nearest neighbors from the database, and
     align the query against each candidate.
 
-    :return: a tuple containing the ranked results (or an error) and an HTTP status code
+    Runs as an RQ job (see routes/queue.py) -- builds its own DiscoveryContext
+    lazily via get_discovery_context() the first time it runs in a given worker
+    process, same as any other caller of that function.
+
+    :return: a (response body, HTTP status code) pair
     """
-    payload = request.get_json(force=True) or {}
-
-    primary_sequence = payload.get("primarySequence")
-    entry_type = payload.get("entryType")
-    n = payload.get("n")
-    top_x = payload.get("topX")
-    score_mode = payload.get("scoreMode", "subsequence")
-    only_user_uploads = bool(payload.get("onlyUserUploads", False))
-    include_user_uploads = bool(payload.get("includeUserUploads", False)) or only_user_uploads
-    session_id = payload.get("sessionId")
-
-    if (
-        not isinstance(primary_sequence, list)
-        or not primary_sequence
-        or not all(isinstance(x, str) and x for x in primary_sequence)
-    ):
-        return jsonify({"error": "primarySequence must be a non-empty list of non-empty strings"}), 400
-
-    if entry_type not in ENTRY_TYPES_FOR_QUERY:
-        return jsonify({"error": f"entryType must be one of {ENTRY_TYPES_FOR_QUERY}"}), 400
-
-    if score_mode not in ALIGNMENT_SCORE_MODES:
-        return jsonify({"error": f"scoreMode must be one of {ALIGNMENT_SCORE_MODES}"}), 400
-
-    if not isinstance(n, int) or isinstance(n, bool) or not (1 <= n <= MAX_N):
-        return jsonify({"error": f"n must be an integer between 1 and {MAX_N}"}), 400
-
-    max_top_x = min(n, MAX_TOP_X)
-    if not isinstance(top_x, int) or isinstance(top_x, bool) or not (1 <= top_x <= max_top_x):
-        return jsonify({"error": f"topX must be an integer between 1 and {max_top_x}"}), 400
-
-    if include_user_uploads and not (isinstance(session_id, str) and session_id):
-        return jsonify({"error": "sessionId is required when includeUserUploads or onlyUserUploads is true"}), 400
-
     ctx = get_discovery_context()
 
     # Fingerprint is built from the display sequence directly (Fingerprinter.encode
@@ -549,7 +551,7 @@ def discovery_query() -> tuple[Response, int]:
     )[:n]
 
     if not candidates:
-        return jsonify({
+        return {
             "ok": True,
             "scoreMode": score_mode,
             "querySequence": [_denormalize_for_display(t) for t in alignment_query],
@@ -557,13 +559,13 @@ def discovery_query() -> tuple[Response, int]:
             "candidatesConsidered": 0,
             "candidatesSkipped": 0,
             "results": [],
-        }), 200
+        }, 200
 
     try:
         self_score, _, _ = align(ctx.aligner, alignment_query, alignment_query, ctx.converter)
     except Exception as e:
-        current_app.logger.exception("discovery_query: self-alignment failed")
-        return jsonify({"error": f"Could not align the query sequence against itself: {e}"}), 400
+        logger.exception("run_discovery_query: self-alignment failed")
+        return {"error": f"Could not align the query sequence against itself: {e}"}, 400
 
     # Skip (rather than crash on) any candidate whose stored sequence contains a token
     # outside the current scoring-matrix alphabet -- e.g. rule data drifted since the
@@ -609,8 +611,8 @@ def discovery_query() -> tuple[Response, int]:
                 ctx.aligner, alignment_query, oriented_target, ctx.converter
             )
         except Exception:
-            current_app.logger.exception(
-                "discovery_query: alignment traceback failed for entry_id=%s", candidate.entry.id
+            logger.exception(
+                "run_discovery_query: alignment traceback failed for entry_id=%s", candidate.entry.id
             )
             continue
 
@@ -654,7 +656,7 @@ def discovery_query() -> tuple[Response, int]:
             "alignedSimilarity": aligned_similarity,
         })
 
-    return jsonify({
+    return {
         "ok": True,
         "scoreMode": score_mode,
         "querySequence": [_denormalize_for_display(t) for t in alignment_query],
@@ -662,20 +664,134 @@ def discovery_query() -> tuple[Response, int]:
         "candidatesConsidered": len(candidates),
         "candidatesSkipped": skipped,
         "results": results,
-    }), 200
+    }, 200
 
 
-@blp_discovery_msa.post("/api/discoveryMsa")
-def discovery_msa() -> tuple[Response, int]:
+@blp_discovery_query.post("/api/discoveryQuery")
+@limiter.limit("60 per minute")
+def discovery_query() -> tuple[Response, int]:
+    """
+    Validate a discovery query request and hand the actual search/alignment off to
+    the heavy_compute job queue (see routes/queue.py, run_discovery_query).
+
+    :return: a tuple containing the ranked results (or an error) and an HTTP status code
+    """
+    payload = request.get_json(force=True) or {}
+
+    primary_sequence = payload.get("primarySequence")
+    entry_type = payload.get("entryType")
+    n = payload.get("n")
+    top_x = payload.get("topX")
+    score_mode = payload.get("scoreMode", "subsequence")
+    only_user_uploads = bool(payload.get("onlyUserUploads", False))
+    include_user_uploads = bool(payload.get("includeUserUploads", False)) or only_user_uploads
+    session_id = payload.get("sessionId")
+
+    if (
+        not isinstance(primary_sequence, list)
+        or not primary_sequence
+        or not all(isinstance(x, str) and x for x in primary_sequence)
+    ):
+        return jsonify({"error": "primarySequence must be a non-empty list of non-empty strings"}), 400
+
+    if entry_type not in ENTRY_TYPES_FOR_QUERY:
+        return jsonify({"error": f"entryType must be one of {ENTRY_TYPES_FOR_QUERY}"}), 400
+
+    if score_mode not in ALIGNMENT_SCORE_MODES:
+        return jsonify({"error": f"scoreMode must be one of {ALIGNMENT_SCORE_MODES}"}), 400
+
+    if not isinstance(n, int) or isinstance(n, bool) or not (1 <= n <= MAX_N):
+        return jsonify({"error": f"n must be an integer between 1 and {MAX_N}"}), 400
+
+    max_top_x = min(n, MAX_TOP_X)
+    if not isinstance(top_x, int) or isinstance(top_x, bool) or not (1 <= top_x <= max_top_x):
+        return jsonify({"error": f"topX must be an integer between 1 and {max_top_x}"}), 400
+
+    if include_user_uploads and not (isinstance(session_id, str) and session_id):
+        return jsonify({"error": "sessionId is required when includeUserUploads or onlyUserUploads is true"}), 400
+
+    try:
+        body, status = enqueue_and_wait(
+            run_discovery_query,
+            primary_sequence, entry_type, n, top_x, score_mode, only_user_uploads, include_user_uploads, session_id,
+        )
+    except JobStillRunningError as e:
+        return jsonify({"error": str(e)}), 503
+
+    return jsonify(body), status
+
+
+def run_discovery_msa(
+    query_sequence: list[str], ids: list[str], raw_sequences: list[list[str]]
+) -> tuple[dict, int]:
     """
     Compute a multiple sequence alignment of a query against a set of sequences,
     anchored on the query as the star center (so every other sequence is ordered and
     oriented relative to it, matching how the pairwise results are already anchored).
 
-    Intended to be called with the query and result sequences already returned by
-    /api/discoveryQuery -- scores for display are deliberately NOT recomputed here;
-    the frontend re-attaches each row's existing normalizedAlignmentScorePct by id,
-    so the number shown next to a row in the MSA always matches the pairwise view.
+    Runs as an RQ job (see routes/queue.py). Intended to be called with the query
+    and result sequences already returned by /api/discoveryQuery -- scores for
+    display are deliberately NOT recomputed here; the frontend re-attaches each
+    row's existing normalizedAlignmentScorePct by id, so the number shown next to a
+    row in the MSA always matches the pairwise view.
+
+    :return: a (response body, HTTP status code) pair
+    """
+    ctx = get_discovery_context()
+
+    all_ids = ["query", *ids]
+    to_align = [
+        [_normalize_for_alignment(name, ctx) for name in seq]
+        for seq in [query_sequence, *raw_sequences]
+    ]
+
+    try:
+        aligned, new_order = calculate_msa(
+            ctx.aligner,
+            to_align,
+            ctx.converter,
+            center_star=0,
+            # Every sequence's orientation was already decided relative to the query
+            # by the pairwise alignment step; re-flipping here would risk showing a
+            # different orientation than the pairwise view already displayed.
+            can_reverse=[False] * len(to_align),
+        )
+    except Exception as e:
+        logger.exception("run_discovery_msa: MSA computation failed")
+        return {"error": f"Could not compute the multiple sequence alignment: {e}"}, 400
+
+    # center_star=0 above pins the query (to_align[0]) as the star center, so aligned[0]
+    # is always the query's own row, already in the shared MSA column coordinate system --
+    # every other row's per-column similarity is computed against this exact sequence.
+    query_aligned_tokens = aligned[0][2]
+
+    rows = []
+    for (_, _, aligned_seq), original_index in zip(aligned, new_order):
+        entry_id = all_ids[original_index]
+        similarity_to_query = (
+            [None] * len(aligned_seq)
+            if entry_id == "query"
+            else [_pair_similarity(ctx, q_tok, tok) for q_tok, tok in zip(query_aligned_tokens, aligned_seq)]
+        )
+        rows.append({
+            "id": entry_id,
+            "alignedSequence": [
+                (_denormalize_for_display(t) if t is not None else None) for t in aligned_seq
+            ],
+            # Per-column Tanimoto similarity against the query's own row at that same MSA
+            # column; all None for the query's row itself (nothing to compare it against).
+            "similarityToQuery": similarity_to_query,
+        })
+
+    return {"ok": True, "rows": rows}, 200
+
+
+@blp_discovery_msa.post("/api/discoveryMsa")
+@limiter.limit("60 per minute")
+def discovery_msa() -> tuple[Response, int]:
+    """
+    Validate a multiple sequence alignment request and hand the actual alignment off
+    to the heavy_compute job queue (see routes/queue.py, run_discovery_msa).
 
     :return: a tuple containing the aligned rows (or an error) and an HTTP status code
     """
@@ -714,67 +830,62 @@ def discovery_msa() -> tuple[Response, int]:
         ids.append(item["id"])
         raw_sequences.append(item["sequence"])
 
-    ctx = get_discovery_context()
-
-    all_ids = ["query", *ids]
-    to_align = [
-        [_normalize_for_alignment(name, ctx) for name in seq]
-        for seq in [query_sequence, *raw_sequences]
-    ]
-
     try:
-        aligned, new_order = calculate_msa(
-            ctx.aligner,
-            to_align,
-            ctx.converter,
-            center_star=0,
-            # Every sequence's orientation was already decided relative to the query
-            # by the pairwise alignment step; re-flipping here would risk showing a
-            # different orientation than the pairwise view already displayed.
-            can_reverse=[False] * len(to_align),
-        )
-    except Exception as e:
-        current_app.logger.exception("discovery_msa: MSA computation failed")
-        return jsonify({"error": f"Could not compute the multiple sequence alignment: {e}"}), 400
+        body, status = enqueue_and_wait(run_discovery_msa, query_sequence, ids, raw_sequences)
+    except JobStillRunningError as e:
+        return jsonify({"error": str(e)}), 503
 
-    # center_star=0 above pins the query (to_align[0]) as the star center, so aligned[0]
-    # is always the query's own row, already in the shared MSA column coordinate system --
-    # every other row's per-column similarity is computed against this exact sequence.
-    query_aligned_tokens = aligned[0][2]
-
-    rows = []
-    for (_, _, aligned_seq), original_index in zip(aligned, new_order):
-        entry_id = all_ids[original_index]
-        similarity_to_query = (
-            [None] * len(aligned_seq)
-            if entry_id == "query"
-            else [_pair_similarity(ctx, q_tok, tok) for q_tok, tok in zip(query_aligned_tokens, aligned_seq)]
-        )
-        rows.append({
-            "id": entry_id,
-            "alignedSequence": [
-                (_denormalize_for_display(t) if t is not None else None) for t in aligned_seq
-            ],
-            # Per-column Tanimoto similarity against the query's own row at that same MSA
-            # column; all None for the query's row itself (nothing to compare it against).
-            "similarityToQuery": similarity_to_query,
-        })
-
-    return jsonify({"ok": True, "rows": rows}), 200
+    return jsonify(body), status
 
 
-@blp_discovery_compare_tanimoto.post("/api/discoveryCompareTanimoto")
-def discovery_compare_tanimoto() -> tuple[Response, int]:
+def run_tanimoto_batch(
+    query_smiles: str, radius: int, n_bits: int, ids: list[str], smiles_list: list[str]
+) -> tuple[dict, int]:
     """
     Compute a real (whole-molecule) Morgan/ECFP Tanimoto similarity between a query
     SMILES and a batch of candidate SMILES.
 
-    Unlike fingerprintSimilarity and normalizedAlignmentScorePct (both already
-    returned by /api/discoveryQuery, computed over the coarse per-monomer-token
-    representation used for database retrieval), this operates on each side's actual
-    molecular structure -- meant for the Discovery "Compare" view, where the user can
-    pick a radius/fingerprint size and see the metric recomputed on demand. Entries
-    are meant to be exactly the `smiles` field already present on results from
+    Runs as an RQ job (see routes/queue.py). Unlike fingerprintSimilarity and
+    normalizedAlignmentScorePct (both already returned by /api/discoveryQuery,
+    computed over the coarse per-monomer-token representation used for database
+    retrieval), this operates on each side's actual molecular structure.
+
+    :return: a (response body, HTTP status code) pair
+    """
+    query_mol = Chem.MolFromSmiles(query_smiles)
+    if query_mol is None:
+        return {"error": "querySmiles could not be parsed as a valid molecule"}, 400
+    query_fp = mol_to_morgan_fingerprint(query_mol, radius=radius, num_bits=n_bits)
+
+    values: list[dict[str, Any]] = []
+    invalid_count = 0
+    for entry_id, smiles in zip(ids, smiles_list):
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            invalid_count += 1
+            continue
+        fp = mol_to_morgan_fingerprint(mol, radius=radius, num_bits=n_bits)
+        values.append({"id": entry_id, "tanimotoSimilarity": calculate_tanimoto_similarity(query_fp, fp)})
+
+    return {
+        "ok": True,
+        "radius": radius,
+        "nBits": n_bits,
+        "values": values,
+        "invalidCount": invalid_count,
+    }, 200
+
+
+@blp_discovery_compare_tanimoto.post("/api/discoveryCompareTanimoto")
+@limiter.limit("10 per minute")
+def discovery_compare_tanimoto() -> tuple[Response, int]:
+    """
+    Validate a Tanimoto comparison request and hand the actual RDKit fingerprinting
+    off to the heavy_compute job queue (see routes/queue.py, run_tanimoto_batch).
+
+    Meant for the Discovery "Compare" view, where the user can pick a radius/
+    fingerprint size and see the metric recomputed on demand. Entries are meant to
+    be exactly the `smiles` field already present on results from
     /api/discoveryQuery (null/omitted for BGCs and any compound missing one), pre-
     filtered by the frontend before calling this endpoint.
 
@@ -817,28 +928,292 @@ def discovery_compare_tanimoto() -> tuple[Response, int]:
         smiles_list.append(entry["smiles"])
 
     try:
-        with heavy_compute_slot():
-            query_mol = Chem.MolFromSmiles(query_smiles)
-            if query_mol is None:
-                return jsonify({"error": "querySmiles could not be parsed as a valid molecule"}), 400
-            query_fp = mol_to_morgan_fingerprint(query_mol, radius=radius, num_bits=n_bits)
-
-            values: list[dict[str, Any]] = []
-            invalid_count = 0
-            for entry_id, smiles in zip(ids, smiles_list):
-                mol = Chem.MolFromSmiles(smiles)
-                if mol is None:
-                    invalid_count += 1
-                    continue
-                fp = mol_to_morgan_fingerprint(mol, radius=radius, num_bits=n_bits)
-                values.append({"id": entry_id, "tanimotoSimilarity": calculate_tanimoto_similarity(query_fp, fp)})
-    except ServerBusyError as e:
+        body, status = enqueue_and_wait(run_tanimoto_batch, query_smiles, radius, n_bits, ids, smiles_list)
+    except JobStillRunningError as e:
         return jsonify({"error": str(e)}), 503
 
-    return jsonify({
-        "ok": True,
-        "radius": radius,
-        "nBits": n_bits,
-        "values": values,
-        "invalidCount": invalid_count,
-    }), 200
+    return jsonify(body), status
+
+
+def _set_item_status_inplace(item: dict, status: str, error_message: str | None = None) -> None:
+    """
+    Update the status and error message of an item in place.
+
+    Duplicated from routes/jobs.py's identical helper rather than imported --
+    jobs.py imports get_discovery_context from this module, so importing back from
+    jobs.py here would create a circular import.
+
+    :param item: the item dictionary to update
+    :param status: the new status string
+    :param error_message: optional error message string
+    """
+    item["status"] = status
+    item["updatedAt"] = int(time.time() * 1000)
+
+    if error_message is not None:
+        item["errorMessage"] = error_message
+    else:
+        if "errorMessage" in item:
+            item["errorMessage"] = None
+
+
+def run_discovery_query_job(session_id: str, item_id: str, settings: dict, flags: dict) -> tuple[dict, int]:
+    """
+    Run a full discovery query -- the base ranking plus whichever optional metrics
+    were flagged at submission -- and persist the result onto its session item.
+
+    Runs as an RQ job (see routes/queue.py), on the protected heavy_compute_pmi
+    queue when flags["computePmi"] is set, otherwise the regular heavy_compute queue
+    (see submit_discovery_query). Marks the item "processing" itself, once a worker
+    actually starts this job, same as run_compound_parse in jobs.py.
+
+    All requested metrics land in one `payload`, written via a single update_item
+    call once everything is done -- one terminal status per query, no partial/
+    incremental reveal (a PMI-flagged query stays "processing" until PMI is done too).
+
+    :param session_id: the session the item belongs to
+    :param item_id: the item to update
+    :param settings: the query's own settings (primarySequence, entryType, n, topX, ...)
+    :param flags: which optional metrics to precompute (computeMsa/computeCompare/computePmi)
+    :return: a (response body, HTTP status code) pair
+    """
+    t0 = time.time()
+
+    def mark_processing(it: dict) -> None:
+        _set_item_status_inplace(it, "processing")
+
+    if not update_item(session_id, item_id, mark_processing):
+        logger.warning("run_discovery_query_job: failed to mark item as processing: %s", item_id)
+        return {"error": "Item not found during update"}, 404
+
+    try:
+        query_body, query_status = run_discovery_query(
+            settings["primarySequence"],
+            settings["entryType"],
+            settings["n"],
+            settings["topX"],
+            settings["scoreMode"],
+            settings.get("onlyUserUploads", False),
+            settings.get("includeUserUploads", False),
+            session_id,
+        )
+        if query_status != 200:
+            raise RuntimeError(query_body.get("error", "Discovery query failed"))
+
+        results = query_body.get("results", [])
+        payload: dict[str, Any] = dict(query_body)
+        query_origin_smiles = settings.get("queryOriginSmiles")
+
+        if flags.get("computeMsa") and results:
+            msa_body, msa_status = run_discovery_msa(
+                query_body["querySequence"],
+                [r["entryId"] for r in results],
+                [r["primarySequence"] for r in results],
+            )
+            if msa_status == 200:
+                payload["msaRows"] = msa_body.get("rows", [])
+            else:
+                logger.warning(
+                    "run_discovery_query_job: MSA precompute failed for item_id=%s: %s", item_id, msa_body
+                )
+
+        if flags.get("computeCompare") and query_origin_smiles and results:
+            compare_entries = [(r["entryId"], r["smiles"]) for r in results if r.get("type") == "compound" and r.get("smiles")]
+            if compare_entries:
+                compare_body, compare_status = run_tanimoto_batch(
+                    query_origin_smiles,
+                    DEFAULT_COMPARE_RADIUS,
+                    DEFAULT_COMPARE_NBITS,
+                    [e[0] for e in compare_entries],
+                    [e[1] for e in compare_entries],
+                )
+                if compare_status == 200:
+                    payload["compareValues"] = compare_body.get("values", [])
+                    payload["compareRadius"] = DEFAULT_COMPARE_RADIUS
+                    payload["compareNBits"] = DEFAULT_COMPARE_NBITS
+                else:
+                    logger.warning(
+                        "run_discovery_query_job: compare precompute failed for item_id=%s: %s", item_id, compare_body
+                    )
+
+        if flags.get("computePmi") and results:
+            shape_entries = [(r["entryId"], r["smiles"]) for r in results if r.get("type") == "compound" and r.get("smiles")]
+            if query_origin_smiles:
+                shape_entries = [("query", query_origin_smiles), *shape_entries]
+            shape_entries = shape_entries[:MAX_SHAPE_ENTRIES]
+
+            if shape_entries:
+                shape_body, shape_status = run_pmi_shape_batch(
+                    [e[0] for e in shape_entries],
+                    [e[1] for e in shape_entries],
+                    DEFAULT_NUM_CONFS,
+                    DEFAULT_MAX_ITERS,
+                )
+                if shape_status == 200:
+                    payload["pmiResults"] = shape_body.get("results", [])
+                    payload["pmiSkipped"] = shape_body.get("skipped", [])
+                else:
+                    logger.warning(
+                        "run_discovery_query_job: PMI precompute failed for item_id=%s: %s", item_id, shape_body
+                    )
+
+        def mark_done(it: dict) -> None:
+            it["payload"] = payload
+            _set_item_status_inplace(it, "done")
+
+        update_item(session_id, item_id, mark_done)
+
+    except Exception as e:
+        logger.exception("run_discovery_query_job: error for item_id=%s", item_id)
+
+        def mark_error(it: dict) -> None:
+            _set_item_status_inplace(it, "error", error_message=str(e))
+
+        update_item(session_id, item_id, mark_error)
+
+        elapsed = int((time.time() - t0) * 1000)
+        return {"ok": False, "status": "error", "elapsed_ms": elapsed, "error": str(e)}, 500
+
+    elapsed = int((time.time() - t0) * 1000)
+    logger.info("run_discovery_query_job: finished item_id=%s elapsed_ms=%s", item_id, elapsed)
+    return {"ok": True, "status": "done", "elapsed_ms": elapsed}, 200
+
+
+@blp_submit_discovery_query.post("/api/submitDiscoveryQuery")
+@limiter.limit("30 per minute")
+def submit_discovery_query() -> tuple[Response, int]:
+    """
+    Validate a discovery query submission, persist it as a session item, and hand the
+    actual computation off to an RQ worker -- fire-and-forget, unlike /api/discoveryQuery.
+
+    Unlike the older, synchronous /api/discoveryQuery (still used internally by
+    run_discovery_query_job above), this endpoint never blocks on the result: the
+    created item is returned immediately with status "queued", and its status/payload
+    updates flow purely through the existing SSE (item_updated) + getSession
+    mechanism -- the same way compound/cluster items already work (see
+    routes/jobs.py's submit_compound). A session is capped at MAX_DISCOVERY_QUERY_ITEMS
+    saved queries; submitting past that is rejected rather than silently evicting one.
+
+    :return: a tuple containing the created item and an HTTP status code
+    """
+    payload = request.get_json(force=True) or {}
+
+    session_id = payload.get("sessionId")
+    primary_sequence = payload.get("primarySequence")
+    entry_type = payload.get("entryType")
+    n = payload.get("n")
+    top_x = payload.get("topX")
+    score_mode = payload.get("scoreMode", "subsequence")
+    only_user_uploads = bool(payload.get("onlyUserUploads", False))
+    include_user_uploads = bool(payload.get("includeUserUploads", False)) or only_user_uploads
+    query_origin_smiles = payload.get("queryOriginSmiles")
+    flags = payload.get("flags") or {}
+    name = payload.get("name") or "Discovery query"
+
+    if not isinstance(session_id, str) or not session_id:
+        return jsonify({"error": "Missing sessionId"}), 400
+
+    if (
+        not isinstance(primary_sequence, list)
+        or not primary_sequence
+        or not all(isinstance(x, str) and x for x in primary_sequence)
+    ):
+        return jsonify({"error": "primarySequence must be a non-empty list of non-empty strings"}), 400
+
+    if entry_type not in ENTRY_TYPES_FOR_QUERY:
+        return jsonify({"error": f"entryType must be one of {ENTRY_TYPES_FOR_QUERY}"}), 400
+
+    if score_mode not in ALIGNMENT_SCORE_MODES:
+        return jsonify({"error": f"scoreMode must be one of {ALIGNMENT_SCORE_MODES}"}), 400
+
+    if not isinstance(n, int) or isinstance(n, bool) or not (1 <= n <= MAX_N):
+        return jsonify({"error": f"n must be an integer between 1 and {MAX_N}"}), 400
+
+    max_top_x = min(n, MAX_TOP_X)
+    if not isinstance(top_x, int) or isinstance(top_x, bool) or not (1 <= top_x <= max_top_x):
+        return jsonify({"error": f"topX must be an integer between 1 and {max_top_x}"}), 400
+
+    if query_origin_smiles is not None and not isinstance(query_origin_smiles, str):
+        return jsonify({"error": "queryOriginSmiles must be a string or null"}), 400
+
+    if not isinstance(flags, dict):
+        return jsonify({"error": "flags must be an object"}), 400
+
+    flags_normalized = {
+        "computeMsa": bool(flags.get("computeMsa", False)),
+        "computeCompare": bool(flags.get("computeCompare", False)),
+        "computePmi": bool(flags.get("computePmi", False)),
+    }
+
+    full_sess = load_session_with_items(session_id)
+    if full_sess is None:
+        return jsonify({"error": "Session not found"}), 404
+
+    existing_query_items = [it for it in full_sess.get("items", []) if it.get("kind") == DISCOVERY_QUERY_KIND]
+    if len(existing_query_items) >= MAX_DISCOVERY_QUERY_ITEMS:
+        return jsonify({
+            "error": f"You've reached the {MAX_DISCOVERY_QUERY_ITEMS} saved query limit -- delete one to add another"
+        }), 400
+
+    settings = {
+        "primarySequence": primary_sequence,
+        "entryType": entry_type,
+        "scoreMode": score_mode,
+        "n": n,
+        "topX": top_x,
+        "includeUserUploads": include_user_uploads,
+        "onlyUserUploads": only_user_uploads,
+        "queryOriginSmiles": query_origin_smiles,
+    }
+
+    item = {
+        "id": str(uuid.uuid4()),
+        "kind": DISCOVERY_QUERY_KIND,
+        "name": name,
+        "status": "queued",
+        "errorMessage": None,
+        "updatedAt": int(time.time() * 1000),
+        "settings": settings,
+        "flags": flags_normalized,
+        "payload": None,
+    }
+    save_item(session_id, item)
+
+    enqueue_job(run_discovery_query_job, session_id, item["id"], settings, flags_normalized, heavy=flags_normalized["computePmi"])
+
+    return jsonify({"ok": True, "item": item}), 202
+
+
+@blp_get_discovery_query_result.post("/api/getDiscoveryQueryResult")
+def get_discovery_query_result() -> tuple[Response, int]:
+    """
+    Fetch a discoveryQuery session item's computed payload.
+
+    `payload` is deliberately stripped from items before they're sent to the client
+    as part of the session (see strip_property_from_dict in session_store.py, and
+    routes/session.py's get_session) -- same as a compound's (only reachable via
+    /api/reconstructCompound) or a cluster's (via /api/getClusterReadout). This is
+    the discoveryQuery equivalent.
+
+    A plain Redis dict read -- no compute to isolate, so this stays direct rather
+    than going through the job queue.
+
+    :return: a tuple containing the item's status/payload and an HTTP status code
+    """
+    payload = request.get_json(force=True) or {}
+
+    session_id = payload.get("sessionId")
+    item_id = payload.get("itemId")
+
+    full_sess = load_session_with_items(session_id)
+    if full_sess is None:
+        return jsonify({"error": "Session not found"}), 404
+
+    item = next((it for it in full_sess.get("items", []) if it.get("id") == item_id), None)
+    if item is None:
+        return jsonify({"error": "Item not found"}), 404
+
+    if item.get("kind") != DISCOVERY_QUERY_KIND:
+        return jsonify({"error": "Item is not a discovery query"}), 400
+
+    return jsonify({"ok": True, "status": item.get("status"), "payload": item.get("payload")}), 200

@@ -268,7 +268,7 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
               />
             )}
 
-            {!isCompound && (
+            {item.kind === "cluster" && (
               <Chip
                 label={`PARAS ≥ ${item.parasThreshold.toFixed(2)}`}
                 size="small"

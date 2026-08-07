@@ -345,22 +345,37 @@ function chartColorFor(theme: Theme, metricId: CompareMetricId): string {
   return colors[Math.max(0, slot) % colors.length];
 }
 
+type PrecomputedTanimoto = {
+  radius: number;
+  nBits: number;
+  values: { id: string; tanimotoSimilarity: number }[];
+};
+
 export function WorkspaceCompare({
   results,
   queryOriginSmiles,
+  precomputedTanimoto = null,
 }: {
   results: DiscoveryResult[];
   queryOriginSmiles: string | null;
+  // Precomputed at query-submit time (see DialogViewDiscoveryQuery). When present and
+  // the radius/nBits picker below still matches it, this is used directly instead of
+  // hitting /api/discoveryCompareTanimoto -- changing radius/nBits away from it falls
+  // back to a live recompute, same as when no precomputed value exists at all.
+  precomputedTanimoto?: PrecomputedTanimoto | null;
 }) {
   const theme = useTheme();
 
   const [enabledMetrics, setEnabledMetrics] = React.useState<Set<CompareMetricId>>(
     new Set<CompareMetricId>(["fingerprintCosine", "normalizedAlignment"])
   );
-  const [radius, setRadius] = React.useState<number>(MORGAN_RADIUS_DEFAULT);
-  const [nBits, setNBits] = React.useState<number>(MORGAN_NBITS_DEFAULT);
+  const [radius, setRadius] = React.useState<number>(precomputedTanimoto?.radius ?? MORGAN_RADIUS_DEFAULT);
+  const [nBits, setNBits] = React.useState<number>(precomputedTanimoto?.nBits ?? MORGAN_NBITS_DEFAULT);
   const [pickerAnchor, setPickerAnchor] = React.useState<HTMLElement | null>(null);
   const svgRef = React.useRef<SVGSVGElement>(null);
+
+  const matchesPrecomputed =
+    !!precomputedTanimoto && precomputedTanimoto.radius === radius && precomputedTanimoto.nBits === nBits;
 
   const toggleMetric = (id: CompareMetricId) => {
     setEnabledMetrics((prev) => {
@@ -393,7 +408,7 @@ export function WorkspaceCompare({
         { querySmiles: queryOriginSmiles as string, radius, nBits, entries: tanimotoCandidates },
         signal
       ),
-    enabled: tanimotoEnabled && !!queryOriginSmiles && tanimotoCandidates.length > 0,
+    enabled: tanimotoEnabled && !!queryOriginSmiles && tanimotoCandidates.length > 0 && !matchesPrecomputed,
     // Result is a pure function of the query key (query smiles + candidate smiles +
     // radius/nBits) -- never go stale, so toggling the metric off/on or switching
     // Discovery views and back doesn't re-run the RDKit fingerprinting server-side.
@@ -421,7 +436,8 @@ export function WorkspaceCompare({
   }
 
   if (tanimotoEnabled && queryOriginSmiles && tanimotoCandidates.length > 0) {
-    const valueById = new Map((tanimotoQuery.data?.values ?? []).map((v) => [v.id, v.tanimotoSimilarity]));
+    const values = matchesPrecomputed ? precomputedTanimoto!.values : tanimotoQuery.data?.values ?? [];
+    const valueById = new Map(values.map((v) => [v.id, v.tanimotoSimilarity]));
     const nameById = new Map(results.map((r) => [r.entryId, r.name]));
     metrics.push({
       id: "tanimoto",
@@ -432,8 +448,8 @@ export function WorkspaceCompare({
         label: nameById.get(c.id) ?? c.id,
         value: valueById.get(c.id) ?? null,
       })),
-      isLoading: tanimotoQuery.isFetching,
-      error: tanimotoQuery.error ? (tanimotoQuery.error as Error).message : null,
+      isLoading: matchesPrecomputed ? false : tanimotoQuery.isFetching,
+      error: matchesPrecomputed ? null : tanimotoQuery.error ? (tanimotoQuery.error as Error).message : null,
     });
   }
 

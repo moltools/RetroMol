@@ -9,40 +9,36 @@ import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import Collapse from "@mui/material/Collapse";
-import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import IconButton from "@mui/material/IconButton";
 import ListSubheader from "@mui/material/ListSubheader";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import MuiLink from "@mui/material/Link";
-import IconButton from "@mui/material/IconButton";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import DownloadIcon from "@mui/icons-material/Download";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useTheme, alpha, type Theme } from "@mui/material/styles";
-import { Session, SessionItem } from "../../features/session/types";
+import Tooltip from "@mui/material/Tooltip";
+import DeleteIcon from "@mui/icons-material/Delete";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import ViewIcon from "@mui/icons-material/Visibility";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { useQuery } from "@tanstack/react-query";
+import { Session, SessionItem, DiscoveryQueryItem, DiscoveryQueryItemSchema } from "../../features/session/types";
+import { deleteSessionItem } from "../../features/session/api";
 import { reconstructCompound } from "../../features/reconstruction/api";
 import type { PrimarySequenceItem } from "../../features/reconstruction/types";
 import { reconstructGeneCluster } from "../../features/clusters/api";
 import type { ClusterPrimarySequence } from "../../features/clusters/types";
-import { runDiscoveryQuery, runDiscoveryMsa } from "../../features/discovery/api";
+import { submitDiscoveryQuery } from "../../features/discovery/api";
 import {
   DISCOVERY_SCORE_MODE_OPTIONS,
   type DiscoveryEntryType,
-  type DiscoveryResult,
   type DiscoveryScoreMode,
 } from "../../features/discovery/types";
 import { useNotifications } from "../NotificationProvider";
 import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
-import { buildAlignmentSvg, downloadSvg, type AlignmentSvgRow } from "./alignmentSvgExport";
 import { SequenceEditor, type SequenceBlock } from "./SequenceEditor";
-import { WorkspaceCompare } from "./WorkspaceCompare";
-import { WorkspaceShape } from "./WorkspaceShape";
+import { DialogViewDiscoveryQuery } from "./DialogViewDiscoveryQuery";
 
 type WorkspaceDiscoveryProps = {
   session: Session;
@@ -50,6 +46,7 @@ type WorkspaceDiscoveryProps = {
 };
 
 const MAX_TOP_X = 200;
+export const MAX_DISCOVERY_QUERY_ITEMS = 5;
 
 function blocksFromNames(names: string[]): SequenceBlock[] {
   return names.map((name) => ({ id: crypto.randomUUID(), name }));
@@ -87,260 +84,99 @@ function NamesPreview({ names }: { names: string[] }) {
   );
 }
 
-// Shared vertical sizing (padding, border width, font size, line height) so every
-// row -- label, sequence cells, and score -- resolves to the exact same height.
-// If these drift apart, the three columns render as independent stacks whose
-// per-row heights don't match, and the mismatch compounds row after row until
-// labels/scores are visibly offset from the row they belong to.
-const ROW_CELL_BASE_SX = {
-  px: 0.75,
-  py: 0.4,
-  borderRadius: 1,
-  border: "1px dashed transparent",
-  fontSize: "0.75rem",
-  lineHeight: 1.4,
-  boxSizing: "border-box" as const,
-};
+// One row in the "Saved queries" list -- mirrors WorkspaceItemCard's status-chip
+// language (queued/processing/done/error) so a query reads the same way an uploaded
+// compound/cluster does, just without the score gauge or expand/collapse panel.
+function DiscoveryQueryListItem({
+  item,
+  deleting,
+  onView,
+  onDelete,
+}: {
+  item: DiscoveryQueryItem;
+  deleting: boolean;
+  onView: () => void;
+  onDelete: () => void;
+}) {
+  const isQueued = item.status === "queued";
+  const isProcessing = item.status === "processing";
+  const isDone = item.status === "done";
+  const isError = item.status === "error";
 
-// Shading intensity range for per-unit similarity highlighting -- kept well short of
-// fully transparent/opaque so an occupied cell is always distinguishable from a gap
-// (similarity 0) and never drowns out the motif name (similarity 1).
-const MATCH_SHADE_MIN_ALPHA = 0.12;
-const MATCH_SHADE_MAX_ALPHA = 0.65;
-
-// similarity is a raw Tanimoto value in [0, 1] (identical structure = 1), from the same
-// scoring matrix used to compute the alignment -- not rescaled, since 0-1 is already a
-// meaningful, comparable scale across every column and every row.
-function similarityColor(theme: Theme, similarity: number | null | undefined): string | undefined {
-  if (similarity === null || similarity === undefined) return undefined;
-  const clamped = Math.max(0, Math.min(1, similarity));
-  return alpha(theme.palette.primary.main, MATCH_SHADE_MIN_ALPHA + clamped * (MATCH_SHADE_MAX_ALPHA - MATCH_SHADE_MIN_ALPHA));
-}
-
-function alignedCellSx(name: string | null, columnWidthCh: number, matchColor: string | undefined) {
-  return {
-    ...ROW_CELL_BASE_SX,
-    borderColor: name === null ? "divider" : "primary.main",
-    bgcolor: name === null ? "transparent" : matchColor ?? "action.hover",
-    width: `${columnWidthCh}ch`,
-    textAlign: "center" as const,
-    flexShrink: 0,
-  };
-}
-
-export type AlignmentGridRow = {
-  id: string;
-  label: string;
-  score?: string; // pre-formatted, e.g. "82.3%" -- omit for rows with no score (e.g. the query)
-  // Per-column Tanimoto similarity (0-1) against the query's unit at that same column,
-  // null wherever either side is a gap. Index-aligned with `sequence`. Omit entirely for
-  // rows with nothing to compare against (e.g. the query row itself), which render with
-  // a neutral fill throughout.
-  matchStrengths?: (number | null)[];
-  sequence: (string | null)[];
-};
-
-function toSvgRows(rows: AlignmentGridRow[]): AlignmentSvgRow[] {
-  return rows.map((row) => ({ label: row.label, score: row.score, matchStrengths: row.matchStrengths, sequence: row.sequence }));
-}
-
-function sanitizeFilenamePart(value: string): string {
-  return value.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "") || "alignment";
-}
-
-// Renders any number of aligned rows together (2 for a pairwise view, N for an MSA)
-// so every column can be sized to fit the longest name across ALL rows at that
-// position -- otherwise a short name like "X" lining up under a long one like
-// "propionic acid" makes the alignment unreadable. All rows share one scroll
-// container so they always scroll in sync, keeping columns aligned.
-function AlignmentGrid({ rows }: { rows: AlignmentGridRow[] }) {
-  const theme = useTheme();
-  const columnCount = Math.max(0, ...rows.map((r) => r.sequence.length));
-  const columnWidths = Array.from({ length: columnCount }, (_, idx) => {
-    let width = 1;
-    for (const row of rows) {
-      width = Math.max(width, row.sequence[idx]?.length ?? 1);
-    }
-    return width + 1.5; // small buffer beyond the widest label
-  });
-  const hasScores = rows.some((r) => r.score !== undefined);
+  const flagChips = [
+    item.flags.computeMsa ? "MSA" : null,
+    item.flags.computeCompare ? "Compare" : null,
+    item.flags.computePmi ? "PMI" : null,
+  ].filter((label): label is string => label !== null);
 
   return (
-    <Stack direction="row" spacing={0.5}>
-      <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
-        {rows.map((row) => (
-          <Box
-            key={row.id}
-            sx={{
-              ...ROW_CELL_BASE_SX,
-              minWidth: 70,
-              maxWidth: 160,
-              color: "text.secondary",
-              fontWeight: 600,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {row.label}
-          </Box>
-        ))}
-      </Stack>
-      <Box sx={{ minWidth: 0, flex: "1 1 0%", ...horizontalScrollSx }}>
-        <Stack spacing={0.5}>
-          {rows.map((row) => (
-            <Stack key={row.id} direction="row" spacing={0.5} sx={{ flexWrap: "nowrap" }}>
-              {columnWidths.map((width, idx) => {
-                const name = row.sequence[idx] ?? null;
-                const matchColor = similarityColor(theme, row.matchStrengths?.[idx]);
-                return (
-                  <Box key={idx} sx={alignedCellSx(name, width, matchColor)}>
-                    {name === null ? "–" : <MotifName name={name} />}
-                  </Box>
-                );
-              })}
-            </Stack>
+    <Box
+      onClick={onView}
+      sx={(theme) => {
+        const t = theme.vars || theme;
+        return {
+          borderRadius: 1,
+          border: `1px solid ${t.palette.divider}`,
+          p: 1.5,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          cursor: "pointer",
+          "&:hover": { boxShadow: 4 },
+        };
+      }}
+    >
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="body2" fontWeight={500} noWrap>
+          {item.name}
+        </Typography>
+        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+          <Chip label={item.settings.entryType} size="small" sx={{ fontSize: "0.7rem", height: 18 }} />
+          {flagChips.map((label) => (
+            <Chip key={label} label={label} size="small" variant="outlined" sx={{ fontSize: "0.7rem", height: 18 }} />
           ))}
         </Stack>
       </Box>
-      {hasScores && (
-        <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
-          {rows.map((row) => (
-            <Box key={row.id} sx={{ ...ROW_CELL_BASE_SX, minWidth: 56, textAlign: "right" }}>
-              {/* a non-breaking space (not "") keeps a text node present so this box's
-                  line-height strut matches its siblings' -- an empty string renders no
-                  inline content, so the browser omits the strut and the box collapses
-                  shorter, throwing off every row below it in this column. */}
-              {row.score ?? " "}
-            </Box>
-          ))}
-        </Stack>
+
+      {isQueued && <Chip label="Queued" color="warning" size="small" sx={{ fontSize: "0.7rem", height: 20 }} />}
+      {isProcessing && <CircularProgress size={16} thickness={4} />}
+      {isDone && <Chip label="Ready" color="success" size="small" sx={{ fontSize: "0.7rem", height: 20 }} />}
+      {isError && (
+        <Tooltip title={item.errorMessage || "An unknown error occurred."} placement="left" arrow>
+          <Chip label="Error" color="error" size="small" sx={{ fontSize: "0.7rem", height: 20 }} />
+        </Tooltip>
       )}
-    </Stack>
-  );
-}
 
-function DownloadSvgButton({ rows, filename }: { rows: AlignmentGridRow[]; filename: string }) {
-  return (
-    <Button
-      size="small"
-      variant="text"
-      startIcon={<DownloadIcon fontSize="small" />}
-      onClick={() => downloadSvg(buildAlignmentSvg(toSvgRows(rows)), filename)}
-    >
-      Download SVG
-    </Button>
-  );
-}
-
-function ResultRow({
-  result,
-  rank,
-  selectedForMsa,
-  onToggleSelectedForMsa,
-}: {
-  result: DiscoveryResult;
-  rank: number;
-  selectedForMsa: boolean;
-  onToggleSelectedForMsa: () => void;
-}) {
-  const [expanded, setExpanded] = React.useState(false);
-  const theme = useTheme();
-
-  return (
-    <Box sx={{ borderBottom: "1px solid", borderColor: "divider", py: 1 }}>
-      <Stack direction="row" alignItems="center" spacing={1.5}>
-        <Checkbox
-          size="small"
-          checked={selectedForMsa}
-          onChange={onToggleSelectedForMsa}
-          title="Include in multiple sequence alignment and compound comparison"
-          sx={{ p: 0.5 }}
-        />
-
-        <Typography variant="body2" sx={{ width: 28, color: "text.secondary" }}>
-          {rank}
-        </Typography>
-
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          {result.url ? (
-            <MuiLink
-              href={result.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              underline="hover"
-              color={(theme.vars || theme).palette.primary.main}
-              sx={{ fontWeight: 500 }}
-            >
-              {result.name}
-            </MuiLink>
-          ) : (
-            <Typography variant="body2" fontWeight={500} noWrap>
-              {result.name}
-            </Typography>
-          )}
-        </Box>
-
-        <Chip
-          label={result.origin === "upload" ? "User upload" : result.type === "compound" ? "Compound" : "BGC"}
-          size="small"
-          color={result.origin === "upload" ? "info" : "default"}
-          sx={{ fontSize: "0.7rem" }}
-        />
-
-        <Typography variant="caption" sx={{ minWidth: 90, textAlign: "right" }}>
-          fp {(result.fingerprintSimilarity * 100).toFixed(1)}%
-        </Typography>
-
-        <Typography variant="caption" sx={{ minWidth: 100, textAlign: "right" }}>
-          align {result.normalizedAlignmentScorePct.toFixed(1)}%
-        </Typography>
-
-        <IconButton size="small" onClick={() => setExpanded((e) => !e)}>
-          {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-        </IconButton>
-      </Stack>
-
-      <Collapse in={expanded} unmountOnExit>
-        <Box sx={{ mt: 1, pl: 4.5 }}>
-          <AlignmentGrid
-            rows={[
-              { id: "query", label: "Query", sequence: result.alignedQuery },
-              {
-                id: result.entryId,
-                label: result.type === "compound" ? "Compound" : "BGC",
-                score: `${result.normalizedAlignmentScorePct.toFixed(1)}%`,
-                matchStrengths: result.alignedSimilarity,
-                sequence: result.alignedTarget,
-              },
-            ]}
-          />
-          <Box sx={{ mt: 0.5 }}>
-            <DownloadSvgButton
-              rows={[
-                { id: "query", label: "Query", sequence: result.alignedQuery },
-                {
-                  id: result.entryId,
-                  label: result.name,
-                  score: `${result.normalizedAlignmentScorePct.toFixed(1)}%`,
-                  matchStrengths: result.alignedSimilarity,
-                  sequence: result.alignedTarget,
-                },
-              ]}
-              filename={`pairwise_alignment_${sanitizeFilenamePart(result.name)}.svg`}
-            />
-          </Box>
-        </Box>
-      </Collapse>
+      <IconButton
+        size="small"
+        disabled={deleting}
+        onClick={(e) => {
+          e.stopPropagation();
+          onView();
+        }}
+      >
+        <ViewIcon fontSize="small" />
+      </IconButton>
+      <IconButton
+        size="small"
+        disabled={deleting}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+      >
+        {deleting ? <CircularProgress size={16} thickness={4} /> : <DeleteIcon fontSize="small" />}
+      </IconButton>
     </Box>
   );
 }
 
-export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session }) => {
+export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session, setSession }) => {
   const { pushNotification } = useNotifications();
 
   const compoundItems = session.items.filter((item): item is SessionItem & { kind: "compound" } => item.kind === "compound");
   const clusterItems = session.items.filter((item): item is SessionItem & { kind: "cluster" } => item.kind === "cluster");
+  const queryItems = session.items.filter((item): item is DiscoveryQueryItem => item.kind === "discoveryQuery");
 
   const [selectedItemId, setSelectedItemId] = React.useState<string>("");
   const selectedItem = session.items.find((item) => item.id === selectedItemId);
@@ -352,14 +188,26 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
   const [topX, setTopX] = React.useState<number>(20);
   const [includeUserUploads, setIncludeUserUploads] = React.useState<boolean>(false);
   const [onlyUserUploads, setOnlyUserUploads] = React.useState<boolean>(false);
-  const [resultsView, setResultsView] = React.useState<"pairwise" | "msa" | "compare" | "shape">("pairwise");
-  const [selectedForMsa, setSelectedForMsa] = React.useState<Set<string>>(new Set());
-  // The originating compound's own SMILES, captured at query time -- needed for the
-  // Compare view's structure-based Tanimoto metric, which has nothing to do with a
-  // sequence of blocks and can't be recovered from `blocks` after the fact. Null
-  // whenever the query wasn't seeded from a compound with a known structure (e.g.
-  // built from scratch in the sequence editor, or from a gene cluster).
-  const [queryOriginSmiles, setQueryOriginSmiles] = React.useState<string | null>(null);
+  const [computeMsa, setComputeMsa] = React.useState<boolean>(false);
+  const [computeCompare, setComputeCompare] = React.useState<boolean>(false);
+  const [computePmi, setComputePmi] = React.useState<boolean>(false);
+  const [submitting, setSubmitting] = React.useState<boolean>(false);
+
+  const [deletingIds, setDeletingIds] = React.useState<Set<string>>(new Set());
+  const [viewingItemId, setViewingItemId] = React.useState<string | null>(null);
+  const [uploadedViewItem, setUploadedViewItem] = React.useState<DiscoveryQueryItem | null>(null);
+
+  // Clean up deletingIds when session items change (mirrors WorkspaceUpload).
+  React.useEffect(() => {
+    setDeletingIds((prev) => {
+      const liveIds = new Set(session.items.map((it) => it.id));
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (liveIds.has(id)) next.add(id);
+      });
+      return next;
+    });
+  }, [session.items]);
 
   const reconstructionQuery = useQuery({
     queryKey: ["reconstructCompound", session.sessionId, selectedItemId],
@@ -373,9 +221,27 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
     enabled: selectedItem?.kind === "cluster",
   });
 
-  const discoveryMutation = useMutation({
-    mutationFn: () =>
-      runDiscoveryQuery({
+  const handlePickNames = (names: string[]) => {
+    setBlocks(blocksFromNames(names));
+  };
+
+  const maxTopX = Math.max(1, Math.min(n, MAX_TOP_X));
+  const atQueryCap = queryItems.length >= MAX_DISCOVERY_QUERY_ITEMS;
+  const canQuery = blocks.length > 0 && !submitting && !atQueryCap;
+
+  const queryOriginSmiles = selectedItem?.kind === "compound" ? selectedItem.smiles : null;
+
+  const handleSubmitQuery = async () => {
+    if (!canQuery) return;
+    setSubmitting(true);
+
+    const preview = blocks.slice(0, 4).map((b) => b.name).join(" ");
+    const name = blocks.length > 4 ? `${preview} …` : preview || "Discovery query";
+
+    try {
+      const item = await submitDiscoveryQuery({
+        sessionId: session.sessionId,
+        name,
         primarySequence: blocks.map((b) => b.name),
         entryType,
         scoreMode,
@@ -383,85 +249,58 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
         topX,
         includeUserUploads: includeUserUploads || onlyUserUploads,
         onlyUserUploads,
-        sessionId: session.sessionId,
-      }),
-    onError: (err) => {
+        queryOriginSmiles,
+        flags: { computeMsa, computeCompare, computePmi },
+      });
+      setSession((prev) => (prev ? { ...prev, items: [...prev.items, item] } : prev));
+      setViewingItemId(item.id);
+    } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      pushNotification(`Discovery query failed: ${msg}`, "error");
-    },
-    onSuccess: (data) => {
-      // Fresh results default to "everyone's in" for the MSA; the user can narrow from there.
-      setSelectedForMsa(new Set(data.results.map((r) => r.entryId)));
-    },
-  });
-
-  const toggleSelectedForMsa = React.useCallback((entryId: string) => {
-    setSelectedForMsa((prev) => {
-      const next = new Set(prev);
-      if (next.has(entryId)) next.delete(entryId);
-      else next.add(entryId);
-      return next;
-    });
-  }, []);
-
-  const selectedResults = React.useMemo(
-    () => discoveryMutation.data?.results.filter((r) => selectedForMsa.has(r.entryId)) ?? [],
-    [discoveryMutation.data, selectedForMsa]
-  );
-
-  // Anchored on the query as the star center, so every result is ordered/oriented
-  // relative to it -- matching how the pairwise view is already anchored. Keyed off
-  // the selected members so switching view modes back and forth doesn't refetch, but
-  // running a new query or changing the selection naturally does. staleTime is what
-  // actually enforces that: without it, toggling `enabled` back to true (i.e.
-  // re-entering this view) would refetch regardless of the key being unchanged,
-  // since a query is stale-on-mount/re-enable by default (staleTime 0).
-  const msaQuery = useQuery({
-    queryKey: [
-      "discoveryMsa",
-      discoveryMutation.data?.querySequence,
-      selectedResults.map((r) => r.entryId),
-    ],
-    queryFn: ({ signal }) =>
-      runDiscoveryMsa(
-        {
-          querySequence: discoveryMutation.data!.querySequence,
-          sequences: selectedResults.map((r) => ({ id: r.entryId, sequence: r.primarySequence })),
-        },
-        signal
-      ),
-    enabled: resultsView === "msa" && selectedResults.length > 0,
-    staleTime: Infinity,
-  });
-
-  // Scores aren't recomputed for the MSA -- each row's score is the same
-  // normalizedAlignmentScorePct already shown in the pairwise view, re-attached by id,
-  // so the two views never disagree on a number (and shade the same way, too).
-  const msaRows: AlignmentGridRow[] = React.useMemo(() => {
-    if (!msaQuery.data || !discoveryMutation.data) return [];
-    const resultsById = new Map(discoveryMutation.data.results.map((r) => [r.entryId, r]));
-    return msaQuery.data.rows.map((row) => {
-      if (row.id === "query") {
-        return { id: "query", label: "Query", sequence: row.alignedSequence };
-      }
-      const result = resultsById.get(row.id);
-      return {
-        id: row.id,
-        label: result?.name ?? row.id,
-        score: result ? `${result.normalizedAlignmentScorePct.toFixed(1)}%` : undefined,
-        matchStrengths: row.similarityToQuery,
-        sequence: row.alignedSequence,
-      };
-    });
-  }, [msaQuery.data, discoveryMutation.data]);
-
-  const handlePickNames = (names: string[]) => {
-    setBlocks(blocksFromNames(names));
+      pushNotification(`Failed to submit discovery query: ${msg}`, "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const maxTopX = Math.max(1, Math.min(n, MAX_TOP_X));
+  const handleDeleteQueryItem = async (id: string) => {
+    setDeletingIds((prev) => new Set(prev).add(id));
+    try {
+      await deleteSessionItem(session.sessionId, id);
+      // SSE refresh will remove the item from session; nothing else to do here.
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      pushNotification(`Failed to delete query: ${msg}`, "error");
+      setDeletingIds((prev) => {
+        const n = new Set(prev);
+        n.delete(id);
+        return n;
+      });
+    }
+  };
 
-  const canQuery = blocks.length > 0 && !discoveryMutation.isPending;
+  const handleUploadResultFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = DiscoveryQueryItemSchema.parse(JSON.parse(text));
+      setUploadedViewItem(parsed);
+      setViewingItemId(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      pushNotification(`Failed to load result file: ${msg}`, "error");
+    }
+  };
+
+  const viewingSessionItem = viewingItemId ? queryItems.find((it) => it.id === viewingItemId) ?? null : null;
+  const activeViewItem = uploadedViewItem ?? viewingSessionItem;
+
+  const handleCloseViewDialog = () => {
+    setViewingItemId(null);
+    setUploadedViewItem(null);
+  };
 
   return (
     <Box sx={{ width: "100%", mx: "auto", display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -615,7 +454,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
             </Typography>
           ) : null}
 
-          <SequenceEditor blocks={blocks} onChange={setBlocks} disabled={discoveryMutation.isPending} />
+          <SequenceEditor blocks={blocks} onChange={setBlocks} disabled={submitting} />
         </CardContent>
       </Card>
 
@@ -631,7 +470,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
               exclusive
               value={entryType}
               onChange={(_, value) => value && setEntryType(value)}
-              disabled={discoveryMutation.isPending}
+              disabled={submitting}
             >
               <ToggleButton value="compound">Compounds</ToggleButton>
               <ToggleButton value="bgc">BGCs</ToggleButton>
@@ -644,7 +483,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
               label="Score mode"
               value={scoreMode}
               onChange={(e) => setScoreMode(e.target.value as DiscoveryScoreMode)}
-              disabled={discoveryMutation.isPending}
+              disabled={submitting}
               sx={{ width: 220 }}
             >
               {DISCOVERY_SCORE_MODE_OPTIONS.map((option) => (
@@ -666,7 +505,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
               }}
               slotProps={{ htmlInput: { min: 1, max: 1000 } }}
               sx={{ width: 160 }}
-              disabled={discoveryMutation.isPending}
+              disabled={submitting}
             />
 
             <TextField
@@ -677,7 +516,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
               onChange={(e) => setTopX(Math.max(1, Math.min(maxTopX, Number(e.target.value) || 1)))}
               slotProps={{ htmlInput: { min: 1, max: maxTopX } }}
               sx={{ width: 140 }}
-              disabled={discoveryMutation.isPending}
+              disabled={submitting}
             />
 
             <FormControlLabel
@@ -686,7 +525,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                   size="small"
                   checked={includeUserUploads || onlyUserUploads}
                   onChange={(e) => setIncludeUserUploads(e.target.checked)}
-                  disabled={discoveryMutation.isPending || compoundItems.length === 0 || onlyUserUploads}
+                  disabled={submitting || compoundItems.length === 0 || onlyUserUploads}
                 />
               }
               label="Include my uploads"
@@ -699,137 +538,128 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session 
                   size="small"
                   checked={onlyUserUploads}
                   onChange={(e) => setOnlyUserUploads(e.target.checked)}
-                  disabled={discoveryMutation.isPending || compoundItems.length === 0}
+                  disabled={submitting || compoundItems.length === 0}
                 />
               }
               label="Only use my uploads"
               title="Skip the shared database entirely and align only against your own uploaded compounds and gene clusters."
             />
+          </Stack>
 
+          <Typography variant="subtitle2" sx={{ mt: 2.5, mb: 0.5 }}>
+            Precompute for this query
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Pick which extra views to compute up front so they open instantly once the query is done. A view you
+            didn't flag here is disabled in the results, not silently missing -- run another query with it enabled
+            if you need it later.
+          </Typography>
+
+          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+            <FormControlLabel
+              control={
+                <Checkbox size="small" checked={computeMsa} onChange={(e) => setComputeMsa(e.target.checked)} disabled={submitting} />
+              }
+              label="Compute MSA"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={computeCompare}
+                  onChange={(e) => setComputeCompare(e.target.checked)}
+                  disabled={submitting}
+                />
+              }
+              label="Compute compound comparison"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox size="small" checked={computePmi} onChange={(e) => setComputePmi(e.target.checked)} disabled={submitting} />
+              }
+              label={
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <span>Compute shape (PMI)</span>
+                  <Tooltip title="Conformer search is slow -- this can take noticeably longer than the rest of the query." arrow>
+                    <WarningAmberIcon fontSize="inherit" color="warning" />
+                  </Tooltip>
+                </Stack>
+              }
+            />
+          </Stack>
+          {computePmi && (
+            <Alert severity="warning" sx={{ mt: 1 }}>
+              Shape (PMI) runs a conformer search per compound and can take noticeably longer than the rest of the
+              query. It's routed to a separate queue so it won't block other users' faster queries, but this query
+              itself will stay "processing" until it's done.
+            </Alert>
+          )}
+
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5 }}>
             <Button
               variant="contained"
               disabled={!canQuery}
-              onClick={() => {
-                setQueryOriginSmiles(selectedItem?.kind === "compound" ? selectedItem.smiles : null);
-                discoveryMutation.mutate();
-              }}
-              startIcon={discoveryMutation.isPending ? <CircularProgress size={16} color="inherit" /> : undefined}
+              onClick={handleSubmitQuery}
+              startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
-              {discoveryMutation.isPending ? "Querying..." : "Query"}
+              {submitting ? "Submitting…" : "Query"}
             </Button>
+            {atQueryCap && (
+              <Typography variant="caption" color="text.secondary">
+                You've reached the {MAX_DISCOVERY_QUERY_ITEMS} saved query limit -- delete one below to run another.
+              </Typography>
+            )}
           </Stack>
         </CardContent>
       </Card>
 
-      {discoveryMutation.data && (
-        <Card variant="outlined">
-          <CardContent>
+      <Card variant="outlined">
+        <CardContent>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
             <Typography component="h1" variant="subtitle1">
-              Results
+              Saved queries ({queryItems.length}/{MAX_DISCOVERY_QUERY_ITEMS})
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-              {discoveryMutation.data.candidatesConsidered} candidate(s) considered
-              {discoveryMutation.data.candidatesSkipped > 0
-                ? `, ${discoveryMutation.data.candidatesSkipped} skipped (unrecognized tokens)`
-                : ""}
-              . Showing top {discoveryMutation.data.results.length}
-              {discoveryMutation.data.scoreMode
-                ? ` (${DISCOVERY_SCORE_MODE_OPTIONS.find((o) => o.value === discoveryMutation.data?.scoreMode)?.label.toLowerCase()})`
-                : ""}
-              .
+            <Button size="small" variant="text" component="label" startIcon={<UploadFileIcon fontSize="small" />}>
+              Load result file
+              <input type="file" accept="application/json" hidden onChange={handleUploadResultFile} />
+            </Button>
+          </Stack>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+            Queries stay here (and survive switching tabs or reloading) until you delete them, up to{" "}
+            {MAX_DISCOVERY_QUERY_ITEMS} at a time. "Load result file" opens a previously downloaded result for
+            viewing only -- it doesn't count against this limit.
+          </Typography>
+
+          {queryItems.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No saved queries yet. Configure and run a query above.
             </Typography>
+          ) : (
+            <Stack spacing={1}>
+              {queryItems.map((item) => (
+                <DiscoveryQueryListItem
+                  key={item.id}
+                  item={item}
+                  deleting={deletingIds.has(item.id)}
+                  onView={() => {
+                    setUploadedViewItem(null);
+                    setViewingItemId(item.id);
+                  }}
+                  onDelete={() => handleDeleteQueryItem(item.id)}
+                />
+              ))}
+            </Stack>
+          )}
+        </CardContent>
+      </Card>
 
-            {discoveryMutation.data.results.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                No results.
-              </Typography>
-            ) : (
-              <>
-                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ mb: 1 }}>
-                  <ToggleButtonGroup
-                    size="small"
-                    exclusive
-                    value={resultsView}
-                    onChange={(_, value) => value && setResultsView(value)}
-                  >
-                    <ToggleButton value="pairwise">Pairwise</ToggleButton>
-                    <ToggleButton value="msa">Multiple sequence alignment</ToggleButton>
-                    <ToggleButton value="compare">Compare compounds</ToggleButton>
-                    <ToggleButton value="shape">Shape (PMI)</ToggleButton>
-                  </ToggleButtonGroup>
-
-                  <Typography variant="caption" color="text.secondary">
-                    {selectedForMsa.size} of {discoveryMutation.data.results.length} selected
-                  </Typography>
-                  <Button size="small" onClick={() => setSelectedForMsa(new Set(discoveryMutation.data!.results.map((r) => r.entryId)))}>
-                    Select all
-                  </Button>
-                  <Button size="small" onClick={() => setSelectedForMsa(new Set())}>
-                    Clear
-                  </Button>
-                </Stack>
-
-                {resultsView !== "compare" && resultsView !== "shape" && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-                    Cell shading reflects each unit's structural similarity to the query's aligned unit in that
-                    column. Darker means a closer match, so a sequence's weak spots stand out at a glance.
-                  </Typography>
-                )}
-
-                <Divider sx={{ mb: 1 }} />
-
-                {resultsView === "pairwise" ? (
-                  discoveryMutation.data.results.map((result, idx) => (
-                    <ResultRow
-                      key={result.entryId}
-                      result={result}
-                      rank={idx + 1}
-                      selectedForMsa={selectedForMsa.has(result.entryId)}
-                      onToggleSelectedForMsa={() => toggleSelectedForMsa(result.entryId)}
-                    />
-                  ))
-                ) : resultsView === "msa" ? (
-                  selectedResults.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                      Select at least one result above to compute a multiple sequence alignment.
-                    </Typography>
-                  ) : msaQuery.isLoading ? (
-                    <CircularProgress size={20} />
-                  ) : msaQuery.error ? (
-                    <Alert severity="error">
-                      {(msaQuery.error as Error).message || "Failed to compute the multiple sequence alignment."}
-                    </Alert>
-                  ) : (
-                    <Box sx={{ py: 1 }}>
-                      <AlignmentGrid rows={msaRows} />
-                      <Box sx={{ mt: 1 }}>
-                        <DownloadSvgButton rows={msaRows} filename="msa_alignment.svg" />
-                      </Box>
-                    </Box>
-                  )
-                ) : resultsView === "compare" ? (
-                  selectedResults.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                      Select at least one result above to compare compounds.
-                    </Typography>
-                  ) : (
-                    <Box sx={{ py: 1 }}>
-                      <WorkspaceCompare results={selectedResults} queryOriginSmiles={queryOriginSmiles} />
-                    </Box>
-                  )
-                ) : selectedResults.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Select at least one result above to analyze molecular shape.
-                  </Typography>
-                ) : (
-                  <Box sx={{ py: 1 }}>
-                    <WorkspaceShape results={selectedResults} queryOriginSmiles={queryOriginSmiles} />
-                  </Box>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
+      {activeViewItem && (
+        <DialogViewDiscoveryQuery
+          item={activeViewItem}
+          sessionId={uploadedViewItem ? null : session.sessionId}
+          open={!!activeViewItem}
+          onClose={handleCloseViewDialog}
+        />
       )}
     </Box>
   );
