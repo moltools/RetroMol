@@ -152,6 +152,17 @@ conda activate retromol-gui
 bash ./gui/scripts/dev_worker.sh
 ```
 
+By default this one worker listens to both queues (PMI-first, matching a single shared
+pile -- see `routes/queue.py`). Optionally, run a second worker terminal dedicated to
+the light queue, so a slow PMI-flagged discovery query can never block fast jobs (this
+is what production does by default -- see `docker-compose.yml`'s `worker`/`worker_light`
+services):
+
+```bash
+conda activate retromol-gui
+WORKER_QUEUES=heavy_compute bash ./gui/scripts/dev_worker.sh
+```
+
 ### Run the frontend locally
 
 Make sure to add `.env.development.local` to `src/client` and add the following line for SSE:

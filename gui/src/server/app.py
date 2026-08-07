@@ -33,6 +33,8 @@ from routes.discovery import (
     blp_discovery_query,
     blp_discovery_msa,
     blp_discovery_compare_tanimoto,
+    blp_submit_discovery_query,
+    blp_get_discovery_query_result,
     get_discovery_context,
 )
 from routes.shape import blp_discovery_shape
@@ -247,6 +249,8 @@ app.register_blueprint(blp_discovery_monomer_names)
 app.register_blueprint(blp_discovery_query)
 app.register_blueprint(blp_discovery_msa)
 app.register_blueprint(blp_discovery_compare_tanimoto)
+app.register_blueprint(blp_submit_discovery_query)
+app.register_blueprint(blp_get_discovery_query_result)
 app.register_blueprint(blp_discovery_shape)
 
 # The two rate-limit tiers on top of the app-wide default (see routes/rate_limit.py)

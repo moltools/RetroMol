@@ -15,7 +15,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { DialogImportCompound } from "./DialogImportCompound";
 import { DialogImportGeneCluster } from "./DialogImportGeneClusters";
 import { WorkspaceItemCard } from "./WorkspaceItemCard";
-import { Session } from "../../features/session/types";
+import { Session, type CompoundItem, type ClusterItem } from "../../features/session/types";
 import { deleteSessionItem, refreshSession } from "../../features/session/api";
 import { NewCompoundJob } from "../../features/jobs/types";
 import { MAX_ITEMS, importCompound, importCompoundsBatch, importClustersBatch } from "../../features/jobs/api";
@@ -74,6 +74,13 @@ type WorkspaceUploadProps = {
 export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSession }) => {
   const theme = useTheme();
   const { pushNotification } = useNotifications();
+
+  // This tab only ever shows/manages compound & cluster uploads -- discoveryQuery
+  // items (see WorkspaceDiscovery's "Saved queries") live in the same session.items
+  // array but have their own dedicated list and cap, so they're filtered out here.
+  const uploadItems = session.items.filter(
+    (item): item is CompoundItem | ClusterItem => item.kind === "compound" || item.kind === "cluster"
+  );
 
   const [openCompounds, setOpenCompounds] = React.useState(false);
   const [openClusters, setOpenClusters] = React.useState(false);
@@ -141,8 +148,8 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
   };
 
   const handleSelectAll = () => {
-    if (!session.items.length) return;
-    setSelectedIds(new Set(session.items.map(item => item.id)));
+    if (!uploadItems.length) return;
+    setSelectedIds(new Set(uploadItems.map(item => item.id)));
   };
 
   const handleClearSelection = () => {
@@ -253,7 +260,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
 
   // Selection states
   const anySelected = selectedIds.size > 0;
-  const allSelected = session.items.length > 0 && selectedIds.size === session.items.length;
+  const allSelected = uploadItems.length > 0 && selectedIds.size === uploadItems.length;
 
   return (
     <Box
@@ -327,7 +334,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
         onImport={handleImportClusters}
       />
 
-      {session.items.length > 0 && (
+      {uploadItems.length > 0 && (
         <Card variant="outlined">
           <CardContent>
             <Stack
@@ -338,7 +345,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
             >
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Typography component="h1" variant="subtitle1">
-                  Workspace items ({session.items.length}/{MAX_ITEMS})
+                  Workspace items ({uploadItems.length}/{MAX_ITEMS})
                 </Typography>
                 <Tooltip title="Refresh workspace items" arrow>
                   <RefreshIcon
@@ -365,7 +372,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
                   size="small"
                   variant="text"
                   onClick={handleSelectAll}
-                  disabled={session.items.length === 0 || allSelected}
+                  disabled={uploadItems.length === 0 || allSelected}
                 >
                   Select all
                 </Button>
@@ -390,7 +397,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
             </Stack>
 
             <Stack spacing={1}>
-              {session.items.map((item) => (
+              {uploadItems.map((item) => (
                 <WorkspaceItemCard
                   key={item.id}
                   session={session}

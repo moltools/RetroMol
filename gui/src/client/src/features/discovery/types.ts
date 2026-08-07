@@ -28,6 +28,29 @@ export const DISCOVERY_SCORE_MODE_OPTIONS: { value: DiscoveryScoreMode; label: s
   { value: "longest_sequence", label: "Favor equally-sized matches" },
 ];
 
+// Submits a query as a persisted, async session item (see features/session/types.ts's
+// DiscoveryQueryItemSchema) instead of blocking on the result -- unlike the older
+// DiscoveryQueryReqSchema below, which still backs the synchronous /api/discoveryQuery
+// endpoint used internally by the submit job.
+export const SubmitDiscoveryQueryReqSchema = z.object({
+  sessionId: z.string().min(1),
+  name: z.string().min(1).optional(),
+  primarySequence: z.array(z.string().min(1)).min(1, "Sequence must have at least one block"),
+  entryType: DiscoveryEntryTypeSchema,
+  scoreMode: DiscoveryScoreModeSchema,
+  n: z.number().int().min(1).max(1000),
+  topX: z.number().int().min(1),
+  includeUserUploads: z.boolean().optional(),
+  onlyUserUploads: z.boolean().optional(),
+  queryOriginSmiles: z.string().nullable().optional(),
+  flags: z.object({
+    computeMsa: z.boolean().optional(),
+    computeCompare: z.boolean().optional(),
+    computePmi: z.boolean().optional(),
+  }),
+});
+export type SubmitDiscoveryQueryReq = z.output<typeof SubmitDiscoveryQueryReqSchema>;
+
 export const DiscoveryQueryReqSchema = z.object({
   primarySequence: z.array(z.string().min(1)).min(1, "Sequence must have at least one block"),
   entryType: DiscoveryEntryTypeSchema,

@@ -183,12 +183,23 @@ function ShapeChart({ points, svgRef }: { points: ShapePoint[]; svgRef: React.Re
   );
 }
 
+type PrecomputedShape = {
+  results: { id: string; npr1: number; npr2: number }[];
+  skipped: { id: string; reason: string }[];
+};
+
 export function WorkspaceShape({
   results,
   queryOriginSmiles,
+  precomputedShape = null,
 }: {
   results: DiscoveryResult[];
   queryOriginSmiles: string | null;
+  // Precomputed at query-submit time (see DialogViewDiscoveryQuery). When present,
+  // used directly instead of hitting /api/discoveryShape -- this view has no
+  // interactive conformer-budget picker, so unlike WorkspaceCompare's Tanimoto
+  // metric there's no "still matches" check needed, it's simply always preferred.
+  precomputedShape?: PrecomputedShape | null;
 }) {
   const svgRef = React.useRef<SVGSVGElement>(null);
 
@@ -215,7 +226,7 @@ export function WorkspaceShape({
         },
         signal
       ),
-    enabled: shapeCandidates.length > 0 && !tooManyEntries,
+    enabled: shapeCandidates.length > 0 && !tooManyEntries && !precomputedShape,
     // This computation is expensive (conformer search + MMFF optimization per
     // molecule) and its result is a pure function of the query key (selection +
     // conformer budget) -- never go stale, so flipping to another Discovery view
@@ -227,7 +238,16 @@ export function WorkspaceShape({
   const nameById = React.useMemo(() => new Map(shapeCandidates.map((c) => [c.id, c.name])), [shapeCandidates]);
   const originById = React.useMemo(() => new Map(shapeCandidates.map((c) => [c.id, c.origin])), [shapeCandidates]);
 
-  const points: ShapePoint[] = (shapeQuery.data?.results ?? []).map((r) => ({
+  // Precomputed data was captured over every top-X result at query-submit time, not
+  // just the currently selected subset -- filter down to the current selection (plus
+  // the query itself) so it behaves like the live-fetch path, which only ever
+  // requested exactly `shapeCandidates` in the first place.
+  const candidateIds = React.useMemo(() => new Set(shapeCandidates.map((c) => c.id)), [shapeCandidates]);
+  const inSelection = (id: string) => id === "query" || candidateIds.has(id);
+
+  const points: ShapePoint[] = (
+    precomputedShape ? precomputedShape.results.filter((r) => inSelection(r.id)) : shapeQuery.data?.results ?? []
+  ).map((r) => ({
     id: r.id,
     label: r.id === "query" ? "Query" : nameById.get(r.id) ?? r.id,
     npr1: r.npr1,
@@ -236,7 +256,9 @@ export function WorkspaceShape({
     origin: (originById.get(r.id) ?? "database") as ShapeOrigin,
   }));
 
-  const skipped = shapeQuery.data?.skipped ?? [];
+  const skipped = precomputedShape
+    ? precomputedShape.skipped.filter((s) => inSelection(s.id))
+    : shapeQuery.data?.skipped ?? [];
 
   return (
     <Box>

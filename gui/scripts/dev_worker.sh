@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
-# Run the RQ worker for the heavy_compute queue locally.
-# Needs the same environment as dev_backend.sh -- task functions run in this
-# process and read PARAS_MODEL_PATH/CACHE_DIR/RETROMOL_DUCKDB_PATH directly,
-# and routes.* must be importable here too.
+# Run an RQ worker locally. Needs the same environment as dev_backend.sh -- task
+# functions run in this process and read PARAS_MODEL_PATH/CACHE_DIR/
+# RETROMOL_DUCKDB_PATH directly, and routes.* must be importable here too.
+#
+# By default listens to both queues (heavy_compute_pmi first, then heavy_compute),
+# matching a single local worker sharing one pile across everything -- see
+# routes/queue.py. To test the production split locally (a worker dedicated to
+# light jobs that never blocks behind a PMI job), run a second terminal with:
+#   WORKER_QUEUES=heavy_compute bash gui/scripts/dev_worker.sh
+#
 # Usage: ./scripts/dev_worker.sh
 
 set -euo pipefail
@@ -24,7 +30,9 @@ export PARAS_MODEL_PATH="$(pwd)/models/all_substrates_model.paras.gz"
 # Make sure the worker can import routes.jobs etc.
 export PYTHONPATH="$(pwd)/src/server"
 
-echo "Starting RQ worker for queue: heavy_compute"
+QUEUES="${WORKER_QUEUES:-heavy_compute_pmi heavy_compute}"
+
+echo "Starting RQ worker for queue(s): ${QUEUES}"
 echo
 
-rq worker --url "${REDIS_URL}" heavy_compute
+rq worker --url "${REDIS_URL}" ${QUEUES}

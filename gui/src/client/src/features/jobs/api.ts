@@ -83,7 +83,10 @@ export async function importCompoundsBatch(
 
   // Update local session (queued items)
   setSession((prev) => {
-    const existingCount = prev.items.length;
+    // MAX_ITEMS is this tab's own cap (compound/cluster uploads) -- discoveryQuery
+    // items share the same session.items array but have their own separate cap
+    // (see WorkspaceDiscovery's MAX_DISCOVERY_QUERY_ITEMS), so they don't count here.
+    const existingCount = prev.items.filter((it) => it.kind === "compound" || it.kind === "cluster").length;
     const remainingSlots = MAX_ITEMS - existingCount;
 
     if (remainingSlots <= 0) {
@@ -201,7 +204,10 @@ export async function importClustersBatch(
 
   // Update local session (queued items)
   setSession((prev) => {
-    const existingCount = prev.items.length;
+    // MAX_ITEMS is this tab's own cap (compound/cluster uploads) -- discoveryQuery
+    // items share the same session.items array but have their own separate cap
+    // (see WorkspaceDiscovery's MAX_DISCOVERY_QUERY_ITEMS), so they don't count here.
+    const existingCount = prev.items.filter((it) => it.kind === "compound" || it.kind === "cluster").length;
     const remainingSlots = MAX_ITEMS - existingCount;
 
     if (remainingSlots <= 0) {

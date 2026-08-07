@@ -15,6 +15,7 @@ from typing import Any, Callable
 from prometheus_client import Counter
 from redis import Redis
 from rq import Queue
+from rq.job import Job
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
@@ -37,6 +38,23 @@ _redis = Redis.from_url(REDIS_URL)
 
 queue = Queue("heavy_compute", connection=_redis)
 
+# A separate queue for jobs that are known up front to be slow (currently: a discovery
+# query with PMI shape enabled -- see routes/discovery.py's run_discovery_query_job).
+# Kept apart from `queue` so a backlog of these can't starve fast jobs (compound
+# parsing, cheap queries) -- see docker-compose.yml's `worker`/`worker_light`
+# services for how the worker pool is split across the two queues.
+queue_pmi = Queue("heavy_compute_pmi", connection=_redis)
+
+
+def _queue_for(heavy: bool) -> Queue:
+    """
+    Pick which RQ queue a job should be enqueued on.
+
+    :param heavy: True routes to the protected, PMI/slow-job queue
+    :return: the target Queue
+    """
+    return queue_pmi if heavy else queue
+
 # Labeled by task function name so all migrated endpoints are visible individually
 # at /metrics (see app.py's PrometheusMetrics setup) -- exactly the "is the queue
 # actually being hit, and how often does it save someone from a slow request"
@@ -50,10 +68,30 @@ class JobStillRunningError(Exception):
     """Raised when a heavy job hasn't finished within the client-facing wait bound."""
 
 
-def enqueue_and_wait(fn: Callable[..., Any], *args: Any, timeout: int = HEAVY_JOB_WAIT_TIMEOUT_SECONDS) -> Any:
+def enqueue_job(fn: Callable[..., Any], *args: Any, heavy: bool = False) -> Job:
     """
-    Enqueue fn(*args) on the heavy_compute queue and block for up to `timeout`
-    seconds for it to finish, returning its result.
+    Enqueue fn(*args) and return immediately without waiting for it to finish.
+
+    For jobs whose own lifecycle (queued/processing/done/error) is tracked and
+    pushed to the client some other way -- e.g. a session item updated via
+    routes/session_store.update_item and picked up over SSE -- rather than by the
+    HTTP request that submitted it. See enqueue_and_wait for the blocking variant
+    most job-submission endpoints use instead.
+
+    :param fn: the task function to run on an RQ worker
+    :param args: positional arguments to fn
+    :param heavy: True routes this job to the protected, PMI/slow-job queue
+    :return: the enqueued RQ Job
+    """
+    return _queue_for(heavy).enqueue(fn, *args, job_timeout=_HEAVY_JOB_RQ_TIMEOUT_SECONDS)
+
+
+def enqueue_and_wait(
+    fn: Callable[..., Any], *args: Any, timeout: int = HEAVY_JOB_WAIT_TIMEOUT_SECONDS, heavy: bool = False
+) -> Any:
+    """
+    Enqueue fn(*args) and block for up to `timeout` seconds for it to finish,
+    returning its result.
 
     Never blocks past `timeout`: if the job hasn't completed by then (queue
     backlog, all workers busy), raises JobStillRunningError rather than continuing
@@ -64,6 +102,7 @@ def enqueue_and_wait(fn: Callable[..., Any], *args: Any, timeout: int = HEAVY_JO
     :param fn: the task function to run on an RQ worker
     :param args: positional arguments to fn
     :param timeout: how long to wait for the result before giving up
+    :param heavy: True routes this job to the protected, PMI/slow-job queue
     :return: fn's return value
     :raises JobStillRunningError: if the job hasn't finished within `timeout`
     :raises RuntimeError: if the job itself crashed unexpectedly (not a business-logic
@@ -71,7 +110,7 @@ def enqueue_and_wait(fn: Callable[..., Any], *args: Any, timeout: int = HEAVY_JO
         and return a normal error result, not raise)
     """
     task_name = getattr(fn, "__name__", "unknown")
-    job = queue.enqueue(fn, *args, job_timeout=_HEAVY_JOB_RQ_TIMEOUT_SECONDS)
+    job = _queue_for(heavy).enqueue(fn, *args, job_timeout=_HEAVY_JOB_RQ_TIMEOUT_SECONDS)
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
