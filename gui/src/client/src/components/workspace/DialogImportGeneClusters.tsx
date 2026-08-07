@@ -47,7 +47,7 @@ export const DialogImportGeneCluster: React.FC<DialogImportGeneClusterProps> = (
         { label: "Import", variant: "contained", color: "primary", onClick: handleImport, disabled: !canImport, autoFocus: true },
       ]}
     >
-      <Stack spacing={2}>
+      <Stack spacing={2} sx={{ pb: "2em" }}>
         <Typography>
           Select one or more GenBank files (.gbk, .gb, .genbank) containing gene cluster data to import into your workspace. Make sure the files are&nbsp;
           <MuiLink href="https://antismash.secondarymetabolites.org/#!/start" target="_blank" rel="noopener noreferrer">
