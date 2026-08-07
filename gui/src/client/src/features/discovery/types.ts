@@ -46,7 +46,6 @@ export const SubmitDiscoveryQueryReqSchema = z.object({
   flags: z.object({
     computeMsa: z.boolean().optional(),
     computeCompare: z.boolean().optional(),
-    computePmi: z.boolean().optional(),
   }),
 });
 export type SubmitDiscoveryQueryReq = z.output<typeof SubmitDiscoveryQueryReqSchema>;
@@ -162,33 +161,3 @@ export const DiscoveryCompareTanimotoRespSchema = z.object({
   invalidCount: z.number().int().nonnegative().default(0),
 });
 export type DiscoveryCompareTanimotoResp = z.output<typeof DiscoveryCompareTanimotoRespSchema>;
-
-// The hosted app deliberately uses a much lighter conformer budget than a proper
-// offline PMI analysis (see WorkspaceShape's disclaimer) so a batch stays fast
-// enough to run synchronously server-side -- this server has no background job queue.
-export const PMI_NUM_CONFS_DEFAULT = 25;
-export const PMI_MAX_ITERS_DEFAULT = 500;
-// Mirrors MAX_SHAPE_ENTRIES in gui/src/server/routes/shape.py.
-export const MAX_SHAPE_ENTRIES = 30;
-
-export const DiscoveryShapeReqSchema = z.object({
-  entries: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        smiles: z.string().min(1),
-      })
-    )
-    .min(1)
-    .max(MAX_SHAPE_ENTRIES),
-  numConfs: z.number().int().min(5).max(60).optional(),
-  maxIters: z.number().int().min(50).max(2000).optional(),
-});
-export type DiscoveryShapeReq = z.output<typeof DiscoveryShapeReqSchema>;
-
-export const DiscoveryShapeRespSchema = z.object({
-  ok: z.boolean().optional(),
-  results: z.array(z.object({ id: z.string(), npr1: z.number(), npr2: z.number() })),
-  skipped: z.array(z.object({ id: z.string(), reason: z.string() })).default([]),
-});
-export type DiscoveryShapeResp = z.output<typeof DiscoveryShapeRespSchema>;

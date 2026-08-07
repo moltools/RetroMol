@@ -36,7 +36,6 @@ from routes.database import open_retromol_db
 from routes.queue import JobStillRunningError, enqueue_and_wait, enqueue_job
 from routes.rate_limit import limiter
 from routes.session_store import load_session_with_items, save_item, update_item
-from routes.shape import DEFAULT_MAX_ITERS, DEFAULT_NUM_CONFS, MAX_SHAPE_ENTRIES, run_pmi_shape_batch
 
 blp_discovery_monomer_names = Blueprint("discovery_monomer_names", __name__)
 blp_discovery_query = Blueprint("discovery_query", __name__)
@@ -962,19 +961,18 @@ def run_discovery_query_job(session_id: str, item_id: str, settings: dict, flags
     Run a full discovery query -- the base ranking plus whichever optional metrics
     were flagged at submission -- and persist the result onto its session item.
 
-    Runs as an RQ job (see routes/queue.py), on the protected heavy_compute_pmi
-    queue when flags["computePmi"] is set, otherwise the regular heavy_compute queue
-    (see submit_discovery_query). Marks the item "processing" itself, once a worker
-    actually starts this job, same as run_compound_parse in jobs.py.
+    Runs as an RQ job (see routes/queue.py, submit_discovery_query). Marks the item
+    "processing" itself, once a worker actually starts this job, same as
+    run_compound_parse in jobs.py.
 
     All requested metrics land in one `payload`, written via a single update_item
     call once everything is done -- one terminal status per query, no partial/
-    incremental reveal (a PMI-flagged query stays "processing" until PMI is done too).
+    incremental reveal.
 
     :param session_id: the session the item belongs to
     :param item_id: the item to update
     :param settings: the query's own settings (primarySequence, entryType, n, topX, ...)
-    :param flags: which optional metrics to precompute (computeMsa/computeCompare/computePmi)
+    :param flags: which optional metrics to precompute (computeMsa/computeCompare)
     :return: a (response body, HTTP status code) pair
     """
     t0 = time.time()
@@ -1034,27 +1032,6 @@ def run_discovery_query_job(session_id: str, item_id: str, settings: dict, flags
                 else:
                     logger.warning(
                         "run_discovery_query_job: compare precompute failed for item_id=%s: %s", item_id, compare_body
-                    )
-
-        if flags.get("computePmi") and results:
-            shape_entries = [(r["entryId"], r["smiles"]) for r in results if r.get("type") == "compound" and r.get("smiles")]
-            if query_origin_smiles:
-                shape_entries = [("query", query_origin_smiles), *shape_entries]
-            shape_entries = shape_entries[:MAX_SHAPE_ENTRIES]
-
-            if shape_entries:
-                shape_body, shape_status = run_pmi_shape_batch(
-                    [e[0] for e in shape_entries],
-                    [e[1] for e in shape_entries],
-                    DEFAULT_NUM_CONFS,
-                    DEFAULT_MAX_ITERS,
-                )
-                if shape_status == 200:
-                    payload["pmiResults"] = shape_body.get("results", [])
-                    payload["pmiSkipped"] = shape_body.get("skipped", [])
-                else:
-                    logger.warning(
-                        "run_discovery_query_job: PMI precompute failed for item_id=%s: %s", item_id, shape_body
                     )
 
         def mark_done(it: dict) -> None:
@@ -1142,7 +1119,6 @@ def submit_discovery_query() -> tuple[Response, int]:
     flags_normalized = {
         "computeMsa": bool(flags.get("computeMsa", False)),
         "computeCompare": bool(flags.get("computeCompare", False)),
-        "computePmi": bool(flags.get("computePmi", False)),
     }
 
     full_sess = load_session_with_items(session_id)
@@ -1179,7 +1155,7 @@ def submit_discovery_query() -> tuple[Response, int]:
     }
     save_item(session_id, item)
 
-    enqueue_job(run_discovery_query_job, session_id, item["id"], settings, flags_normalized, heavy=flags_normalized["computePmi"])
+    enqueue_job(run_discovery_query_job, session_id, item["id"], settings, flags_normalized)
 
     return jsonify({"ok": True, "item": item}), 202
 

@@ -13,8 +13,6 @@ import {
   DiscoveryMsaRespSchema,
   DiscoveryCompareTanimotoReqSchema,
   DiscoveryCompareTanimotoRespSchema,
-  DiscoveryShapeReqSchema,
-  DiscoveryShapeRespSchema,
   SubmitDiscoveryQueryReqSchema,
   type DiscoveryQueryReq,
   type MonomerNameOption,
@@ -23,8 +21,6 @@ import {
   type DiscoveryMsaResp,
   type DiscoveryCompareTanimotoReq,
   type DiscoveryCompareTanimotoResp,
-  type DiscoveryShapeReq,
-  type DiscoveryShapeResp,
   type SubmitDiscoveryQueryReq,
 } from "./types";
 
@@ -57,11 +53,6 @@ export async function runDiscoveryCompareTanimoto(
 ): Promise<DiscoveryCompareTanimotoResp> {
   const validated = DiscoveryCompareTanimotoReqSchema.parse(payload);
   return postJson("/api/discoveryCompareTanimoto", validated, DiscoveryCompareTanimotoRespSchema, signal);
-}
-
-export async function runDiscoveryShape(payload: DiscoveryShapeReq, signal?: AbortSignal): Promise<DiscoveryShapeResp> {
-  const validated = DiscoveryShapeReqSchema.parse(payload);
-  return postJson("/api/discoveryShape", validated, DiscoveryShapeRespSchema, signal);
 }
 
 // Fire-and-forget: the created item (status "queued") comes back immediately, and its

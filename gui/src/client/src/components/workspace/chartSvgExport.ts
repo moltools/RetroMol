@@ -1,12 +1,12 @@
-// Exports an on-screen custom SVG chart (violin, PMI shape triangle, ...) as a
-// self-contained, print-quality SVG. Rather than re-deriving each chart's geometry,
-// this clones the live rendered <svg> (so it can never drift from what's on screen)
-// and patches only the handful of theme-dependent colors that would otherwise be
+// Exports an on-screen custom SVG chart (violin, ...) as a self-contained,
+// print-quality SVG. Rather than re-deriving each chart's geometry, this clones
+// the live rendered <svg> (so it can never drift from what's on screen) and
+// patches only the handful of theme-dependent colors that would otherwise be
 // unreadable outside the app -- gridlines/axis text sized for the current theme, and
 // dot rings cut from the current surface color -- to fixed, white-background-friendly
 // values. Mirrors alignmentSvgExport.ts's same print-quality convention for the
 // alignment views. Any chart that wants this just tags its gridlines/axis-text/rings
-// with the matching data-export-role attribute -- see ViolinChart/ShapeChart.
+// with the matching data-export-role attribute -- see ViolinChart.
 
 import { downloadSvg } from "./alignmentSvgExport";
 

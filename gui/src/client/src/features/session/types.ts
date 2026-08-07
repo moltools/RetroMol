@@ -40,7 +40,6 @@ export const ClusterItemSchema = BaseItemSchema.extend({
 export const DiscoveryQueryFlagsSchema = z.object({
   computeMsa: z.boolean().default(false),
   computeCompare: z.boolean().default(false),
-  computePmi: z.boolean().default(false),
 });
 export type DiscoveryQueryFlags = z.output<typeof DiscoveryQueryFlagsSchema>;
 
@@ -72,8 +71,6 @@ export const DiscoveryQueryPayloadSchema = z.object({
   compareValues: z.array(z.object({ id: z.string(), tanimotoSimilarity: z.number() })).optional(),
   compareRadius: z.number().optional(),
   compareNBits: z.number().optional(),
-  pmiResults: z.array(z.object({ id: z.string(), npr1: z.number(), npr2: z.number() })).optional(),
-  pmiSkipped: z.array(z.object({ id: z.string(), reason: z.string() })).optional(),
 });
 export type DiscoveryQueryPayload = z.output<typeof DiscoveryQueryPayloadSchema>;
 
