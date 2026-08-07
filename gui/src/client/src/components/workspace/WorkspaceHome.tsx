@@ -9,7 +9,6 @@ import Skeleton from "@mui/material/Skeleton";
 import { useTheme } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
 import { PieChart } from "@mui/x-charts/PieChart";
-import { BarChart } from "@mui/x-charts/BarChart";
 import { getDatabaseStats } from "../../features/database/api";
 import { DatabaseStatsResp } from "../../features/database/types";
 
@@ -92,8 +91,6 @@ export const WorkspaceHome: React.FC = () => {
     palette.palette.secondary.main,
   ];
 
-  const resolvedPct = stats && stats.totalEntries > 0 ? (100 * stats.fullyResolvedCount) / stats.totalEntries : 0;
-
   return (
     <Box
       sx={{
@@ -158,7 +155,7 @@ export const WorkspaceHome: React.FC = () => {
 
       {!error && loading && (
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={98} sx={{ flex: "1 1 180px", minWidth: 180 }} />
           ))}
         </Box>
@@ -177,11 +174,6 @@ export const WorkspaceHome: React.FC = () => {
               label="Avg. sequence length"
               value={stats.sequenceLengthAvg.toFixed(1)}
               caption={`Range ${stats.sequenceLengthMin}–${stats.sequenceLengthMax} blocks`}
-            />
-            <StatTile
-              label="Fully resolved sequences"
-              value={`${resolvedPct.toFixed(0)}%`}
-              caption="No unidentified blocks"
             />
           </Box>
 
@@ -206,80 +198,7 @@ export const WorkspaceHome: React.FC = () => {
                 slotProps={{ legend: { direction: "vertical" } }}
               />
             </ChartCard>
-
-            <ChartCard title="Sequence resolution" description="Share of entries RetroMol could fully identify">
-              <PieChart
-                series={[
-                  {
-                    data: [
-                      { id: 0, value: stats.fullyResolvedCount, label: "Fully resolved" },
-                      { id: 1, value: stats.hasUnknownBlockCount, label: "Contains unresolved block" },
-                    ],
-                    innerRadius: 45,
-                    paddingAngle: 2,
-                    cornerRadius: 3,
-                    highlightScope: { fade: "global", highlight: "item" },
-                  },
-                ]}
-                colors={[palette.palette.success.main, palette.palette.grey[400]]}
-                height={220}
-                slotProps={{ legend: { direction: "vertical" } }}
-              />
-            </ChartCard>
           </Box>
-
-          <ChartCard
-            title="Primary sequence length"
-            description="Number of building blocks parsed per database entry"
-          >
-            <BarChart
-              xAxis={[
-                {
-                  scaleType: "band",
-                  data: stats.sequenceLengthBuckets.map((b) => b.label),
-                  label: "Blocks in sequence",
-                },
-              ]}
-              yAxis={[{ label: "Entries" }]}
-              series={[
-                {
-                  data: stats.sequenceLengthBuckets.map((b) => b.count),
-                  label: "Entries",
-                  color: palette.palette.primary.main,
-                },
-              ]}
-              height={280}
-              hideLegend
-              grid={{ horizontal: true }}
-            />
-          </ChartCard>
-
-          <ChartCard
-            title="Most common building blocks"
-            description="Top identified monomers and tailoring events across the database"
-          >
-            <BarChart
-              layout="horizontal"
-              yAxis={[
-                {
-                  scaleType: "band",
-                  data: [...stats.topBlocks].reverse().map((b) => b.label),
-                },
-              ]}
-              xAxis={[{ label: "Occurrences" }]}
-              series={[
-                {
-                  data: [...stats.topBlocks].reverse().map((b) => b.count),
-                  label: "Occurrences",
-                  color: palette.palette.primary.main,
-                },
-              ]}
-              height={360}
-              hideLegend
-              grid={{ vertical: true }}
-              margin={{ left: 110 }}
-            />
-          </ChartCard>
         </>
       )}
     </Box>
