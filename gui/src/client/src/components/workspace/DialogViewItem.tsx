@@ -2,7 +2,10 @@ import React from "react";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useQuery } from "@tanstack/react-query";
 import { Session, SessionItem } from "../../features/session/types";
 import { reconstructCompound } from "../../features/reconstruction/api";
@@ -84,6 +87,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
 }) => {
   const sessionId = session.sessionId;
   const isCompound = item.kind === "compound"; // there are only two types: "compound" and "cluster"
+  const itemScore = typeof item.score === "number" ? item.score : 0;
 
   const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
 
@@ -215,6 +219,22 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
 
       {(isCompound && !loading && !error) && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {(itemScore < 0.5 || (data?.length ?? 0) === 0) && (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Tooltip
+                title="Coverage is the share of the molecule RetroMol could match to known building blocks. Low or 0% coverage means most (or all) of the structure falls outside its rule set, e.g. an unusual scaffold or a modification the current rules don't recognize. A low coverage leads to primary sequences that may be sparse, incomplete, or empty."
+                placement="bottom-start"
+                arrow
+              >
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ cursor: "help", width: "fit-content" }}>
+                  <InfoOutlinedIcon fontSize="small" color="warning" />
+                  <Typography variant="caption" color="text.secondary">
+                    Low coverage -- parts of the structure below may be sparse or empty
+                  </Typography>
+                </Stack>
+              </Tooltip>
+            </Stack>
+          )}
           <Box
             sx={{
               display: 'flex',

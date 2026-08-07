@@ -172,29 +172,40 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
               }}
             />
 
-            <Gauge
-              value={Math.round(itemScore * 100)}
-              valueMin={0}
-              valueMax={100}
-              startAngle={-110}
-              endAngle={110}
-              width={70}
-              height={70}
-              innerRadius="70%"
-              outerRadius="100%"
-              sx={{
-                minWidth: 70,
-                "& text": {
-                  fontSize: "0.65rem",
-                  fontWeight: 600,
-                },
-                "& .MuiGauge-valueArc": {
-                  fill: (theme) => getScoreColor(theme, itemScore),
-                  transition: "stroke-dashoffset 0.3s ease",
-                },
-              }}
-              text={({ value }) => `${value}%`}
-            />
+            <Tooltip
+              title={
+                isCompound
+                  ? "Coverage is the share of the molecule RetroMol could match to known building blocks. Low or 0% coverage means most (or all) of the structure falls outside its rule set, e.g. an unusual scaffold or a modification the current rules don't recognize. A low coverage leads to primary sequences that may be sparse, incomplete, or empty."
+                  : "Coverage is the share of predicted modules RetroMol could confidently assign a substrate to. Low or 0% usually means PARAS couldn't confidently predict a substrate for the NRPS domains present, so those modules are marked unknown."
+              }
+              placement="right"
+              arrow
+            >
+              <Gauge
+                value={Math.round(itemScore * 100)}
+                valueMin={0}
+                valueMax={100}
+                startAngle={-110}
+                endAngle={110}
+                width={70}
+                height={70}
+                innerRadius="70%"
+                outerRadius="100%"
+                sx={{
+                  minWidth: 70,
+                  cursor: "help",
+                  "& text": {
+                    fontSize: "0.65rem",
+                    fontWeight: 600,
+                  },
+                  "& .MuiGauge-valueArc": {
+                    fill: (theme) => getScoreColor(theme, itemScore),
+                    transition: "stroke-dashoffset 0.3s ease",
+                  },
+                }}
+                text={({ value }) => `${value}%`}
+              />
+            </Tooltip>
 
             <Stack direction="column" spacing={0.5} sx={{ minWidth: 0, flex: 1 }}>
               <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
