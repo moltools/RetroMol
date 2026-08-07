@@ -436,28 +436,32 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
                 />
               </Tooltip>
             )}
-            <IconButton
-              size="small"
-              disabled={disabled}
-              onClick={(event) => {
-                event.stopPropagation();
-                if (disabled) return;
-                handleOpenViewItem(event);
-              }}
-            >
-              <ViewIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              disabled={disabled}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (disabled) return;
-                onDelete(item.id);
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="View details" arrow>
+              <IconButton
+                size="small"
+                disabled={disabled}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (disabled) return;
+                  handleOpenViewItem(event);
+                }}
+              >
+                <ViewIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete" arrow>
+              <IconButton
+                size="small"
+                disabled={disabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (disabled) return;
+                  onDelete(item.id);
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             <Tooltip title={isCompound ? "Show primary sequences" : "Show parsed modules"} arrow>
               <span>
                 <IconButton
