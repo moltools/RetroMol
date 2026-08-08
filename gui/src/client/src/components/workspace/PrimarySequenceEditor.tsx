@@ -147,6 +147,7 @@ function PrimarySequenceChips({
   sequence,
   selectedTags,
   onToggleMotif,
+  ordered = true,
 }: {
   sequence: PrimarySequenceItem[];
   selectedTags: number[];
@@ -154,30 +155,39 @@ function PrimarySequenceChips({
   // preview in the Upload list, which has no molecule view alongside it for a
   // highlight to make sense against. Only the "View item" dialog wires this up.
   onToggleMotif?: (tags: number[]) => void;
+  // False renders this as an unordered bag of motifs instead of a sequence: no
+  // connecting line, no fixed reading order (wraps instead of scrolling as one
+  // row) -- see Reconstruction.ordered. Must stay visually distinct from the
+  // ordered case so it's never mistaken for a real primary sequence.
+  ordered?: boolean;
 }) {
   const selectable = !!onToggleMotif;
 
   return (
-    <Box sx={{ ...horizontalScrollSx }}>
+    <Box sx={ordered ? { ...horizontalScrollSx } : undefined}>
       <Box
         sx={{
           display: "flex",
+          flexWrap: ordered ? "nowrap" : "wrap",
           gap: 0.5,
           alignItems: "center",
           position: "relative",
-          width: "max-content",
+          width: ordered ? "max-content" : "100%",
 
-          // The connecting "string"
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: "50%",
-            height: "2px",
-            backgroundColor: "divider",
-            zIndex: 0,
-          },
+          // The connecting "string" -- only for an actual sequence; an unordered
+          // bag of motifs has no line, that's the whole point.
+          ...(ordered && {
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: "50%",
+              height: "2px",
+              backgroundColor: "divider",
+              zIndex: 0,
+            },
+          }),
         }}
       >
         {sequence.map(([name, tags], idx) => {
@@ -273,6 +283,7 @@ export function PrimarySequenceRows({
           blocksFromSequence(override ?? reconstruction.primary_sequence);
 
         const dirty = isRowDirty(idx, reconstruction.primary_sequence);
+        const ordered = reconstruction.ordered !== false;
 
         return (
           <Box
@@ -294,7 +305,7 @@ export function PrimarySequenceRows({
                 gap: 0.75,
                 minWidth: 0,
                 overflow: "hidden",
-                transform: "translateY(-5px)"
+                transform: ordered ? "translateY(-5px)" : "none",
               }}
             >
               <Typography
@@ -308,7 +319,7 @@ export function PrimarySequenceRows({
                   minWidth: 0,
                 }}
               >
-                {`primary sequence ${idx + 1}`}
+                {ordered ? `primary sequence ${idx + 1}` : "parsed motifs (unordered)"}
               </Typography>
 
               {override && !editing && (
@@ -328,7 +339,7 @@ export function PrimarySequenceRows({
 
             {/* Sequence column */}
             <Box sx={{ minWidth: 0 }}>
-              {editing ? (
+              {editing && ordered ? (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <SequenceEditor
@@ -369,6 +380,7 @@ export function PrimarySequenceRows({
                   sequence={override ?? reconstruction.primary_sequence}
                   selectedTags={selectedTags}
                   onToggleMotif={onToggleMotif}
+                  ordered={ordered}
                 />
               )}
             </Box>

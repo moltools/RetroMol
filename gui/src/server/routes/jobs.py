@@ -278,9 +278,9 @@ def run_compound_reconstruction(item_payload: dict | None) -> tuple[dict, int]:
         reconstructions_as_dicts = [rec.to_dict() for rec in reconstructions]
         return {"ok": True, "status": "done", "data": reconstructions_as_dicts}, 200
 
-    except Exception:
+    except Exception as e:
         logger.exception("run_compound_reconstruction: failed")
-        return {"ok": False, "error": "Item not found during update"}, 404
+        return {"ok": False, "error": f"Failed to reconstruct compound: {e}"}, 500
 
 
 @blp_reconstruct_compound.post("/api/reconstructCompound")

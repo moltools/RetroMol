@@ -163,6 +163,9 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
   });
   const reconstructions = reconstructionQuery.data ?? null;
   const editor = usePrimarySequenceEditor(session, setSession, item, reconstructions);
+  // See DialogViewItem's isUnordered -- an unordered "bag of motifs" result isn't a
+  // sequence, so there's nothing meaningful to drag-and-drop reorder.
+  const isUnordered = !!reconstructions?.length && reconstructions.every((r) => r.ordered === false);
 
   // Same idea as reconstructionQuery, but for gene clusters -- the parsed module
   // readout is computed server-side at submit time and only ever handed over via
@@ -518,7 +521,12 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
                         </Button>
                       </>
                     ) : (
-                      <Button size="small" variant="contained" onClick={() => editor.setEditing(true)}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => editor.setEditing(true)}
+                        disabled={isUnordered}
+                      >
                         Edit sequences
                       </Button>
                     )}
