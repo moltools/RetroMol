@@ -183,7 +183,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
               {
                 key: "edit",
                 label: "Edit sequences",
-                variant: "outlined" as const,
+                variant: "contained" as const,
                 color: "primary" as const,
                 onClick: () => setEditing(true),
                 disabled: loading || !data || data.length === 0 || isUnordered,
