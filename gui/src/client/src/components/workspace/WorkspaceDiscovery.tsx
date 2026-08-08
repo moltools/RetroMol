@@ -61,24 +61,49 @@ function ReconstructionPreview({ sequence }: { sequence: PrimarySequenceItem[] }
 // just names -- see retromol_antismash.modules.bgc_primary_sequence.
 function NamesPreview({ names }: { names: string[] }) {
   return (
-    <Box sx={{ display: "flex", flexWrap: "nowrap", gap: 0.5, minWidth: 0, flex: "1 1 0%", ...horizontalScrollSx }}>
-      {names.map((name, idx) => (
-        <Box
-          key={`${name}-${idx}`}
-          sx={{
-            px: 1,
-            py: 0.5,
-            borderRadius: 1,
-            border: "1px solid",
-            borderColor: "divider",
-            fontSize: "0.8rem",
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-          }}
-        >
-          <MotifName name={name} />
-        </Box>
-      ))}
+    <Box sx={{ ...horizontalScrollSx }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "nowrap",
+          gap: 0.5,
+          alignItems: "center",
+          position: "relative",
+          width: "max-content",
+
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "50%",
+            height: "2px",
+            backgroundColor: "divider",
+            zIndex: 0,
+          },
+        }}
+      >
+        {names.map((name, idx) => (
+          <Box
+            key={`${name}-${idx}`}
+            sx={{
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "divider",
+              bgcolor: "background.paper",
+              color: "text.primary",
+              fontSize: "0.8rem",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              zIndex: 1,
+            }}
+          >
+            <MotifName name={name} />
+          </Box>
+        ))}
+      </Box>
     </Box>
   );
 }
@@ -375,14 +400,20 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                         flexWrap: "wrap",
                       }}
                     >
-                      <ReconstructionPreview sequence={effectiveSequence} />
+                      <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                        {`primary sequence ${idx+1}`}
+                      </Typography>
                       {override && (
                         <Chip label="Edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem" }} />
                       )}
+                      <Box sx={{ transform: "translateY(5px)" }}>
+                        <ReconstructionPreview sequence={effectiveSequence} />
+                      </Box>
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={() => handlePickNames(effectiveSequence.map(([name]) => name))}
+                        sx={{ ml: "auto" }}
                       >
                         Use this
                       </Button>

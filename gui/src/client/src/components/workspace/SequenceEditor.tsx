@@ -222,6 +222,25 @@ function AddBlockControl({ disabled, onAdd }: { disabled?: boolean; onAdd: (name
         }}
         value={selected}
         onChange={(_, value) => setSelected(value)}
+        slotProps={{
+          popupIndicator: {
+            sx: {
+              p: 0,
+              m: 0,
+              minWidth: 0,
+              minHeight: 0,
+              width: "auto",
+              height: "auto",
+              border: "none",
+              borderRadius: 0,
+              background: "transparent",
+              boxShadow: "none",
+              "&:hover": {
+                background: "transparent",
+              },
+            },
+          },
+        }}
         renderInput={(params) => (
           <TextField {...params} autoFocus size="small" hiddenLabel placeholder="Block name..." />
         )}
