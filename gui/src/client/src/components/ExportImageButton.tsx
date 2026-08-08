@@ -1,10 +1,9 @@
 import React from "react";
 import CircularProgress from "@mui/material/CircularProgress";
-import Tooltip from "@mui/material/Tooltip";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useNotifications } from "./NotificationProvider";
 import { exportElementAsPng } from "./exportImage";
-import { MinimalIconButton } from "./MinimalIconButton";
+import Button from "@mui/material/Button";
 
 // Small "export this view as a PNG" affordance. Captures whatever is currently
 // rendered inside `targetRef`, including any live highlight state, exactly as
@@ -37,12 +36,13 @@ export function ExportImageButton({
   };
 
   return (
-    <Tooltip title={label} arrow>
-      <span>
-        <MinimalIconButton size="small" disabled={exporting} onClick={handleExport}>
-          {exporting ? <CircularProgress size={18} /> : <DownloadIcon fontSize="small" />}
-        </MinimalIconButton>
-      </span>
-    </Tooltip>
+    <Button
+      size="small"
+      variant="text"
+      startIcon={exporting ? <CircularProgress size={18} /> : <DownloadIcon fontSize="small" />}
+      onClick={handleExport}
+    >
+      Download PNG
+    </Button>
   );
 }
