@@ -12,6 +12,7 @@ import { reconstructCompound } from "../../features/reconstruction/api";
 import { getClusterReadout } from "../../features/clusters/api";
 import { DialogWindow } from "../DialogWindow";
 import { ErrorBoundary } from "../ErrorBoundary";
+import { ExportImageButton } from "../ExportImageButton";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
 import { PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
 import { ClusterReadoutRows } from "./ClusterReadoutRows";
@@ -90,6 +91,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
   const itemScore = typeof item.score === "number" ? item.score : 0;
 
   const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
+  const diagramRef = React.useRef<HTMLDivElement>(null);
 
   const handleToggleMotif = (tags: number[]) => {
     setSelectedTags((prev) => {
@@ -266,7 +268,15 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
               </Tooltip>
             </Stack>
           )}
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <ExportImageButton
+              targetRef={diagramRef}
+              filename={`retromol-${(item.name || item.id).replace(/[^a-z0-9]+/gi, "-")}`}
+              label="Download the diagram below as a PNG"
+            />
+          </Box>
           <Box
+            ref={diagramRef}
             sx={{
               display: 'flex',
               flexDirection: 'row',
