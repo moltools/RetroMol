@@ -43,7 +43,7 @@ type DialogViewDiscoveryQueryProps = {
 };
 
 function disabledReason(flagLabel: string): string {
-  return `Not computed for this query -- submit a new query with "${flagLabel}" enabled`;
+  return `Not computed for this query. Submit a new query with "${flagLabel}" enabled.`;
 }
 
 export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> = ({ item, sessionId, open, onClose }) => {

@@ -9,6 +9,8 @@ import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Collapse from "@mui/material/Collapse";
+import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import IconButton from "@mui/material/IconButton";
 import ListSubheader from "@mui/material/ListSubheader";
@@ -18,6 +20,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SettingsIcon from "@mui/icons-material/Settings";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import ViewIcon from "@mui/icons-material/Visibility";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +41,7 @@ import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { SequenceEditor, type SequenceBlock } from "./SequenceEditor";
 import { DialogViewDiscoveryQuery } from "./DialogViewDiscoveryQuery";
+import {MinimalIconButton} from "../MinimalIconButton";
 
 type WorkspaceDiscoveryProps = {
   session: Session;
@@ -214,6 +218,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
   const [computeMsa, setComputeMsa] = React.useState<boolean>(true);
   const [computeCompare, setComputeCompare] = React.useState<boolean>(false);
   const [submitting, setSubmitting] = React.useState<boolean>(false);
+  const [queryOptionsOpen, setQueryOptionsOpen] = React.useState<boolean>(false);
 
   const [deletingIds, setDeletingIds] = React.useState<Set<string>>(new Set());
   const [viewingItemId, setViewingItemId] = React.useState<string | null>(null);
@@ -455,8 +460,15 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                     <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
                       {region.id}
                     </Typography>
-                    <NamesPreview names={region.primary_sequence} />
-                    <Button size="small" variant="outlined" onClick={() => handlePickNames(region.primary_sequence)}>
+                    <Box sx={{ transform: "translateY(5px)" }}>
+                      <NamesPreview names={region.primary_sequence} />
+                    </Box>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handlePickNames(region.primary_sequence)}
+                      sx={{ ml: "auto" }}
+                    >
                       Use this
                     </Button>
                   </Box>
@@ -492,7 +504,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
             Query
           </Typography>
 
-          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" sx={{ mt: 1.5 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}>
             <ToggleButtonGroup
               size="small"
               exclusive
@@ -505,103 +517,155 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
               <ToggleButton value="both">Both</ToggleButton>
             </ToggleButtonGroup>
 
-            <TextField
-              select
-              size="small"
-              label="Score mode"
-              value={scoreMode}
-              onChange={(e) => setScoreMode(e.target.value as DiscoveryScoreMode)}
-              disabled={submitting}
-              sx={{ width: 220 }}
-            >
-              {DISCOVERY_SCORE_MODE_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              size="small"
-              type="number"
-              label="Retrieve closest N"
-              value={n}
-              onChange={(e) => {
-                const value = Math.max(1, Math.min(1000, Number(e.target.value) || 1));
-                setN(value);
-                setTopX((prev) => Math.min(prev, Math.max(1, Math.min(value, MAX_TOP_X))));
-              }}
-              slotProps={{ htmlInput: { min: 1, max: 1000 } }}
-              sx={{ width: 160 }}
-              disabled={submitting}
-            />
-
-            <TextField
-              size="small"
-              type="number"
-              label="Show top X"
-              value={topX}
-              onChange={(e) => setTopX(Math.max(1, Math.min(maxTopX, Number(e.target.value) || 1)))}
-              slotProps={{ htmlInput: { min: 1, max: maxTopX } }}
-              sx={{ width: 140 }}
-              disabled={submitting}
-            />
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={includeUserUploads || onlyUserUploads}
-                  onChange={(e) => setIncludeUserUploads(e.target.checked)}
-                  disabled={submitting || compoundItems.length === 0 || onlyUserUploads}
-                />
-              }
-              label="Include my uploads"
-              title="Uploaded compounds and gene clusters compete for a spot among the nearest N candidates, then follow the usual top-X ranking."
-            />
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={onlyUserUploads}
-                  onChange={(e) => setOnlyUserUploads(e.target.checked)}
-                  disabled={submitting || compoundItems.length === 0}
-                />
-              }
-              label="Only use my uploads"
-              title="Skip the shared database entirely and align only against your own uploaded compounds and gene clusters."
-            />
+            <Tooltip title={queryOptionsOpen ? "Hide query options" : "Show query options"} arrow>
+              <span>
+                <MinimalIconButton
+                  size="medium"
+                  onClick={() => setQueryOptionsOpen((prev) => !prev)}
+                  disabled={submitting}
+                  aria-expanded={queryOptionsOpen}
+                  aria-label="Toggle query options"
+                >
+                  <SettingsIcon
+                    fontSize="medium"
+                    sx={{
+                      transition: "transform 300ms ease",
+                      transform: queryOptionsOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                  />
+                </MinimalIconButton>
+              </span>
+            </Tooltip>
           </Stack>
 
-          <Typography variant="subtitle2" sx={{ mt: 2.5, mb: 0.5 }}>
-            Precompute for this query
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Pick which extra views to compute up front so they open instantly once the query is done. A view you
-            didn't flag here is disabled in the results, not silently missing -- run another query with it enabled
-            if you need it later.
-          </Typography>
-
-          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-            <FormControlLabel
-              control={
-                <Checkbox size="small" checked={computeMsa} onChange={(e) => setComputeMsa(e.target.checked)} disabled={submitting} />
-              }
-              label="Compute MSA"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
+          <Collapse in={queryOptionsOpen} unmountOnExit>
+            <Stack spacing={2.5} sx={{ mt: 4 }}>
+              <Stack direction="row" spacing={2} alignItems="flex-start" flexWrap="wrap">
+                <TextField
+                  select
                   size="small"
-                  checked={computeCompare}
-                  onChange={(e) => setComputeCompare(e.target.checked)}
+                  label="Score mode"
+                  value={scoreMode}
+                  onChange={(e) => setScoreMode(e.target.value as DiscoveryScoreMode)}
+                  disabled={submitting}
+                  helperText={
+                    scoreMode === "subsequence"
+                      ? "Scores by the query's own length, surfacing subsequence matches."
+                      : "Normalizes by the longer sequence, favoring similarly-sized matches."
+                  }
+                  sx={{ width: 240 }}
+                >
+                  {DISCOVERY_SCORE_MODE_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Retrieve closest N"
+                  value={n}
+                  onChange={(e) => {
+                    const value = Math.max(1, Math.min(1000, Number(e.target.value) || 1));
+                    setN(value);
+                    setTopX((prev) => Math.min(prev, Math.max(1, Math.min(value, MAX_TOP_X))));
+                  }}
+                  slotProps={{ htmlInput: { min: 1, max: 1000 } }}
+                  helperText="Nearest neighbors pulled from the database before ranking."
+                  sx={{ width: 190 }}
                   disabled={submitting}
                 />
-              }
-              label="Compute compound comparison"
-            />
-          </Stack>
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Show top X"
+                  value={topX}
+                  onChange={(e) => setTopX(Math.max(1, Math.min(maxTopX, Number(e.target.value) || 1)))}
+                  slotProps={{ htmlInput: { min: 1, max: maxTopX } }}
+                  helperText="How many top-ranked results to display."
+                  sx={{ width: 170 }}
+                  disabled={submitting}
+                />
+              </Stack>
+
+              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                <Tooltip
+                  title="Uploaded compounds and gene clusters compete for a spot among the nearest N candidates, then follow the usual top-X ranking."
+                  arrow
+                >
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={includeUserUploads || onlyUserUploads}
+                        onChange={(e) => setIncludeUserUploads(e.target.checked)}
+                        disabled={submitting || compoundItems.length === 0 || onlyUserUploads}
+                      />
+                    }
+                    label="Include my uploads"
+                  />
+                </Tooltip>
+
+                <Tooltip
+                  title="Skip the shared database entirely and align only against your own uploaded compounds and gene clusters."
+                  arrow
+                >
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={onlyUserUploads}
+                        onChange={(e) => setOnlyUserUploads(e.target.checked)}
+                        disabled={submitting || compoundItems.length === 0}
+                      />
+                    }
+                    label="Only use my uploads"
+                  />
+                </Tooltip>
+              </Stack>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                  Compute for this query
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Pick which extra views to compute up front so they open instantly once the query is done. A view
+                  you didn't flag here is disabled in the results, not silently missing. Run another query with it
+                  enabled if you need it later.
+                </Typography>
+
+                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={computeMsa}
+                        onChange={(e) => setComputeMsa(e.target.checked)}
+                        disabled={submitting}
+                      />
+                    }
+                    label="Compute MSA"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={computeCompare}
+                        onChange={(e) => setComputeCompare(e.target.checked)}
+                        disabled={submitting}
+                      />
+                    }
+                    label="Compute compound comparison"
+                  />
+                </Stack>
+              </Box>
+            </Stack>
+          </Collapse>
 
           <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5 }}>
             <Button
@@ -623,7 +687,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
 
       <Card variant="outlined">
         <CardContent>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
             <Typography component="h1" variant="subtitle1">
               Saved queries ({queryItems.length}/{MAX_DISCOVERY_QUERY_ITEMS})
             </Typography>
@@ -632,10 +696,10 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
               <input type="file" accept="application/json" hidden onChange={handleUploadResultFile} />
             </Button>
           </Stack>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
             Queries stay here (and survive switching tabs or reloading) until you delete them, up to{" "}
             {MAX_DISCOVERY_QUERY_ITEMS} at a time. "Load result file" opens a previously downloaded result for
-            viewing only -- it doesn't count against this limit.
+            viewing only. It doesn't count against this limit.
           </Typography>
 
           {queryItems.length === 0 ? (
