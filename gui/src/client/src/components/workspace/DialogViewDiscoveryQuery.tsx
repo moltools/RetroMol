@@ -194,7 +194,7 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                     <Tooltip title={item.flags.computeCompare ? "" : disabledReason("Compute compound comparison")} arrow>
                       <span>
                         <ToggleButton value="compare" disabled={!item.flags.computeCompare}>
-                          Compare compounds
+                          Compare
                         </ToggleButton>
                       </span>
                     </Tooltip>

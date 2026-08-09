@@ -42,17 +42,17 @@ const METRIC_DEFS: MetricDef[] = [
   {
     id: "fingerprintCosine",
     label: "Fingerprint cosine",
-    description: "Cosine similarity between per-monomer token fingerprints -- the same metric Discovery ranks results by.",
+    description: "Cosine similarity between per-monomer token fingerprints. This is the same metric Discovery retrieves closest N results by.",
   },
   {
     id: "normalizedAlignment",
     label: "Normalized alignment",
-    description: "Sequence alignment score, normalized to a percentage of the best possible score.",
+    description: "Sequence alignment score, normalized to a percentage of the best possible score. This is the same metric Discovery reranks closest results by.",
   },
   {
     id: "tanimoto",
     label: "Tanimoto (structure)",
-    description: "Real molecular structure similarity via Morgan/ECFP fingerprints -- only compounds with a known SMILES.",
+    description: "Real molecular structure similarity via Morgan/ECFP fingerprints. This is only possible for compound queries with a known SMILES.",
   },
 ];
 
@@ -514,7 +514,7 @@ export function WorkspaceCompare({
                   control={
                     <Checkbox
                       size="small"
-                      sx={{ pt: 0 }}
+                      sx={{ p: "4px", mt: "1px" }}
                       checked={enabledMetrics.has(def.id)}
                       onChange={() => toggleMetric(def.id)}
                     />
@@ -530,14 +530,14 @@ export function WorkspaceCompare({
                 />
 
                 {def.id === "tanimoto" && tanimotoEnabled && (
-                  <Stack direction="row" spacing={1} sx={{ pl: 4.5, mt: 1 }}>
+                  <Stack direction="row" spacing={1} sx={{ pl: 4.5, mt: 3 }}>
                     <TextField
                       select
                       size="small"
                       label="Radius"
                       value={radius}
                       onChange={(e) => setRadius(Number(e.target.value))}
-                      sx={{ width: 100 }}
+                      sx={{ width: 100, "& .MuiOutlinedInput-root": { backgroundColor: "transparent" } }}
                     >
                       {[1, 2, 3, 4].map((r) => (
                         <MenuItem key={r} value={r}>
@@ -551,7 +551,7 @@ export function WorkspaceCompare({
                       label="Fingerprint size"
                       value={nBits}
                       onChange={(e) => setNBits(Number(e.target.value))}
-                      sx={{ width: 140 }}
+                      sx={{ width: 140, "& .MuiOutlinedInput-root": { backgroundColor: "transparent" } }}
                     >
                       {MORGAN_NBITS_OPTIONS.map((b) => (
                         <MenuItem key={b} value={b}>
