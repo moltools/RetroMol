@@ -9,6 +9,7 @@ import ExploreIcon from "@mui/icons-material/Explore";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import RuleIcon from "@mui/icons-material/Rule";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const mainListItems = [
@@ -31,6 +32,11 @@ const mainListItems = [
     text: "Enrichment",
     icon: <BarChartIcon />,
     to: `/dashboard/enrichment`
+  },
+  {
+    text: "Rules",
+    icon: <RuleIcon />,
+    to: `/dashboard/rules`
   },
 ]
 
