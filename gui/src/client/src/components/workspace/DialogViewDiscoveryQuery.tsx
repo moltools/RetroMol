@@ -222,7 +222,7 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                 </Typography>
               )}
 
-              {resultsView == "compare" && (
+              {resultsView === "compare" && (
                 <Typography variant="body2" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
                   Each violin shows the distribution of one metric across the selected results, comparing every candidate back
                   to the query. Pick which metrics to include below.
