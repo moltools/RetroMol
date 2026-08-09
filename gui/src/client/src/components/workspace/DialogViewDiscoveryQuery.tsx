@@ -174,7 +174,7 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
           ) : (
             <>
               <Stack direction="row" alignItems="center" sx={{ mb: 1, justifyContent: "space-between" }}>
-                <Stack direction="row" spacing={1.5} alignItems="center">
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
                   <ToggleButtonGroup
                     size="small"
                     exclusive
@@ -194,7 +194,7 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                     <Tooltip title={item.flags.computeCompare ? "" : disabledReason("Compute compound comparison")} arrow>
                       <span>
                         <ToggleButton value="compare" disabled={!item.flags.computeCompare}>
-                          Compare compounds
+                          Compare
                         </ToggleButton>
                       </span>
                     </Tooltip>
@@ -216,9 +216,16 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
               </Stack>
 
               {resultsView !== "compare" && (
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-                  Cell shading reflects each unit's structural similarity to the query's aligned unit in that
-                  column. Darker means a closer match, so a sequence's weak spots stand out at a glance.
+                <Typography variant="body2" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                  Cell shading the alignment reflects each motif's structural similarity to the query's aligned motif in
+                  that column. Darker means a closer match, so a sequence's weak spots stand out at a glance.
+                </Typography>
+              )}
+
+              {resultsView === "compare" && (
+                <Typography variant="body2" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                  Each violin shows the distribution of one metric across the selected results, comparing every candidate back
+                  to the query. Pick which metrics to include below.
                 </Typography>
               )}
 
