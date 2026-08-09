@@ -55,7 +55,7 @@ function ModuleChip({ module }: { module: ClusterModule }) {
             : "info.main",
           color: isNRPS
             ? (hasConfidentSubstrate ? "success.contrastText" : "text.primary")
-            : "info.contrastText",
+            : "white",
           opacity: isNRPS && !hasConfidentSubstrate ? 1 : 0.92,
           fontSize: "0.8rem",
           whiteSpace: "nowrap",
