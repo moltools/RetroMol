@@ -455,11 +455,6 @@ export function WorkspaceCompare({
 
   return (
     <Box>
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-        Each violin shows the distribution of one metric across the selected results, comparing every candidate back
-        to the query. Pick which metrics to include below.
-      </Typography>
-
       {/* A button + Popover rather than one control per metric -- the toolbar stays
           exactly this wide no matter how many metrics METRIC_DEFS grows to. The
           enabled set is still visible at a glance via the chips beside the button. */}
