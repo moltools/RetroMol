@@ -173,41 +173,46 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
             </Typography>
           ) : (
             <>
-              <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ mb: 1 }}>
-                <ToggleButtonGroup
-                  size="small"
-                  exclusive
-                  value={resultsView}
-                  onChange={(_, value) => value && setResultsView(value)}
-                >
-                  <ToggleButton value="pairwise">Pairwise</ToggleButton>
+              <Stack direction="row" alignItems="center" sx={{ mb: 1, justifyContent: "space-between" }}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={resultsView}
+                    onChange={(_, value) => value && setResultsView(value)}
+                  >
+                    <ToggleButton value="pairwise">Pairwise</ToggleButton>
 
-                  <Tooltip title={item.flags.computeMsa ? "" : disabledReason("Compute MSA")} arrow>
-                    <span>
-                      <ToggleButton value="msa" disabled={!item.flags.computeMsa}>
-                        Multiple sequence alignment
-                      </ToggleButton>
-                    </span>
-                  </Tooltip>
+                    <Tooltip title={item.flags.computeMsa ? "" : disabledReason("Compute MSA")} arrow>
+                      <span>
+                        <ToggleButton value="msa" disabled={!item.flags.computeMsa}>
+                          Multiple sequence alignment
+                        </ToggleButton>
+                      </span>
+                    </Tooltip>
 
-                  <Tooltip title={item.flags.computeCompare ? "" : disabledReason("Compute compound comparison")} arrow>
-                    <span>
-                      <ToggleButton value="compare" disabled={!item.flags.computeCompare}>
-                        Compare compounds
-                      </ToggleButton>
-                    </span>
-                  </Tooltip>
-                </ToggleButtonGroup>
+                    <Tooltip title={item.flags.computeCompare ? "" : disabledReason("Compute compound comparison")} arrow>
+                      <span>
+                        <ToggleButton value="compare" disabled={!item.flags.computeCompare}>
+                          Compare compounds
+                        </ToggleButton>
+                      </span>
+                    </Tooltip>
+                  </ToggleButtonGroup>
 
-                <Typography variant="caption" color="text.secondary">
-                  {selectedForMsa.size} of {payload.results.length} selected
-                </Typography>
-                <Button size="small" onClick={() => setSelectedForMsa(new Set(payload.results.map((r) => r.entryId)))}>
-                  Select all
-                </Button>
-                <Button size="small" onClick={() => setSelectedForMsa(new Set())}>
-                  Clear
-                </Button>
+                  <Typography variant="caption" color="text.secondary">
+                    {selectedForMsa.size} of {payload.results.length} selected
+                  </Typography>
+                </Stack>
+
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Button size="small" onClick={() => setSelectedForMsa(new Set(payload.results.map((r) => r.entryId)))}>
+                    Select all
+                  </Button>
+                  <Button size="small" onClick={() => setSelectedForMsa(new Set())}>
+                    Clear
+                  </Button>
+                </Stack>
               </Stack>
 
               {resultsView !== "compare" && (
