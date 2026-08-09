@@ -714,6 +714,9 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
           <Typography component="h1" variant="subtitle1">
             Query
           </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Choose to query either compounds, BGCs, or both. Additional query settings can be revealed using the cog wheel.
+          </Typography>
 
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}>
             <ToggleButtonGroup
