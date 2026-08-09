@@ -10,6 +10,7 @@ import { Session, SessionItem } from "../../features/session/types";
 import type { PrimarySequenceItem, Reconstruction } from "../../features/reconstruction/types";
 import { saveEditedPrimarySequences, revertEditedPrimarySequence } from "../../features/reconstruction/api";
 import { useNotifications } from "../NotificationProvider";
+import { MotifHoverCard } from "../MotifHoverCard";
 import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { SequenceEditor, type SequenceBlock } from "./SequenceEditor";
@@ -228,18 +229,16 @@ function PrimarySequenceChips({
 
           // Same rule as the drag-and-drop editor's blocks: only claim it's
           // clickable when it actually is (see SortableBlock in SequenceEditor).
-          const title = !linked
+          const hint = !linked
             ? "Not linked to the original structure (added or edited by hand)"
             : selectable
             ? "Click to highlight the source atoms"
-            : "";
-
-          if (!title) return chip;
+            : undefined;
 
           return (
-            <Tooltip key={`${name}-${idx}-tooltip`} title={title} arrow>
+            <MotifHoverCard key={`${name}-${idx}-hover`} name={name} hint={hint}>
               {chip}
-            </Tooltip>
+            </MotifHoverCard>
           );
         })}
       </Box>

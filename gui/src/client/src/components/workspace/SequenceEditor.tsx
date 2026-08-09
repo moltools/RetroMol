@@ -2,7 +2,6 @@ import React from "react";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Autocomplete from "@mui/material/Autocomplete";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CloseIcon from "@mui/icons-material/Close";
@@ -25,6 +24,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { MotifHoverCard } from "../MotifHoverCard";
 import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { searchMonomerNames } from "../../features/discovery/api";
@@ -132,23 +132,21 @@ function SortableBlock({
     </Box>
   );
 
-  if (!showProvenance) return content;
-
   // Only claim it's clickable when it actually is -- e.g. the inline Upload-list
   // editor has no molecule view alongside it to highlight, so onClick is omitted
-  // there and linked blocks get no tooltip at all.
-  const title = !linked
+  // there and linked blocks get no click hint.
+  const hint = !showProvenance
+    ? undefined
+    : !linked
     ? "Not linked to the original structure (added or edited by hand)"
     : clickable
     ? "Click to highlight the source atoms"
-    : "";
-
-  if (!title) return content;
+    : undefined;
 
   return (
-    <Tooltip title={title} arrow>
+    <MotifHoverCard name={block.name} hint={hint}>
       {content}
-    </Tooltip>
+    </MotifHoverCard>
   );
 }
 

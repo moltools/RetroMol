@@ -342,6 +342,10 @@ class MatchingRule:
     :cvar pseudonyms: Pseudonyms associated with the rule.
     :cvar terminal: Whether this rule is terminal (i.e., should not be expanded further).
     :cvar stereochemistry: Whether to consider stereochemistry in matching.
+    :cvar display_smiles: Optional friendlier SMILES to show when depicting this motif (e.g.
+        in the GUI's motif hover preview) instead of `smiles`, which is written for
+        substructure matching (e.g. carrying a reactive leaving-group placeholder) and
+        may not be the clearest depiction of the motif on its own.
     """
 
     name: str
@@ -350,6 +354,7 @@ class MatchingRule:
     pseudonyms: list[str]
     terminal: bool = True
     stereochemistry: bool = False
+    display_smiles: str | None = None
 
     mol: Mol = field(init=False, repr=False)
 
@@ -382,6 +387,7 @@ class MatchingRule:
             "pseudonyms": self.pseudonyms,
             "terminal": self.terminal,
             "stereochemistry": self.stereochemistry,
+            "display_smiles": self.display_smiles,
         }
 
     @classmethod
@@ -399,6 +405,7 @@ class MatchingRule:
             pseudonyms=data.get("pseudonyms", []),
             terminal=data.get("terminal", True),
             stereochemistry=data.get("stereochemistry", False),
+            display_smiles=data.get("display_smiles"),
         )
         return matching_rule
 

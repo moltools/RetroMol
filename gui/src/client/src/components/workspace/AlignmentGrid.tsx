@@ -17,6 +17,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useTheme, alpha, type Theme } from "@mui/material/styles";
 import type { DiscoveryResult } from "../../features/discovery/types";
+import { MotifHoverCard } from "../MotifHoverCard";
 import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { buildAlignmentSvg, downloadSvg, type AlignmentSvgRow } from "./alignmentSvgExport";
@@ -127,10 +128,17 @@ export function AlignmentGrid({ rows }: { rows: AlignmentGridRow[] }) {
               {columnWidths.map((width, idx) => {
                 const name = row.sequence[idx] ?? null;
                 const matchColor = similarityColor(theme, row.matchStrengths?.[idx]);
-                return (
-                  <Box key={idx} sx={alignedCellSx(name, width, matchColor)}>
+                const cell = (
+                  <Box sx={alignedCellSx(name, width, matchColor)}>
                     {name === null ? "–" : <MotifName name={name} />}
                   </Box>
+                );
+                return name === null ? (
+                  <React.Fragment key={idx}>{cell}</React.Fragment>
+                ) : (
+                  <MotifHoverCard key={idx} name={name}>
+                    {cell}
+                  </MotifHoverCard>
                 );
               })}
             </Stack>
