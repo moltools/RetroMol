@@ -24,20 +24,31 @@ import Typography from "@mui/material/Typography";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useQuery } from "@tanstack/react-query";
 import { DialogWindow } from "../DialogWindow";
-import type { DiscoveryQueryItem } from "../../features/session/types";
-import { DISCOVERY_SCORE_MODE_OPTIONS } from "../../features/discovery/types";
+import type { Session, DiscoveryQueryItem } from "../../features/session/types";
+import { DISCOVERY_SCORE_MODE_OPTIONS, type DiscoveryResult } from "../../features/discovery/types";
 import { getDiscoveryQueryResult } from "../../features/discovery/api";
 import { AlignmentGrid, ResultRow, DownloadSvgButton, sanitizeFilenamePart, type AlignmentGridRow } from "./AlignmentGrid";
 import { WorkspaceCompare } from "./WorkspaceCompare";
 import { downloadJson } from "./downloadJson";
+import { useNotifications } from "../NotificationProvider";
+import { MAX_ITEMS, importCompound, importClustersBatch } from "../../features/jobs/api";
 
 type ViewMode = "pairwise" | "msa" | "compare";
+
+// Same default the "Import BGCs" dialog offers -- a sent-back BGC result has no UI of
+// its own to pick a threshold, so it's reparsed with the standard starting point.
+const DEFAULT_PARAS_THRESHOLD = 0.1;
 
 type DialogViewDiscoveryQueryProps = {
   item: DiscoveryQueryItem;
   // The item's own session, or null when viewing an already-self-contained uploaded
   // result file (see the module doc comment above).
   sessionId: string | null;
+  // The live workspace session/setter -- always the *current* session regardless of
+  // where the viewed query came from, since "send back to Uploads" adds to whatever
+  // session is open right now, not necessarily the one the query originally ran in.
+  session: Session;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
   open: boolean;
   onClose: () => void;
 };
@@ -46,9 +57,63 @@ function disabledReason(flagLabel: string): string {
   return `Not computed for this query. Submit a new query with "${flagLabel}" enabled.`;
 }
 
-export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> = ({ item, sessionId, open, onClose }) => {
+export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> = ({
+  item,
+  sessionId,
+  session,
+  setSession,
+  open,
+  onClose,
+}) => {
   const [resultsView, setResultsView] = React.useState<ViewMode>("pairwise");
   const [selectedForMsa, setSelectedForMsa] = React.useState<Set<string>>(new Set());
+  const [sendingEntryIds, setSendingEntryIds] = React.useState<Set<string>>(new Set());
+  const { pushNotification } = useNotifications();
+
+  const setSessionSafe = React.useCallback(
+    (updater: (prev: Session) => Session) => {
+      setSession((prev) => (prev ? updater(prev) : prev));
+    },
+    [setSession]
+  );
+
+  const importDeps = React.useMemo(
+    () => ({ setSession: setSessionSafe, pushNotification, sessionId: session.sessionId }),
+    [setSessionSafe, pushNotification, session.sessionId]
+  );
+
+  const uploadItemCount = React.useMemo(
+    () => session.items.filter((it) => it.kind === "compound" || it.kind === "cluster").length,
+    [session.items]
+  );
+  const uploadSlotsFull = uploadItemCount >= MAX_ITEMS;
+
+  const handleSendToUploads = React.useCallback(
+    async (result: DiscoveryResult) => {
+      if (!result.raw) return;
+
+      setSendingEntryIds((prev) => new Set(prev).add(result.entryId));
+      try {
+        const sent =
+          result.type === "compound"
+            ? await importCompound(importDeps, { name: result.name, smiles: result.raw, matchStereochemistry: false })
+            : (await importClustersBatch(importDeps, [
+                { name: result.name, fileContent: result.raw, parasThreshold: DEFAULT_PARAS_THRESHOLD },
+              ]))[0] ?? null;
+
+        if (sent) {
+          pushNotification(`Sent "${result.name}" to Uploads for reparsing.`, "success");
+        }
+      } finally {
+        setSendingEntryIds((prev) => {
+          const next = new Set(prev);
+          next.delete(result.entryId);
+          return next;
+        });
+      }
+    },
+    [importDeps, pushNotification]
+  );
 
   const resultQuery = useQuery({
     queryKey: ["getDiscoveryQueryResult", sessionId, item.id],
@@ -239,6 +304,9 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                     rank={idx + 1}
                     selectedForMsa={selectedForMsa.has(result.entryId)}
                     onToggleSelectedForMsa={() => toggleSelectedForMsa(result.entryId)}
+                    onSendToUploads={handleSendToUploads}
+                    uploadSlotsFull={uploadSlotsFull}
+                    sendingToUploads={sendingEntryIds.has(result.entryId)}
                   />
                 ))
               ) : resultsView === "msa" ? (
