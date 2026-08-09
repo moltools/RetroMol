@@ -8,7 +8,6 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
 import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import MuiLink from "@mui/material/Link";
