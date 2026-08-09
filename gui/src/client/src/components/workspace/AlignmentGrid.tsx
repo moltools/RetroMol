@@ -230,11 +230,11 @@ export function ResultRow({
           sx={{ fontSize: "0.7rem" }}
         />
 
-        <Typography variant="caption" sx={{ minWidth: 90, textAlign: "right" }}>
-          fp {(result.fingerprintSimilarity * 100).toFixed(1)}%
+        <Typography variant="caption" sx={{ minWidth: 120, textAlign: "right" }}>
+          fingerprint {(result.fingerprintSimilarity * 100).toFixed(1)}%
         </Typography>
 
-        <Typography variant="caption" sx={{ minWidth: 100, textAlign: "right" }}>
+        <Typography variant="caption" sx={{ minWidth: 90, textAlign: "right" }}>
           align {result.normalizedAlignmentScorePct.toFixed(1)}%
         </Typography>
 
