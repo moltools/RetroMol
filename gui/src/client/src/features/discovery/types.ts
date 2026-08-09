@@ -80,6 +80,11 @@ export const DiscoveryResultSchema = z.object({
   // each side's actual structure rather than the coarse per-monomer-token fingerprint
   // fingerprintSimilarity below is based on.
   smiles: z.string().nullable().default(null),
+  // The candidate's own stored raw payload -- SMILES for a compound, GenBank text for
+  // a BGC -- when known. Backs "send back to Uploads": with this in hand, a retrieved
+  // database entry can be resubmitted for parsing under the current rule set. Null for
+  // upload-origin BGC candidates and for any entry that predates `raw` being stored.
+  raw: z.string().nullable().default(null),
   fingerprintSimilarity: z.number(),
   primarySequence: z.array(z.string()),
   inverted: z.boolean(),

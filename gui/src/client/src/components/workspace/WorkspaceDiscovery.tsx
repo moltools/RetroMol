@@ -969,6 +969,8 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
         <DialogViewDiscoveryQuery
           item={activeViewItem}
           sessionId={uploadedViewItem ? null : session.sessionId}
+          session={session}
+          setSession={setSession}
           open={!!activeViewItem}
           onClose={handleCloseViewDialog}
         />

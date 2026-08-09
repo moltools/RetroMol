@@ -664,6 +664,14 @@ def run_discovery_query(
             # real structure-based Tanimoto comparison without a second round trip
             # to look up what SMILES a given entryId corresponds to.
             "smiles": candidate.entry.raw if candidate.entry.type == "compound" else None,
+            # The candidate's own stored raw payload -- SMILES for a compound entry,
+            # GenBank text for a BGC entry (see Entry.raw / the `raw` column in
+            # duckdb.py) -- when known. None for upload-origin BGC candidates (their
+            # own gbk text isn't threaded through _build_bgc_upload_candidate) and for
+            # any database entry that predates `raw` being stored. Lets the frontend
+            # offer "send back to Uploads" so a retrieved entry can be reparsed under
+            # the current rule set without the user having to re-supply it by hand.
+            "raw": candidate.entry.raw,
             "fingerprintSimilarity": candidate.similarity,
             "primarySequence": [_denormalize_for_display(t) for t in oriented_target],
             "inverted": inverted,

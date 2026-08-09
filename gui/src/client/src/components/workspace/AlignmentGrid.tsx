@@ -7,13 +7,16 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
+import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import MuiLink from "@mui/material/Link";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DownloadIcon from "@mui/icons-material/Download";
+import SendIcon from "@mui/icons-material/Send";
 import { useTheme, alpha, type Theme } from "@mui/material/styles";
 import type { DiscoveryResult } from "../../features/discovery/types";
 import { MotifHoverCard } from "../MotifHoverCard";
@@ -217,14 +220,33 @@ export function ResultRow({
   rank,
   selectedForMsa,
   onToggleSelectedForMsa,
+  onSendToUploads,
+  uploadSlotsFull,
+  sendingToUploads,
 }: {
   result: DiscoveryResult;
   rank: number;
   selectedForMsa: boolean;
   onToggleSelectedForMsa: () => void;
+  // Only offered for database-origin results -- an "upload" origin result is already
+  // sitting in the Uploads tab, so sending it back would just duplicate it. Omit
+  // entirely (rather than passing a no-op) when the caller has no session to add to.
+  onSendToUploads?: (result: DiscoveryResult) => void;
+  // Whether the Uploads tab is already at MAX_ITEMS -- disables the button with an
+  // explanatory tooltip instead of letting the user find out only after clicking.
+  uploadSlotsFull?: boolean;
+  sendingToUploads?: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(false);
   const theme = useTheme();
+
+  const canOfferSend = result.origin === "database" && !!onSendToUploads;
+  const hasRaw = !!result.raw;
+  const sendDisabledReason = !hasRaw
+    ? `No original ${result.type === "compound" ? "SMILES" : "GenBank"} data was stored for this entry, so it can't be reparsed.`
+    : uploadSlotsFull
+    ? "Uploads tab is already at its maximum of 50 items."
+    : null;
 
   return (
     <Box sx={{ borderBottom: "1px solid", borderColor: "divider", py: 1 }}>
@@ -274,6 +296,20 @@ export function ResultRow({
         <Typography variant="caption" sx={{ minWidth: 90, textAlign: "right" }}>
           align {result.normalizedAlignmentScorePct.toFixed(1)}%
         </Typography>
+
+        {canOfferSend && (
+          <Tooltip title={sendDisabledReason ?? "Send to Uploads to reparse with the current rule set"} arrow>
+            <span>
+              <MinimalIconButton
+                size="small"
+                disabled={!!sendDisabledReason || sendingToUploads}
+                onClick={() => onSendToUploads!(result)}
+              >
+                {sendingToUploads ? <CircularProgress size={16} /> : <SendIcon fontSize="small" />}
+              </MinimalIconButton>
+            </span>
+          </Tooltip>
+        )}
 
         <MinimalIconButton size="small" onClick={() => setExpanded((e) => !e)}>
           {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
