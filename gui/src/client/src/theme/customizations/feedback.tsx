@@ -31,7 +31,7 @@ export const feedbackCustomizations: Components<Theme> = {
           // app's near-black default paper background -- lighten just the dialog
           // surface in dark mode so those low-contrast details stay legible.
           ...theme.applyStyles("dark", {
-            backgroundColor: "hsl(220, 20%, 13%)",
+            backgroundColor: "hsl(220, 1%, 1%)",
           }),
         },
       }),

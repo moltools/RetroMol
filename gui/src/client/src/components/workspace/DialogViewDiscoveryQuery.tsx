@@ -128,8 +128,8 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
       actions={[
         {
           key: "download",
-          label: "Download",
-          variant: "outlined",
+          label: "Download result JSON",
+          variant: "contained",
           color: "primary",
           disabled: item.status !== "done" || !payload,
           startIcon: <DownloadIcon fontSize="small" />,
@@ -236,10 +236,10 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                   </Typography>
                 ) : (
                   <Box sx={{ py: 1 }}>
-                    <AlignmentGrid rows={msaRows} />
-                    <Box sx={{ mt: 1 }}>
+                    <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end" }}>
                       <DownloadSvgButton rows={msaRows} filename="msa_alignment.svg" />
                     </Box>
+                    <AlignmentGrid rows={msaRows} />
                   </Box>
                 )
               ) : selectedResults.length === 0 ? (
