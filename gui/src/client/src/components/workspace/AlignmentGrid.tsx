@@ -8,7 +8,6 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
 import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import MuiLink from "@mui/material/Link";
@@ -17,9 +16,11 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useTheme, alpha, type Theme } from "@mui/material/styles";
 import type { DiscoveryResult } from "../../features/discovery/types";
+import { MotifHoverCard } from "../MotifHoverCard";
 import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { buildAlignmentSvg, downloadSvg, type AlignmentSvgRow } from "./alignmentSvgExport";
+import { MinimalIconButton} from "../MinimalIconButton";
 
 // Shared vertical sizing (padding, border width, font size, line height) so every
 // row -- label, sequence cells, and score -- resolves to the exact same height.
@@ -52,15 +53,50 @@ export function similarityColor(theme: Theme, similarity: number | null | undefi
 }
 
 function alignedCellSx(name: string | null, columnWidthCh: number, matchColor: string | undefined) {
+  const isGap = name === null;
   return {
     ...ROW_CELL_BASE_SX,
-    borderColor: name === null ? "divider" : "primary.main",
-    bgcolor: name === null ? "transparent" : matchColor ?? "action.hover",
+    borderColor: isGap ? "divider" : "primary.main",
+    // A gap cell has no fill of its own, so the row's connecting line (see
+    // ROW_LINE_SX) shows straight through it -- that's the point, it's what
+    // marks the cell as empty. Every occupied cell, matched or not, gets an
+    // opaque fill instead: layering the (semi-transparent) match tint as a
+    // backgroundImage over an opaque backgroundColor composites down to a
+    // fully solid color, so the line can never bleed through legible content
+    // the way a plain alpha-blended fill would.
+    bgcolor: isGap ? "transparent" : "background.paper",
+    backgroundImage: !isGap && matchColor ? `linear-gradient(${matchColor}, ${matchColor})` : "none",
     width: `${columnWidthCh}ch`,
     textAlign: "center" as const,
     flexShrink: 0,
+    // Sits above the row's connecting line (see ROW_LINE_SX).
+    position: "relative" as const,
+    zIndex: 1,
   };
 }
+
+// The "string" that runs behind one row of aligned units -- the same trick
+// PrimarySequenceChips uses for a sequence of chips -- so the eye can follow a
+// row across its gaps without losing the thread. Deliberately NOT extended to
+// the label/score columns: those are plain, variable-width text (not a fixed
+// row of bordered chips), so hiding the line behind them would need an opaque
+// backdrop wide enough to cover arbitrarily long/short labels, which either
+// shows as a mismatched-looking box around the text or (worse, if given its
+// own wrapper element) risks throwing off the shared row height those columns
+// depend on to stay aligned with the sequence column beside them.
+const ROW_LINE_SX = {
+  position: "relative" as const,
+  "&::before": {
+    content: '""',
+    position: "absolute" as const,
+    left: 0,
+    right: 0,
+    top: "50%",
+    height: "2px",
+    bgcolor: "divider",
+    zIndex: 0,
+  },
+};
 
 export type AlignmentGridRow = {
   id: string;
@@ -123,14 +159,21 @@ export function AlignmentGrid({ rows }: { rows: AlignmentGridRow[] }) {
       <Box sx={{ minWidth: 0, flex: "1 1 0%", ...horizontalScrollSx }}>
         <Stack spacing={0.5}>
           {rows.map((row) => (
-            <Stack key={row.id} direction="row" spacing={0.5} sx={{ flexWrap: "nowrap" }}>
+            <Stack key={row.id} direction="row" spacing={0.5} sx={{ flexWrap: "nowrap", ...ROW_LINE_SX }}>
               {columnWidths.map((width, idx) => {
                 const name = row.sequence[idx] ?? null;
                 const matchColor = similarityColor(theme, row.matchStrengths?.[idx]);
-                return (
-                  <Box key={idx} sx={alignedCellSx(name, width, matchColor)}>
+                const cell = (
+                  <Box sx={alignedCellSx(name, width, matchColor)}>
                     {name === null ? "–" : <MotifName name={name} />}
                   </Box>
+                );
+                return name === null ? (
+                  <React.Fragment key={idx}>{cell}</React.Fragment>
+                ) : (
+                  <MotifHoverCard key={idx} name={name}>
+                    {cell}
+                  </MotifHoverCard>
                 );
               })}
             </Stack>
@@ -141,11 +184,13 @@ export function AlignmentGrid({ rows }: { rows: AlignmentGridRow[] }) {
         <Stack spacing={0.5} sx={{ flexShrink: 0 }}>
           {rows.map((row) => (
             <Box key={row.id} sx={{ ...ROW_CELL_BASE_SX, minWidth: 56, textAlign: "right" }}>
-              {/* a non-breaking space (not "") keeps a text node present so this box's
-                  line-height strut matches its siblings' -- an empty string renders no
-                  inline content, so the browser omits the strut and the box collapses
-                  shorter, throwing off every row below it in this column. */}
-              {row.score ?? " "}
+              {/* A non-breaking space -- written as an escape, not a literal character, since a
+                  literal nbsp glyph in source is invisible and indistinguishable from a plain
+                  space in an editor, exactly how this regressed silently before: a plain " "
+                  collapses under normal whitespace rules (it has nothing non-whitespace to
+                  anchor to), so the box loses its line-height strut and shrinks, throwing every
+                  row below it in this column out of alignment with the label/sequence columns. */}
+              {row.score ?? "\u00A0"}
             </Box>
           ))}
         </Stack>
@@ -222,17 +267,17 @@ export function ResultRow({
           sx={{ fontSize: "0.7rem" }}
         />
 
-        <Typography variant="caption" sx={{ minWidth: 90, textAlign: "right" }}>
-          fp {(result.fingerprintSimilarity * 100).toFixed(1)}%
+        <Typography variant="caption" sx={{ minWidth: 120, textAlign: "right" }}>
+          fingerprint {(result.fingerprintSimilarity * 100).toFixed(1)}%
         </Typography>
 
-        <Typography variant="caption" sx={{ minWidth: 100, textAlign: "right" }}>
+        <Typography variant="caption" sx={{ minWidth: 90, textAlign: "right" }}>
           align {result.normalizedAlignmentScorePct.toFixed(1)}%
         </Typography>
 
-        <IconButton size="small" onClick={() => setExpanded((e) => !e)}>
+        <MinimalIconButton size="small" onClick={() => setExpanded((e) => !e)}>
           {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-        </IconButton>
+        </MinimalIconButton>
       </Stack>
 
       <Collapse in={expanded} unmountOnExit>

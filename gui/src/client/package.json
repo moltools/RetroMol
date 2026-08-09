@@ -1,6 +1,6 @@
 {
   "name": "retromol-gui",
-  "version": "0.1.0",
+  "version": "1.0.0-dev",
   "private": true,
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -19,6 +19,7 @@
     "dayjs": "^1.11.19",
     "dompurify": "^3.2.4",
     "framer-motion": "^12.6.3",
+    "html-to-image": "^1.11.13",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "^7.9.5",

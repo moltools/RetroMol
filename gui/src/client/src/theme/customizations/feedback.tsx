@@ -26,6 +26,13 @@ export const feedbackCustomizations: Components<Theme> = {
           borderRadius: "10px",
           border: "1px solid",
           borderColor: (theme.vars || theme).palette.divider,
+          // Dialog content leans on subtle divider-colored lines/borders (e.g. the
+          // primary-sequence connecting line) that barely register against the
+          // app's near-black default paper background -- lighten just the dialog
+          // surface in dark mode so those low-contrast details stay legible.
+          ...theme.applyStyles("dark", {
+            backgroundColor: "hsl(220, 1%, 1%)",
+          }),
         },
       }),
     },

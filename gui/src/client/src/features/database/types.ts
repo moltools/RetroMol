@@ -12,11 +12,7 @@ export const DatabaseStatsRespSchema = z.object({
   sequenceLengthMin: z.number().int().nonnegative(),
   sequenceLengthMax: z.number().int().nonnegative(),
   sequenceLengthAvg: z.number().nonnegative(),
-  sequenceLengthBuckets: z.array(CountSchema),
-  topBlocks: z.array(CountSchema),
   uniqueBlockCount: z.number().int().nonnegative(),
-  fullyResolvedCount: z.number().int().nonnegative(),
-  hasUnknownBlockCount: z.number().int().nonnegative(),
   withSourceUrlCount: z.number().int().nonnegative(),
   withoutSourceUrlCount: z.number().int().nonnegative(),
 });

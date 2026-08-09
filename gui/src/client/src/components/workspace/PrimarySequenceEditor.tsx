@@ -2,8 +2,6 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import IconButton from "@mui/material/IconButton";
-import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -11,9 +9,11 @@ import { Session, SessionItem } from "../../features/session/types";
 import type { PrimarySequenceItem, Reconstruction } from "../../features/reconstruction/types";
 import { saveEditedPrimarySequences, revertEditedPrimarySequence } from "../../features/reconstruction/api";
 import { useNotifications } from "../NotificationProvider";
+import { MotifHoverCard } from "../MotifHoverCard";
 import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { SequenceEditor, type SequenceBlock } from "./SequenceEditor";
+import { MinimalIconButton } from "../MinimalIconButton";
 
 export function blocksFromSequence(sequence: PrimarySequenceItem[]): SequenceBlock[] {
   return sequence.map(([name, tags]) => ({ id: crypto.randomUUID(), name, tags }));
@@ -147,44 +147,100 @@ function PrimarySequenceChips({
   sequence,
   selectedTags,
   onToggleMotif,
+  ordered = true,
 }: {
   sequence: PrimarySequenceItem[];
   selectedTags: number[];
-  onToggleMotif: (tags: number[]) => void;
+  // Omit this to render a plain, non-interactive chip row -- e.g. the inline
+  // preview in the Upload list, which has no molecule view alongside it for a
+  // highlight to make sense against. Only the "View item" dialog wires this up.
+  onToggleMotif?: (tags: number[]) => void;
+  // False renders this as an unordered bag of motifs instead of a sequence: no
+  // connecting line, no fixed reading order (wraps instead of scrolling as one
+  // row) -- see Reconstruction.ordered. Must stay visually distinct from the
+  // ordered case so it's never mistaken for a real primary sequence.
+  ordered?: boolean;
 }) {
-  return (
-    <Box sx={{ display: "flex", flexWrap: "nowrap", gap: 1, alignItems: "center", ...horizontalScrollSx }}>
-      {sequence.map(([name, tags], idx) => {
-        const isSelected = tags.length > 0 && tags.every((tag) => selectedTags.includes(tag));
+  const selectable = !!onToggleMotif;
 
-        return (
-          <Box
-            key={`${name}-${idx}`}
-            onClick={() => onToggleMotif(tags)}
-            sx={{
-              px: 1.25,
-              py: 0.75,
-              borderRadius: 1,
-              border: "1px solid",
-              borderColor: isSelected ? "primary.main" : "divider",
-              bgcolor: isSelected ? "primary.main" : "background.paper",
-              color: isSelected ? "primary.contrastText" : "text.primary",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              cursor: "pointer",
-              userSelect: "none",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-              "&:hover": {
-                borderColor: "primary.main",
-                bgcolor: isSelected ? "primary.dark" : "action.hover",
-              },
-            }}
-          >
-            <MotifName name={name} />
-          </Box>
-        );
-      })}
+  return (
+    <Box sx={ordered ? { ...horizontalScrollSx } : undefined}>
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: ordered ? "nowrap" : "wrap",
+          gap: 0.5,
+          alignItems: "center",
+          position: "relative",
+          width: ordered ? "max-content" : "100%",
+
+          // The connecting "string" -- only for an actual sequence; an unordered
+          // bag of motifs has no line, that's the whole point.
+          ...(ordered && {
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: "50%",
+              height: "2px",
+              backgroundColor: "divider",
+              zIndex: 0,
+            },
+          }),
+        }}
+      >
+        {sequence.map(([name, tags], idx) => {
+          const linked = tags.length > 0;
+          const isSelected = selectable && linked && tags.every((tag) => selectedTags.includes(tag));
+
+          const chip = (
+            <Box
+              key={`${name}-${idx}`}
+              onClick={selectable ? () => onToggleMotif!(tags) : undefined}
+              sx={{
+                px: 1.25,
+                py: 0.75,
+                borderRadius: 1,
+                border: "1px solid",
+                borderStyle: linked ? "solid" : "dashed",
+                borderColor: isSelected ? "primary.main" : "divider",
+                bgcolor: isSelected ? "primary.main" : "background.paper",
+                color: isSelected ? "primary.contrastText" : "text.primary",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                cursor: selectable ? "pointer" : "default",
+                userSelect: "none",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                position: "relative",
+                zIndex: 1,
+                ...(selectable && {
+                  "&:hover": {
+                    borderColor: "primary.main",
+                  },
+                }),
+              }}
+            >
+              <MotifName name={name} />
+            </Box>
+          );
+
+          // Same rule as the drag-and-drop editor's blocks: only claim it's
+          // clickable when it actually is (see SortableBlock in SequenceEditor).
+          const hint = !linked
+            ? "Not linked to the original structure (added or edited by hand)"
+            : selectable
+            ? "Click to highlight the source atoms"
+            : undefined;
+
+          return (
+            <MotifHoverCard key={`${name}-${idx}-hover`} name={name} hint={hint}>
+              {chip}
+            </MotifHoverCard>
+          );
+        })}
+      </Box>
     </Box>
   );
 }
@@ -197,76 +253,135 @@ export function PrimarySequenceRows({
   state,
   selectedTags,
   onToggleMotif,
-  labelWidth = 130,
+  labelWidth,
 }: {
   item: SessionItem;
   data: Reconstruction[];
   state: PrimarySequenceEditorState;
   selectedTags: number[];
-  onToggleMotif: (tags: number[]) => void;
+  // Omit to disable click-to-highlight entirely (see PrimarySequenceChips) --
+  // used for both the read-only chip row and the drag-and-drop editor's blocks.
+  onToggleMotif?: (tags: number[]) => void;
   labelWidth?: number;
 }) {
   const { editing, drafts, setDrafts, revertingIdx, isRowDirty, handleRevertRow } = state;
 
+  const labelColumn = labelWidth ? `${labelWidth}px` : "max-content";
+
   return (
     <>
       {data.map((reconstruction, idx) => {
-        const override = item.kind === "compound" ? item.editedPrimarySequences?.[String(idx)] : undefined;
-        const draftBlocks = drafts[idx] ?? blocksFromSequence(override ?? reconstruction.primary_sequence);
+        const override =
+          item.kind === "compound"
+            ? item.editedPrimarySequences?.[String(idx)]
+            : undefined;
+
+        const draftBlocks =
+          drafts[idx] ??
+          blocksFromSequence(override ?? reconstruction.primary_sequence);
+
         const dirty = isRowDirty(idx, reconstruction.primary_sequence);
+        const ordered = reconstruction.ordered !== false;
 
         return (
           <Box
             key={`primary-sequence-row-${idx}`}
-            sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 1, width: "100%", minWidth: 0 }}
+            sx={{
+              display: "grid",
+              gridTemplateColumns: `${labelColumn} minmax(0, 1fr)`,
+              alignItems: "center",
+              columnGap: 1,
+              width: "100%",
+              minWidth: 0,
+            }}
           >
-            <Stack direction="column" spacing={0.25} sx={{ minWidth: labelWidth, flexShrink: 0 }}>
-              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                {`primary sequence ${idx + 1}`}
+            {/* Label column */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.75,
+                minWidth: 0,
+                overflow: "hidden",
+                transform: ordered ? "translateY(-5px)" : "none",
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  minWidth: 0,
+                }}
+              >
+                {ordered ? `primary sequence ${idx + 1}` : "parsed motifs (unordered)"}
               </Typography>
+
               {override && !editing && (
                 <Chip
                   label="Edited"
                   size="small"
                   color="info"
                   variant="outlined"
-                  sx={{ height: 18, fontSize: "0.65rem", width: "fit-content" }}
+                  sx={{
+                    height: 18,
+                    fontSize: "0.65rem",
+                    flexShrink: 0,
+                  }}
                 />
               )}
-            </Stack>
+            </Box>
 
-            {editing ? (
-              <>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <SequenceEditor
-                    blocks={draftBlocks}
-                    onChange={(blocks) => setDrafts((prev) => ({ ...prev, [idx]: blocks }))}
-                    showProvenance
-                    selectedTags={selectedTags}
-                    onBlockClick={onToggleMotif}
-                  />
+            {/* Sequence column */}
+            <Box sx={{ minWidth: 0 }}>
+              {editing && ordered ? (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <SequenceEditor
+                      blocks={draftBlocks}
+                      onChange={(blocks) =>
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [idx]: blocks,
+                        }))
+                      }
+                      showProvenance
+                      selectedTags={selectedTags}
+                      onBlockClick={onToggleMotif}
+                    />
+                  </Box>
+
+                  <Tooltip title="Revert to the algorithm-parsed sequence" arrow>
+                    <span>
+                      <MinimalIconButton
+                        size="small"
+                        disabled={!override && !dirty}
+                        onClick={() =>
+                          handleRevertRow(idx, reconstruction.primary_sequence)
+                        }
+                        sx={{ transform: "translateY(-6px)"}}
+                      >
+                        {revertingIdx === idx ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          <RestartAltIcon fontSize="small" />
+                        )}
+                      </MinimalIconButton>
+                    </span>
+                  </Tooltip>
                 </Box>
-                <Tooltip title="Revert to the algorithm-parsed sequence" arrow>
-                  <span>
-                    <IconButton
-                      size="small"
-                      disabled={!override && !dirty}
-                      onClick={() => handleRevertRow(idx, reconstruction.primary_sequence)}
-                    >
-                      {revertingIdx === idx ? <CircularProgress size={16} /> : <RestartAltIcon fontSize="small" />}
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </>
-            ) : (
-              <Box sx={{ flex: 1, minWidth: 0 }}>
+              ) : (
                 <PrimarySequenceChips
                   sequence={override ?? reconstruction.primary_sequence}
                   selectedTags={selectedTags}
                   onToggleMotif={onToggleMotif}
+                  ordered={ordered}
                 />
-              </Box>
-            )}
+              )}
+            </Box>
           </Box>
         );
       })}

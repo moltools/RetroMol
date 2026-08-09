@@ -38,6 +38,7 @@ from routes.rate_limit import limiter
 from routes.session_store import load_session_with_items, save_item, update_item
 
 blp_discovery_monomer_names = Blueprint("discovery_monomer_names", __name__)
+blp_motif_structures = Blueprint("motif_structures", __name__)
 blp_discovery_query = Blueprint("discovery_query", __name__)
 blp_discovery_msa = Blueprint("discovery_msa", __name__)
 blp_discovery_compare_tanimoto = Blueprint("discovery_compare_tanimoto", __name__)
@@ -491,6 +492,31 @@ def discovery_monomer_names() -> tuple[Response, int]:
 
     ordered = (exact + prefix + contains)[:limit]
     return jsonify({"rows": [{"name": n} for n in ordered], "rowCount": len(ordered)}), 200
+
+
+@blp_motif_structures.get("/api/motifStructures")
+def motif_structures() -> tuple[Response, int]:
+    """
+    Every matching rule's depiction SMILES, keyed by rule name.
+
+    Powers the motif hover preview shown in the primary sequence editor, pairwise
+    alignment, and MSA views: given a block/token name, the frontend draws this
+    SMILES client-side (via smiles-drawer) instead of round-tripping to the server
+    per hover. Prefers a rule's `display_smiles` (a friendlier depiction, e.g.
+    without a reactive leaving-group placeholder) over its matching `smiles` when
+    one is set. Names with no matching rule (unidentified "X" blocks, hand-edited
+    names, PK_GROUP_TOKENS) are simply absent from the map.
+
+    The whole vocabulary is returned in one shot rather than per-name, since it's
+    small (on the order of a few hundred names) and effectively static for the
+    life of the process -- same rationale as rule_names_sorted powering the
+    autocomplete above.
+
+    :return: a tuple containing a dictionary with the name -> SMILES map and an HTTP status code
+    """
+    ctx = get_discovery_context()
+    structures = {name: (rule.display_smiles or rule.smiles) for name, rule in ctx.name_to_rule.items()}
+    return jsonify({"structures": structures}), 200
 
 
 def run_discovery_query(
