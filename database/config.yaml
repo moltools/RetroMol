@@ -1,0 +1,30 @@
+sources:
+  # Direct download links. MIBiG ships as tar.gz archives (one file per BGC inside);
+  # NPAtlas ships as a single SDF (optionally gzipped) -- download_sources.py handles
+  # extraction based on the URL's extension either way.
+  npatlas_sdf_url: ""
+  mibig_json_url: ""
+  mibig_gbk_url: ""
+
+paths:
+  # Final DuckDB database produced by the pipeline.
+  database: "database/output/retromol.duckdb"
+
+  # Scratch space for downloads and intermediate per-step results.
+  workdir: "database/work"
+
+  # null -> ParasModel downloads/caches its own default model.
+  paras_model: null
+
+  # null -> RuleSet.load_default()'s bundled reaction/matching rules.
+  reaction_rules: null
+  matching_rules: null
+
+paras:
+  threshold: 0.1
+  keep_top: 3
+
+compute:
+  # Both are embarrassingly parallel over independent compounds/files.
+  parse_compounds_workers: 4
+  parse_gbks_workers: 2

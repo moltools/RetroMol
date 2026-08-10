@@ -1,0 +1,240 @@
+"""RetroMol database-construction pipeline.
+
+Run from the repo root with:
+
+    snakemake -s database/Snakemake --configfile database/config.yaml --cores 4
+
+Fill in database/config.yaml's `sources` URLs before running. The pipeline:
+
+  1. create_db            - empty DuckDB database
+  2. download_*           - fetch NPAtlas SDF + MIBiG JSON/GBK archives
+  3. parse_npatlas         } run RetroMol on NPAtlas compounds
+  4. load_npatlas_compounds} turn results into "compound" db entries
+  5. extract_mibig_compounds + parse_mibig_compounds } run RetroMol on MIBiG's compounds
+  6. load_mibig_compounds  } turn results into "compound" db entries (linked to MIBiG's URL)
+  7. parse_mibig_gbks      - antiSMASH GBKs -> linear module readouts (PARAS-annotated)
+  8. load_mibig_bgcs       - turn readouts into "bgc" db entries
+
+Steps 4, 6, and 8 all mutate the same DuckDB file, so they're chained through marker
+files (rather than each declaring the database itself as `output`) to force
+Snakemake to serialize them -- DuckDB doesn't support concurrent writers.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(workflow.basedir) / "scripts"))
+
+WORKDIR = Path(config["paths"]["workdir"])
+DB_PATH = Path(config["paths"]["database"])
+MARKERS = WORKDIR / "markers"
+
+RXN_RULES = config["paths"].get("reaction_rules")
+MXN_RULES = config["paths"].get("matching_rules")
+PARAS_MODEL_PATH = config["paths"].get("paras_model")
+
+PARAS_THRESHOLD = config["paras"]["threshold"]
+PARAS_KEEP_TOP = config["paras"]["keep_top"]
+
+PARSE_COMPOUNDS_WORKERS = config["compute"]["parse_compounds_workers"]
+PARSE_GBKS_WORKERS = config["compute"]["parse_gbks_workers"]
+
+
+rule all:
+    input:
+        MARKERS / "bgcs_loaded.done"
+
+
+# ---------------------------------------------------------------------------
+# Step 1: empty database
+# ---------------------------------------------------------------------------
+
+rule create_db:
+    output:
+        marker=touch(MARKERS / "db_created.done")
+    run:
+        import create_db
+        create_db.run(db_path=DB_PATH, overwrite=True)
+
+
+# ---------------------------------------------------------------------------
+# Step 2: downloads
+# ---------------------------------------------------------------------------
+
+rule download_npatlas:
+    output:
+        raw=WORKDIR / "npatlas" / "download.raw",
+        extract_dir=directory(WORKDIR / "npatlas" / "extracted")
+    params:
+        url=config["sources"]["npatlas_sdf_url"]
+    run:
+        import download_sources
+        download_sources.run(url=params.url, download_path=output.raw, extract_dir=output.extract_dir)
+
+
+rule resolve_npatlas_sdf:
+    input:
+        extract_dir=WORKDIR / "npatlas" / "extracted"
+    output:
+        sdf=WORKDIR / "npatlas" / "npatlas.sdf"
+    run:
+        import shutil
+        candidates = sorted(Path(input.extract_dir).rglob("*.sdf"))
+        if not candidates:
+            raise FileNotFoundError(f"no .sdf file found under {input.extract_dir}")
+        shutil.copy2(candidates[0], output.sdf)
+
+
+rule download_mibig_json:
+    output:
+        raw=WORKDIR / "mibig_json" / "download.raw",
+        extract_dir=directory(WORKDIR / "mibig_json" / "extracted")
+    params:
+        url=config["sources"]["mibig_json_url"]
+    run:
+        import download_sources
+        download_sources.run(url=params.url, download_path=output.raw, extract_dir=output.extract_dir)
+
+
+rule download_mibig_gbk:
+    output:
+        raw=WORKDIR / "mibig_gbk" / "download.raw",
+        extract_dir=directory(WORKDIR / "mibig_gbk" / "extracted")
+    params:
+        url=config["sources"]["mibig_gbk_url"]
+    run:
+        import download_sources
+        download_sources.run(url=params.url, download_path=output.raw, extract_dir=output.extract_dir)
+
+
+# ---------------------------------------------------------------------------
+# Steps 3-4: NPAtlas compounds
+# ---------------------------------------------------------------------------
+
+rule parse_npatlas:
+    input:
+        sdf=WORKDIR / "npatlas" / "npatlas.sdf"
+    output:
+        results=WORKDIR / "npatlas" / "results.jsonl"
+    threads: PARSE_COMPOUNDS_WORKERS
+    run:
+        import parse_compounds
+        parse_compounds.run(
+            input_path=input.sdf,
+            input_format="sdf",
+            output_path=output.results,
+            reaction_rules_path=RXN_RULES,
+            matching_rules_path=MXN_RULES,
+            workers=threads,
+        )
+
+
+rule load_npatlas_compounds:
+    input:
+        results=WORKDIR / "npatlas" / "results.jsonl",
+        db_created=MARKERS / "db_created.done"
+    output:
+        marker=touch(MARKERS / "npatlas_loaded.done")
+    run:
+        import load_compounds
+        load_compounds.run(
+            results_path=input.results,
+            db_path=DB_PATH,
+            source="npatlas",
+            reaction_rules_path=RXN_RULES,
+            matching_rules_path=MXN_RULES,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Steps 5-6: MIBiG compounds
+# ---------------------------------------------------------------------------
+
+rule extract_mibig_compounds:
+    input:
+        extract_dir=WORKDIR / "mibig_json" / "extracted"
+    output:
+        compounds=WORKDIR / "mibig_json" / "compounds.jsonl"
+    run:
+        import extract_mibig_compounds
+        extract_mibig_compounds.run(mibig_json_dir=input.extract_dir, output_path=output.compounds)
+
+
+rule parse_mibig_compounds:
+    input:
+        compounds=WORKDIR / "mibig_json" / "compounds.jsonl"
+    output:
+        results=WORKDIR / "mibig_json" / "results.jsonl"
+    threads: PARSE_COMPOUNDS_WORKERS
+    run:
+        import parse_compounds
+        parse_compounds.run(
+            input_path=input.compounds,
+            input_format="jsonl",
+            output_path=output.results,
+            reaction_rules_path=RXN_RULES,
+            matching_rules_path=MXN_RULES,
+            workers=threads,
+        )
+
+
+rule load_mibig_compounds:
+    input:
+        results=WORKDIR / "mibig_json" / "results.jsonl",
+        # Depends on the GBK-derived version map, not just the npatlas-load marker,
+        # since MIBiG URLs need an accession's version (only present in the GBKs'
+        # ACCESSION/VERSION line, see common.split_accession_version).
+        versions=WORKDIR / "mibig_gbk" / "versions.json",
+        prev=MARKERS / "npatlas_loaded.done"
+    output:
+        marker=touch(MARKERS / "mibig_compounds_loaded.done")
+    run:
+        import load_compounds
+        load_compounds.run(
+            results_path=input.results,
+            db_path=DB_PATH,
+            source="mibig",
+            reaction_rules_path=RXN_RULES,
+            matching_rules_path=MXN_RULES,
+            mibig_versions_path=input.versions,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Steps 7-8: MIBiG BGCs
+# ---------------------------------------------------------------------------
+
+rule parse_mibig_gbks:
+    input:
+        gbk_dir=WORKDIR / "mibig_gbk" / "extracted"
+    output:
+        readouts=WORKDIR / "mibig_gbk" / "readouts.jsonl",
+        versions=WORKDIR / "mibig_gbk" / "versions.json"
+    threads: PARSE_GBKS_WORKERS
+    run:
+        import parse_gbks
+        parse_gbks.run(
+            gbk_dir=input.gbk_dir,
+            readouts_output_path=output.readouts,
+            versions_output_path=output.versions,
+            paras_threshold=PARAS_THRESHOLD,
+            paras_keep_top=PARAS_KEEP_TOP,
+            paras_model_path=PARAS_MODEL_PATH,
+            workers=threads,
+        )
+
+
+rule load_mibig_bgcs:
+    input:
+        readouts=WORKDIR / "mibig_gbk" / "readouts.jsonl",
+        prev=MARKERS / "mibig_compounds_loaded.done"
+    output:
+        marker=touch(MARKERS / "bgcs_loaded.done")
+    run:
+        import load_bgcs
+        load_bgcs.run(
+            readouts_path=input.readouts,
+            db_path=DB_PATH,
+            reaction_rules_path=RXN_RULES,
+            matching_rules_path=MXN_RULES,
+        )
