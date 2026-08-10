@@ -101,6 +101,7 @@ function MatchingRuleRow({ rule }: { rule: MatchingRule }) {
               identifier={`matching-rule-${rule.id}`}
               smiles={rule.displaySmiles || rule.smiles}
               size={STRUCTURE_SIZE}
+              showIsotopes
             />
             <DrawingAttribution library="smiles-drawer" />
           </Box>

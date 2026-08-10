@@ -22,6 +22,7 @@ from retromol.chem.mol import (
     reassign_stereochemistry,
 )
 from retromol.chem.reaction import smarts_to_reaction, reactive_template_atoms
+from retromol.chem.stereo import BondStereoRecord, restore_double_bond_stereo
 from retromol.chem.tagging import get_tags_mol
 from retromol.chem.masking import is_masked_preserved
 
@@ -79,14 +80,22 @@ class ReactionRule:
         )
         return reaction_rule
     
-    def apply(self, reactant: Mol, mask_tags: set[int] | None = None) -> list[list[Mol]]:
+    def apply(
+        self,
+        reactant: Mol,
+        mask_tags: set[int] | None = None,
+        stereo_registry: dict[frozenset[int], BondStereoRecord] | None = None,
+    ) -> list[list[Mol]]:
         """
         Apply the reaction to the given reactant molecule, optionally enforcing a mask on atom tags.
 
         :param reactant: The reactant molecule.
         :param mask_tags: Set of atom tags (isotope-based tags) that are allowed to change.
+        :param stereo_registry: Registry of double bond stereo recorded from the original
+            input molecule (see `capture_double_bond_stereo`), used to restore E/Z stereo
+            on products that lost it during this reaction. Skipped when None/empty.
         :return: List of unique product tuples (each tuple as a list[Mol]).
-        """ 
+        """
         log.debug(f"Applying reaction rule '{self.name}'")
 
         results = self.rxn.RunReactants([reactant])
@@ -119,6 +128,11 @@ class ReactionRule:
 
                 # Reassign stereo on the sanitized product
                 prod = reassign_stereochemistry(prod)
+
+                # Restore E/Z stereo the reaction couldn't reconstruct itself, where the
+                # original input molecule had it defined for this same bond
+                if stereo_registry:
+                    prod = restore_double_bond_stereo(prod, stereo_registry)
 
                 products.append(prod)
                 atom_tag_sets.append(get_tags_mol(prod))
@@ -223,6 +237,7 @@ def apply_uncontested(
     parent: Mol,
     uncontested: list[tuple[ReactionRule, set[int]]],
     original_taken_tags: set[int],
+    stereo_registry: dict[frozenset[int], BondStereoRecord] | None = None,
 ) -> tuple[list[Mol], list[tuple[ReactionRule, set[int]]], set[tuple[int, frozenset[int]]]]:
     """
     Apply uncontested reactions in bulk.
@@ -230,6 +245,8 @@ def apply_uncontested(
     :param parent: RDKit molecule.
     :param uncontested: List of uncontested reactions.
     :param original_taken_tags: List of atom tags from original reactant.
+    :param stereo_registry: Registry of double bond stereo recorded from the original
+        input molecule, forwarded to `ReactionRule.apply` for stereo restoration.
     :return: List of true products, a list of applied ReactionRules with their masks, and a set of failed combinations.
     """
     applied_reactions: list[tuple[ReactionRule, set[int]]] = []
@@ -294,7 +311,7 @@ def apply_uncontested(
                 temp_taken_tags_uncontested.add(tag)
 
         unmasked_parent = Mol(parent)  # keep original parent for later
-        results = rl.apply(parent, msk)  # apply reaction rule
+        results = rl.apply(parent, msk, stereo_registry)  # apply reaction rule
 
         try:
             if len(results) == 0:

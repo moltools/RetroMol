@@ -1,14 +1,14 @@
 import React from "react";
 import Box from "@mui/material/Box";
 
-// Renders a monomer name like "A2^R", superscripting the trailing stereo marker.
+// Renders a monomer name like "A2^R" or "C^E2", superscripting the trailing stereo marker.
 export function MotifName({ name }: { name: string }) {
-  const parts = name.split(/(\^[SR])/g);
+  const parts = name.split(/(\^[SREZ])/g);
 
   return (
     <>
       {parts.map((part, i) => {
-        if (part === "^S" || part === "^R") {
+        if (part === "^S" || part === "^R" || part === "^E" || part === "^Z") {
           return (
             <Box
               key={i}
