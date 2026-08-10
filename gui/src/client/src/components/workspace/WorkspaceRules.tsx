@@ -199,7 +199,6 @@ function ReactionRuleRow({ rule }: { rule: ReactionRule }) {
             <Box sx={{ ...horizontalScrollSx, pb: 1 }}>
               <ReactionScheme id={rule.id} smarts={rule.smarts} />
             </Box>
-            <DrawingAttribution library="rdkit" />
           </Box>
 
           <PropsList props={rule.props} />

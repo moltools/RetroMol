@@ -16,6 +16,7 @@ import DOMPurify from "dompurify";
 import { useColorScheme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
 import { fetchReactionSchemeSvg } from "../../features/rules/api";
+import { DrawingAttribution } from "../DrawingAttribution";
 
 export function ReactionScheme({ id, smarts }: { id: string; smarts: string }) {
   const { mode, systemMode } = useColorScheme();
@@ -31,7 +32,7 @@ export function ReactionScheme({ id, smarts }: { id: string; smarts: string }) {
   // Server-rendered SVG markup gets injected raw via dangerouslySetInnerHTML, so it
   // must be sanitized first -- same rationale/profile as SvgViewer.
   const sanitizedSvg = React.useMemo(
-    () => (svgQuery.data ? DOMPurify.sanitize(svgQuery.data, { USE_PROFILES: { svg: true, svgFilters: true } }) : null),
+    () => (svgQuery.data ? DOMPurify.sanitize(svgQuery.data.svg, { USE_PROFILES: { svg: true, svgFilters: true } }) : null),
     [svgQuery.data]
   );
 
@@ -43,7 +44,7 @@ export function ReactionScheme({ id, smarts }: { id: string; smarts: string }) {
     );
   }
 
-  if (svgQuery.error || !sanitizedSvg) {
+  if (svgQuery.error || !sanitizedSvg || !svgQuery.data) {
     return (
       <Alert severity="warning" variant="outlined" sx={{ py: 0 }}>
         Could not render this reaction ({smarts}).
@@ -52,9 +53,12 @@ export function ReactionScheme({ id, smarts }: { id: string; smarts: string }) {
   }
 
   return (
-    <Box
-      sx={{ "& svg": { display: "block", maxWidth: "100%", height: "auto" } }}
-      dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
-    />
+    <>
+      <Box
+        sx={{ "& svg": { display: "block", maxWidth: "100%", height: "auto" } }}
+        dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
+      />
+      <DrawingAttribution library="rdkit" version={svgQuery.data.rdkitVersion} />
+    </>
   );
 }

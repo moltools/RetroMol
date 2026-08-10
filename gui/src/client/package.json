@@ -38,7 +38,8 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "test": "craco test"
+    "test": "craco test",
+    "check:smiles-drawer-version": "node scripts/checkSmilesDrawerVersion.js"
   },
   "eslintConfig": {
     "extends": [

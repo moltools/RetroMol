@@ -31,6 +31,9 @@ jobs:
       - name: Lint
         run: npx eslint src --ext .ts,.tsx,.js
 
+      - name: Check SmilesDrawer version attribution
+        run: npm run check:smiles-drawer-version
+
       - name: Test
         run: npm test -- --watchAll=false
         env:

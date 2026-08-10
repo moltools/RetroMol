@@ -1,6 +1,5 @@
 import { getJson } from "../http";
-import { RuleSetRespSchema, type RuleSetResp } from "./types";
-import { ItemDrawingResultSchema } from "../drawing/types";
+import { RuleSetRespSchema, ReactionSchemeSvgRespSchema, type RuleSetResp, type ReactionSchemeSvgResp } from "./types";
 
 // The whole default rule set, fetched once and cached by the caller (see
 // WorkspaceRules) -- it's small (a few hundred rules total) and effectively static
@@ -15,11 +14,10 @@ export async function fetchReactionSchemeSvg(
   ruleId: string,
   theme: "light" | "dark",
   signal?: AbortSignal
-): Promise<string> {
-  const data = await getJson(
+): Promise<ReactionSchemeSvgResp> {
+  return getJson(
     `/api/reactionSchemeSvg/${encodeURIComponent(ruleId)}?theme=${theme}`,
-    ItemDrawingResultSchema,
+    ReactionSchemeSvgRespSchema,
     signal
   );
-  return data.svg;
 }

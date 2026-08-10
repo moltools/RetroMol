@@ -2,6 +2,7 @@
 
 import threading
 
+import rdkit
 from flask import Blueprint, Response, jsonify, request
 from rdkit.Chem.Draw import rdMolDraw2D
 
@@ -154,4 +155,4 @@ def reaction_scheme_svg(rule_id: str) -> tuple[Response, int]:
         return jsonify({"error": "Unknown reaction rule id"}), 404
 
     svg = _get_reaction_svg(rule, theme)
-    return jsonify({"svg": svg}), 200
+    return jsonify({"svg": svg, "rdkitVersion": rdkit.__version__}), 200
