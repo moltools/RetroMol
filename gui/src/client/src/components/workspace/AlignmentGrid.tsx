@@ -60,14 +60,12 @@ function alignedCellSx(name: string | null, columnWidthCh: number, matchColor: s
   return {
     ...ROW_CELL_BASE_SX,
     borderColor: isGap ? "divider" : "primary.main",
-    // A gap cell has no fill of its own, so the row's connecting line (see
-    // ROW_LINE_SX) shows straight through it -- that's the point, it's what
-    // marks the cell as empty. Every occupied cell, matched or not, gets an
-    // opaque fill instead: layering the (semi-transparent) match tint as a
-    // backgroundImage over an opaque backgroundColor composites down to a
-    // fully solid color, so the line can never bleed through legible content
-    // the way a plain alpha-blended fill would.
-    bgcolor: isGap ? "transparent" : "background.paper",
+    // Every cell, gap or occupied, gets an opaque background.paper fill so the
+    // row's connecting line (see ROW_LINE_SX) never shows through and breaks
+    // the pill's outline. Occupied cells layer the (semi-transparent) match
+    // tint as a backgroundImage on top, which composites down to a fully
+    // solid color over the opaque base.
+    bgcolor: "background.paper",
     backgroundImage: !isGap && matchColor ? `linear-gradient(${matchColor}, ${matchColor})` : "none",
     width: `${columnWidthCh}ch`,
     textAlign: "center" as const,
