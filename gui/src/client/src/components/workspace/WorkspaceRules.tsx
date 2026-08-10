@@ -22,6 +22,7 @@ import { MinimalIconButton } from "../MinimalIconButton";
 import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
+import { DrawingAttribution } from "../DrawingAttribution";
 import { ReactionScheme } from "./ReactionScheme";
 
 const STRUCTURE_SIZE = 130;
@@ -95,11 +96,14 @@ function MatchingRuleRow({ rule }: { rule: MatchingRule }) {
 
       <Collapse in={expanded} unmountOnExit>
         <Stack direction="row" spacing={2} sx={{ mt: 1, pl: 1 }}>
-          <SmilesDrawerContainer
-            identifier={`matching-rule-${rule.id}`}
-            smiles={rule.displaySmiles || rule.smiles}
-            size={STRUCTURE_SIZE}
-          />
+          <Box>
+            <SmilesDrawerContainer
+              identifier={`matching-rule-${rule.id}`}
+              smiles={rule.displaySmiles || rule.smiles}
+              size={STRUCTURE_SIZE}
+            />
+            <DrawingAttribution library="smiles-drawer" />
+          </Box>
 
           <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
             <Box>

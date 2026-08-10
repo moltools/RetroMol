@@ -29,3 +29,13 @@ export const RuleSetRespSchema = z.object({
   reactionRules: z.array(ReactionRuleSchema),
 });
 export type RuleSetResp = z.output<typeof RuleSetRespSchema>;
+
+export const ReactionSchemeSvgRespSchema = z.object({
+  svg: z.string(),
+  // The RDKit version that rendered `svg` -- reported by the server (see
+  // routes/rules.py's reaction_scheme_svg) rather than pinned client-side, so the
+  // "Drawn with RDKit vX" attribution in ReactionScheme can never drift from what
+  // actually rendered it.
+  rdkitVersion: z.string(),
+});
+export type ReactionSchemeSvgResp = z.output<typeof ReactionSchemeSvgRespSchema>;
