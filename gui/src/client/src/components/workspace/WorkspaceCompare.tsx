@@ -322,12 +322,18 @@ function ViolinChart({ metrics, svgRef }: { metrics: CompareMetricResult[]; svgR
         })}
       </svg>
 
-      {hovered && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-          <strong>{hovered.point.label}</strong> — {METRIC_LABELS[hovered.metricId as CompareMetricId] ?? hovered.metricId}:{" "}
-          {((hovered.point.value ?? 0) * 100).toFixed(1)}%
-        </Typography>
-      )}
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mt: 0.5, minHeight: "2em", visibility: hovered ? "visible" : "hidden" }}
+      >
+        {hovered && (
+          <>
+            <strong>{hovered.point.label}</strong> - {METRIC_LABELS[hovered.metricId as CompareMetricId] ?? hovered.metricId}:{" "}
+            {((hovered.point.value ?? 0) * 100).toFixed(1)}%
+          </>
+        )}
+      </Typography>
     </Box>
   );
 }
