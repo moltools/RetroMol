@@ -48,12 +48,16 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-// Splits a name like "A2^R" into plain/superscript runs, matching MotifName's convention.
+// Splits a name like "A2^R" or "C^E2" into plain/superscript runs, matching MotifName's convention.
 function splitStereoMarkers(name: string): { text: string; sup: boolean }[] {
   return name
-    .split(/(\^[SR])/g)
+    .split(/(\^[SREZ])/g)
     .filter((part) => part !== "")
-    .map((part) => (part === "^S" || part === "^R" ? { text: part.slice(1), sup: true } : { text: part, sup: false }));
+    .map((part) =>
+      part === "^S" || part === "^R" || part === "^E" || part === "^Z"
+        ? { text: part.slice(1), sup: true }
+        : { text: part, sup: false }
+    );
 }
 
 function measureName(ctx: CanvasRenderingContext2D, name: string, fontSize: number): number {

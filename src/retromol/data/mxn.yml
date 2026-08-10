@@ -466,10 +466,12 @@
 - name: C^E7
   smiles: 'O=C(/C(CO)=C/SO)O'
   display_smiles: 'O=C(/C(CO)=C/[1*])S[2*]'
+  stereochemistry: true
   pseudonyms: ["PK_C", "PK"]
 - name: C^Z7
   smiles: 'O=C(/C(CO)=C\SO)O'
   display_smiles: 'O=C(/C(CO)=C\[1*])S[2*]'
+  stereochemistry: true
   pseudonyms: ["PK_C", "PK"]
 - name: C7
   smiles: "O=C(O)C(=CSO)CO"
