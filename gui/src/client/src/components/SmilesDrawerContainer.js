@@ -5,8 +5,9 @@ import { useColorScheme } from '@mui/material/styles';
 
 
 class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
-    constructor(options) {
+    constructor(options, showIsotopes = false) {
         super(options);
+        this.showIsotopes = showIsotopes;
 
         const themeOverrides = {
             light: {
@@ -126,11 +127,15 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
             };
         };
 
-        // loop over all atoms and set atom.bracket to null
+        // loop over all atoms and, unless isotopes were asked to be kept (used to show
+        // R-group numbers, e.g. [1*]/[2*], in the rules browser and motif hover card),
+        // clear atom.bracket so isotope/charge annotations don't clutter the drawing.
         for (let i = 0; i < graph.vertices.length; i++) {
             let vertex = graph.vertices[i];
             let atom = vertex.value;
-            atom.bracket = null;
+            if (!this.showIsotopes) {
+                atom.bracket = null;
+            }
 
             // make sure COOH is drawn fully instead of displayed with text
             if (atom.element === 'C') {
@@ -170,12 +175,14 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
  * @property {number} size                          width & height of the drawing
  * @property {HighlightAtom[]} [highlightAtoms]     array of `[atomNumber, color]`
  * @property {string} [themeOverride]               force “light” or “dark” drawing theme
+ * @property {boolean} [showIsotopes]               draw isotope numbers (e.g. R-group
+ *                                                   tags like [1*]/[2*]) instead of hiding them
  */
 
 /**
  * @param {Props} props
  */
-const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], themeOverride = '' }) => {
+const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], themeOverride = '', showIsotopes = false }) => {
     const { mode, systemMode } = useColorScheme();
     const [error, setError] = useState(null);
 
@@ -191,7 +198,7 @@ const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], 
 
         // A fresh drawer instance per draw call, since it isn't safe to reuse
         // once it holds a graph for a previous (possibly differently-sized) SMILES.
-        let drawer = new CustomSvgDrawer({ width: size, height: size });
+        let drawer = new CustomSvgDrawer({ width: size, height: size }, showIsotopes);
 
         try {
             SmilesDrawer.parse(
@@ -214,7 +221,7 @@ const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], 
             console.error('SmilesDrawerContainer: unexpected error', err);
             setError('Could not render this structure.');
         }
-    }, [identifier, smiles, highlightAtoms, size, themeOverride, mode, systemMode]);
+    }, [identifier, smiles, highlightAtoms, size, themeOverride, showIsotopes, mode, systemMode]);
 
     if (error) {
         return (

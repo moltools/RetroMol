@@ -40,7 +40,7 @@ function MotifHoverContent({ name, hint }: { name: string; hint?: string }) {
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, maxWidth: 200, py: 0.5 }}>
       {smiles ? (
         <>
-          <SmilesDrawerContainer identifier={`motif-hover-${reactId}`} smiles={smiles} size={DRAWING_SIZE} />
+          <SmilesDrawerContainer identifier={`motif-hover-${reactId}`} smiles={smiles} size={DRAWING_SIZE} showIsotopes />
           <DrawingAttribution library="smiles-drawer" sx={{ fontSize: "0.65rem" }} />
         </>
       ) : (
