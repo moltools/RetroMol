@@ -1,260 +1,326 @@
 - name: A1
   smiles: "O=C(O)CC(=O)SO"
+  display_smiles: "O=C(CC([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 - name: A1
   smiles: "O=C(O)C=C(O)SO"
+  display_smiles: "O=C(CC([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A2^R
   smiles: "C[C@@H](C(SO)=O)C(O)=O"
+  display_smiles: "C[C@@H](C(S[2*])=O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["A2", "PK_A", "PK"]
 - name: A2^S
   smiles: "C[C@H](C(SO)=O)C(O)=O"
+  display_smiles: "C[C@H](C(S[2*])=O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["A2", "PK_A", "PK"]
 - name: A2
   smiles: "CC(C(=O)O)C(=O)SO"
+  display_smiles: "O=C(C(C)C([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 - name: A2
   smiles: "CC(C(=O)O)=C(O)SO"
+  display_smiles: "O=C(C(C)C([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A3
   smiles: "CC(C)(C(=O)O)C(=O)SO"
+  display_smiles: "CC(C)(C(=O)[1*])C(=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A4^R
   smiles: "CC[C@@H](C(SO)=O)C(O)=O"
+  display_smiles: "CC[C@@H](C(S[2*])=O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["A4", "PK_A", "PK"]
 - name: A4^S
   smiles: "CC[C@H](C(SO)=O)C(O)=O"
+  display_smiles: "CC[C@H](C(S[2*])=O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["A4", "PK_A", "PK"]
 - name: A4
   smiles: "CCC(C(=O)O)C(=O)SO"
+  display_smiles: "CCC(C(=O)[1*])C(=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A5^R
   smiles: "O=C([C@H](C(SO)=O)O)O"
+  display_smiles: "O=C([C@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["A5", "PK_A", "PK"]
 - name: A5^S
   smiles: "O=C([C@@H](C(SO)=O)O)O"
+  display_smiles: "O=C([C@@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["A5", "PK_A", "PK"]
 - name: A5
   smiles: "O=C(O)C(O)C(=O)SO"
+  display_smiles: "O=C(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK_A", "PK"]
 - name: A5
   smiles: "O=C(C(O)=C(SO)O)O"
+  display_smiles: "O=C(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A6^R
   smiles: "C[C@@](C(O)=O)(C(SO)=O)O"
+  display_smiles: "C[C@@](C([1*])=O)(C(S[2*])=O)O"
   stereochemistry: true
   pseudonyms: ["A6", "PK_A", "PK"]
 - name: A6^S
   smiles: "C[C@](C(O)=O)(C(SO)=O)O"
+  display_smiles: "C[C@](C([1*])=O)(C(S[2*])=O)O"
   stereochemistry: true
   pseudonyms: ["A6", "PK_A", "PK"]
 - name: A6
   smiles: "CC(O)(C(=O)O)C(=O)SO"
+  display_smiles: "CC(C([1*])=O)(C(S[2*])=O)O"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A7^R
   smiles: "O=C([C@H](C(SO)=O)CO)O"
+  display_smiles: "O=C([C@H](C(S[2*])=O)CO)[1*]"
   stereochemistry: true
   pseudonyms: ["A7", "PK_A", "PK"]
 - name: A7^S
   smiles: "O=C([C@@H](C(SO)=O)CO)O"
+  display_smiles: "O=C([C@@H](C(S[2*])=O)CO)[1*]"
   stereochemistry: true
   pseudonyms: ["A7", "PK_A", "PK"]
 - name: A7
   smiles: "O=C(O)C(CO)C(=O)SO"
+  display_smiles: "O=C(C(C(S[2*])=O)CO)[1*]"
   pseudonyms: ["PK_A", "PK"]
 - name: A7
   smiles: "O=C(O)C(CO)=C(O)SO"
+  display_smiles: "O=C(C(C(S[2*])=O)CO)[1*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A8
   smiles: "C=C(CC(=O)O)SO"
+  display_smiles: "C=C(CC(=O)[1*])S[2*]"
   pseudonyms: ["PK_A", "PK"]
 - name: A8
   smiles: "CC(=CC(=O)O)SO"
+  display_smiles: "C=C(CC(=O)[1*])S[2*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A9^R
   smiles: "C=C([C@@H](C(O)=O)C)SO"
+  display_smiles: "C=C([C@@H](C([1*])=O)C)S[2*]"
   stereochemistry: true
   pseudonyms: ["A9", "PK_A", "PK"]
 - name: A9^S
   smiles: "C=C([C@H](C(O)=O)C)SO"
+  display_smiles: "C=C([C@H](C([1*])=O)C)S[2*]"
   stereochemistry: true
   pseudonyms: ["A9", "PK_A", "PK"]
 - name: A9
   smiles: "C=C(SO)C(C)C(=O)O"
+  display_smiles: "C=C(C(C([1*])=O)C)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A10^R
   smiles: "C=C([C@@H](C(O)=O)O)SO"
+  display_smiles: "C=C([C@@H](C([1*])=O)O)S[2*]"
   stereochemistry: true
   pseudonyms: ["A10", "PK_A", "PK"]
 - name: A10^S
   smiles: "C=C([C@H](C(O)=O)O)SO"
+  display_smiles: "C=C([C@H](C([1*])=O)O)S[2*]"
   stereochemistry: true
   pseudonyms: ["A10", "PK_A", "PK"]
 - name: A10
   smiles: "C=C(SO)C(O)C(=O)O"
+  display_smiles: "C=C(C(C([1*])=O)O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: A11
   smiles: "C=C(SO)C(=O)C(=O)O"
+  display_smiles: "C=C(S[2*])C(=O)C(=O)[1*]"
   pseudonyms: ["PK_A", "PK"]
 
 - name: B^R1
   smiles: "O=C(C[C@@H](SO)O)O"
+  display_smiles: "O=C(C[C@@H](S[2*])O)[1*]"
   stereochemistry: true
   pseudonyms: ["B1", "PK_B", "PK"]
 - name: B^S1
   smiles: "O=C(C[C@H](SO)O)O"
+  display_smiles: "O=C(C[C@H](S[2*])O)[1*]"
   stereochemistry: true
   pseudonyms: ["B1", "PK_B", "PK"]
 - name: B1
   smiles: "O=C(O)CC(O)SO"
+  display_smiles: "O=C(CC(S[2*])O)[1*]"
   pseudonyms: ["PK_B", "PK"]
 
 - name: B^R2^R
   smiles: "C[C@@H]([C@@H](SO)O)C(O)=O"
+  display_smiles: "C[C@@H]([C@@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
 - name: B^R2^S
   smiles: "C[C@H]([C@@H](SO)O)C(O)=O"
+  display_smiles: "C[C@H]([C@@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
 - name: B^R2
   smiles: "CC([C@@H](SO)O)C(O)=O"
+  display_smiles: "CC([C@@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
 - name: B^S2^R
   smiles: "C[C@@H]([C@H](SO)O)C(O)=O"
+  display_smiles: "C[C@@H]([C@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
 - name: B^S2^S
   smiles: "C[C@H]([C@H](SO)O)C(O)=O"
+  display_smiles: "C[C@H]([C@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
 - name: B^S2
   smiles: "CC([C@H](SO)O)C(O)=O"
+  display_smiles: "CC([C@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
 - name: B2
   smiles: "CC(C(=O)O)C(O)SO"
+  display_smiles: "CC(C(=O)[1*])C(O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
 
 - name: B^R3
   smiles: "CC(C(O)=O)([C@@H](SO)O)C"
+  display_smiles: "CC(C([1*])=O)([C@@H](S[2*])O)C"
   stereochemistry: true
   pseudonyms: ["B3", "PK_B", "PK"]
 - name: B^S3
   smiles: "CC(C(O)=O)([C@H](SO)O)C"
+  display_smiles: "CC(C([1*])=O)([C@H](S[2*])O)C"
   stereochemistry: true
   pseudonyms: ["B3", "PK_B", "PK"]
 - name: B3
   smiles: "CC(C)(C(=O)O)C(O)SO"
+  display_smiles: "CC(C)(C(=O)[1*])C(O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
 
 - name: B^R4^R
   smiles: "CC[C@@H]([C@@H](SO)O)C(O)=O"
+  display_smiles: "CC[C@@H]([C@@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
 - name: B^R4^S
   smiles: "CC[C@H]([C@@H](SO)O)C(O)=O"
+  display_smiles: "CC[C@H]([C@@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
 - name: B^S4^R
   smiles: "CC[C@@H]([C@H](SO)O)C(O)=O"
+  display_smiles: "CC[C@@H]([C@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
 - name: B^S4^S
   smiles: "CC[C@H]([C@H](SO)O)C(O)=O"
+  display_smiles: "CC[C@H]([C@H](S[2*])O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
 - name: B4
   smiles: "CCC(C(=O)O)C(O)SO"
+  display_smiles: "CCC(C(=O)[1*])C(O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
 
 - name: B^R5^R
   smiles: "O=C([C@H]([C@@H](SO)O)O)O"
+  display_smiles: "O=C([C@H]([C@@H](S[2*])O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
 - name: B^R5^S
   smiles: "O=C([C@@H]([C@@H](SO)O)O)O"
+  display_smiles: "O=C([C@@H]([C@@H](S[2*])O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
 - name: B^S5^R
   smiles: "O=C([C@H]([C@H](SO)O)O)O"
+  display_smiles: "O=C([C@H]([C@H](S[2*])O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
 - name: B^S5^S
   smiles: "O=C([C@@H]([C@H](SO)O)O)O"
+  display_smiles: "O=C([C@@H]([C@H](S[2*])O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
 - name: B5
   smiles: "O=C(O)C(O)C(O)SO"
+  display_smiles: "O=C([1*])C(O)C(O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
 
 - name: B^R6^R
   smiles: "C[C@@](C(O)=O)([C@@H](SO)O)O"
+  display_smiles: "C[C@@](C([1*])=O)([C@@H](S[2*])O)O"
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
 - name: B^R6^S
   smiles: "C[C@](C(O)=O)([C@@H](SO)O)O"
+  display_smiles: "C[C@](C([1*])=O)([C@@H](S[2*])O)O"
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
 - name: B^S6^R
   smiles: "C[C@@](C(O)=O)([C@H](SO)O)O"
+  display_smiles: "C[C@@](C([1*])=O)([C@H](S[2*])O)O"
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
 - name: B^S6^S
   smiles: "C[C@](C(O)=O)([C@H](SO)O)O"
+  display_smiles: "C[C@](C([1*])=O)([C@H](S[2*])O)O"
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
 - name: B6
   smiles: "CC(O)(C(=O)O)C(O)SO"
+  display_smiles: "CC(O)(C(=O)[1*])C(O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
 
 - name: B^R7^R
   smiles: "O=C([C@H]([C@@H](SO)O)CO)O"
+  display_smiles: "O=C([C@H]([C@@H](S[2*])O)CO)[1*]"
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
 - name: B^R7^S
   smiles: "O=C([C@@H]([C@@H](SO)O)CO)O"
+  display_smiles: "O=C([C@@H]([C@@H](S[2*])O)CO)[1*]"
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
 - name: B^S7^R
   smiles: "O=C([C@H]([C@H](SO)O)CO)O"
+  display_smiles: "O=C([C@H]([C@H](S[2*])O)CO)[1*]"
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
 - name: B^S7^S
   smiles: "O=C([C@@H]([C@H](SO)O)CO)O"
+  display_smiles: "O=C([C@@H]([C@H](S[2*])O)CO)[1*]"
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
 - name: B7
   smiles: "O=C(O)C(CO)C(O)SO"
+  display_smiles: "O=C([1*])C(CO)C(O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
 
 - name: B^R8
   smiles: "C[C@](CC(O)=O)(SO)O"
+  display_smiles: "C[C@](CC([1*])=O)(S[2*])O"
   stereochemistry: true
   pseudonyms: ["B8", "PK_B", "PK"]
 - name: B^S8
   smiles: "C[C@@](CC(O)=O)(SO)O"
+  display_smiles: "C[C@@](CC([1*])=O)(S[2*])O"
   stereochemistry: true
   pseudonyms: ["B8", "PK_B", "PK"]
 - name: B8
   smiles: "CC(O)(CC(=O)O)SO"
+  display_smiles: "CC(O)(CC(=O)[1*])S[2*]"
   pseudonyms: ["PK_B", "PK"]
 
 - name: B^R9^R
