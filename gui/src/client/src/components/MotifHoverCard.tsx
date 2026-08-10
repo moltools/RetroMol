@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchMotifStructures } from "../features/motifs/api";
 import { MotifName } from "./MotifName";
 import SmilesDrawerContainer from "./SmilesDrawerContainer.js";
+import { DrawingAttribution } from "./DrawingAttribution";
 
 const DRAWING_SIZE = 100;
 
@@ -38,7 +39,10 @@ function MotifHoverContent({ name, hint }: { name: string; hint?: string }) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, maxWidth: 200, py: 0.5 }}>
       {smiles ? (
-        <SmilesDrawerContainer identifier={`motif-hover-${reactId}`} smiles={smiles} size={DRAWING_SIZE} />
+        <>
+          <SmilesDrawerContainer identifier={`motif-hover-${reactId}`} smiles={smiles} size={DRAWING_SIZE} />
+          <DrawingAttribution library="smiles-drawer" sx={{ fontSize: "0.65rem" }} />
+        </>
       ) : (
         <Box
           sx={{

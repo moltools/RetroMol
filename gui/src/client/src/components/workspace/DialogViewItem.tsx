@@ -14,6 +14,7 @@ import { DialogWindow } from "../DialogWindow";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { ExportImageButton } from "../ExportImageButton";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
+import { DrawingAttribution } from "../DrawingAttribution";
 import { PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
 import { ClusterReadoutRows } from "./ClusterReadoutRows";
 
@@ -440,6 +441,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
               </>
             )}
           </Box>
+          <DrawingAttribution library="smiles-drawer" sx={{ textAlign: "center" }} />
           {hasReconstructions && (
             <DescriptionBox
               title={'Explanation'}
