@@ -35,7 +35,7 @@ services:
     <<: *backend-common
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     networks: [ retromol_network ]
     # Healthcheck comes from the image's own HEALTHCHECK (hits /api/ready) --
     # nothing to override here.
@@ -66,7 +66,7 @@ services:
       replicas: ${RQ_WORKER_REPLICAS:-2}
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     networks: [ retromol_network ]
     # No fixed container_name -- incompatible with replicas > 1.
     # The image's inherited HEALTHCHECK probes an HTTP server this container never

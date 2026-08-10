@@ -14,8 +14,9 @@ RUN groupadd --gid $USER_GID $USERNAME \
  # Switch to /app as working dir
 WORKDIR /app
 
-# System deps (git)
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential git && rm -rf /var/lib/apt/lists/*
+# System deps (git; libxrender1/libxext6/libsm6 are runtime deps of rdkit.Chem.Draw,
+# which dlopens X11 libs for 2D rendering even though the container is headless)
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential git libxrender1 libxext6 libsm6 && rm -rf /var/lib/apt/lists/*
 
 # Copy env + requirements before env creation for caching
 COPY gui/src/server/environment.backend.yml /app/
