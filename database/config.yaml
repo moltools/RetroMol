@@ -2,9 +2,9 @@ sources:
   # Direct download links. MIBiG ships as tar.gz archives (one file per BGC inside);
   # NPAtlas ships as a single SDF (optionally gzipped) -- download_sources.py handles
   # extraction based on the URL's extension either way.
-  npatlas_sdf_url: ""
-  mibig_json_url: ""
-  mibig_gbk_url: ""
+  npatlas_sdf_url: "https://www.npatlas.org/static/downloads/NPAtlas_download.sdf"
+  mibig_json_url: "https://dl.secondarymetabolites.org/mibig/mibig_json_4.0.tar.gz"
+  mibig_gbk_url: "https://dl.secondarymetabolites.org/mibig/mibig_gbk_4.0.tar.gz"
 
 paths:
   # Final DuckDB database produced by the pipeline.
