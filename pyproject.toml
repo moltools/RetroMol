@@ -15,8 +15,8 @@ dependencies = [
     "biopython",
     "pyhmmer",
     "tqdm",
-    "numpy<2",  # scikit-learn 1.2.0 requires numpy<2
-    "scikit-learn==1.2.0",
+    "numpy",
+    "scikit-learn",
     "scipy",
     "pandas",
     "pyyaml",

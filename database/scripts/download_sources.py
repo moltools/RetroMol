@@ -11,6 +11,7 @@ import shutil
 import tarfile
 import zipfile
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import requests
 
@@ -26,12 +27,32 @@ def download(url: str, dest: str | Path) -> None:
                     fh.write(chunk)
 
 
-def extract(path: str | Path, out_dir: str | Path) -> None:
+def _url_filename(url: str) -> str:
+    """Best-effort original filename from a URL's path (ignores query strings)."""
+    name = Path(urlsplit(url).path).name
+    return name or "download"
+
+
+def extract(path: str | Path, out_dir: str | Path, source_name: str | None = None) -> None:
+    """
+    Extract/decompress a downloaded file, or copy it through unchanged.
+
+    :param path: the downloaded file on disk -- often a fixed, extension-less name
+        (e.g. "download.raw") the caller chose for the raw download, so it can't be
+        used to decide *how* to extract or to name a plain copy/decompressed output.
+    :param out_dir: directory to extract/copy into.
+    :param source_name: the original filename (e.g. from the source URL), used both
+        to pick the extraction strategy and, for the plain-copy/gzip cases, to name
+        the resulting file so its extension survives (e.g. "*.sdf" stays findable).
+        Falls back to `path`'s own name if not given.
+    """
     path = Path(path)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    name = path.name.lower()
+    display_name = source_name or path.name
+    name = display_name.lower()
+
     if name.endswith((".tar.gz", ".tgz", ".tar")):
         mode = "r:gz" if name.endswith((".tar.gz", ".tgz")) else "r"
         with tarfile.open(path, mode) as tf:
@@ -40,17 +61,17 @@ def extract(path: str | Path, out_dir: str | Path) -> None:
         with zipfile.ZipFile(path) as zf:
             zf.extractall(out_dir)
     elif name.endswith(".gz"):
-        out_path = out_dir / path.with_suffix("").name
+        out_path = out_dir / Path(display_name).with_suffix("").name
         with gzip.open(path, "rb") as fin, open(out_path, "wb") as fout:
             shutil.copyfileobj(fin, fout)
     else:
-        shutil.copy2(path, out_dir / path.name)
+        shutil.copy2(path, out_dir / display_name)
 
 
 def run(url: str, download_path: str | Path, extract_dir: str | Path | None = None) -> None:
     download(url, download_path)
     if extract_dir is not None:
-        extract(download_path, extract_dir)
+        extract(download_path, extract_dir, source_name=_url_filename(url))
 
 
 def main() -> None:

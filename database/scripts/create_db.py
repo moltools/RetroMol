@@ -7,6 +7,8 @@ from retromol_database.duckdb import RetroMolDuckDB
 
 
 def run(db_path: str | Path, overwrite: bool = True) -> None:
+    db_path = Path(db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
     db = RetroMolDuckDB.create(db_path, overwrite=overwrite)
     db.close()
 

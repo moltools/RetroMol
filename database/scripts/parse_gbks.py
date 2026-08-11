@@ -20,6 +20,8 @@ import logging
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
+from rdkit import RDLogger
+
 from common import mibig_url, split_accession_version
 from retromol_antismash.inference.model_paras import ParasModel
 from retromol_antismash.inference.registry import annotate_region
@@ -35,6 +37,12 @@ _G_PARAS_MODEL: ParasModel | None = None
 
 def _init_worker(paras_threshold: float, paras_keep_top: int, paras_model_path: str | None, paras_cache_dir: str) -> None:
     global _G_PARAS_MODEL
+    # Belt-and-braces: importing this module (to resolve _init_worker as this pool's
+    # initializer) already re-runs common.py's own RDLogger.DisableLog at the top of
+    # this file's import chain, but this initializer is what the pool guarantees runs
+    # once per worker no matter what -- see common.run_retromol_stream_quiet's
+    # docstring for why that guarantee matters more than it might seem.
+    RDLogger.DisableLog("rdApp.*")
     _G_PARAS_MODEL = ParasModel(
         threshold=paras_threshold,
         keep_top=paras_keep_top,

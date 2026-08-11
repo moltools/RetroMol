@@ -1,10 +1,12 @@
 """Steps 4 & 6: turn parsed compound results into database entries.
 
-For each RetroMol Result, every reconstructed candidate primary sequence
-(retromol_synthesis.reconstruction.reconstruct_linear_readout) becomes its own
-"compound" entry -- ambiguous parses intentionally produce multiple queryable
-entries, the same convention the webapp uses for an uploaded compound with more
-than one candidate reading.
+For each RetroMol Result, every candidate primary sequence -- one per path in
+result.linear_readout.paths, read directly off the Result (see
+common.primary_sequences_from_result) -- becomes its own "compound" entry.
+Ambiguous parses intentionally produce multiple queryable entries, the same
+convention the webapp uses for an uploaded compound with more than one candidate
+reading. `raw` is always the original input SMILES, the same for every entry a
+given compound produces.
 """
 
 import argparse
@@ -13,10 +15,19 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-from common import build_fingerprint_context, find_key_ci, load_ruleset, mibig_url, npatlas_url, per_monomer_tokens
+from tqdm import tqdm
+
+from common import (
+    build_fingerprint_context,
+    find_key_ci,
+    load_ruleset,
+    mibig_url,
+    npatlas_url,
+    per_monomer_tokens,
+    primary_sequences_from_result,
+)
 from retromol.model.result import Result
 from retromol_database.duckdb import RetroMolDuckDB
-from retromol_synthesis.reconstruction import reconstruct_linear_readout
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +57,7 @@ def run(
     matching_rules_path: str | Path | None,
     match_stereochemistry: bool = False,
     mibig_versions_path: str | Path | None = None,
+    log_every: int = 1000,
 ) -> None:
     ruleset = load_ruleset(reaction_rules_path, matching_rules_path, match_stereochemistry)
     name_to_rule, fingerprinter = build_fingerprint_context(ruleset)
@@ -55,49 +67,60 @@ def run(
         with open(mibig_versions_path) as fh:
             versions = json.load(fh)
 
+    compounds = 0
     added = 0
     skipped = 0
 
     db = RetroMolDuckDB.open(db_path)
     try:
         with open(results_path) as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-
-                result = Result.from_dict(json.loads(line))
-                props = result.submission.props or {}
-
-                if source == "npatlas":
-                    name, url = _npatlas_name_and_url(props)
-                else:
-                    name, url = _mibig_name_and_url(props, versions)
-
-                name = name or result.submission.name or result.submission.inchikey
-
-                for reconstruction in reconstruct_linear_readout(result):
-                    names = [n for n, _tags in reconstruction.primary_sequence]
-                    if not names:
-                        skipped += 1
+            with tqdm(desc=f"load_compounds[{source}]", unit="cmpd") as pbar:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
                         continue
 
-                    tokens = [per_monomer_tokens(n, name_to_rule) for n in names]
-                    fp = fingerprinter.encode(tokens)
+                    result = Result.from_dict(json.loads(line))
+                    props = result.submission.props or {}
 
-                    db.add_entry(
-                        name=name,
-                        url=url,
-                        raw=result.submission.smiles,
-                        entry_type="compound",
-                        primary_sequence=names,
-                        fingerprint=fp,
-                    )
-                    added += 1
+                    if source == "npatlas":
+                        name, url = _npatlas_name_and_url(props)
+                    else:
+                        name, url = _mibig_name_and_url(props, versions)
+
+                    name = name or result.submission.name or result.submission.inchikey
+
+                    for names in primary_sequences_from_result(result):
+                        if not names:
+                            skipped += 1
+                            continue
+
+                        tokens = [per_monomer_tokens(n, name_to_rule) for n in names]
+                        fp = fingerprinter.encode(tokens)
+
+                        db.add_entry(
+                            name=name,
+                            url=url,
+                            raw=result.submission.smiles,
+                            entry_type="compound",
+                            primary_sequence=names,
+                            fingerprint=fp,
+                        )
+                        added += 1
+
+                    compounds += 1
+                    pbar.update(1)
+                    pbar.set_postfix(added=added, skipped=skipped)
+
+                    if log_every > 0 and compounds % log_every == 0:
+                        log.info(
+                            "load_compounds[%s]: processed %d compounds (added=%d skipped=%d)",
+                            source, compounds, added, skipped,
+                        )
     finally:
         db.close()
 
-    log.info("load_compounds[%s]: added=%d skipped=%d", source, added, skipped)
+    log.info("load_compounds[%s]: compounds=%d added=%d skipped=%d", source, compounds, added, skipped)
 
 
 def main() -> None:
@@ -111,6 +134,7 @@ def main() -> None:
     ap.add_argument("--mxn-rules", default=None)
     ap.add_argument("--match-stereochemistry", action="store_true")
     ap.add_argument("--mibig-versions", default=None, help="required when --source=mibig")
+    ap.add_argument("--log-every", type=int, default=1000, help="log a progress line every N compounds (0 to disable)")
     args = ap.parse_args()
 
     run(
@@ -121,6 +145,7 @@ def main() -> None:
         matching_rules_path=args.mxn_rules,
         match_stereochemistry=args.match_stereochemistry,
         mibig_versions_path=args.mibig_versions,
+        log_every=args.log_every,
     )
 
 

@@ -2,8 +2,10 @@
 
 Shared between both compound sources -- only the input format differs. This is the
 slow step (one retrosynthetic analysis per compound), so it's parallelized with
-`workers` worker processes via retromol.io.streaming.run_retromol_stream, the same
-machinery the `retromol` CLI's batch mode uses.
+`workers` worker processes via common.run_retromol_stream_quiet -- the same
+worker/batching machinery the `retromol` CLI's batch mode uses
+(retromol.io.streaming.run_retromol_stream), but with RDKit's C-level logging also
+disabled inside every worker (see common.py for why that needs its own initializer).
 """
 
 import argparse
@@ -12,8 +14,10 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-from common import load_ruleset
-from retromol.io.streaming import run_retromol_stream, stream_json_records, stream_sdf_records
+from tqdm import tqdm
+
+from common import load_ruleset, run_retromol_stream_quiet
+from retromol.io.streaming import stream_json_records, stream_sdf_records
 
 log = logging.getLogger(__name__)
 
@@ -28,6 +32,7 @@ def run(
     smiles_col: str = "smiles",
     workers: int = 1,
     batch_size: int = 2000,
+    log_every: int = 1000,
 ) -> None:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -43,18 +48,26 @@ def run(
     errors = 0
 
     with open(output_path, "w", buffering=1) as out:
-        for evt in run_retromol_stream(
-            ruleset=ruleset,
-            row_iter=row_iter,
-            smiles_col=smiles_col,
-            workers=workers,
-            batch_size=batch_size,
-        ):
-            if evt.error is not None:
-                errors += 1
-            elif evt.result is not None:
-                out.write(json.dumps(evt.result) + "\n")
-                successes += 1
+        with tqdm(desc="parse_compounds", unit="cmpd") as pbar:
+            for evt in run_retromol_stream_quiet(
+                ruleset=ruleset,
+                row_iter=row_iter,
+                smiles_col=smiles_col,
+                workers=workers,
+                batch_size=batch_size,
+            ):
+                if evt.error is not None:
+                    errors += 1
+                elif evt.result is not None:
+                    out.write(json.dumps(evt.result) + "\n")
+                    successes += 1
+
+                pbar.update(1)
+                pbar.set_postfix(ok=successes, err=errors)
+
+                total = successes + errors
+                if log_every > 0 and total % log_every == 0:
+                    log.info("parse_compounds: parsed %d (successes=%d errors=%d)", total, successes, errors)
 
     log.info("parse_compounds: successes=%d errors=%d -> %s", successes, errors, output_path)
 
@@ -72,6 +85,7 @@ def main() -> None:
     ap.add_argument("--smiles-col", default="smiles")
     ap.add_argument("--workers", type=int, default=1)
     ap.add_argument("--batch-size", type=int, default=2000)
+    ap.add_argument("--log-every", type=int, default=1000, help="log a progress line every N compounds (0 to disable)")
     args = ap.parse_args()
 
     run(
@@ -84,6 +98,7 @@ def main() -> None:
         smiles_col=args.smiles_col,
         workers=args.workers,
         batch_size=args.batch_size,
+        log_every=args.log_every,
     )
 
 

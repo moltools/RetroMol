@@ -7,12 +7,28 @@ webapp uses to encode a query at search time. Deviating here would silently make
 every fingerprint stored by this pipeline incomparable to a live query.
 """
 
+from multiprocessing import Pool
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable, Iterator
 
+from rdkit import RDLogger
+
+from retromol.io.streaming import ResultEvent, _init_worker, _process_compound, _task_buffered_iterator
+from retromol.model.result import Result
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol_database.duckdb import FINGERPRINT_SIZE
 from retromol_fingerprint.fingerprint import Fingerprinter, Vocabulary
+
+# Silences RDKit's kekulization/valence/etc. warnings in *this* (single) process --
+# every pipeline script imports common, so this alone covers create_db.py,
+# load_compounds.py, load_bgcs.py, and parse_gbks.py's main process. It does NOT
+# reliably reach parse_compounds.py's multiprocessing workers: those are spawned
+# fresh by retromol.io.streaming.run_retromol_stream's own Pool, with its own
+# initializer, and whether a fresh worker re-runs this module-level call at all
+# depends on whether the *original* entry point was this script directly (works)
+# or something else re-importing it, like Snakemake's generated run: script
+# (doesn't) -- see run_retromol_stream_quiet below for the reliable fix.
+RDLogger.DisableLog("rdApp.*")
 
 # Group-level PKS pseudo-tokens a BGC's PKS module resolves to (see
 # retromol_antismash.modules.PKSExtenderUnit / module_primary_sequence_tokens).
@@ -85,6 +101,67 @@ def npatlas_url(npaid: str | None) -> str | None:
     if not npaid:
         return None
     return NPATLAS_URL_TEMPLATE.format(npaid=npaid)
+
+
+def primary_sequences_from_result(result: Result, min_length: int = 2) -> list[list[str]]:
+    """
+    Every candidate primary sequence for a parsed compound, read directly off
+    `result.linear_readout.paths` -- no backbone reconstruction involved, that's a
+    display-only concern this pipeline has no use for. `result.linear_readout` is
+    already computed by retromol.pipelines.parsing.run_retromol (it's just a field
+    on Result), each path is one candidate ordering of monomers through the
+    molecule, and each becomes its own db entry (see load_compounds.py). An
+    unidentified node is named "X", the same convention used everywhere else in
+    RetroMol.
+
+    `result.linear_readout` includes single-node paths for tailoring events that
+    don't connect to any chain (e.g. a lone "glycosylation" or "methylation") --
+    real for the molecule, but not a "sequence" in any useful sense, so those are
+    dropped by the `min_length` floor.
+
+    :param result: a parsed RetroMol Result
+    :param min_length: drop paths shorter than this (default 2)
+    :return: one name list per path meeting `min_length`
+    """
+    return [
+        [node.identity.matched_rule.name if node.is_identified else "X" for node in path]
+        for path in result.linear_readout.paths
+        if len(path) >= min_length
+    ]
+
+
+def _init_worker_quiet(ruleset: RuleSet) -> None:
+    """Worker-process initializer: set up the ruleset global exactly like retromol.io.streaming's own
+    _init_worker does, then also disable RDKit logging -- unlike a module-level RDLogger call, this is
+    guaranteed to run once per worker process no matter how the pool was launched."""
+    _init_worker(ruleset)
+    RDLogger.DisableLog("rdApp.*")
+
+
+def run_retromol_stream_quiet(
+    ruleset: RuleSet,
+    row_iter: Iterable[dict[str, Any]],
+    smiles_col: str = "smiles",
+    workers: int = 1,
+    batch_size: int = 2000,
+    pool_chunksize: int = 50,
+    maxtasksperchild: int = 2000,
+) -> Iterator[ResultEvent]:
+    """
+    Drop-in replacement for retromol.io.streaming.run_retromol_stream that also
+    disables RDKit's C-level logging inside every worker process. Reuses that
+    module's own batching/worker-task functions -- only the Pool's initializer
+    differs (see _init_worker_quiet).
+    """
+    with Pool(
+        processes=workers,
+        initializer=_init_worker_quiet,
+        initargs=(ruleset,),
+        maxtasksperchild=maxtasksperchild,
+    ) as pool:
+        for task_batch in _task_buffered_iterator(row_iter, smiles_col=smiles_col, batch_size=batch_size):
+            for serialized, err in pool.imap_unordered(_process_compound, task_batch, chunksize=pool_chunksize):
+                yield ResultEvent(serialized, err)
 
 
 def split_accession_version(record_id: str) -> tuple[str, str | None]:
