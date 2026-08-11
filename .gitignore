@@ -20,3 +20,6 @@ models/
 *.dump
 *.sql
 downloads/
+
+tmp/
+out/
