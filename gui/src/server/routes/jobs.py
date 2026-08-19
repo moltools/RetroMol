@@ -13,6 +13,8 @@ from routes.database import open_retromol_db
 from routes.queue import JobStillRunningError, enqueue_and_wait
 from routes.rate_limit import limiter
 
+from retromol.chem.mol import mol_to_smiles
+from retromol.chem.tagging import get_tags_mol
 from retromol.model.submission import Submission
 from retromol.model.rules import RuleSet
 from retromol.model.result import Result
@@ -263,6 +265,74 @@ def submit_compound() -> tuple[Response, int]:
     return jsonify(body), status
 
 
+DB_MATCHING_SEQUENCE_NOTE = (
+    "This is the exact primary sequence the database-population pipeline stores for "
+    "this molecule (read directly off result.linear_readout.paths -- no backbone "
+    "reconstruction, no eligibility/orientation filtering). Use one of these to "
+    "search, not a reconstructed candidate above: reconstruct_linear_readout builds "
+    "a separate identified-only readout to attempt backbone reconstruction, which "
+    "diverges from what's actually stored for a real fraction of compounds "
+    "(anything with unidentified or tailoring-only content) -- querying with that "
+    "instead silently caps how similar a match can ever score, even against the "
+    "molecule's own database entry."
+)
+
+
+def _db_matching_primary_sequences(result: Result, min_length: int = 2) -> list[dict]:
+    """
+    Every candidate primary sequence read directly off result.linear_readout.paths --
+    the same representation database/scripts/common.py's primary_sequences_from_result
+    uses to populate the persistent database (itself reproducing the original
+    db_scripts/create_database.py recipe, recovered from git history at commit
+    72a1bbb). Shaped identically to a Reconstruction dict so the frontend can render
+    and pick from these the same way it does reconstruct_linear_readout's candidates,
+    just without ever calling that function -- see DB_MATCHING_SEQUENCE_NOTE for why
+    the two aren't interchangeable as a database query.
+
+    Paths shorter than min_length -- almost always a lone tailoring event
+    (glycosylation, methylation: AssemblyGraph only keeps C-C/C-N bonds as
+    "connections", so a sugar attached via a glycosidic C-O-C linkage always ends
+    up disconnected from the main chain) -- never become their own candidate, same
+    as database/scripts/common.py. But they're real identified content, so their
+    names are collected into every candidate's extra_fingerprint_tokens instead:
+    the frontend carries this alongside primary_sequence (see
+    features/reconstruction/types.ts) and the query submission flow folds it into
+    the query fingerprint without displaying it as part of the sequence (see
+    run_discovery_query's extra_fingerprint_tokens parameter). Not deduplicated,
+    same reasoning as the database side: two glycosylation events should count for
+    roughly twice the weight of one.
+
+    :param result: a parsed RetroMol Result
+    :param min_length: drop paths shorter than this from the candidate list itself
+    :return: one Reconstruction-shaped dict per path meeting min_length
+    """
+    tagged_input_smiles = mol_to_smiles(result.submission.mol, include_tags=True)
+
+    sequences = []
+    extra_fingerprint_tokens: list[str] = []
+    for path in result.linear_readout.paths:
+        names = [node.identity.matched_rule.name if node.is_identified else "X" for node in path]
+        if len(path) < min_length:
+            extra_fingerprint_tokens.extend(n for n in names if n != "X")
+            continue
+
+        primary_sequence = [[name, list(get_tags_mol(node.mol))] for name, node in zip(names, path)]
+        sequences.append({
+            "tagged_input_smiles": tagged_input_smiles,
+            "tagged_backbone_smiles": None,
+            "primary_sequence": primary_sequence,
+            "backbone_warning": DB_MATCHING_SEQUENCE_NOTE,
+            "ordered": True,
+        })
+
+    # Every candidate shares the same extra_fingerprint_tokens -- tailoring events
+    # belong to the whole molecule, not to any one path through it.
+    for sequence in sequences:
+        sequence["extra_fingerprint_tokens"] = extra_fingerprint_tokens
+
+    return sequences
+
+
 def run_compound_reconstruction(item_payload: dict | None) -> tuple[dict, int]:
     """
     Reconstruct candidate primary sequences from an already-parsed compound Result.
@@ -276,7 +346,13 @@ def run_compound_reconstruction(item_payload: dict | None) -> tuple[dict, int]:
         result = Result.from_dict(item_payload)
         reconstructions = reconstruct_linear_readout(result)
         reconstructions_as_dicts = [rec.to_dict() for rec in reconstructions]
-        return {"ok": True, "status": "done", "data": reconstructions_as_dicts}, 200
+        db_matching_sequences = _db_matching_primary_sequences(result)
+        return {
+            "ok": True,
+            "status": "done",
+            "data": reconstructions_as_dicts,
+            "dbMatchingSequences": db_matching_sequences,
+        }, 200
 
     except Exception as e:
         logger.exception("run_compound_reconstruction: failed")

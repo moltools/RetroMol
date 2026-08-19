@@ -372,6 +372,11 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
   const [selectedItemId, setSelectedItemId] = React.useState<string>("");
   const selectedItem = session.items.find((item) => item.id === selectedItemId);
   const [blocks, setBlocks] = React.useState<SequenceBlock[]>([]);
+  // Carried alongside `blocks` from whichever candidate "Use this" was clicked on --
+  // only ever non-empty when that candidate was a dbMatchingSequences entry (see
+  // handlePickNames). Folded into the query's fingerprint on submit without being
+  // shown as part of the editable sequence itself.
+  const [extraFingerprintTokens, setExtraFingerprintTokens] = React.useState<string[]>([]);
 
   const [entryType, setEntryType] = React.useState<DiscoveryEntryType>("compound");
   const [scoreMode, setScoreMode] = React.useState<DiscoveryScoreMode>("longest_sequence");
@@ -415,8 +420,9 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
     enabled: selectedItem?.kind === "cluster",
   });
 
-  const handlePickNames = (names: string[]) => {
+  const handlePickNames = (names: string[], extraTokens: string[] = []) => {
     setBlocks(blocksFromNames(names));
+    setExtraFingerprintTokens(extraTokens);
   };
 
   const maxTopX = Math.max(1, Math.min(n, MAX_TOP_X));
@@ -446,6 +452,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
         includeUserUploads: includeUserUploads || onlyUserUploads,
         onlyUserUploads,
         queryOriginSmiles,
+        extraFingerprintTokens: extraFingerprintTokens.length > 0 ? extraFingerprintTokens : undefined,
         flags: { computeMsa, computeCompare },
       });
       setSession((prev) => (prev ? { ...prev, items: [...prev.items, item] } : prev));
@@ -589,13 +596,62 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                   {(reconstructionQuery.error as Error).message || "Failed to load reconstruction."}
                 </Alert>
               )}
-              {reconstructionQuery.data && reconstructionQuery.data.length === 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  No reconstructed primary sequences found for this compound.
-                </Typography>
+              {reconstructionQuery.data &&
+                reconstructionQuery.data.dbMatchingSequences.length === 0 &&
+                reconstructionQuery.data.reconstructions.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    No reconstructed primary sequences found for this compound.
+                  </Typography>
+                )}
+
+              {reconstructionQuery.data && reconstructionQuery.data.dbMatchingSequences.length > 0 && (
+                <>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                    Database-matching sequences -- query with one of these for a fingerprint
+                    guaranteed comparable to what's actually stored
+                  </Typography>
+                  <Stack spacing={1} sx={{ mb: 2 }}>
+                    {reconstructionQuery.data.dbMatchingSequences.map((reconstruction, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          p: 1,
+                          borderRadius: 1,
+                          border: "1px solid",
+                          borderColor: "info.main",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1.5,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Tooltip title={reconstruction.backbone_warning ?? ""}>
+                          <Chip label={`db sequence ${idx + 1}`} size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem" }} />
+                        </Tooltip>
+                        <Box sx={{ transform: "translateY(5px)" }}>
+                          <ReconstructionPreview sequence={reconstruction.primary_sequence} />
+                        </Box>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() =>
+                            handlePickNames(
+                              reconstruction.primary_sequence.map(([name]) => name),
+                              reconstruction.extra_fingerprint_tokens
+                            )
+                          }
+                          sx={{ ml: "auto" }}
+                        >
+                          Use this
+                        </Button>
+                      </Box>
+                    ))}
+                  </Stack>
+                </>
               )}
+
               <Stack spacing={1}>
-                {(reconstructionQuery.data ?? []).map((reconstruction, idx) => {
+                {(reconstructionQuery.data?.reconstructions ?? []).map((reconstruction, idx) => {
                   // Prefer whatever was saved for this reconstruction in the Upload
                   // tab's viewer over the raw algorithm output, so a correction made
                   // there is what actually gets queried here.

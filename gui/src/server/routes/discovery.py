@@ -528,6 +528,7 @@ def run_discovery_query(
     only_user_uploads: bool,
     include_user_uploads: bool,
     session_id: str | None,
+    extra_fingerprint_tokens: list[str] | None = None,
 ) -> tuple[dict, int]:
     """
     Fingerprint a primary sequence, retrieve nearest neighbors from the database, and
@@ -537,14 +538,22 @@ def run_discovery_query(
     lazily via get_discovery_context() the first time it runs in a given worker
     process, same as any other caller of that function.
 
+    :param extra_fingerprint_tokens: names of a compound's tailoring events
+        (glycosylation, methylation, ...) that don't belong in `primary_sequence`
+        itself (they're not part of any chain) but should still count toward the
+        query fingerprint -- mirrors how database/scripts/load_compounds.py folds
+        the same thing into a stored compound entry's fingerprint. Never touches
+        alignment_query below: alignment compares against `primary_sequence` only.
     :return: a (response body, HTTP status code) pair
     """
     ctx = get_discovery_context()
 
     # Fingerprint is built from the display sequence directly (Fingerprinter.encode
     # already treats an empty token list as "unknown", matching how unidentified
-    # blocks were encoded when the database was originally built).
+    # blocks were encoded when the database was originally built), plus any
+    # tailoring-event tokens folded in on top -- see extra_fingerprint_tokens above.
     per_monomer_tokens = [_per_monomer_tokens(name, ctx) for name in primary_sequence]
+    per_monomer_tokens += [_per_monomer_tokens(name, ctx) for name in (extra_fingerprint_tokens or [])]
     query_fp = ctx.fingerprinter.encode(per_monomer_tokens)
 
     # Alignment needs every token to exist in the scoring-matrix alphabet, so
@@ -719,6 +728,7 @@ def discovery_query() -> tuple[Response, int]:
     only_user_uploads = bool(payload.get("onlyUserUploads", False))
     include_user_uploads = bool(payload.get("includeUserUploads", False)) or only_user_uploads
     session_id = payload.get("sessionId")
+    extra_fingerprint_tokens = payload.get("extraFingerprintTokens")
 
     if (
         not isinstance(primary_sequence, list)
@@ -726,6 +736,12 @@ def discovery_query() -> tuple[Response, int]:
         or not all(isinstance(x, str) and x for x in primary_sequence)
     ):
         return jsonify({"error": "primarySequence must be a non-empty list of non-empty strings"}), 400
+
+    if extra_fingerprint_tokens is not None and (
+        not isinstance(extra_fingerprint_tokens, list)
+        or not all(isinstance(x, str) and x for x in extra_fingerprint_tokens)
+    ):
+        return jsonify({"error": "extraFingerprintTokens must be a list of non-empty strings, if given"}), 400
 
     if entry_type not in ENTRY_TYPES_FOR_QUERY:
         return jsonify({"error": f"entryType must be one of {ENTRY_TYPES_FOR_QUERY}"}), 400
@@ -747,6 +763,7 @@ def discovery_query() -> tuple[Response, int]:
         body, status = enqueue_and_wait(
             run_discovery_query,
             primary_sequence, entry_type, n, top_x, score_mode, only_user_uploads, include_user_uploads, session_id,
+            extra_fingerprint_tokens,
         )
     except JobStillRunningError as e:
         return jsonify({"error": str(e)}), 503
@@ -1028,6 +1045,7 @@ def run_discovery_query_job(session_id: str, item_id: str, settings: dict, flags
             settings.get("onlyUserUploads", False),
             settings.get("includeUserUploads", False),
             session_id,
+            settings.get("extraFingerprintTokens"),
         )
         if query_status != 200:
             raise RuntimeError(query_body.get("error", "Discovery query failed"))
@@ -1120,6 +1138,10 @@ def submit_discovery_query() -> tuple[Response, int]:
     query_origin_smiles = payload.get("queryOriginSmiles")
     flags = payload.get("flags") or {}
     name = payload.get("name") or "Discovery query"
+    # A compound's tailoring events (glycosylation, methylation, ...) -- see
+    # run_discovery_query's docstring. Optional: absent/empty means "none", not
+    # an error, since most queries (and every BGC query) won't have any.
+    extra_fingerprint_tokens = payload.get("extraFingerprintTokens")
 
     if not isinstance(session_id, str) or not session_id:
         return jsonify({"error": "Missing sessionId"}), 400
@@ -1130,6 +1152,12 @@ def submit_discovery_query() -> tuple[Response, int]:
         or not all(isinstance(x, str) and x for x in primary_sequence)
     ):
         return jsonify({"error": "primarySequence must be a non-empty list of non-empty strings"}), 400
+
+    if extra_fingerprint_tokens is not None and (
+        not isinstance(extra_fingerprint_tokens, list)
+        or not all(isinstance(x, str) and x for x in extra_fingerprint_tokens)
+    ):
+        return jsonify({"error": "extraFingerprintTokens must be a list of non-empty strings, if given"}), 400
 
     if entry_type not in ENTRY_TYPES_FOR_QUERY:
         return jsonify({"error": f"entryType must be one of {ENTRY_TYPES_FOR_QUERY}"}), 400
@@ -1174,6 +1202,7 @@ def submit_discovery_query() -> tuple[Response, int]:
         "includeUserUploads": include_user_uploads,
         "onlyUserUploads": only_user_uploads,
         "queryOriginSmiles": query_origin_smiles,
+        "extraFingerprintTokens": extra_fingerprint_tokens,
     }
 
     item = {

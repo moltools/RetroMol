@@ -125,7 +125,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
     enabled: open && isCompound,
   });
 
-  const data = reconstructionQuery.data ?? null;
+  const data = reconstructionQuery.data?.reconstructions ?? null;
   const loading = reconstructionQuery.isLoading;
   const error = reconstructionQuery.error
     ? (reconstructionQuery.error as Error).message || "Unknown error"

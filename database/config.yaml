@@ -1,0 +1,34 @@
+sources:
+  # Direct download links. MIBiG ships as tar.gz archives (one file per BGC inside);
+  # NPAtlas ships as a single SDF (optionally gzipped) -- download_sources.py handles
+  # extraction based on the URL's extension either way.
+  npatlas_sdf_url: "https://www.npatlas.org/static/downloads/NPAtlas_download.sdf"
+  mibig_json_url: "https://dl.secondarymetabolites.org/mibig/mibig_json_4.0.tar.gz"
+  mibig_gbk_url: "https://dl.secondarymetabolites.org/mibig/mibig_gbk_4.0.tar.gz"
+
+paths:
+  # Final DuckDB database produced by the pipeline.
+  database: "/Users/davidmeijer/Downloads/retromol.duckdb"
+
+  # Scratch space for downloads and intermediate per-step results.
+  workdir: "/Users/davidmeijer/retromol_tmp"
+
+  # null -> RuleSet.load_default()'s bundled reaction/matching rules.
+  reaction_rules: null
+  matching_rules: null
+
+paras:
+  threshold: 0.1
+  keep_top: 3
+
+  # Path to a training data file to retrain PARAS on the fly before parsing GBKs.
+  # NOT YET IMPLEMENTED -- setting this raises NotImplementedError right now.
+  # null (the default) skips PARAS inference entirely: every NRPS A-domain module
+  # gets an explicit "unknown" substrate instead of a predicted one, rather than
+  # running the bundled pretrained model.
+  training_data_path: null
+
+compute:
+  # Both are embarrassingly parallel over independent compounds/files.
+  parse_compounds_workers: 4
+  parse_gbks_workers: 4
