@@ -7,6 +7,11 @@ primary sequences use (PKS modules resolve to a reduction-level pseudonym like
 against the ruleset) -- see retromol_antismash.modules for why the two module
 types resolve differently. That shared vocabulary is what makes a BGC entry's
 fingerprint and primary sequence comparable to a compound's.
+
+The MIBiG URL needs an accession's version, which parse_gbks.py can no longer
+provide (MIBiG 4.0's GBKs dropped the ACCESSION.VERSION suffix) -- so it's
+looked up here instead, from the same JSON-derived mibig_versions.json
+extract_mibig_compounds.py produces for load_compounds.py.
 """
 
 import argparse
@@ -14,7 +19,7 @@ import json
 import logging
 from pathlib import Path
 
-from common import build_fingerprint_context, load_ruleset
+from common import build_fingerprint_context, load_ruleset, mibig_url
 from retromol_antismash.modules import LinearReadout, bgc_primary_sequence
 from retromol_database.duckdb import RetroMolDuckDB
 
@@ -26,11 +31,15 @@ def run(
     db_path: str | Path,
     reaction_rules_path: str | Path | None,
     matching_rules_path: str | Path | None,
+    mibig_versions_path: str | Path,
     match_stereochemistry: bool = False,
     include_raw_gbk: bool = True,
 ) -> None:
     ruleset = load_ruleset(reaction_rules_path, matching_rules_path, match_stereochemistry)
     _, fingerprinter = build_fingerprint_context(ruleset)
+
+    with open(mibig_versions_path) as fh:
+        versions: dict[str, str] = json.load(fh)
 
     added = 0
     skipped = 0
@@ -52,11 +61,13 @@ def run(
                     continue
 
                 fp = fingerprinter.encode(tokens)
-                name = f"{entry['accession']} ({readout.id})" if entry.get("accession") else readout.id
+                accession = entry.get("accession")
+                name = f"{accession} ({readout.id})" if accession else readout.id
+                url = mibig_url(accession, versions.get(accession)) if accession else None
 
                 db.add_entry(
                     name=name,
-                    url=entry.get("url"),
+                    url=url,
                     raw=entry.get("raw_gbk") if include_raw_gbk else None,
                     entry_type="bgc",
                     primary_sequence=names,
@@ -77,6 +88,7 @@ def main() -> None:
     ap.add_argument("--db-path", required=True)
     ap.add_argument("--rxn-rules", default=None)
     ap.add_argument("--mxn-rules", default=None)
+    ap.add_argument("--mibig-versions", required=True)
     ap.add_argument("--match-stereochemistry", action="store_true")
     ap.add_argument("--no-raw-gbk", action="store_true")
     args = ap.parse_args()
@@ -86,6 +98,7 @@ def main() -> None:
         db_path=args.db_path,
         reaction_rules_path=args.rxn_rules,
         matching_rules_path=args.mxn_rules,
+        mibig_versions_path=args.mibig_versions,
         match_stereochemistry=args.match_stereochemistry,
         include_raw_gbk=not args.no_raw_gbk,
     )

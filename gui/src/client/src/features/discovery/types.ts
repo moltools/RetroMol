@@ -43,6 +43,12 @@ export const SubmitDiscoveryQueryReqSchema = z.object({
   includeUserUploads: z.boolean().optional(),
   onlyUserUploads: z.boolean().optional(),
   queryOriginSmiles: z.string().nullable().optional(),
+  // A compound's tailoring-event names (glycosylation, methylation, ...), carried
+  // over from whichever dbMatchingSequences candidate the query was built from
+  // (see features/reconstruction/types.ts's Reconstruction.extra_fingerprint_tokens).
+  // Folded into the query fingerprint server-side without being displayed as part
+  // of primarySequence -- see run_discovery_query's extra_fingerprint_tokens.
+  extraFingerprintTokens: z.array(z.string().min(1)).optional(),
   flags: z.object({
     computeMsa: z.boolean().optional(),
     computeCompare: z.boolean().optional(),

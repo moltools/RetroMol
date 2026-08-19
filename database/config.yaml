@@ -8,13 +8,10 @@ sources:
 
 paths:
   # Final DuckDB database produced by the pipeline.
-  database: "database/output/retromol.duckdb"
+  database: "/Users/davidmeijer/Downloads/retromol.duckdb"
 
   # Scratch space for downloads and intermediate per-step results.
-  workdir: "database/work"
-
-  # null -> ParasModel downloads/caches its own default model.
-  paras_model: null
+  workdir: "/Users/davidmeijer/retromol_tmp"
 
   # null -> RuleSet.load_default()'s bundled reaction/matching rules.
   reaction_rules: null
@@ -24,7 +21,14 @@ paras:
   threshold: 0.1
   keep_top: 3
 
+  # Path to a training data file to retrain PARAS on the fly before parsing GBKs.
+  # NOT YET IMPLEMENTED -- setting this raises NotImplementedError right now.
+  # null (the default) skips PARAS inference entirely: every NRPS A-domain module
+  # gets an explicit "unknown" substrate instead of a predicted one, rather than
+  # running the bundled pretrained model.
+  training_data_path: null
+
 compute:
   # Both are embarrassingly parallel over independent compounds/files.
   parse_compounds_workers: 4
-  parse_gbks_workers: 2
+  parse_gbks_workers: 4

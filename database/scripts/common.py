@@ -103,7 +103,7 @@ def npatlas_url(npaid: str | None) -> str | None:
     return NPATLAS_URL_TEMPLATE.format(npaid=npaid)
 
 
-def primary_sequences_from_result(result: Result, min_length: int = 2) -> list[list[str]]:
+def primary_sequences_from_result(result: Result, min_length: int = 2) -> tuple[list[list[str]], list[str]]:
     """
     Every candidate primary sequence for a parsed compound, read directly off
     `result.linear_readout.paths` -- no backbone reconstruction involved, that's a
@@ -114,20 +114,42 @@ def primary_sequences_from_result(result: Result, min_length: int = 2) -> list[l
     unidentified node is named "X", the same convention used everywhere else in
     RetroMol.
 
-    `result.linear_readout` includes single-node paths for tailoring events that
-    don't connect to any chain (e.g. a lone "glycosylation" or "methylation") --
-    real for the molecule, but not a "sequence" in any useful sense, so those are
-    dropped by the `min_length` floor.
+    `result.linear_readout` also includes single-node paths for tailoring events
+    that don't connect to any chain -- most commonly glycosylation (AssemblyGraph
+    only keeps C-C/C-N bonds as "connections", so a sugar attached via a glycosidic
+    C-O-C linkage always ends up disconnected from the main chain) and methylation.
+    These aren't a "sequence" in any useful sense, so they're excluded from the
+    returned primary_sequences by the `min_length` floor -- but they're still real,
+    identified content RetroMol found on this molecule, so their names are returned
+    separately as `extra_tokens`, meant to be folded into the fingerprint alongside
+    each primary_sequence (see per_monomer_tokens) without being displayed as part
+    of it. Dropping them from the fingerprint entirely -- the previous behavior --
+    made two compounds differing only in glycosylation pattern (a common source of
+    real biosynthetic diversity, e.g. erythromycin vs. megalomicin) invisible to
+    that difference.
+
+    `extra_tokens` is NOT deduplicated: Fingerprinter.encode has no final
+    normalization step, so each occurrence adds its own weight -- a molecule with
+    two glycosylation events should end up with roughly twice the glycosylation
+    weight of one with a single event, not the same weight collapsed to "some
+    glycosylation happened". Deduping here would throw that count signal away.
 
     :param result: a parsed RetroMol Result
-    :param min_length: drop paths shorter than this (default 2)
-    :return: one name list per path meeting `min_length`
+    :param min_length: drop paths shorter than this from primary_sequences (default 2)
+    :return: (primary_sequences, extra_tokens) -- one extra_tokens entry per
+        qualifying tailoring-event path, duplicates and all
     """
-    return [
-        [node.identity.matched_rule.name if node.is_identified else "X" for node in path]
-        for path in result.linear_readout.paths
-        if len(path) >= min_length
-    ]
+    primary_sequences: list[list[str]] = []
+    extra_tokens: list[str] = []
+
+    for path in result.linear_readout.paths:
+        names = [node.identity.matched_rule.name if node.is_identified else "X" for node in path]
+        if len(path) >= min_length:
+            primary_sequences.append(names)
+        else:
+            extra_tokens.extend(n for n in names if n != "X")
+
+    return primary_sequences, extra_tokens
 
 
 def _init_worker_quiet(ruleset: RuleSet) -> None:

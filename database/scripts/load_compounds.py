@@ -7,6 +7,12 @@ Ambiguous parses intentionally produce multiple queryable entries, the same
 convention the webapp uses for an uploaded compound with more than one candidate
 reading. `raw` is always the original input SMILES, the same for every entry a
 given compound produces.
+
+A compound's tailoring events (glycosylation, methylation -- anything that shows up
+as its own disconnected single-node path, see common.primary_sequences_from_result)
+aren't part of any displayed primary_sequence, but their tokens still get folded
+into every one of that compound's fingerprints, so two compounds that only differ
+by e.g. an attached sugar aren't fingerprint-identical.
 """
 
 import argparse
@@ -90,12 +96,15 @@ def run(
 
                     name = name or result.submission.name or result.submission.inchikey
 
-                    for names in primary_sequences_from_result(result):
+                    sequences, extra_tokens = primary_sequences_from_result(result)
+                    extra_tokens_encoded = [per_monomer_tokens(n, name_to_rule) for n in extra_tokens]
+
+                    for names in sequences:
                         if not names:
                             skipped += 1
                             continue
 
-                        tokens = [per_monomer_tokens(n, name_to_rule) for n in names]
+                        tokens = [per_monomer_tokens(n, name_to_rule) for n in names] + extra_tokens_encoded
                         fp = fingerprinter.encode(tokens)
 
                         db.add_entry(

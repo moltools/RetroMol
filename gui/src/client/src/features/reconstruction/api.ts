@@ -3,18 +3,25 @@ import { saveSession } from "../session/api";
 import type { Session } from "../session/types";
 import { ReconstructCompoundRespSchema, Reconstruction, PrimarySequenceItem } from "./types";
 
+export interface ReconstructCompoundResult {
+  reconstructions: Reconstruction[];
+  // Candidates built to match the database's own recipe -- prefer these for a
+  // discovery query. See ReconstructCompoundRespSchema.dbMatchingSequences.
+  dbMatchingSequences: Reconstruction[];
+}
+
 export async function reconstructCompound(
   sessionId: string,
   itemId: string,
   signal?: AbortSignal
-): Promise<Reconstruction[]> {
+): Promise<ReconstructCompoundResult> {
   const data = await postJson(
     "/api/reconstructCompound",
     { sessionId, itemId },
     ReconstructCompoundRespSchema,
     signal
   );
-  return data.data;
+  return { reconstructions: data.data, dbMatchingSequences: data.dbMatchingSequences };
 }
 
 function withEditedPrimarySequences(

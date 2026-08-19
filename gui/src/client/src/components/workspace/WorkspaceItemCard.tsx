@@ -161,7 +161,7 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
     queryFn: ({ signal }) => reconstructCompound(session.sessionId, item.id, signal),
     enabled: expanded && isCompound,
   });
-  const reconstructions = reconstructionQuery.data ?? null;
+  const reconstructions = reconstructionQuery.data?.reconstructions ?? null;
   const editor = usePrimarySequenceEditor(session, setSession, item, reconstructions);
   // See DialogViewItem's isUnordered -- an unordered "bag of motifs" result isn't a
   // sequence, so there's nothing meaningful to drag-and-drop reorder.

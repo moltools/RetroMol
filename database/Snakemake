@@ -31,10 +31,10 @@ MARKERS = WORKDIR / "markers"
 
 RXN_RULES = config["paths"].get("reaction_rules")
 MXN_RULES = config["paths"].get("matching_rules")
-PARAS_MODEL_PATH = config["paths"].get("paras_model")
 
 PARAS_THRESHOLD = config["paras"]["threshold"]
 PARAS_KEEP_TOP = config["paras"]["keep_top"]
+PARAS_TRAINING_DATA_PATH = config["paras"].get("training_data_path")
 
 PARSE_COMPOUNDS_WORKERS = config["compute"]["parse_compounds_workers"]
 PARSE_GBKS_WORKERS = config["compute"]["parse_gbks_workers"]
@@ -154,10 +154,19 @@ rule extract_mibig_compounds:
     input:
         extract_dir=WORKDIR / "mibig_json" / "extracted"
     output:
-        compounds=WORKDIR / "mibig_json" / "compounds.jsonl"
+        compounds=WORKDIR / "mibig_json" / "compounds.jsonl",
+        # Sole source of MIBiG accession -> version now (see extract_mibig_compounds.py
+        # module docstring): MIBiG 4.0's GBKs dropped the ACCESSION.VERSION suffix
+        # parse_gbks.py used to read this from, but the JSON's own top-level "version"
+        # field still has it.
+        versions=WORKDIR / "mibig_json" / "versions.json"
     run:
         import extract_mibig_compounds
-        extract_mibig_compounds.run(mibig_json_dir=input.extract_dir, output_path=output.compounds)
+        extract_mibig_compounds.run(
+            mibig_json_dir=input.extract_dir,
+            output_path=output.compounds,
+            versions_output_path=output.versions,
+        )
 
 
 rule parse_mibig_compounds:
@@ -181,10 +190,9 @@ rule parse_mibig_compounds:
 rule load_mibig_compounds:
     input:
         results=WORKDIR / "mibig_json" / "results.jsonl",
-        # Depends on the GBK-derived version map, not just the npatlas-load marker,
-        # since MIBiG URLs need an accession's version (only present in the GBKs'
-        # ACCESSION/VERSION line, see common.split_accession_version).
-        versions=WORKDIR / "mibig_gbk" / "versions.json",
+        # MIBiG URLs need an accession's version, from the JSON (see
+        # extract_mibig_compounds rule above) -- not from the GBKs, which no longer carry it.
+        versions=WORKDIR / "mibig_json" / "versions.json",
         prev=MARKERS / "npatlas_loaded.done"
     output:
         marker=touch(MARKERS / "mibig_compounds_loaded.done")
@@ -208,18 +216,16 @@ rule parse_mibig_gbks:
     input:
         gbk_dir=WORKDIR / "mibig_gbk" / "extracted"
     output:
-        readouts=WORKDIR / "mibig_gbk" / "readouts.jsonl",
-        versions=WORKDIR / "mibig_gbk" / "versions.json"
+        readouts=WORKDIR / "mibig_gbk" / "readouts.jsonl"
     threads: PARSE_GBKS_WORKERS
     run:
         import parse_gbks
         parse_gbks.run(
             gbk_dir=input.gbk_dir,
             readouts_output_path=output.readouts,
-            versions_output_path=output.versions,
             paras_threshold=PARAS_THRESHOLD,
             paras_keep_top=PARAS_KEEP_TOP,
-            paras_model_path=PARAS_MODEL_PATH,
+            paras_training_data_path=PARAS_TRAINING_DATA_PATH,
             workers=threads,
         )
 
@@ -227,6 +233,7 @@ rule parse_mibig_gbks:
 rule load_mibig_bgcs:
     input:
         readouts=WORKDIR / "mibig_gbk" / "readouts.jsonl",
+        versions=WORKDIR / "mibig_json" / "versions.json",
         prev=MARKERS / "mibig_compounds_loaded.done"
     output:
         marker=touch(MARKERS / "bgcs_loaded.done")
@@ -237,4 +244,5 @@ rule load_mibig_bgcs:
             db_path=DB_PATH,
             reaction_rules_path=RXN_RULES,
             matching_rules_path=MXN_RULES,
+            mibig_versions_path=input.versions,
         )
