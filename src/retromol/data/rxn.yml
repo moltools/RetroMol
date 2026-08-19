@@ -121,8 +121,14 @@
 - name: reverse etherification (5-ring; no hydroxyl group)
   smarts: "[C:1]-[C:2]([C:5]~[C:7]1)-[O:3]-[C:4]1[C:8][C:9]>>([C:1]-[C:2]([C:5][C:7]1)-[OH0:3].[C:4]1=[C:8][C:9])"
 
-- name: reverse macrolactonization
-  smarts: "[C;R:1][C;R:2](=[O:3])[O;R:4][C;R:5]>>([C:1][C:2](=[O:3])[OH].[OH:4][C:5])"
+- name: reverse macrolactonization type 1
+  smarts: "[C;R;!r6:1](=[O:2])[O;R;!r6:3][C;R;!r6:4]>>([C:1](=[O:2])[OH].[OH:3][C:4])"
+
+- name: reverse macrolactonization type 2
+  smarts: '[*;r6:1][*;r6:2]-[C;r6:3][C;r6:4](=[O:5])[O;r6:6][C;r6:7]>>([*:1][*:2]-[C:3][C:4](=[O:5])[OH].[OH:6][C:7])'
+
+- name: reverse macrolactonization type 3
+  smarts: '[*;r6:1][*;r6:2]=[C;r6:3][C;r6:4](=[O:5])[O;r6:6][C;r6:7]>>([*:1]/[*:2]=[C:3]\[C:4](=[O:5])[OH].[OH:6][C:7])'
 
 - name: break ester bond (intermolecular)
   smarts: "[C,c:1][C;!R:2](=[O:3])[O;!R:4][C:5]>>[C,c:1][C:2](=[O:3])[OH].[OH:4][C:5]"
