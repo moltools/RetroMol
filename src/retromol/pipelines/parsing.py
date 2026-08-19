@@ -34,7 +34,10 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
     g = ReactionGraph()
 
     original_taken_tags = get_tags_mol(submission.mol)
-    stereo_registry = submission.stereo_registry
+    # Copy so bonds discovered mid-pipeline (e.g. a double bond that only becomes
+    # stereo-defined once a ring is opened) can be merged in without mutating the
+    # Submission's own registry.
+    stereo_registry = dict(submission.stereo_registry)
     failed_combos: set[tuple[int, frozenset[int]]] = set()
 
     # Track queue/expansion status by encoding to avoid duplicate work

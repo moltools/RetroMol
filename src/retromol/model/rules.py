@@ -22,7 +22,7 @@ from retromol.chem.mol import (
     reassign_stereochemistry,
 )
 from retromol.chem.reaction import smarts_to_reaction, reactive_template_atoms
-from retromol.chem.stereo import BondStereoRecord, restore_double_bond_stereo
+from retromol.chem.stereo import BondStereoRecord, capture_double_bond_stereo, restore_double_bond_stereo
 from retromol.chem.tagging import get_tags_mol
 from retromol.chem.masking import is_masked_preserved
 
@@ -131,8 +131,18 @@ class ReactionRule:
 
                 # Restore E/Z stereo the reaction couldn't reconstruct itself, where the
                 # original input molecule had it defined for this same bond
-                if stereo_registry:
-                    prod = restore_double_bond_stereo(prod, stereo_registry)
+                if stereo_registry is not None:
+                    if stereo_registry:
+                        prod = restore_double_bond_stereo(prod, stereo_registry)
+
+                    # A bond can also become stereo-defined by this reaction (e.g. a
+                    # ring-opening rule whose product SMARTS hardcodes `/`/`\` geometry
+                    # on a bond that was inside a ring, and therefore not stereo-defined,
+                    # in the reactant). Record any such new bonds so later reactions on
+                    # this product's descendants, which may not hardcode stereo
+                    # themselves, can still restore it via the registry.
+                    for key, record in capture_double_bond_stereo(prod).items():
+                        stereo_registry.setdefault(key, record)
 
                 products.append(prod)
                 atom_tag_sets.append(get_tags_mol(prod))
