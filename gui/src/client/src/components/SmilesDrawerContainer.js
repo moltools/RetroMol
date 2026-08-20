@@ -81,6 +81,9 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
             for (const vertex of vertices) {
                 vertex.position.x = 2 * centerX - vertex.position.x;
             }
+            for (const ring of this.preprocessor?.rings ?? []) {
+                ring.center.x = 2 * centerX - ring.center.x;
+            }
         }
 
         // 2) replace Sn with wildcard atom
@@ -112,6 +115,9 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
         for (const vertex of vertices) {
             vertex.position.x = 2 * centerX - vertex.position.x;
+        }
+        for (const ring of this.preprocessor?.rings ?? []) {
+            ring.center.x = 2 * centerX - ring.center.x;
         }
     }
 
