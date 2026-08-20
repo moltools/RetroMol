@@ -168,6 +168,44 @@ def run_retromol_stream_quiet(
                 yield ResultEvent(serialized, err)
 
 
+# Common secondary-metabolite-producing fungal genera -- MIBiG's JSON has no direct
+# kingdom/type field (unlike NPAtlas), so `phylogeny_from_organism_name` falls back to
+# this bundled set to distinguish fungal from bacterial entries. MIBiG is overwhelmingly
+# bacterial, so "bacterium" is the default and this set only needs to catch the fungal
+# minority. Not exhaustive -- a genus missing from this list is classified "bacterium".
+FUNGAL_GENERA = {
+    "aspergillus", "penicillium", "fusarium", "trichoderma", "curvularia",
+    "colletotrichum", "alternaria", "cladosporium", "talaromyces", "chaetomium",
+    "acremonium", "beauveria", "metarhizium", "monascus", "epicoccum",
+    "pestalotiopsis", "phoma", "botrytis", "verticillium", "myrothecium",
+}
+
+
+def phylogeny_from_organism_name(organism_name: str | None) -> tuple[str | None, str | None, str | None]:
+    """Split MIBiG's free-text `organism_name` (e.g. "Streptomyces coelicolor A3(2)")
+    into (type, genus, species). Type is inferred from `FUNGAL_GENERA` since MIBiG's
+    JSON carries no kingdom field; genus/species are the name's first two tokens, with
+    species dropped when the second token is "sp."/"sp" (strain-only identification).
+
+    :param organism_name: MIBiG cluster.organism_name, or None
+    :return: (type_label, genus, species) -- each may be None if unresolvable
+    """
+    if not organism_name:
+        return None, None, None
+
+    tokens = organism_name.split()
+    if not tokens:
+        return None, None, None
+
+    genus = tokens[0]
+    species = tokens[1] if len(tokens) > 1 else None
+    if species is not None and species.rstrip(".").lower() == "sp":
+        species = None
+
+    type_label = "Fungus" if genus.lower() in FUNGAL_GENERA else "Bacterium"
+    return type_label, genus, species
+
+
 def split_accession_version(record_id: str) -> tuple[str, str | None]:
     """
     Split a GenBank-style "ACCESSION.VERSION" id (e.g. "BGC0000001.5") in two.

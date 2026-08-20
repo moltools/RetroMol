@@ -17,3 +17,13 @@ export const DatabaseStatsRespSchema = z.object({
   withoutSourceUrlCount: z.number().int().nonnegative(),
 });
 export type DatabaseStatsResp = z.output<typeof DatabaseStatsRespSchema>;
+
+export const AnnotationStatsRespSchema = z.object({
+  withAnnotationCount: z.number().int().nonnegative(),
+  withoutAnnotationCount: z.number().int().nonnegative(),
+  countsByCategory: z.array(CountSchema),
+  phylogenyTypeCounts: z.array(CountSchema),
+  topGenera: z.array(CountSchema),
+  chemicalClassCounts: z.array(CountSchema),
+});
+export type AnnotationStatsResp = z.output<typeof AnnotationStatsRespSchema>;

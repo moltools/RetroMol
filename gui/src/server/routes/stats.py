@@ -27,3 +27,18 @@ def database_stats() -> tuple[Response, int]:
 
     payload = {_to_camel_case(k): v for k, v in asdict(stats).items()}
     return jsonify(payload), 200
+
+
+@blp_database_stats.get("/api/annotationStats")
+def annotation_stats() -> tuple[Response, int]:
+    """
+    Summary statistics over the annotation_terms/entry_annotations tables (phylogeny,
+    chemical class, ... coverage and per-label counts), for the workspace home tab.
+
+    :return: a tuple containing the stats payload and an HTTP status code
+    """
+    with open_retromol_db() as db:
+        stats = db.annotation_stats()
+
+    payload = {_to_camel_case(k): v for k, v in asdict(stats).items()}
+    return jsonify(payload), 200

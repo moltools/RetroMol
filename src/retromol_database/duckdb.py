@@ -61,6 +61,39 @@ class DatabaseStats:
     without_source_url_count: int
 
 
+@dataclass(frozen=True)
+class AnnotationTerm:
+    id: str
+    category: str
+    rank: str | None
+    label: str
+    parent_id: str | None
+
+
+@dataclass(frozen=True)
+class BrowseEntry:
+    id: str
+    type: EntryType
+    name: str
+    url: str | None
+    raw: str | None
+    sources: list[EntrySource]
+    phylogeny_type: str | None
+    genus: str | None
+    species: str | None
+    chemical_classes: list[str]
+
+
+@dataclass(frozen=True)
+class AnnotationStats:
+    with_annotation_count: int
+    without_annotation_count: int
+    counts_by_category: list[Count]
+    phylogeny_type_counts: list[Count]
+    top_genera: list[Count]
+    chemical_class_counts: list[Count]
+
+
 def _normalize_entry_type(entry_type: str) -> EntryType:
     if entry_type not in ENTRY_TYPES:
         raise ValueError(f"entry type must be one of {ENTRY_TYPES}, got {entry_type}")
@@ -146,6 +179,26 @@ class RetroMolDuckDB:
             )
             """
         )
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS annotation_terms (
+                id VARCHAR PRIMARY KEY,
+                category VARCHAR NOT NULL,
+                rank VARCHAR,
+                label VARCHAR NOT NULL,
+                parent_id VARCHAR
+            )
+            """
+        )
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS entry_annotations (
+                entry_id VARCHAR NOT NULL,
+                term_id VARCHAR NOT NULL,
+                PRIMARY KEY (entry_id, term_id)
+            )
+            """
+        )
 
     def add_entry(
         self,
@@ -206,6 +259,361 @@ class RetroMolDuckDB:
 
     def count(self) -> int:
         return int(self.con.execute("SELECT count(*) FROM entries").fetchone()[0])
+
+    def add_annotation_term(
+        self,
+        *,
+        term_id: str,
+        category: str,
+        label: str,
+        rank: str | None = None,
+        parent_id: str | None = None,
+    ) -> str:
+        """Add (or no-op if already present) a single annotation term. `term_id` is a
+        caller-supplied deterministic slug (e.g. "phylogeny:genus:bacterium:streptomyces")
+        so repeated calls for the same term across many entries are idempotent."""
+        self.con.execute(
+            """
+            INSERT INTO annotation_terms (id, category, rank, label, parent_id)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            [term_id, category, rank, label, parent_id],
+        )
+        return term_id
+
+    def link_entry_annotation(self, entry_id: str, term_id: str) -> None:
+        self.con.execute(
+            """
+            INSERT INTO entry_annotations (entry_id, term_id)
+            VALUES (?, ?)
+            ON CONFLICT (entry_id, term_id) DO NOTHING
+            """,
+            [entry_id, term_id],
+        )
+
+    def add_phylogeny_annotation(
+        self,
+        entry_id: str,
+        *,
+        type_label: str | None,
+        genus: str | None,
+        species: str | None,
+    ) -> None:
+        """Link `entry_id` to whichever of type/genus/species is resolvable, linking every
+        level (not just the most specific one) so term-level queries at any rank don't need
+        to walk the parent_id chain. `species` is ignored if `genus` isn't given."""
+        if not type_label:
+            return
+
+        type_id = self.add_annotation_term(
+            term_id=f"phylogeny:type:{type_label.lower()}",
+            category="phylogeny",
+            rank="type",
+            label=type_label,
+        )
+        self.link_entry_annotation(entry_id, type_id)
+
+        if not genus:
+            return
+
+        genus_id = self.add_annotation_term(
+            term_id=f"phylogeny:genus:{type_label.lower()}:{genus.lower()}",
+            category="phylogeny",
+            rank="genus",
+            label=genus,
+            parent_id=type_id,
+        )
+        self.link_entry_annotation(entry_id, genus_id)
+
+        if not species:
+            return
+
+        species_id = self.add_annotation_term(
+            term_id=f"phylogeny:species:{type_label.lower()}:{genus.lower()}:{species.lower()}",
+            category="phylogeny",
+            rank="species",
+            label=species,
+            parent_id=genus_id,
+        )
+        self.link_entry_annotation(entry_id, species_id)
+
+    def add_flat_annotation(self, entry_id: str, *, category: str, label: str) -> None:
+        """Link `entry_id` to a single, non-hierarchical term (e.g. chemical_class, bioactivity)."""
+        term_id = self.add_annotation_term(
+            term_id=f"{category}:{label.lower()}",
+            category=category,
+            label=label,
+        )
+        self.link_entry_annotation(entry_id, term_id)
+
+    def count_entries_by_type(self, entry_types: Sequence[str]) -> int:
+        if not entry_types:
+            return 0
+        types = [_normalize_entry_type(t) for t in entry_types]
+        return int(
+            self.con.execute(
+                "SELECT count(*) FROM entries WHERE type IN (SELECT UNNEST(?))",
+                [types],
+            ).fetchone()[0]
+        )
+
+    def annotation_term_counts(self, entry_ids: Sequence[str]) -> dict[str, int]:
+        """For every term linked to at least one of the given entry ids, how many of those
+        ids carry it. Used as the "selected" side of an enrichment contingency table."""
+        if not entry_ids:
+            return {}
+
+        rows = self.con.execute(
+            """
+            SELECT term_id, count(DISTINCT entry_id)
+            FROM entry_annotations
+            WHERE entry_id IN (SELECT UNNEST(?))
+            GROUP BY term_id
+            """,
+            [list(entry_ids)],
+        ).fetchall()
+        return {str(row[0]): int(row[1]) for row in rows}
+
+    def annotation_term_counts_for_types(self, entry_types: Sequence[str]) -> dict[str, int]:
+        """For every term, how many entries of the given type(s) carry it -- the
+        "background pool" side of an enrichment contingency table."""
+        if not entry_types:
+            return {}
+
+        types = [_normalize_entry_type(t) for t in entry_types]
+        rows = self.con.execute(
+            """
+            SELECT ea.term_id, count(DISTINCT ea.entry_id)
+            FROM entry_annotations ea
+            JOIN entries e ON e.id = ea.entry_id
+            WHERE e.type IN (SELECT UNNEST(?))
+            GROUP BY ea.term_id
+            """,
+            [types],
+        ).fetchall()
+        return {str(row[0]): int(row[1]) for row in rows}
+
+    def annotation_terms_by_ids(self, term_ids: Sequence[str]) -> dict[str, AnnotationTerm]:
+        if not term_ids:
+            return {}
+
+        rows = self.con.execute(
+            """
+            SELECT id, category, rank, label, parent_id
+            FROM annotation_terms
+            WHERE id IN (SELECT UNNEST(?))
+            """,
+            [list(term_ids)],
+        ).fetchall()
+        return {
+            str(row[0]): AnnotationTerm(
+                id=str(row[0]), category=str(row[1]), rank=row[2], label=str(row[3]), parent_id=row[4]
+            )
+            for row in rows
+        }
+
+    def list_annotation_terms(self, category: str | None = None) -> list[AnnotationTerm]:
+        """Every annotation term in the database (not just ones with entries counted),
+        for populating a filter dropdown in the Browse tab."""
+        where_sql = ""
+        params: list[object] = []
+        if category is not None:
+            where_sql = "WHERE category = ?"
+            params.append(category)
+
+        rows = self.con.execute(
+            f"""
+            SELECT id, category, rank, label, parent_id
+            FROM annotation_terms
+            {where_sql}
+            ORDER BY category, rank NULLS FIRST, label
+            """,
+            params,
+        ).fetchall()
+        return [
+            AnnotationTerm(id=str(r[0]), category=str(r[1]), rank=r[2], label=str(r[3]), parent_id=r[4])
+            for r in rows
+        ]
+
+    def browse_entries(
+        self, *, entry_type: str | None = None, term_id: str | None = None
+    ) -> list[BrowseEntry]:
+        """Every entry (optionally filtered by type and/or a single annotation term id --
+        matching phylogeny at any rank or a chemical class), with its sources and
+        annotations attached. Used for both the Browse tab's table and its TSV export --
+        both need the whole matching set, not a similarity-ranked slice."""
+        where_sql = []
+        params: list[object] = []
+
+        if entry_type is not None:
+            entry_type = _normalize_entry_type(entry_type)
+            where_sql.append("e.type = ?")
+            params.append(entry_type)
+
+        if term_id is not None:
+            where_sql.append("e.id IN (SELECT entry_id FROM entry_annotations WHERE term_id = ?)")
+            params.append(term_id)
+
+        where_clause = f"WHERE {' AND '.join(where_sql)}" if where_sql else ""
+
+        rows = self.con.execute(
+            f"""
+            SELECT e.id, e.raw, e.type, e.primary_sequence, e.fingerprint
+            FROM entries e
+            {where_clause}
+            ORDER BY e.id
+            """,
+            params,
+        ).fetchall()
+
+        entry_ids = [str(row[0]) for row in rows]
+        sources_by_id = self._sources_for_entry_ids(entry_ids)
+
+        annotation_rows = (
+            self.con.execute(
+                """
+                SELECT ea.entry_id, t.category, t.rank, t.label
+                FROM entry_annotations ea
+                JOIN annotation_terms t ON t.id = ea.term_id
+                WHERE ea.entry_id IN (SELECT UNNEST(?))
+                """,
+                [entry_ids],
+            ).fetchall()
+            if entry_ids
+            else []
+        )
+
+        phylogeny_type_by_id: dict[str, str] = {}
+        genus_by_id: dict[str, str] = {}
+        species_by_id: dict[str, str] = {}
+        chemical_classes_by_id: dict[str, list[str]] = {}
+        for entry_id, category, rank, label in annotation_rows:
+            entry_id = str(entry_id)
+            if category == "phylogeny" and rank == "type":
+                phylogeny_type_by_id[entry_id] = str(label)
+            elif category == "phylogeny" and rank == "genus":
+                genus_by_id[entry_id] = str(label)
+            elif category == "phylogeny" and rank == "species":
+                species_by_id[entry_id] = str(label)
+            elif category == "chemical_class":
+                chemical_classes_by_id.setdefault(entry_id, []).append(str(label))
+
+        out: list[BrowseEntry] = []
+        for row in rows:
+            entry_id = str(row[0])
+            entry = _entry_from_row(row, sources_by_id.get(entry_id, []))
+            out.append(
+                BrowseEntry(
+                    id=entry.id,
+                    type=entry.type,
+                    name=entry.name,
+                    url=entry.url,
+                    raw=entry.raw,
+                    sources=entry.sources,
+                    phylogeny_type=phylogeny_type_by_id.get(entry_id),
+                    genus=genus_by_id.get(entry_id),
+                    species=species_by_id.get(entry_id),
+                    chemical_classes=chemical_classes_by_id.get(entry_id, []),
+                )
+            )
+        return out
+
+    def search_entries(
+        self, query: str, *, entry_type: str | None = None, limit: int = 100
+    ) -> list[Entry]:
+        """Look up up to `limit` entries by a case-insensitive substring match on any of
+        their source names, or an exact match on their id -- the "query and select" lookup
+        used by the Enrichment tab (distinct from `closest()`'s fingerprint-similarity search)."""
+        if limit < 1:
+            raise ValueError("limit must be >= 1")
+
+        where_sql = "WHERE (e.id = $2 OR es.name ILIKE '%' || $2 || '%')"
+        params: list[object] = [limit, query]
+
+        if entry_type is not None:
+            entry_type = _normalize_entry_type(entry_type)
+            where_sql += " AND e.type = $3"
+            params.append(entry_type)
+
+        rows = self.con.execute(
+            f"""
+            SELECT DISTINCT e.id, e.raw, e.type, e.primary_sequence, e.fingerprint
+            FROM entries e
+            LEFT JOIN entry_sources es ON es.entry_id = e.id
+            {where_sql}
+            ORDER BY e.id
+            LIMIT $1
+            """,
+            params,
+        ).fetchall()
+
+        sources_by_id = self._sources_for_entry_ids([str(row[0]) for row in rows])
+        return [_entry_from_row(row, sources_by_id.get(str(row[0]), [])) for row in rows]
+
+    def annotation_stats(self) -> AnnotationStats:
+        """Summary counts over annotation_terms/entry_annotations, for the Dashboard."""
+        with_annotation_count = int(
+            self.con.execute("SELECT count(DISTINCT entry_id) FROM entry_annotations").fetchone()[0]
+        )
+        without_annotation_count = self.count() - with_annotation_count
+
+        category_rows = self.con.execute(
+            """
+            SELECT t.category, count(DISTINCT ea.entry_id)
+            FROM entry_annotations ea
+            JOIN annotation_terms t ON t.id = ea.term_id
+            GROUP BY t.category
+            ORDER BY t.category
+            """
+        ).fetchall()
+        counts_by_category = [Count(label=str(row[0]), count=int(row[1])) for row in category_rows]
+
+        phylogeny_type_rows = self.con.execute(
+            """
+            SELECT t.label, count(DISTINCT ea.entry_id)
+            FROM entry_annotations ea
+            JOIN annotation_terms t ON t.id = ea.term_id
+            WHERE t.category = 'phylogeny' AND t.rank = 'type'
+            GROUP BY t.label
+            ORDER BY count(DISTINCT ea.entry_id) DESC
+            """
+        ).fetchall()
+        phylogeny_type_counts = [Count(label=str(row[0]), count=int(row[1])) for row in phylogeny_type_rows]
+
+        genus_rows = self.con.execute(
+            """
+            SELECT t.label, count(DISTINCT ea.entry_id)
+            FROM entry_annotations ea
+            JOIN annotation_terms t ON t.id = ea.term_id
+            WHERE t.category = 'phylogeny' AND t.rank = 'genus'
+            GROUP BY t.label
+            ORDER BY count(DISTINCT ea.entry_id) DESC
+            LIMIT 15
+            """
+        ).fetchall()
+        top_genera = [Count(label=str(row[0]), count=int(row[1])) for row in genus_rows]
+
+        chem_class_rows = self.con.execute(
+            """
+            SELECT t.label, count(DISTINCT ea.entry_id)
+            FROM entry_annotations ea
+            JOIN annotation_terms t ON t.id = ea.term_id
+            WHERE t.category = 'chemical_class'
+            GROUP BY t.label
+            ORDER BY count(DISTINCT ea.entry_id) DESC
+            """
+        ).fetchall()
+        chemical_class_counts = [Count(label=str(row[0]), count=int(row[1])) for row in chem_class_rows]
+
+        return AnnotationStats(
+            with_annotation_count=with_annotation_count,
+            without_annotation_count=without_annotation_count,
+            counts_by_category=counts_by_category,
+            phylogeny_type_counts=phylogeny_type_counts,
+            top_genera=top_genera,
+            chemical_class_counts=chemical_class_counts,
+        )
 
     def stats(self) -> DatabaseStats:
         """
@@ -315,6 +723,24 @@ class RetroMolDuckDB:
 
         sources = self._sources_for_entry_ids([entry_id]).get(entry_id, [])
         return _entry_from_row(row, sources)
+
+    def get_entries(self, entry_ids: Sequence[str]) -> list[Entry]:
+        """Batch version of get_entry -- one round trip for up to `len(entry_ids)` entries,
+        in no particular order (missing ids are silently omitted, not errored)."""
+        if not entry_ids:
+            return []
+
+        rows = self.con.execute(
+            """
+            SELECT id, raw, type, primary_sequence, fingerprint
+            FROM entries
+            WHERE id IN (SELECT UNNEST(?))
+            """,
+            [list(entry_ids)],
+        ).fetchall()
+
+        sources_by_id = self._sources_for_entry_ids([str(row[0]) for row in rows])
+        return [_entry_from_row(row, sources_by_id.get(str(row[0]), [])) for row in rows]
 
     def iter_entries(self) -> Iterator[Entry]:
         rows = self.con.execute(

@@ -66,17 +66,37 @@ def _iter_compound_records(data: dict[str, Any], root: dict[str, Any], accession
         }
 
 
-def run(mibig_json_dir: str | Path, output_path: str | Path, versions_output_path: str | Path) -> None:
+def _annotations(root: dict[str, Any]) -> dict[str, Any]:
+    """Phylogeny + chemical-class metadata shared by every compound/BGC under one accession."""
+    organism_name = root.get("organism_name")
+    ncbi_tax_id = root.get("ncbi_tax_id")
+    biosyn_class = root.get("biosyn_class")
+    return {
+        "organism_name": organism_name if isinstance(organism_name, str) else None,
+        "ncbi_tax_id": str(ncbi_tax_id) if ncbi_tax_id is not None else None,
+        "biosyn_class": biosyn_class if isinstance(biosyn_class, list) else [],
+    }
+
+
+def run(
+    mibig_json_dir: str | Path,
+    output_path: str | Path,
+    versions_output_path: str | Path,
+    annotations_output_path: str | Path,
+) -> None:
     mibig_json_dir = Path(mibig_json_dir)
     output_path = Path(output_path)
     versions_output_path = Path(versions_output_path)
+    annotations_output_path = Path(annotations_output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     versions_output_path.parent.mkdir(parents=True, exist_ok=True)
+    annotations_output_path.parent.mkdir(parents=True, exist_ok=True)
 
     json_files = sorted(mibig_json_dir.rglob("*.json"))
     written = 0
     skipped = 0
     versions: dict[str, str] = {}
+    annotations: dict[str, dict[str, Any]] = {}
 
     with open(output_path, "w") as out:
         for path in json_files:
@@ -98,6 +118,8 @@ def run(mibig_json_dir: str | Path, output_path: str | Path, versions_output_pat
                 if version is not None:
                     versions[accession] = version
 
+                annotations[accession] = _annotations(root)
+
                 had_any = False
                 for record in _iter_compound_records(data, root, accession):
                     out.write(json.dumps(record) + "\n")
@@ -112,9 +134,13 @@ def run(mibig_json_dir: str | Path, output_path: str | Path, versions_output_pat
     with open(versions_output_path, "w") as fh:
         json.dump(versions, fh, indent=2, sort_keys=True)
 
+    with open(annotations_output_path, "w") as fh:
+        json.dump(annotations, fh, indent=2, sort_keys=True)
+
     log.info(
-        "extract_mibig_compounds: wrote %d compound records, skipped %d files, resolved %d accession versions",
-        written, skipped, len(versions),
+        "extract_mibig_compounds: wrote %d compound records, skipped %d files, "
+        "resolved %d accession versions, %d accession annotations",
+        written, skipped, len(versions), len(annotations),
     )
 
 
@@ -125,9 +151,15 @@ def main() -> None:
     ap.add_argument("--mibig-json-dir", required=True)
     ap.add_argument("--output", required=True)
     ap.add_argument("--versions-output", required=True)
+    ap.add_argument("--annotations-output", required=True)
     args = ap.parse_args()
 
-    run(mibig_json_dir=args.mibig_json_dir, output_path=args.output, versions_output_path=args.versions_output)
+    run(
+        mibig_json_dir=args.mibig_json_dir,
+        output_path=args.output,
+        versions_output_path=args.versions_output,
+        annotations_output_path=args.annotations_output,
+    )
 
 
 if __name__ == "__main__":

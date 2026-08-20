@@ -159,13 +159,18 @@ rule extract_mibig_compounds:
         # module docstring): MIBiG 4.0's GBKs dropped the ACCESSION.VERSION suffix
         # parse_gbks.py used to read this from, but the JSON's own top-level "version"
         # field still has it.
-        versions=WORKDIR / "mibig_json" / "versions.json"
+        versions=WORKDIR / "mibig_json" / "versions.json",
+        # accession -> {organism_name, ncbi_tax_id, biosyn_class}, consumed by both
+        # load_mibig_compounds and load_mibig_bgcs to populate phylogeny/chemical_class
+        # annotations (see RetroMolDuckDB.add_phylogeny_annotation/add_flat_annotation).
+        annotations=WORKDIR / "mibig_json" / "annotations.json"
     run:
         import extract_mibig_compounds
         extract_mibig_compounds.run(
             mibig_json_dir=input.extract_dir,
             output_path=output.compounds,
             versions_output_path=output.versions,
+            annotations_output_path=output.annotations,
         )
 
 
@@ -193,6 +198,7 @@ rule load_mibig_compounds:
         # MIBiG URLs need an accession's version, from the JSON (see
         # extract_mibig_compounds rule above) -- not from the GBKs, which no longer carry it.
         versions=WORKDIR / "mibig_json" / "versions.json",
+        annotations=WORKDIR / "mibig_json" / "annotations.json",
         prev=MARKERS / "npatlas_loaded.done"
     output:
         marker=touch(MARKERS / "mibig_compounds_loaded.done")
@@ -205,6 +211,7 @@ rule load_mibig_compounds:
             reaction_rules_path=RXN_RULES,
             matching_rules_path=MXN_RULES,
             mibig_versions_path=input.versions,
+            mibig_annotations_path=input.annotations,
         )
 
 
@@ -234,6 +241,7 @@ rule load_mibig_bgcs:
     input:
         readouts=WORKDIR / "mibig_gbk" / "readouts.jsonl",
         versions=WORKDIR / "mibig_json" / "versions.json",
+        annotations=WORKDIR / "mibig_json" / "annotations.json",
         prev=MARKERS / "mibig_compounds_loaded.done"
     output:
         marker=touch(MARKERS / "bgcs_loaded.done")
@@ -245,4 +253,5 @@ rule load_mibig_bgcs:
             reaction_rules_path=RXN_RULES,
             matching_rules_path=MXN_RULES,
             mibig_versions_path=input.versions,
+            mibig_annotations_path=input.annotations,
         )

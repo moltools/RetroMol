@@ -9,8 +9,9 @@ import Skeleton from "@mui/material/Skeleton";
 import { useTheme } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
 import { PieChart } from "@mui/x-charts/PieChart";
-import { getDatabaseStats } from "../../features/database/api";
-import { DatabaseStatsResp } from "../../features/database/types";
+import { BarChart } from "@mui/x-charts/BarChart";
+import { getDatabaseStats, getAnnotationStats } from "../../features/database/api";
+import { DatabaseStatsResp, AnnotationStatsResp } from "../../features/database/types";
 
 const ENTRY_TYPE_LABELS: Record<string, string> = {
   compound: "Compounds",
@@ -63,6 +64,10 @@ export const WorkspaceHome: React.FC = () => {
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
 
+  const [annotationStats, setAnnotationStats] = React.useState<AnnotationStatsResp | null>(null);
+  const [annotationLoading, setAnnotationLoading] = React.useState<boolean>(true);
+  const [annotationError, setAnnotationError] = React.useState<string | null>(null);
+
   React.useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -77,6 +82,25 @@ export const WorkspaceHome: React.FC = () => {
       .finally(() => {
         if (controller.signal.aborted) return;
         setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    setAnnotationLoading(true);
+    setAnnotationError(null);
+
+    getAnnotationStats(controller.signal)
+      .then(setAnnotationStats)
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        setAnnotationError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setAnnotationLoading(false);
       });
 
     return () => controller.abort();
@@ -199,6 +223,77 @@ export const WorkspaceHome: React.FC = () => {
               />
             </ChartCard>
           </Box>
+
+          <Typography component="h2" variant="subtitle1" sx={{ mt: 1 }}>
+            Annotations
+          </Typography>
+
+          {annotationError && (
+            <Alert severity="warning" variant="outlined">
+              Couldn't load annotation statistics: {annotationError}
+            </Alert>
+          )}
+
+          {!annotationError && annotationLoading && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} variant="rounded" height={260} sx={{ flex: "1 1 380px", minWidth: 0 }} />
+              ))}
+            </Box>
+          )}
+
+          {!annotationError && !annotationLoading && annotationStats && (
+            <>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+                <StatTile
+                  label="Entries with annotations"
+                  value={annotationStats.withAnnotationCount.toLocaleString()}
+                  caption={`${annotationStats.withoutAnnotationCount.toLocaleString()} without`}
+                />
+              </Box>
+
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+                <ChartCard title="Phylogeny type" description="Bacterium / fungus / other, from MIBiG">
+                  {annotationStats.phylogenyTypeCounts.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">No phylogeny annotations yet.</Typography>
+                  ) : (
+                    <BarChart
+                      dataset={annotationStats.phylogenyTypeCounts.map((c) => ({ label: c.label, count: c.count }))}
+                      xAxis={[{ scaleType: "band", dataKey: "label" }]}
+                      series={[{ dataKey: "count", color: chartColors[0] }]}
+                      height={220}
+                    />
+                  )}
+                </ChartCard>
+
+                <ChartCard title="Top genera" description="Most common genera, from MIBiG phylogeny">
+                  {annotationStats.topGenera.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">No phylogeny annotations yet.</Typography>
+                  ) : (
+                    <BarChart
+                      dataset={annotationStats.topGenera.map((c) => ({ label: c.label, count: c.count }))}
+                      xAxis={[{ scaleType: "band", dataKey: "label" }]}
+                      series={[{ dataKey: "count", color: chartColors[1] }]}
+                      height={220}
+                    />
+                  )}
+                </ChartCard>
+
+                <ChartCard title="Chemical class" description="Biosynthetic class, from MIBiG">
+                  {annotationStats.chemicalClassCounts.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">No chemical class annotations yet.</Typography>
+                  ) : (
+                    <BarChart
+                      dataset={annotationStats.chemicalClassCounts.map((c) => ({ label: c.label, count: c.count }))}
+                      xAxis={[{ scaleType: "band", dataKey: "label" }]}
+                      series={[{ dataKey: "count", color: chartColors[2] }]}
+                      height={220}
+                    />
+                  )}
+                </ChartCard>
+              </Box>
+            </>
+          )}
         </>
       )}
     </Box>

@@ -26,7 +26,7 @@ import json
 import logging
 from pathlib import Path
 
-from common import build_fingerprint_context, load_ruleset, mibig_url
+from common import build_fingerprint_context, load_ruleset, mibig_url, phylogeny_from_organism_name
 from retromol_antismash.modules import LinearReadout, bgc_primary_sequence
 from retromol_database.duckdb import RetroMolDuckDB
 
@@ -39,6 +39,7 @@ def run(
     reaction_rules_path: str | Path | None,
     matching_rules_path: str | Path | None,
     mibig_versions_path: str | Path,
+    mibig_annotations_path: str | Path,
     match_stereochemistry: bool = False,
     include_raw_gbk: bool = True,
 ) -> None:
@@ -47,6 +48,9 @@ def run(
 
     with open(mibig_versions_path) as fh:
         versions: dict[str, str] = json.load(fh)
+
+    with open(mibig_annotations_path) as fh:
+        annotations: dict[str, dict] = json.load(fh)
 
     added = 0
     skipped = 0
@@ -91,6 +95,15 @@ def run(
                     fingerprint=fp,
                     content_hash=file_hash,
                 )
+
+                record = annotations.get(accession) if accession else None
+                if record:
+                    type_label, genus, species = phylogeny_from_organism_name(record.get("organism_name"))
+                    db.add_phylogeny_annotation(entry_id, type_label=type_label, genus=genus, species=species)
+                    for chemical_class in record.get("biosyn_class") or []:
+                        if chemical_class:
+                            db.add_flat_annotation(entry_id, category="chemical_class", label=str(chemical_class))
+
                 added += 1
     finally:
         db.close()
@@ -110,6 +123,7 @@ def main() -> None:
     ap.add_argument("--rxn-rules", default=None)
     ap.add_argument("--mxn-rules", default=None)
     ap.add_argument("--mibig-versions", required=True)
+    ap.add_argument("--mibig-annotations", required=True)
     ap.add_argument("--match-stereochemistry", action="store_true")
     ap.add_argument("--no-raw-gbk", action="store_true")
     args = ap.parse_args()
@@ -120,6 +134,7 @@ def main() -> None:
         reaction_rules_path=args.rxn_rules,
         matching_rules_path=args.mxn_rules,
         mibig_versions_path=args.mibig_versions,
+        mibig_annotations_path=args.mibig_annotations,
         match_stereochemistry=args.match_stereochemistry,
         include_raw_gbk=not args.no_raw_gbk,
     )

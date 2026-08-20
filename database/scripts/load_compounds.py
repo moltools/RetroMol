@@ -28,6 +28,7 @@ from common import (
     mibig_url,
     npatlas_url,
     per_monomer_tokens,
+    phylogeny_from_organism_name,
     primary_sequence_from_result,
 )
 from retromol.model.result import Result
@@ -56,6 +57,20 @@ def _mibig_name_and_url(props: dict, versions: dict[str, str]) -> tuple[str | No
     return name, mibig_url(accession, version)
 
 
+def _apply_mibig_annotations(db: RetroMolDuckDB, entry_id: str, props: dict, annotations: dict[str, dict]) -> None:
+    accession = props.get("mibig_accession")
+    record = annotations.get(accession) if accession else None
+    if not record:
+        return
+
+    type_label, genus, species = phylogeny_from_organism_name(record.get("organism_name"))
+    db.add_phylogeny_annotation(entry_id, type_label=type_label, genus=genus, species=species)
+
+    for chemical_class in record.get("biosyn_class") or []:
+        if chemical_class:
+            db.add_flat_annotation(entry_id, category="chemical_class", label=str(chemical_class))
+
+
 def run(
     results_path: str | Path,
     db_path: str | Path,
@@ -64,6 +79,7 @@ def run(
     matching_rules_path: str | Path | None,
     match_stereochemistry: bool = False,
     mibig_versions_path: str | Path | None = None,
+    mibig_annotations_path: str | Path | None = None,
     log_every: int = 1000,
 ) -> None:
     ruleset = load_ruleset(reaction_rules_path, matching_rules_path, match_stereochemistry)
@@ -73,6 +89,11 @@ def run(
     if source == "mibig" and mibig_versions_path is not None:
         with open(mibig_versions_path) as fh:
             versions = json.load(fh)
+
+    annotations: dict[str, dict] = {}
+    if source == "mibig" and mibig_annotations_path is not None:
+        with open(mibig_annotations_path) as fh:
+            annotations = json.load(fh)
 
     compounds = 0
     added = 0
@@ -118,6 +139,8 @@ def run(
                             primary_sequence=names,
                             fingerprint=fp,
                         )
+                        if source == "mibig":
+                            _apply_mibig_annotations(db, result.submission.inchikey, props, annotations)
                         added += 1
 
                     compounds += 1
@@ -146,6 +169,7 @@ def main() -> None:
     ap.add_argument("--mxn-rules", default=None)
     ap.add_argument("--match-stereochemistry", action="store_true")
     ap.add_argument("--mibig-versions", default=None, help="required when --source=mibig")
+    ap.add_argument("--mibig-annotations", default=None, help="required when --source=mibig")
     ap.add_argument("--log-every", type=int, default=1000, help="log a progress line every N compounds (0 to disable)")
     args = ap.parse_args()
 
@@ -157,6 +181,7 @@ def main() -> None:
         matching_rules_path=args.mxn_rules,
         match_stereochemistry=args.match_stereochemistry,
         mibig_versions_path=args.mibig_versions,
+        mibig_annotations_path=args.mibig_annotations,
         log_every=args.log_every,
     )
 
