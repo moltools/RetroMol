@@ -316,7 +316,7 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                   </Typography>
                 ) : (
                   <Box sx={{ py: 1 }}>
-                    <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end" }}>
+                    <Box sx={{ mt: 1, mb: 1.5, display: "flex", justifyContent: "flex-end" }}>
                       <DownloadSvgButton rows={msaRows} filename="msa_alignment.svg" />
                     </Box>
                     <AlignmentGrid rows={msaRows} />
