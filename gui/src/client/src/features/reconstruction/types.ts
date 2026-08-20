@@ -27,6 +27,10 @@ export const ReconstructionSchema = z.object({
 });
 export type Reconstruction = z.output<typeof ReconstructionSchema>;
 
+export const GenerateBackboneRespSchema = z.object({
+  data: ReconstructionSchema,
+});
+
 export const ReconstructCompoundRespSchema = z.object({
   ok: z.boolean().optional(),
   status: z.string().optional(),

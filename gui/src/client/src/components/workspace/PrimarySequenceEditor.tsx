@@ -143,7 +143,7 @@ export function usePrimarySequenceEditor(
 
 export type PrimarySequenceEditorState = ReturnType<typeof usePrimarySequenceEditor>;
 
-function PrimarySequenceChips({
+export function PrimarySequenceChips({
   sequence,
   selectedTags,
   onToggleMotif,

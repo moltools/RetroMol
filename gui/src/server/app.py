@@ -39,7 +39,7 @@ from routes.discovery import (
     get_discovery_context,
 )
 from routes.rate_limit import limiter, RATE_LIMIT_REJECTIONS
-from routes.rules import blp_rule_set
+from routes.rules import blp_rule_set, blp_generate_backbone
 
 
 # Initialize the Flask app
@@ -254,6 +254,7 @@ app.register_blueprint(blp_discovery_compare_tanimoto)
 app.register_blueprint(blp_submit_discovery_query)
 app.register_blueprint(blp_get_discovery_query_result)
 app.register_blueprint(blp_rule_set)
+app.register_blueprint(blp_generate_backbone)
 
 # The two rate-limit tiers on top of the app-wide default (see routes/rate_limit.py)
 # are applied as @limiter.limit(...) decorators directly on each route function, in

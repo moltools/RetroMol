@@ -1,7 +1,15 @@
 import { postJson } from "../http";
 import { saveSession } from "../session/api";
 import type { Session } from "../session/types";
-import { ReconstructCompoundRespSchema, Reconstruction, PrimarySequenceItem } from "./types";
+import { ReconstructCompoundRespSchema, GenerateBackboneRespSchema, Reconstruction, PrimarySequenceItem } from "./types";
+
+// Generates a linear backbone from a hand-typed primary sequence (block names,
+// e.g. from a from-scratch SequenceEditor) rather than an already-parsed
+// compound -- see routes/rules.py's generate_backbone / reconstruct_named_sequence.
+export async function generateBackbone(sequence: string[], signal?: AbortSignal): Promise<Reconstruction> {
+  const data = await postJson("/api/generateBackbone", { sequence }, GenerateBackboneRespSchema, signal);
+  return data.data;
+}
 
 export interface ReconstructCompoundResult {
   reconstructions: Reconstruction[];
