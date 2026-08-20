@@ -720,6 +720,14 @@ def run_discovery_query(
             # offer "send back to Uploads" so a retrieved entry can be reparsed under
             # the current rule set without the user having to re-supply it by hand.
             "raw": candidate.entry.raw,
+            # Every (name, database) this entry is known under -- e.g. a compound
+            # present in both NPAtlas and MIBiG carries two sources. Empty for
+            # upload-origin candidates, which aren't backed by any source database
+            # (see Entry.sources / duckdb.py).
+            "sources": [
+                {"name": s.name, "databaseName": s.database_name, "url": s.url}
+                for s in candidate.entry.sources
+            ],
             "fingerprintSimilarity": candidate.similarity,
             "primarySequence": [_denormalize_for_display(t) for t in oriented_target],
             "inverted": inverted,

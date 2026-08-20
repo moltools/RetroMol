@@ -97,22 +97,23 @@ def search_compound_by_name():
             rows = db.con.execute(
                 """
                 SELECT
-                    min(id) AS id,
-                    name,
-                    url,
-                    raw
-                FROM entries
-                WHERE type = 'compound'
-                    AND raw IS NOT NULL
-                    AND lower(name) LIKE lower(?)
-                GROUP BY name, url, raw
+                    es.entry_id AS id,
+                    es.name AS name,
+                    es.database_name AS database_name,
+                    es.url AS url,
+                    e.raw AS raw
+                FROM entry_sources es
+                JOIN entries e ON e.id = es.entry_id
+                WHERE e.type = 'compound'
+                    AND e.raw IS NOT NULL
+                    AND lower(es.name) LIKE lower(?)
                 ORDER BY
                     CASE
-                        WHEN lower(name) = lower(?) THEN 0
-                        WHEN lower(name) LIKE lower(?) THEN 1
+                        WHEN lower(es.name) = lower(?) THEN 0
+                        WHEN lower(es.name) LIKE lower(?) THEN 1
                         ELSE 2
                     END,
-                    name
+                    es.name
                 LIMIT ?
                 """,
                 [like, q, f"{q}%", limit],
@@ -126,11 +127,11 @@ def search_compound_by_name():
         {
             "name": name,
             "smiles": raw,
-            "databaseName": "RetroMol",
+            "databaseName": database_name,
             "databaseIdentifier": entry_id,
             "url": url,
         }
-        for entry_id, name, url, raw in rows
+        for entry_id, name, database_name, url, raw in rows
         if name and raw
     ]
 

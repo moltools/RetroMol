@@ -1,8 +1,6 @@
-import hashlib
-import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Iterator, Literal, Sequence
+from typing import Iterator, Literal, Sequence
 
 import duckdb
 import numpy as np
@@ -15,14 +13,28 @@ FINGERPRINT_SIZE = 1024
 
 
 @dataclass(frozen=True)
+class EntrySource:
+    name: str
+    database_name: str
+    url: str | None
+
+
+@dataclass(frozen=True)
 class Entry:
     id: str
+    # Primary display name/url -- the first-ever-inserted source for this entry (see
+    # `sources` below and entry_sources.seq). Kept as plain fields (not derived via a
+    # property) so every existing read site and the synthetic upload-candidate Entry(...)
+    # constructions in routes/discovery.py keep working unchanged.
     name: str
     url: str | None
     raw: str | None
     type: EntryType
     primary_sequence: list[str]
     fingerprint: list[float]
+    # Every (name, database_name, url) a source has contributed for this entry, ordered
+    # by insertion. Empty for synthetic (non-database) entries, e.g. session uploads.
+    sources: list[EntrySource] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -69,25 +81,6 @@ def _normalize_fingerprint(fingerprint: Sequence[float] | np.ndarray) -> list[fl
     return fp.astype(float).tolist()
 
 
-def make_entry_id(
-    *,
-    name: str,
-    url: str | None,
-    raw: str | None,
-    entry_type: str,
-    primary_sequence: Sequence[str],
-) -> str:
-    payload = {
-        "name": name,
-        "url": url,
-        "raw": raw,
-        "type": entry_type,
-        "primary_sequence": list(primary_sequence),
-    }
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
-
-
 class RetroMolDuckDB:
     def __init__(self, path: str | Path, *, read_only: bool = False) -> None:
         self.path = Path(path).expanduser()
@@ -128,16 +121,28 @@ class RetroMolDuckDB:
         self.con.close()
 
     def create_schema(self) -> None:
+        self.con.execute("CREATE SEQUENCE IF NOT EXISTS entry_sources_seq")
         self.con.execute(
             f"""
             CREATE TABLE IF NOT EXISTS entries (
                 id VARCHAR PRIMARY KEY,
-                name VARCHAR NOT NULL,
-                url VARCHAR,
-                raw VARCHAR,
                 type VARCHAR NOT NULL CHECK (type IN ('compound', 'bgc')),
+                raw VARCHAR,
+                content_hash VARCHAR,
                 primary_sequence VARCHAR[] NOT NULL,
                 fingerprint FLOAT[{FINGERPRINT_SIZE}] NOT NULL
+            )
+            """
+        )
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS entry_sources (
+                seq BIGINT DEFAULT nextval('entry_sources_seq'),
+                entry_id VARCHAR NOT NULL,
+                name VARCHAR NOT NULL,
+                database_name VARCHAR NOT NULL,
+                url VARCHAR,
+                PRIMARY KEY (entry_id, database_name, name)
             )
             """
         )
@@ -145,78 +150,59 @@ class RetroMolDuckDB:
     def add_entry(
         self,
         *,
+        entry_id: str,
         name: str,
+        database_name: str,
         url: str | None,
         raw: str | None,
         entry_type: str,
         primary_sequence: Sequence[str],
         fingerprint: Sequence[float] | np.ndarray,
-        entry_id: str | None = None,
+        content_hash: str | None = None,
     ) -> str:
+        """
+        Add (or extend) an entry.
+
+        `entry_id` is the caller-supplied molecular identity -- an InChIKey for a
+        compound, or a hash of the source .gbk file's content plus region id for a
+        bgc (see database/scripts/load_compounds.py / load_bgcs.py). If an entry
+        with this id already exists, its stored `raw`/`primary_sequence`/
+        `fingerprint` are left untouched (they describe the same molecule/BGC
+        either way) and only a new `(name, database_name, url)` source row is
+        added -- or, if that exact (entry_id, database_name, name) combination was
+        already recorded, its url is refreshed.
+        """
         entry_type = _normalize_entry_type(entry_type)
         sequence = _normalize_primary_sequence(primary_sequence)
         fp = _normalize_fingerprint(fingerprint)
 
-        entry_id: str = entry_id or make_entry_id(
-            name=name,
-            url=url,
-            raw=raw,
-            entry_type=entry_type,
-            primary_sequence=sequence,
+        self.con.execute(
+            """
+            INSERT INTO entries (id, type, raw, content_hash, primary_sequence, fingerprint)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            [entry_id, entry_type, raw, content_hash, sequence, fp],
         )
 
         self.con.execute(
             """
-            INSERT OR REPLACE INTO entries (
-                id,
-                name,
-                url,
-                raw,
-                type,
-                primary_sequence,
-                fingerprint
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO entry_sources (entry_id, name, database_name, url)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (entry_id, database_name, name) DO UPDATE SET url = excluded.url
             """,
-            [entry_id, name, url, raw, entry_type, sequence, fp],
+            [entry_id, name, database_name, url],
         )
 
         return entry_id
 
-    def add_entries(self, entries: Iterable[Entry]) -> int:
-        rows = [
-            (
-                entry.id,
-                entry.name,
-                entry.url,
-                entry.raw,
-                _normalize_entry_type(entry.type),
-                _normalize_primary_sequence(entry.primary_sequence),
-                _normalize_fingerprint(entry.fingerprint),
-            )
-            for entry in entries
-        ]
-
-        if not rows:
-            return 0
-
-        self.con.executemany(
-            """
-            INSERT OR REPLACE INTO entries (
-                id,
-                name,
-                url,
-                raw,
-                type,
-                primary_sequence,
-                fingerprint
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            rows,
-        )
-
-        return len(rows)
+    def bgc_content_hash_exists(self, content_hash: str) -> bool:
+        """Whether a bgc entry sourced from a .gbk file with this content hash already exists."""
+        row = self.con.execute(
+            "SELECT 1 FROM entries WHERE type = 'bgc' AND content_hash = ? LIMIT 1",
+            [content_hash],
+        ).fetchone()
+        return row is not None
 
     def count(self) -> int:
         return int(self.con.execute("SELECT count(*) FROM entries").fetchone()[0])
@@ -268,9 +254,14 @@ class RetroMolDuckDB:
         url_row = self.con.execute(
             """
             SELECT
-                count(*) FILTER (WHERE url IS NOT NULL),
-                count(*) FILTER (WHERE url IS NULL)
-            FROM entries
+                count(*) FILTER (WHERE has_url),
+                count(*) FILTER (WHERE NOT has_url)
+            FROM (
+                SELECT e.id, bool_or(es.url IS NOT NULL) AS has_url
+                FROM entries e
+                LEFT JOIN entry_sources es ON es.entry_id = e.id
+                GROUP BY e.id
+            )
             """
         ).fetchone()
         with_source_url_count = int(url_row[0])
@@ -287,10 +278,32 @@ class RetroMolDuckDB:
             without_source_url_count=without_source_url_count,
         )
 
+    def _sources_for_entry_ids(self, entry_ids: Sequence[str]) -> dict[str, list[EntrySource]]:
+        """Batch-fetch every (name, database_name, url) source for the given entry ids, ordered by insertion."""
+        if not entry_ids:
+            return {}
+
+        rows = self.con.execute(
+            """
+            SELECT entry_id, name, database_name, url
+            FROM entry_sources
+            WHERE entry_id IN (SELECT UNNEST(?))
+            ORDER BY entry_id, seq
+            """,
+            [list(entry_ids)],
+        ).fetchall()
+
+        out: dict[str, list[EntrySource]] = {}
+        for entry_id, name, database_name, url in rows:
+            out.setdefault(str(entry_id), []).append(
+                EntrySource(name=str(name), database_name=str(database_name), url=url)
+            )
+        return out
+
     def get_entry(self, entry_id: str) -> Entry | None:
         row = self.con.execute(
             """
-            SELECT id, name, url, raw, type, primary_sequence, fingerprint
+            SELECT id, raw, type, primary_sequence, fingerprint
             FROM entries
             WHERE id = ?
             """,
@@ -300,19 +313,21 @@ class RetroMolDuckDB:
         if row is None:
             return None
 
-        return _entry_from_row(row)
+        sources = self._sources_for_entry_ids([entry_id]).get(entry_id, [])
+        return _entry_from_row(row, sources)
 
     def iter_entries(self) -> Iterator[Entry]:
         rows = self.con.execute(
             """
-            SELECT id, name, url, raw, type, primary_sequence, fingerprint
+            SELECT id, raw, type, primary_sequence, fingerprint
             FROM entries
             ORDER BY id
             """
         ).fetchall()
 
+        sources_by_id = self._sources_for_entry_ids([str(row[0]) for row in rows])
         for row in rows:
-            yield _entry_from_row(row)
+            yield _entry_from_row(row, sources_by_id.get(str(row[0]), []))
 
     def closest(
         self,
@@ -339,8 +354,6 @@ class RetroMolDuckDB:
             f"""
             SELECT
                 id,
-                name,
-                url,
                 raw,
                 type,
                 primary_sequence,
@@ -354,10 +367,12 @@ class RetroMolDuckDB:
             params,
         ).fetchall()
 
+        sources_by_id = self._sources_for_entry_ids([str(row[0]) for row in rows])
+
         return [
             SearchResult(
-                entry=_entry_from_row(row[:7]),
-                similarity=float(row[7]),
+                entry=_entry_from_row(row[:5], sources_by_id.get(str(row[0]), [])),
+                similarity=float(row[5]),
             )
             for row in rows
         ]
@@ -368,15 +383,17 @@ class RetroMolDuckDB:
             [str(path)],
         )
 
-def _entry_from_row(row) -> Entry:
+def _entry_from_row(row, sources: list[EntrySource]) -> Entry:
+    primary = sources[0] if sources else None
     return Entry(
         id=str(row[0]),
-        name=str(row[1]),
-        url=row[2],  # don't turn into str, might be None
-        raw=row[3],
-        type=_normalize_entry_type(row[4]),
-        primary_sequence=list(row[5]),
-        fingerprint=list(row[6]),
+        name=primary.name if primary else str(row[0]),
+        url=primary.url if primary else None,
+        raw=row[1],
+        type=_normalize_entry_type(row[2]),
+        primary_sequence=list(row[3]),
+        fingerprint=list(row[4]),
+        sources=sources,
     )
 
 

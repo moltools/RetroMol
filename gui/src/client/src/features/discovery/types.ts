@@ -85,6 +85,11 @@ export const DiscoveryResultSchema = z.object({
   // database entry can be resubmitted for parsing under the current rule set. Null for
   // upload-origin BGC candidates and for any entry that predates `raw` being stored.
   raw: z.string().nullable().default(null),
+  // Every (name, source database) this entry is known under -- e.g. a compound present
+  // in both NPAtlas and MIBiG carries two entries here. Empty for upload-origin results.
+  sources: z
+    .array(z.object({ name: z.string(), databaseName: z.string(), url: z.string().nullable() }))
+    .default([]),
   fingerprintSimilarity: z.number(),
   primarySequence: z.array(z.string()),
   inverted: z.boolean(),

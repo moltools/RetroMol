@@ -4,8 +4,13 @@ For each RetroMol Result, every path found in result.linear_readout -- including
 compound's tailoring events (glycosylation, methylation -- anything that shows up as
 its own disconnected single-node path) -- is merged into the one primary sequence
 stored for that compound: longest path first, ties broken lexicographically, joined
-by TOKEN_LINK (see common.primary_sequence_from_result). One compound -> one db
-entry, always. `raw` is the original input SMILES.
+by TOKEN_LINK (see common.primary_sequence_from_result). `raw` is the original input
+SMILES.
+
+Compounds are deduplicated on `result.submission.inchikey` (stereo-aware, computed by
+retromol.model.submission.Submission with keep_stereo=True). The same molecule
+appearing in both NPAtlas and MIBiG lands as one database entry with two source
+records (see RetroMolDuckDB.add_entry) rather than two separate rows.
 """
 
 import argparse
@@ -30,6 +35,8 @@ from retromol_database.duckdb import RetroMolDuckDB
 from retromol_fingerprint.fingerprint import TOKEN_LINK
 
 log = logging.getLogger(__name__)
+
+DATABASE_NAMES = {"npatlas": "NPAtlas", "mibig": "MIBiG"}
 
 
 def _npatlas_name_and_url(props: dict) -> tuple[str | None, str | None]:
@@ -102,7 +109,9 @@ def run(
                         fp = fingerprinter.encode(tokens)
 
                         db.add_entry(
+                            entry_id=result.submission.inchikey,
                             name=name,
+                            database_name=DATABASE_NAMES[source],
                             url=url,
                             raw=result.submission.smiles,
                             entry_type="compound",
