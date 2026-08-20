@@ -17,8 +17,10 @@ from retromol.chem.mol import mol_to_smiles
 from retromol.chem.tagging import get_tags_mol
 from retromol.model.submission import Submission
 from retromol.model.rules import RuleSet
+from retromol.model.readout import merge_named_paths
 from retromol.model.result import Result
 from retromol.pipelines.parsing import run_retromol
+from retromol_fingerprint.fingerprint import TOKEN_LINK
 from retromol_synthesis.reconstruction import reconstruct_linear_readout
 
 from retromol_antismash.io import parse_antismash_gbk, AntiSmashOptions
@@ -267,70 +269,62 @@ def submit_compound() -> tuple[Response, int]:
 
 DB_MATCHING_SEQUENCE_NOTE = (
     "This is the exact primary sequence the database-population pipeline stores for "
-    "this molecule (read directly off result.linear_readout.paths -- no backbone "
-    "reconstruction, no eligibility/orientation filtering). Use one of these to "
-    "search, not a reconstructed candidate above: reconstruct_linear_readout builds "
-    "a separate identified-only readout to attempt backbone reconstruction, which "
-    "diverges from what's actually stored for a real fraction of compounds "
-    "(anything with unidentified or tailoring-only content) -- querying with that "
-    "instead silently caps how similar a match can ever score, even against the "
-    "molecule's own database entry."
+    "this molecule (read directly off result.linear_readout with no backbone "
+    "reconstruction, no eligibility/orientation filtering, no length filtering: "
+    "every path found in the assembly graph is included, tailoring events like "
+    "glycosylation/methylation among them). Every path is merged into this one "
+    "sequence, longest first, ties broken lexicographically, joined by \"<LINK>\". "
+    "The same merge database/scripts/common.py's primary_sequence_from_result "
+    "applies before storing a compound. Use this to search, not a reconstructed "
+    "candidate above: reconstruct_linear_readout builds a separate identified-only "
+    "readout to attempt backbone reconstruction, which diverges from what's actually "
+    "stored for a real fraction of compounds (anything with unidentified content). "
+    "Querying with that instead silently caps how similar a match can ever score, "
+    "even against the molecule's own database entry. To search with just one "
+    "biosynthetic chain rather than the whole molecule, split this sequence on "
+    "\"<LINK>\" and use one of the resulting subsequences instead."
 )
 
 
-def _db_matching_primary_sequences(result: Result, min_length: int = 2) -> list[dict]:
+def _db_matching_primary_sequences(result: Result) -> list[dict]:
     """
-    Every candidate primary sequence read directly off result.linear_readout.paths --
-    the same representation database/scripts/common.py's primary_sequences_from_result
-    uses to populate the persistent database (itself reproducing the original
+    The single primary sequence read directly off result.linear_readout -- the same
+    representation database/scripts/common.py's primary_sequence_from_result uses to
+    populate the persistent database (itself reproducing the original
     db_scripts/create_database.py recipe, recovered from git history at commit
-    72a1bbb). Shaped identically to a Reconstruction dict so the frontend can render
-    and pick from these the same way it does reconstruct_linear_readout's candidates,
-    just without ever calling that function -- see DB_MATCHING_SEQUENCE_NOTE for why
-    the two aren't interchangeable as a database query.
-
-    Paths shorter than min_length -- almost always a lone tailoring event
-    (glycosylation, methylation: AssemblyGraph only keeps C-C/C-N bonds as
-    "connections", so a sugar attached via a glycosidic C-O-C linkage always ends
-    up disconnected from the main chain) -- never become their own candidate, same
-    as database/scripts/common.py. But they're real identified content, so their
-    names are collected into every candidate's extra_fingerprint_tokens instead:
-    the frontend carries this alongside primary_sequence (see
-    features/reconstruction/types.ts) and the query submission flow folds it into
-    the query fingerprint without displaying it as part of the sequence (see
-    run_discovery_query's extra_fingerprint_tokens parameter). Not deduplicated,
-    same reasoning as the database side: two glycosylation events should count for
-    roughly twice the weight of one.
+    72a1bbb). Every path is merged into one sequence, nothing filtered out (see
+    retromol.model.readout.LinearReadout.primary_sequence / merge_named_paths).
+    Shaped identically to a Reconstruction dict, in a one-element list, so the
+    frontend can render it the same way it does reconstruct_linear_readout's
+    candidates, just without ever calling that function -- see
+    DB_MATCHING_SEQUENCE_NOTE for why the two aren't interchangeable as a database
+    query.
 
     :param result: a parsed RetroMol Result
-    :param min_length: drop paths shorter than this from the candidate list itself
-    :return: one Reconstruction-shaped dict per path meeting min_length
+    :return: a one-element list holding the single merged Reconstruction-shaped
+        dict, or empty if the readout has no paths at all
     """
     tagged_input_smiles = mol_to_smiles(result.submission.mol, include_tags=True)
 
-    sequences = []
-    extra_fingerprint_tokens: list[str] = []
-    for path in result.linear_readout.paths:
-        names = [node.identity.matched_rule.name if node.is_identified else "X" for node in path]
-        if len(path) < min_length:
-            extra_fingerprint_tokens.extend(n for n in names if n != "X")
-            continue
+    named_paths = [
+        [[name, list(get_tags_mol(node.mol))] for name, node in zip(
+            [n.identity.matched_rule.name if n.is_identified else "X" for n in path], path
+        )]
+        for path in result.linear_readout.paths
+    ]
 
-        primary_sequence = [[name, list(get_tags_mol(node.mol))] for name, node in zip(names, path)]
-        sequences.append({
-            "tagged_input_smiles": tagged_input_smiles,
-            "tagged_backbone_smiles": None,
-            "primary_sequence": primary_sequence,
-            "backbone_warning": DB_MATCHING_SEQUENCE_NOTE,
-            "ordered": True,
-        })
+    if not named_paths:
+        return []
 
-    # Every candidate shares the same extra_fingerprint_tokens -- tailoring events
-    # belong to the whole molecule, not to any one path through it.
-    for sequence in sequences:
-        sequence["extra_fingerprint_tokens"] = extra_fingerprint_tokens
+    primary_sequence = merge_named_paths(named_paths, key=lambda item: item[0], link_item=[TOKEN_LINK, []])
 
-    return sequences
+    return [{
+        "tagged_input_smiles": tagged_input_smiles,
+        "tagged_backbone_smiles": None,
+        "primary_sequence": primary_sequence,
+        "backbone_warning": DB_MATCHING_SEQUENCE_NOTE,
+        "ordered": True,
+    }]
 
 
 def run_compound_reconstruction(item_payload: dict | None) -> tuple[dict, int]:

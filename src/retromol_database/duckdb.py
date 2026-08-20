@@ -7,7 +7,7 @@ from typing import Iterable, Iterator, Literal, Sequence
 import duckdb
 import numpy as np
 
-from retromol_fingerprint.fingerprint import TOKEN_UNK
+from retromol_fingerprint.fingerprint import TOKEN_LINK, TOKEN_UNK
 
 ENTRY_TYPES = ("compound", "bgc")
 EntryType = Literal["compound", "bgc"]
@@ -228,8 +228,9 @@ class RetroMolDuckDB:
 
         Building blocks are the tokens in each entry's primary_sequence -- e.g. amino
         acid names, PK reduction-state groups, or tailoring events like "methylation".
-        TOKEN_UNK ("<UNK>") marks a block RetroMol couldn't identify and is excluded
-        from unique_block_count since it isn't a real building block.
+        TOKEN_UNK ("<UNK>") marks a block RetroMol couldn't identify and TOKEN_LINK
+        ("<LINK>") just joins two merged paths within one entry's sequence -- neither
+        is a real building block, so both are excluded from unique_block_count.
 
         :return: a DatabaseStats snapshot
         """
@@ -258,9 +259,9 @@ class RetroMolDuckDB:
                 """
                 SELECT count(DISTINCT token)
                 FROM (SELECT unnest(primary_sequence) AS token FROM entries)
-                WHERE token != ?
+                WHERE token NOT IN (?, ?)
                 """,
-                [TOKEN_UNK],
+                [TOKEN_UNK, TOKEN_LINK],
             ).fetchone()[0]
         )
 

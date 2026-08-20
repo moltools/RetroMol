@@ -1,5 +1,35 @@
 import { z } from "zod";
 
+// Joins two candidate primary sequence paths that couldn't be threaded into a
+// single path (e.g. a disconnected sugar, or a branched/cyclic assembly) so a
+// compound/BGC always has exactly one primary sequence -- see
+// retromol.model.readout.merge_named_paths on the backend. Alignable like any
+// other token (see gui/src/server/routes/discovery.py's DiscoveryContext), so it
+// can appear in an aligned sequence too, not just an unaligned primary sequence.
+export const LINK_TOKEN = "<LINK>";
+export const isLinkToken = (name: string | null | undefined): boolean => name === LINK_TOKEN;
+
+// Splits a merged primary sequence back apart on LINK_TOKEN, e.g. so the discovery
+// query editor can offer "search with just this chain" alongside "search with the
+// whole thing" for a compound whose readout has more than one path (a branched/
+// disconnected assembly, or a main chain plus tailoring events like glycosylation).
+// Names are [name, tags] pairs (see PrimarySequenceItemSchema) or plain strings --
+// either way the link token itself is dropped, never included in a subsequence.
+export function splitOnLinkToken<T extends string | PrimarySequenceItem>(sequence: T[]): T[][] {
+  const nameOf = (item: T): string => (Array.isArray(item) ? item[0] : item);
+
+  const groups: T[][] = [[]];
+  for (const item of sequence) {
+    if (isLinkToken(nameOf(item))) {
+      groups.push([]);
+    } else {
+      groups[groups.length - 1].push(item);
+    }
+  }
+
+  return groups.filter((g) => g.length > 0);
+}
+
 export const PrimarySequenceItemSchema = z.tuple([z.string(), z.array(z.number())]);
 export type PrimarySequenceItem = z.output<typeof PrimarySequenceItemSchema>;
 
@@ -17,13 +47,6 @@ export const ReconstructionSchema = z.object({
   // single path (e.g. a branched or cyclic assembly). Render as an unordered set,
   // not a sequence.
   ordered: z.boolean().default(true),
-  // Names of this compound's tailoring events (glycosylation, methylation, ...) --
-  // real identified content that isn't part of any chain, so it's never displayed
-  // as part of primary_sequence, but should still count toward a discovery query's
-  // fingerprint (see SubmitDiscoveryQueryReqSchema.extraFingerprintTokens). Always
-  // empty for `data` (reconstruct_linear_readout candidates don't carry this);
-  // only ever populated on `dbMatchingSequences` entries.
-  extra_fingerprint_tokens: z.array(z.string()).default([]),
 });
 export type Reconstruction = z.output<typeof ReconstructionSchema>;
 
@@ -44,10 +67,15 @@ export const ReconstructCompoundRespSchema = z.object({
   ok: z.boolean().optional(),
   status: z.string().optional(),
   data: z.array(ReconstructionSchema).default([]),
-  // Candidates read directly off result.linear_readout.paths -- the same
-  // representation the database is actually populated with, unlike `data` above
-  // (reconstruct_linear_readout's candidates, which apply backbone-reconstruction
-  // eligibility/orientation filtering that can diverge from what's stored). Query
-  // with one of these, not `data`, to get a fingerprint comparable to the database.
+  // The single primary sequence read directly off result.linear_readout -- the
+  // same representation the database is actually populated with, unlike `data`
+  // above (reconstruct_linear_readout's candidates, which apply backbone-
+  // reconstruction eligibility/orientation filtering that can diverge from what's
+  // stored). Always at most one element. Nothing is filtered out of it -- every
+  // path found in the assembly graph, tailoring events (glycosylation,
+  // methylation, ...) included, is merged into it, joined by LINK_TOKEN -- so use
+  // splitOnLinkToken to pull out just one biosynthetic chain if that's what's
+  // wanted for a query, rather than the whole molecule. Query with this, not
+  // `data`, to get a fingerprint comparable to the database.
   dbMatchingSequences: z.array(ReconstructionSchema).default([]),
 });

@@ -4,6 +4,8 @@
 // (e.g. via html2canvas), so the output stays crisp at any zoom/print size and opens
 // cleanly in vector editors like Illustrator/Inkscape.
 
+import { LINK_TOKEN } from "../../features/reconstruction/types";
+
 const FONT_FAMILY = "Arial, Helvetica, sans-serif";
 const NAME_FONT_SIZE = 12;
 const LABEL_FONT_SIZE = 12;
@@ -49,7 +51,12 @@ function escapeXml(value: string): string {
 }
 
 // Splits a name like "A2^R" or "C^E2" into plain/superscript runs, matching MotifName's convention.
+// The link token renders as the same muted glyph MotifName uses instead of its literal text.
 function splitStereoMarkers(name: string): { text: string; sup: boolean }[] {
+  if (name === LINK_TOKEN) {
+    return [{ text: "⋮", sup: false }];
+  }
+
   return name
     .split(/(\^[SREZ])/g)
     .filter((part) => part !== "")

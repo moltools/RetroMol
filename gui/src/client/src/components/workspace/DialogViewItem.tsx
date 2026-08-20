@@ -15,7 +15,7 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { ExportImageButton } from "../ExportImageButton";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
 import { DrawingAttribution } from "../DrawingAttribution";
-import { PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
+import { PrimarySequenceOverview, PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
 import { ClusterReadoutRows } from "./ClusterReadoutRows";
 
 type HighlightAtom = [number, string];
@@ -126,6 +126,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
   });
 
   const data = reconstructionQuery.data?.reconstructions ?? null;
+  const dbMatchingSequences = reconstructionQuery.data?.dbMatchingSequences ?? [];
   const loading = reconstructionQuery.isLoading;
   const error = reconstructionQuery.error
     ? (reconstructionQuery.error as Error).message || "Unknown error"
@@ -269,6 +270,17 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
               </Tooltip>
             </Stack>
           )}
+
+          {dbMatchingSequences.length > 0 && (
+            <Stack spacing={1}>
+              <PrimarySequenceOverview
+                data={dbMatchingSequences}
+                selectedTags={selectedTags}
+                onToggleMotif={handleToggleMotif}
+              />
+            </Stack>
+          )}
+
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <ExportImageButton
               targetRef={diagramRef}

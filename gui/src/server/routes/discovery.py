@@ -25,12 +25,11 @@ from retromol.model.rules import MatchingRule, RuleSet
 from retromol_alignment.aligner import setup_aligner
 from retromol_alignment.msa import calculate_msa
 from retromol_alignment.pairwise import Converter, align
-from retromol_alignment.ranking import rerank
+from retromol_alignment.ranking import reorder_target_chains
 from retromol_alignment.scoring import HARDCODED_PK_SCORING, create_tanimoto_scoring_matrix
 from retromol_antismash.modules import LinearReadout as BgcLinearReadout, bgc_primary_sequence
 from retromol_database.duckdb import FINGERPRINT_SIZE, Entry, SearchResult
-from retromol_fingerprint.fingerprint import TOKEN_UNK, Fingerprinter, Vocabulary
-from retromol_synthesis.reconstruction import reconstruct_linear_readout
+from retromol_fingerprint.fingerprint import TOKEN_LINK, TOKEN_UNK, Fingerprinter, Vocabulary
 
 from routes.database import open_retromol_db
 from routes.queue import JobStillRunningError, enqueue_and_wait, enqueue_job
@@ -142,7 +141,12 @@ def _build_context() -> DiscoveryContext:
         radius=2,
         num_bits=2048,
         stereochemistry=False,
-        self_score_tokens=[TOKEN_UNK, *PK_GROUP_TOKENS],
+        # TOKEN_LINK gets self_score like TOKEN_UNK/PK_GROUP_TOKENS -- 1.0 similarity
+        # to itself, 0 to everything else (including gaps, handled separately by the
+        # aligner's own gap penalties) -- so it aligns like any other token: two
+        # merge points line up as a match, a merge point against a real residue or a
+        # gap scores as a mismatch/gap like any other substitution would.
+        self_score_tokens=[TOKEN_UNK, TOKEN_LINK, *PK_GROUP_TOKENS],
         self_score=1.0,
         hardcoded_scores=HARDCODED_PK_SCORING,
     )
@@ -157,7 +161,7 @@ def _build_context() -> DiscoveryContext:
         ruleset=rules,
         name_to_rule=name_to_rule,
         # PK_GROUP_TOKENS aren't matching-rule names (name_to_rule.get would miss
-        # them), but they are valid primary-sequence block names -- both
+        # them), but they are valid primary sequence block names -- both
         # _per_monomer_tokens and _normalize_for_alignment special-case them -- so
         # they belong in the autocomplete list the Sequence Editor searches.
         rule_names_sorted=sorted({*name_to_rule, *PK_GROUP_TOKENS}),
@@ -291,55 +295,54 @@ _UPLOAD_KINDS_FOR_ENTRY_TYPE: dict[str, frozenset[str]] = {
 
 def _build_compound_upload_candidate(item: dict, ctx: DiscoveryContext, query_fp: np.ndarray) -> list[SearchResult]:
     """
-    Build synthetic search candidates from one uploaded (and successfully parsed)
-    compound -- each of its reconstructed primary sequences becomes its own candidate,
-    using whatever sequence is currently effective for it (the user's edited override
-    if one was saved, otherwise the algorithm's own parse).
+    Build a synthetic search candidate from one uploaded (and successfully parsed)
+    compound, using the same single merged primary sequence -- every path in the
+    readout, tailoring events included, nothing filtered -- the persistent database
+    would store for it (see retromol.model.readout.LinearReadout.primary_sequence /
+    database/scripts/load_compounds.py) -- not reconstruct_linear_readout's
+    per-path chemistry candidates, which apply backbone-reconstruction eligibility
+    filtering that can diverge from what's actually stored (see
+    DB_MATCHING_SEQUENCE_NOTE in routes/jobs.py). This is what makes an uploaded
+    compound's search candidate directly comparable to a persisted database entry.
 
     :param item: the session item (kind "compound", status "done", with a payload)
     :param ctx: the discovery context
-    :param query_fp: the query's fingerprint, for scoring candidates against
-    :return: synthetic SearchResult candidates, one per reconstructed sequence
+    :param query_fp: the query's fingerprint, for scoring the candidate against
+    :return: a single-element list holding the synthetic candidate, or empty if
+        the readout has no primary sequence at all
     """
     try:
-        reconstructions = reconstruct_linear_readout(Result.from_dict(item["payload"]))
+        result = Result.from_dict(item["payload"])
+        names = result.linear_readout.primary_sequence()
     except Exception:
-        current_app.logger.exception("discovery_query: failed to reconstruct upload item_id=%s", item.get("id"))
+        current_app.logger.exception("discovery_query: failed to read primary sequence for upload item_id=%s", item.get("id"))
         return []
 
-    overrides = item.get("editedPrimarySequences") or {}
+    if not names:
+        return []
+
     label = item.get("name") or "Uploaded compound"
+    tokens = [_per_monomer_tokens(name, ctx) for name in names if name != TOKEN_LINK]
+    fp = ctx.fingerprinter.encode(tokens)
 
-    candidates: list[SearchResult] = []
-    for idx, reconstruction in enumerate(reconstructions):
-        override = overrides.get(str(idx))
-        effective_sequence = override if override is not None else reconstruction.to_dict()["primary_sequence"]
-        names = [name for name, _tags in effective_sequence]
-        if not names:
-            continue
-
-        fp = ctx.fingerprinter.encode([_per_monomer_tokens(name, ctx) for name in names])
-        candidates.append(
-            SearchResult(
-                entry=Entry(
-                    id=f"{UPLOAD_ENTRY_ID_PREFIX}{item['id']}:{idx}",
-                    name=label if len(reconstructions) == 1 else f"{label} #{idx + 1}",
-                    url=None,
-                    # The uploaded compound's own SMILES -- same molecule for every
-                    # reconstruction candidate derived from it. Carried through as `raw`
-                    # so it lines up with how database compound entries store their
-                    # SMILES (see the module docstring / _build_context), letting the
-                    # Tanimoto compare endpoint treat both origins identically.
-                    raw=item.get("smiles"),
-                    type="compound",
-                    primary_sequence=names,
-                    fingerprint=fp.tolist(),
-                ),
-                similarity=_cosine_similarity(query_fp, fp),
-            )
+    return [
+        SearchResult(
+            entry=Entry(
+                id=f"{UPLOAD_ENTRY_ID_PREFIX}{item['id']}:0",
+                name=label,
+                url=None,
+                # The uploaded compound's own SMILES, so it lines up with how database
+                # compound entries store their SMILES (see the module docstring /
+                # _build_context), letting the Tanimoto compare endpoint treat both
+                # origins identically.
+                raw=item.get("smiles"),
+                type="compound",
+                primary_sequence=names,
+                fingerprint=fp.tolist(),
+            ),
+            similarity=_cosine_similarity(query_fp, fp),
         )
-
-    return candidates
+    ]
 
 
 def _build_bgc_upload_candidate(item: dict, ctx: DiscoveryContext, query_fp: np.ndarray) -> list[SearchResult]:
@@ -435,12 +438,21 @@ def _build_upload_candidates(
 
 def _per_monomer_tokens(name: str, ctx: DiscoveryContext) -> list[str]:
     """
-    Build the fingerprinting token list for one primary-sequence block.
+    Build the fingerprinting token list for one primary sequence block.
+
+    TOKEN_LINK is not a building block -- it just joins two merged paths -- and
+    callers filter it out of `names` before mapping over this function (an empty
+    token list would otherwise fall back to TOKEN_UNK and silently add unknown-token
+    mass for something that isn't unknown, it's just not a block at all). Handled
+    explicitly anyway so a stray call can't hit that fallback.
 
     :param name: the display-layer block name
     :param ctx: the discovery context
     :return: tokens for Fingerprinter.encode (empty list -> falls back to the unknown token)
     """
+    if name == TOKEN_LINK:
+        return [TOKEN_LINK]
+
     if name in PK_GROUP_TOKENS:
         # Not a matching-rule name -- the group-level pseudonym a BGC's PKS module
         # resolves to (see PK_GROUP_TOKENS). Still resolvable to fingerprint tokens
@@ -459,7 +471,7 @@ def _per_monomer_tokens(name: str, ctx: DiscoveryContext) -> list[str]:
 @blp_discovery_monomer_names.get("/api/discoveryMonomerNames")
 def discovery_monomer_names() -> tuple[Response, int]:
     """
-    Autocomplete endpoint for valid primary-sequence block names -- matching rule
+    Autocomplete endpoint for valid primary sequence block names -- matching rule
     names plus the PK_GROUP_TOKENS pseudo-names (e.g. "PK_A") used for a
     reduction-level-only PKS call.
 
@@ -507,16 +519,32 @@ def motif_structures() -> tuple[Response, int]:
     one is set. Names with no matching rule (unidentified "X" blocks, hand-edited
     names, PK_GROUP_TOKENS) are simply absent from the map.
 
+    A rule *name* isn't unique to one structure -- e.g. "glycosylation" alone
+    names 26 different rules, one per distinct sugar, since the primary-sequence
+    display convention only ever shows the tailoring-event name, not which
+    specific rule matched. `structures` picks one (via `ctx.name_to_rule`,
+    whichever rule was first registered for that name) rather than showing
+    nothing, but that pick is arbitrary -- `ambiguousNames` lists every name this
+    is true for, so the frontend can warn that the depiction shown isn't
+    necessarily the one that actually matched a given occurrence of that name.
+
     The whole vocabulary is returned in one shot rather than per-name, since it's
     small (on the order of a few hundred names) and effectively static for the
     life of the process -- same rationale as rule_names_sorted powering the
     autocomplete above.
 
-    :return: a tuple containing a dictionary with the name -> SMILES map and an HTTP status code
+    :return: a tuple containing a dictionary with the name -> SMILES map, the
+        list of ambiguous names, and an HTTP status code
     """
     ctx = get_discovery_context()
     structures = {name: (rule.display_smiles or rule.smiles) for name, rule in ctx.name_to_rule.items()}
-    return jsonify({"structures": structures}), 200
+
+    smiles_by_name: dict[str, set[str]] = {}
+    for rule in ctx.ruleset.matching_rules:
+        smiles_by_name.setdefault(rule.name, set()).add(rule.display_smiles or rule.smiles)
+    ambiguous_names = sorted(name for name, smiles in smiles_by_name.items() if len(smiles) > 1)
+
+    return jsonify({"structures": structures, "ambiguousNames": ambiguous_names}), 200
 
 
 def run_discovery_query(
@@ -528,7 +556,6 @@ def run_discovery_query(
     only_user_uploads: bool,
     include_user_uploads: bool,
     session_id: str | None,
-    extra_fingerprint_tokens: list[str] | None = None,
 ) -> tuple[dict, int]:
     """
     Fingerprint a primary sequence, retrieve nearest neighbors from the database, and
@@ -538,22 +565,24 @@ def run_discovery_query(
     lazily via get_discovery_context() the first time it runs in a given worker
     process, same as any other caller of that function.
 
-    :param extra_fingerprint_tokens: names of a compound's tailoring events
-        (glycosylation, methylation, ...) that don't belong in `primary_sequence`
-        itself (they're not part of any chain) but should still count toward the
-        query fingerprint -- mirrors how database/scripts/load_compounds.py folds
-        the same thing into a stored compound entry's fingerprint. Never touches
-        alignment_query below: alignment compares against `primary_sequence` only.
+    `primary_sequence` is expected to already be whatever the caller wants
+    fingerprinted and aligned -- the full merged sequence (tailoring events and
+    all, joined by TOKEN_LINK) or a subsequence split off at TOKEN_LINK, e.g. to
+    search with just one biosynthetic chain rather than the whole molecule. There's
+    no separate "extra tokens" side channel any more: everything that should count
+    toward the query lives in `primary_sequence` itself, the same single
+    representation database/scripts/load_compounds.py stores.
+
     :return: a (response body, HTTP status code) pair
     """
     ctx = get_discovery_context()
 
     # Fingerprint is built from the display sequence directly (Fingerprinter.encode
     # already treats an empty token list as "unknown", matching how unidentified
-    # blocks were encoded when the database was originally built), plus any
-    # tailoring-event tokens folded in on top -- see extra_fingerprint_tokens above.
-    per_monomer_tokens = [_per_monomer_tokens(name, ctx) for name in primary_sequence]
-    per_monomer_tokens += [_per_monomer_tokens(name, ctx) for name in (extra_fingerprint_tokens or [])]
+    # blocks were encoded when the database was originally built). TOKEN_LINK is
+    # excluded -- it just joins merged paths, it isn't a block (see
+    # database/scripts/load_compounds.py, which excludes it the same way).
+    per_monomer_tokens = [_per_monomer_tokens(name, ctx) for name in primary_sequence if name != TOKEN_LINK]
     query_fp = ctx.fingerprinter.encode(per_monomer_tokens)
 
     # Alignment needs every token to exist in the scoring-matrix alphabet, so
@@ -616,7 +645,17 @@ def run_discovery_query(
         else:
             skipped += 1
 
-    reranked = rerank(alignment_query, usable_targets, ctx.aligner, ctx.converter) if usable_targets else []
+    # Reorders (and, per chain, reorients) each target's chains to best match the
+    # query's own chain order -- an order-agnostic optimal assignment over every
+    # (query_chain, target_chain) pair, since which chain landed in which position
+    # after merge_named_paths' longest-first/lexicographic sort has nothing to do
+    # with which chains actually correspond biosynthetically between two different
+    # compounds. See retromol_alignment.ranking.reorder_target_chains.
+    reordered = (
+        [reorder_target_chains(alignment_query, target, ctx.aligner, ctx.converter) for target in usable_targets]
+        if usable_targets
+        else []
+    )
 
     # Only "longest_sequence" needs each candidate's own self-alignment score --
     # "subsequence" normalizes every candidate by the same constant (self_score),
@@ -632,14 +671,12 @@ def run_discovery_query(
             return _normalized_pct(align_score, max(self_score, target_self_score))
         return align_score
 
-    scored = list(zip(usable_candidates, usable_targets, reranked, target_self_scores))
-    scored.sort(key=lambda item: rank_key(item[2][0], item[3]), reverse=True)
+    scored = list(zip(usable_candidates, reordered, target_self_scores))
+    scored.sort(key=lambda item: rank_key(item[1][0], item[2]), reverse=True)
     top = scored[:top_x]
 
     results: list[dict[str, Any]] = []
-    for candidate, target, (score, inverted), target_self_score in top:
-        oriented_target = target[::-1] if inverted else target
-
+    for candidate, (_assignment_score, oriented_target, inverted), target_self_score in top:
         try:
             align_score, aligned_query_display, aligned_target_display = align(
                 ctx.aligner, alignment_query, oriented_target, ctx.converter
@@ -650,8 +687,10 @@ def run_discovery_query(
             )
             continue
 
-        # Self-alignment score is invariant under reversing both operands, so the
-        # score computed against the un-reversed target is still valid here.
+        # A self-alignment always achieves a perfect 1:1, gap-free match (score =
+        # sum of each token's own self-similarity), which doesn't depend on token
+        # order or per-chain orientation -- so target_self_score, computed on the
+        # original (pre-reorder) target, is still exactly right for oriented_target.
         denom = max(self_score, target_self_score) if target_self_score is not None else self_score
         normalized_pct = _normalized_pct(align_score, denom)
 
@@ -728,7 +767,6 @@ def discovery_query() -> tuple[Response, int]:
     only_user_uploads = bool(payload.get("onlyUserUploads", False))
     include_user_uploads = bool(payload.get("includeUserUploads", False)) or only_user_uploads
     session_id = payload.get("sessionId")
-    extra_fingerprint_tokens = payload.get("extraFingerprintTokens")
 
     if (
         not isinstance(primary_sequence, list)
@@ -736,12 +774,6 @@ def discovery_query() -> tuple[Response, int]:
         or not all(isinstance(x, str) and x for x in primary_sequence)
     ):
         return jsonify({"error": "primarySequence must be a non-empty list of non-empty strings"}), 400
-
-    if extra_fingerprint_tokens is not None and (
-        not isinstance(extra_fingerprint_tokens, list)
-        or not all(isinstance(x, str) and x for x in extra_fingerprint_tokens)
-    ):
-        return jsonify({"error": "extraFingerprintTokens must be a list of non-empty strings, if given"}), 400
 
     if entry_type not in ENTRY_TYPES_FOR_QUERY:
         return jsonify({"error": f"entryType must be one of {ENTRY_TYPES_FOR_QUERY}"}), 400
@@ -763,7 +795,6 @@ def discovery_query() -> tuple[Response, int]:
         body, status = enqueue_and_wait(
             run_discovery_query,
             primary_sequence, entry_type, n, top_x, score_mode, only_user_uploads, include_user_uploads, session_id,
-            extra_fingerprint_tokens,
         )
     except JobStillRunningError as e:
         return jsonify({"error": str(e)}), 503
@@ -1045,7 +1076,6 @@ def run_discovery_query_job(session_id: str, item_id: str, settings: dict, flags
             settings.get("onlyUserUploads", False),
             settings.get("includeUserUploads", False),
             session_id,
-            settings.get("extraFingerprintTokens"),
         )
         if query_status != 200:
             raise RuntimeError(query_body.get("error", "Discovery query failed"))
@@ -1138,10 +1168,6 @@ def submit_discovery_query() -> tuple[Response, int]:
     query_origin_smiles = payload.get("queryOriginSmiles")
     flags = payload.get("flags") or {}
     name = payload.get("name") or "Discovery query"
-    # A compound's tailoring events (glycosylation, methylation, ...) -- see
-    # run_discovery_query's docstring. Optional: absent/empty means "none", not
-    # an error, since most queries (and every BGC query) won't have any.
-    extra_fingerprint_tokens = payload.get("extraFingerprintTokens")
 
     if not isinstance(session_id, str) or not session_id:
         return jsonify({"error": "Missing sessionId"}), 400
@@ -1152,12 +1178,6 @@ def submit_discovery_query() -> tuple[Response, int]:
         or not all(isinstance(x, str) and x for x in primary_sequence)
     ):
         return jsonify({"error": "primarySequence must be a non-empty list of non-empty strings"}), 400
-
-    if extra_fingerprint_tokens is not None and (
-        not isinstance(extra_fingerprint_tokens, list)
-        or not all(isinstance(x, str) and x for x in extra_fingerprint_tokens)
-    ):
-        return jsonify({"error": "extraFingerprintTokens must be a list of non-empty strings, if given"}), 400
 
     if entry_type not in ENTRY_TYPES_FOR_QUERY:
         return jsonify({"error": f"entryType must be one of {ENTRY_TYPES_FOR_QUERY}"}), 400
@@ -1202,7 +1222,6 @@ def submit_discovery_query() -> tuple[Response, int]:
         "includeUserUploads": include_user_uploads,
         "onlyUserUploads": only_user_uploads,
         "queryOriginSmiles": query_origin_smiles,
-        "extraFingerprintTokens": extra_fingerprint_tokens,
     }
 
     item = {

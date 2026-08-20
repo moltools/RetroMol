@@ -2,11 +2,12 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { Session, SessionItem } from "../../features/session/types";
-import type { PrimarySequenceItem, Reconstruction } from "../../features/reconstruction/types";
+import { splitOnLinkToken, type PrimarySequenceItem, type Reconstruction } from "../../features/reconstruction/types";
 import { saveEditedPrimarySequences, revertEditedPrimarySequence } from "../../features/reconstruction/api";
 import { useNotifications } from "../NotificationProvider";
 import { MotifHoverCard } from "../MotifHoverCard";
@@ -245,6 +246,100 @@ export function PrimarySequenceChips({
   );
 }
 
+// The single, canonical primary sequence for a compound -- the same merged
+// sequence (nothing filtered out, tailoring events included) the database
+// actually stores and matches against, see features/reconstruction/types.ts's
+// splitOnLinkToken / LINK_TOKEN. `data` is a dbMatchingSequences array (length 0
+// or 1). When the sequence has more than one biosynthetic chain (a branched/
+// disconnected assembly, or a main chain plus tailoring events like
+// glycosylation), each chain is also broken out into its own row below the full
+// sequence -- so those chains show up everywhere the primary sequence does, not
+// just in the Discovery query picker.
+//
+// Read-only by default; pass onToggleMotif to wire up click-to-highlight against
+// a molecule view (same convention as PrimarySequenceChips), and renderAction to
+// add a per-row action (e.g. Discovery's "Use this" button) without this
+// component needing to know what that action does.
+export function PrimarySequenceOverview({
+  data,
+  selectedTags = [],
+  onToggleMotif,
+  renderAction,
+}: {
+  data: Reconstruction[];
+  selectedTags?: number[];
+  onToggleMotif?: (tags: number[]) => void;
+  renderAction?: (sequence: PrimarySequenceItem[]) => React.ReactNode;
+}) {
+  return (
+    <>
+      {data.map((reconstruction, idx) => {
+        const subsequences = splitOnLinkToken(reconstruction.primary_sequence);
+        return (
+          <Box key={idx}>
+            {/* pb reserves the same space PrimarySequenceChips' own mb below cancels out of
+                the row's reported height (see that mb's comment) -- without this, the row
+                as a whole under-reports its true rendered height by that same amount, and
+                whatever comes right after (a chain row, or anything a caller of this
+                component places after it) paints over the scrollbar instead of below it. */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, pb: 2.5 }}>
+              <Tooltip title={reconstruction.backbone_warning ?? ""} arrow>
+                <Chip
+                  label="primary sequence"
+                  size="small"
+                  color="info"
+                  variant="outlined"
+                  sx={{ fontSize: "0.7rem", flexShrink: 0, cursor: "help" }}
+                />
+              </Tooltip>
+              {/* mb cancels out PrimarySequenceChips' own reserved scrollbar space (see
+                  horizontalScrollSx's pb) so it doesn't throw off alignItems: "center"
+                  against the label chip -- without it, the chip row reads as sitting
+                  above center, offset by however much space is reserved below it. */}
+              <Box sx={{ flex: 1, minWidth: 0, mb: -1.5 }}>
+                <PrimarySequenceChips
+                  sequence={reconstruction.primary_sequence}
+                  selectedTags={selectedTags}
+                  onToggleMotif={onToggleMotif}
+                />
+              </Box>
+              {renderAction && <Box sx={{ flexShrink: 0 }}>{renderAction(reconstruction.primary_sequence)}</Box>}
+            </Box>
+
+            {subsequences.length > 1 && (
+              <Stack spacing={0.75} sx={{ pl: 3 }}>
+                {subsequences.map((subsequence, subIdx) => (
+                  <Box key={subIdx} sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, pb: 1.5 }}>
+                    <Tooltip
+                      title="One biosynthetic chain from the primary sequence above, split out at its link token(s). Query with just this chain from the Discovery tab to search without the rest of the molecule."
+                      arrow
+                    >
+                      <Chip
+                        label={`chain ${subIdx + 1}`}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: "0.65rem", flexShrink: 0, cursor: "help" }}
+                      />
+                    </Tooltip>
+                    <Box sx={{ flex: 1, minWidth: 0, mb: -1.5 }}>
+                      <PrimarySequenceChips
+                        sequence={subsequence}
+                        selectedTags={selectedTags}
+                        onToggleMotif={onToggleMotif}
+                      />
+                    </Box>
+                    {renderAction && <Box sx={{ flexShrink: 0 }}>{renderAction(subsequence)}</Box>}
+                  </Box>
+                ))}
+              </Stack>
+            )}
+          </Box>
+        );
+      })}
+    </>
+  );
+}
+
 // Renders one row per reconstruction: a label (+ "Edited" chip), and either the
 // read-only chip row or the live SequenceEditor + per-row revert control.
 export function PrimarySequenceRows({
@@ -317,7 +412,7 @@ export function PrimarySequenceRows({
                   minWidth: 0,
                 }}
               >
-                {ordered ? `primary sequence ${idx + 1}` : "parsed motifs (unordered)"}
+                {ordered ? `reconstructed backbone ${idx + 1}` : "parsed motifs (unordered)"}
               </Typography>
 
               {override && !editing && (
