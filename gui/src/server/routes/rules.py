@@ -6,6 +6,7 @@ import rdkit
 from flask import Blueprint, Response, jsonify, request
 from rdkit.Chem.Draw import rdMolDraw2D
 
+from retromol.chem.mol import smiles_to_mol, mol_to_smiles
 from retromol.model.rules import ReactionRule, RuleSet
 from retromol_synthesis.reconstruction import BackboneReconstructionError, reconstruct_named_sequence
 
@@ -173,6 +174,11 @@ def generate_backbone() -> tuple[Response, int]:
     of matching-rule names, e.g. from a `SequenceEditor` built from scratch), using
     the same fusion chemistry as a parsed compound's "View item" reconstruction.
 
+    Alongside the Reconstruction's own `tagged_backbone_smiles` (isotope-tagged, for
+    atom highlighting), the response also includes `backboneSmiles` -- the same
+    structure with tags stripped, for a "copy SMILES" affordance that shouldn't leak
+    RetroMol's internal atom-tagging into a SMILES the user pastes elsewhere.
+
     :return: a tuple containing the generated Reconstruction (or an error) and an HTTP status code
     """
     payload = request.get_json(force=True) or {}
@@ -190,4 +196,11 @@ def generate_backbone() -> tuple[Response, int]:
     except BackboneReconstructionError as e:
         return jsonify({"error": str(e)}), 400
 
-    return jsonify({"data": reconstruction.to_dict()}), 200
+    data = reconstruction.to_dict()
+    data["backboneSmiles"] = (
+        mol_to_smiles(smiles_to_mol(reconstruction.tagged_backbone_smiles), include_tags=False)
+        if reconstruction.tagged_backbone_smiles
+        else None
+    )
+
+    return jsonify({"data": data}), 200

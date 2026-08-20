@@ -27,8 +27,17 @@ export const ReconstructionSchema = z.object({
 });
 export type Reconstruction = z.output<typeof ReconstructionSchema>;
 
+export const GeneratedBackboneSchema = ReconstructionSchema.extend({
+  // Same structure as tagged_backbone_smiles but with RetroMol's internal atom
+  // tags stripped -- what a "copy SMILES" affordance should hand the user,
+  // rather than leaking isotope tags into a SMILES they'd paste elsewhere. Null
+  // under the same conditions tagged_backbone_smiles is.
+  backboneSmiles: z.string().nullable().default(null),
+});
+export type GeneratedBackbone = z.output<typeof GeneratedBackboneSchema>;
+
 export const GenerateBackboneRespSchema = z.object({
-  data: ReconstructionSchema,
+  data: GeneratedBackboneSchema,
 });
 
 export const ReconstructCompoundRespSchema = z.object({

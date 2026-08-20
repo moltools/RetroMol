@@ -7,8 +7,9 @@ import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { generateBackbone } from "../../features/reconstruction/api";
-import type { Reconstruction } from "../../features/reconstruction/types";
+import type { GeneratedBackbone } from "../../features/reconstruction/types";
 import { useNotifications } from "../NotificationProvider";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { ExportImageButton } from "../ExportImageButton";
@@ -24,7 +25,7 @@ export const WorkspaceGenerate: React.FC = () => {
 
   const [blocks, setBlocks] = React.useState<SequenceBlock[]>([]);
   const [generating, setGenerating] = React.useState(false);
-  const [result, setResult] = React.useState<Reconstruction | null>(null);
+  const [result, setResult] = React.useState<GeneratedBackbone | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
   const diagramRef = React.useRef<HTMLDivElement>(null);
@@ -56,6 +57,16 @@ export const WorkspaceGenerate: React.FC = () => {
       if (allSelected) return prev.filter((tag) => !tags.includes(tag));
       return Array.from(new Set([...prev, ...tags]));
     });
+  };
+
+  const handleCopySmiles = async () => {
+    if (!result?.backboneSmiles) return;
+    try {
+      await navigator.clipboard.writeText(result.backboneSmiles);
+      pushNotification("Copied SMILES to clipboard", "success");
+    } catch {
+      pushNotification("Failed to copy SMILES", "error");
+    }
   };
 
   // Memoized so it's a stable reference across re-renders that don't touch
@@ -123,11 +134,23 @@ export const WorkspaceGenerate: React.FC = () => {
                 {result.tagged_backbone_smiles ? (
                   <>
                     <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                      <ExportImageButton
-                        targetRef={diagramRef}
-                        filename={`retromol-generated-${blocks.map((b) => b.name).join("-").replace(/[^a-z0-9]+/gi, "-")}`}
-                        label="Download the diagram and sequence below as a PNG"
-                      />
+                      <Stack direction="column" spacing={0} alignItems="flex-start">
+                        <ExportImageButton
+                          targetRef={diagramRef}
+                          filename={`retromol-generated-${blocks.map((b) => b.name).join("-").replace(/[^a-z0-9]+/gi, "-")}`}
+                          label="Download the diagram and sequence below as a PNG"
+                        />
+                        {result.backboneSmiles && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<ContentCopyIcon fontSize="small" />}
+                            onClick={handleCopySmiles}
+                          >
+                            Copy SMILES
+                          </Button>
+                        )}
+                      </Stack>
                     </Box>
                     <Box ref={diagramRef} sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, mb: 1.5 }}>
                       <ErrorBoundary
@@ -147,7 +170,7 @@ export const WorkspaceGenerate: React.FC = () => {
                         />
                       </ErrorBoundary>
                       <DrawingAttribution library="smiles-drawer" />
-                      <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+                      <Box sx={{ display: "flex", justifyContent: "center", width: "100%", mt: 2 }}>
                         <PrimarySequenceChips
                           sequence={result.primary_sequence}
                           selectedTags={selectedTags}
