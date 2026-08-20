@@ -29,6 +29,7 @@ without a version suffix) for load_bgcs.py to look up.
 """
 
 import argparse
+import hashlib
 import itertools
 import json
 import logging
@@ -86,6 +87,7 @@ def _process_file(path_str: str) -> tuple[list[dict], str | None]:
     path = Path(path_str)
     try:
         raw_gbk = path.read_text()
+        file_hash = hashlib.sha256(raw_gbk.encode("utf-8")).hexdigest()
         regions = parse_antismash_gbk(path, AntiSmashOptions())
 
         entries: list[dict] = []
@@ -105,6 +107,7 @@ def _process_file(path_str: str) -> tuple[list[dict], str | None]:
                 "accession": accession,
                 "file_name": region.file_name,
                 "raw_gbk": raw_gbk,
+                "file_hash": file_hash,
                 "readout": readout.to_dict(),
             })
 

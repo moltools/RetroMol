@@ -12,9 +12,16 @@ The MIBiG URL needs an accession's version, which parse_gbks.py can no longer
 provide (MIBiG 4.0's GBKs dropped the ACCESSION.VERSION suffix) -- so it's
 looked up here instead, from the same JSON-derived mibig_versions.json
 extract_mibig_compounds.py produces for load_compounds.py.
+
+BGCs are deduplicated per source .gbk file via `file_hash` (parse_gbks.py's
+sha256 of the whole file's raw text): a region's entry id is derived from that
+hash plus its own readout id, and a file whose hash is already stored (checked
+via RetroMolDuckDB.bgc_content_hash_exists) is skipped outright, so rerunning
+the pipeline over an already-ingested file doesn't redo any fingerprinting work.
 """
 
 import argparse
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -43,6 +50,7 @@ def run(
 
     added = 0
     skipped = 0
+    skipped_existing_file = 0
 
     db = RetroMolDuckDB.open(db_path)
     try:
@@ -53,6 +61,12 @@ def run(
                     continue
 
                 entry = json.loads(line)
+                file_hash = entry.get("file_hash")
+
+                if file_hash and db.bgc_content_hash_exists(file_hash):
+                    skipped_existing_file += 1
+                    continue
+
                 readout = LinearReadout.from_dict(entry["readout"])
                 names, tokens = bgc_primary_sequence(readout, ruleset)
 
@@ -64,20 +78,27 @@ def run(
                 accession = entry.get("accession")
                 name = f"{accession} ({readout.id})" if accession else readout.id
                 url = mibig_url(accession, versions.get(accession)) if accession else None
+                entry_id = hashlib.sha256(f"{file_hash}:{readout.id}".encode("utf-8")).hexdigest()
 
                 db.add_entry(
+                    entry_id=entry_id,
                     name=name,
+                    database_name="MIBiG",
                     url=url,
                     raw=entry.get("raw_gbk") if include_raw_gbk else None,
                     entry_type="bgc",
                     primary_sequence=names,
                     fingerprint=fp,
+                    content_hash=file_hash,
                 )
                 added += 1
     finally:
         db.close()
 
-    log.info("load_bgcs: added=%d skipped=%d", added, skipped)
+    log.info(
+        "load_bgcs: added=%d skipped=%d skipped_existing_file=%d",
+        added, skipped, skipped_existing_file,
+    )
 
 
 def main() -> None:

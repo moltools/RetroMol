@@ -12,7 +12,6 @@ import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import MuiLink from "@mui/material/Link";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -236,7 +235,6 @@ export function ResultRow({
   sendingToUploads?: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(false);
-  const theme = useTheme();
 
   const canOfferSend = result.origin === "database" && !!onSendToUploads;
   const hasRaw = !!result.raw;
@@ -262,22 +260,9 @@ export function ResultRow({
         </Typography>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          {result.url ? (
-            <MuiLink
-              href={result.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              underline="hover"
-              color={(theme.vars || theme).palette.primary.main}
-              sx={{ fontWeight: 500 }}
-            >
-              {result.name}
-            </MuiLink>
-          ) : (
-            <Typography variant="body2" fontWeight={500} noWrap>
-              {result.name}
-            </Typography>
-          )}
+          <Typography variant="body2" fontWeight={500} noWrap>
+            {result.name}
+          </Typography>
         </Box>
 
         <Chip
@@ -316,6 +301,32 @@ export function ResultRow({
 
       <Collapse in={expanded} unmountOnExit>
         <Box sx={{ mt: 1, pl: 4.5 }}>
+          {result.sources.length > 0 && (
+            <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap", gap: 1 }}>
+              {result.sources.map((source, idx) =>
+                source.url ? (
+                  <Chip
+                    key={idx}
+                    component="a"
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    clickable
+                    size="small"
+                    variant="outlined"
+                    label={`${source.databaseName}: ${source.name}`}
+                  />
+                ) : (
+                  <Chip
+                    key={idx}
+                    size="small"
+                    variant="outlined"
+                    label={`${source.databaseName}: ${source.name}`}
+                  />
+                )
+              )}
+            </Stack>
+          )}
           <AlignmentGrid
             rows={[
               { id: "query", label: "Query", sequence: result.alignedQuery },

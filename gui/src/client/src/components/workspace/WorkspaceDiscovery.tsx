@@ -643,23 +643,23 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                         display: "flex",
                         alignItems: "center",
                         gap: 1.5,
-                        flexWrap: "wrap",
+                        minWidth: 0,
                       }}
                     >
                       <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
                         {`reconstructed backbone ${idx+1}`}
                       </Typography>
                       {override && (
-                        <Chip label="Edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem" }} />
+                        <Chip label="Edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem", flexShrink: 0 }} />
                       )}
-                      <Box sx={{ transform: "translateY(5px)" }}>
+                      <Box sx={{ flex: 1, minWidth: 0, transform: "translateY(5px)" }}>
                         <ReconstructionPreview sequence={effectiveSequence} />
                       </Box>
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={() => handlePickNames(effectiveSequence.map(([name]) => name))}
-                        sx={{ ml: "auto" }}
+                        sx={{ flexShrink: 0 }}
                       >
                         Use this
                       </Button>
@@ -695,20 +695,20 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                       display: "flex",
                       alignItems: "center",
                       gap: 1.5,
-                      flexWrap: "wrap",
+                      minWidth: 0,
                     }}
                   >
                     <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
                       {region.id}
                     </Typography>
-                    <Box sx={{ transform: "translateY(5px)" }}>
+                    <Box sx={{ flex: 1, minWidth: 0, transform: "translateY(5px)" }}>
                       <NamesPreview names={region.primary_sequence} />
                     </Box>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() => handlePickNames(region.primary_sequence)}
-                      sx={{ ml: "auto" }}
+                      sx={{ flexShrink: 0 }}
                     >
                       Use this
                     </Button>
