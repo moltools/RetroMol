@@ -15,6 +15,7 @@ import { WorkspaceHome } from "./WorkspaceHome";
 import { WorkspaceUpload } from "./WorkspaceUpload";
 import { WorkspaceDiscovery } from "./WorkspaceDiscovery";
 import { WorkspaceRules } from "./WorkspaceRules";
+import { WorkspaceGenerate } from "./WorkspaceGenerate";
 // import { WorkspaceEnrichment } from "./tabs/enrichment/WorkspaceEnrichment";
 
 export const Workspace: React.FC = () => {
@@ -173,6 +174,7 @@ export const Workspace: React.FC = () => {
                   <Route path="discovery" element={<WorkspaceDiscovery session={session} setSession={setSession} />} />
                   {/*<Route path="enrichment" element={<WorkspaceEnrichment session={session} setSession={setSession} />} />*/}
                   <Route path="enrichment" element={<div>Analysis currently available. Check back later.</div>} />
+                  <Route path="generate" element={<WorkspaceGenerate />} />
                   <Route path="rules" element={<WorkspaceRules />} />
                 </Routes>
               </Box>

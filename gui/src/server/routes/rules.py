@@ -6,9 +6,14 @@ import rdkit
 from flask import Blueprint, Response, jsonify, request
 from rdkit.Chem.Draw import rdMolDraw2D
 
+from retromol.chem.mol import smiles_to_mol, mol_to_smiles
 from retromol.model.rules import ReactionRule, RuleSet
+from retromol_synthesis.reconstruction import BackboneReconstructionError, reconstruct_named_sequence
+
+from routes.rate_limit import limiter
 
 blp_rule_set = Blueprint("rule_set", __name__)
+blp_generate_backbone = Blueprint("generate_backbone", __name__)
 
 _rule_set: RuleSet | None = None
 _reaction_rules_by_id: dict[str, ReactionRule] | None = None
@@ -156,3 +161,46 @@ def reaction_scheme_svg(rule_id: str) -> tuple[Response, int]:
 
     svg = _get_reaction_svg(rule, theme)
     return jsonify({"svg": svg, "rdkitVersion": rdkit.__version__}), 200
+
+
+MAX_GENERATE_BACKBONE_BLOCKS = 100
+
+
+@blp_generate_backbone.post("/api/generateBackbone")
+@limiter.limit("60 per minute")
+def generate_backbone() -> tuple[Response, int]:
+    """
+    Generate a linear backbone structure from a hand-typed primary sequence (a list
+    of matching-rule names, e.g. from a `SequenceEditor` built from scratch), using
+    the same fusion chemistry as a parsed compound's "View item" reconstruction.
+
+    Alongside the Reconstruction's own `tagged_backbone_smiles` (isotope-tagged, for
+    atom highlighting), the response also includes `backboneSmiles` -- the same
+    structure with tags stripped, for a "copy SMILES" affordance that shouldn't leak
+    RetroMol's internal atom-tagging into a SMILES the user pastes elsewhere.
+
+    :return: a tuple containing the generated Reconstruction (or an error) and an HTTP status code
+    """
+    payload = request.get_json(force=True) or {}
+    sequence = payload.get("sequence")
+
+    if not isinstance(sequence, list) or not all(isinstance(name, str) for name in sequence):
+        return jsonify({"error": "'sequence' must be a list of strings"}), 400
+    if not sequence:
+        return jsonify({"error": "'sequence' must not be empty"}), 400
+    if len(sequence) > MAX_GENERATE_BACKBONE_BLOCKS:
+        return jsonify({"error": f"'sequence' must have at most {MAX_GENERATE_BACKBONE_BLOCKS} blocks"}), 400
+
+    try:
+        reconstruction = reconstruct_named_sequence(_get_rule_set(), sequence)
+    except BackboneReconstructionError as e:
+        return jsonify({"error": str(e)}), 400
+
+    data = reconstruction.to_dict()
+    data["backboneSmiles"] = (
+        mol_to_smiles(smiles_to_mol(reconstruction.tagged_backbone_smiles), include_tags=False)
+        if reconstruction.tagged_backbone_smiles
+        else None
+    )
+
+    return jsonify({"data": data}), 200

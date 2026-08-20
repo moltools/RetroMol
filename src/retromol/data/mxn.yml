@@ -425,7 +425,7 @@
   pseudonyms: ["PK_C", "PK"]
 - name: C^Z1
   smiles: 'O=C(/C=C\SO)O'
-  display_smiles: 'O=C(/C=C\[1*)S[2*]'
+  display_smiles: 'O=C(/C=C\[1*])S[2*]'
   stereochemistry: true
   pseudonyms: ["PK_C", "PK"]
 - name: C1

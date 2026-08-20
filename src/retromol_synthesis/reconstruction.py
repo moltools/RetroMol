@@ -15,6 +15,7 @@ from retromol.chem.reaction import smarts_to_reaction
 from retromol.chem.stereo import BondStereoRecord
 from retromol.model.readout import LinearReadout
 from retromol.model.result import Result
+from retromol.model.rules import RuleSet
 
 logger = logging.getLogger(__name__)
 
@@ -204,10 +205,10 @@ rxn_pk_single = smarts_to_reaction(r"OS[C:1]-[C:2][C:3](=[O:4])[OH:5]>>[PbH][C:1
 rxn_pk_double = smarts_to_reaction(r"OS[C:1]=[C:2][C:3](=[O:4])[OH:5]>>[PbH][C:1]=[C:2][C:3](=[O:4])[O:5]-[SnH]")
 
 rxn_fuse_starter_pk = smarts_to_reaction(r"[*:1]C(=O)O[SnH].[PbH][C:2]~[C:3][C:4](=[O:5])[O:6][SnH]>>[*:1][C:2]~[C:3][C:4](=[O:5])[O:6][SnH]")
-rxn_fuse_starter_aa_alpha = smarts_to_reaction(r"[*:1][C:2](=[O:3])O[SnH].[N:4][C:5]C(=O)[OH]>>[*:1][C:2](=[O:3])[N:4][C:5]C(=O)[OH]")
+rxn_fuse_starter_aa_alpha = smarts_to_reaction(r"[*:1][C:2](=[O:3])O[SnH].[N:4][C:5][C:6](=[O:7])[OH:8]>>[*:1][C:2](=[O:3])[N:4][C:5][C:6](=[O:7])[OH:8]")
 rxn_fuse_pk_pk = smarts_to_reaction(r"[*:1][C:2]~[C:3]C(=O)O[SnH].[PbH][C:4]~[C:5][C:6](=[O:7])[O:8][SnH]>>[*:1][C:2]~[C:3][C:4]~[C:5][C:6](=[O:7])[O:8][SnH]")
 rxn_fuse_aa_alpha_pk = smarts_to_reaction(r"[N:1][C:2]C(=O)[OH].[PbH][C:3]~[C:4][C:5](=[O:6])[O:7][SnH:8]>>[N:1][C:2][C:3]~[C:4][C:5](=[O:6])[O:7][SnH:8]")
-rxn_fuse_pk_aa_alpha = smarts_to_reaction(r"[*:1][C:2]~[C:3][C:4](=[O:5])O[SnH].[N:6][C:7]C(=O)[OH]>>[*:1][C:2]~[C:3][C:4](=[O:5])[N:6][C:7]C(=O)[OH]")
+rxn_fuse_pk_aa_alpha = smarts_to_reaction(r"[*:1][C:2]~[C:3][C:4](=[O:5])O[SnH].[N:6][C:7][C:8](=[O:9])[OH:10]>>[*:1][C:2]~[C:3][C:4](=[O:5])[N:6][C:7][C:8](=[O:9])[OH:10]")
 rxn_fuse_aa_alpha_aa_alpha = smarts_to_reaction(r"[N:1][C:2][C:8](=[O:9])[OH].[N:3][C:4]-,=[C:5](=[O:6])[OH:7]>>[N:1][C:2][C:8](=[O:9])[N:3][C:4]-,=[C:5](=[O:6])[OH:7]")
 
 
@@ -581,3 +582,107 @@ def reconstruct_linear_readout(result: Result) -> list[Reconstruction]:
             )
 
     return reconstructions
+
+
+def reconstruct_named_sequence(rule_set: RuleSet, names: list[str]) -> Reconstruction:
+    """
+    Build a linear backbone reconstruction from a hand-typed list of matching-rule
+    names, rather than from an already-parsed compound's `Result`.
+
+    Applies the same eligibility/orientation/fusion logic as one path's worth of
+    `reconstruct_linear_readout`, but starting from each rule's own canonical
+    SMILES instead of a tagged mol pulled out of a parsed structure. Each block is
+    still given its own globally-unique isotope tags (see `tag_mol`) before fusion,
+    purely so `_reconstruct_backbone`'s E/Z restoration -- which is keyed by atom
+    tag pairs -- can tell one block's double bond from another's; two untagged
+    (isotope 0) double bonds anywhere in the sequence would otherwise collide on
+    the same registry key and silently lose or mix up their stereo.
+
+    :param rule_set: RuleSet to resolve `names` against (see `RuleSet.load_default`).
+    :param names: Ordered building-block names, e.g. as typed into a `SequenceEditor`.
+    :return: The reconstructed candidate. `tagged_backbone_smiles` is None (with
+        `backbone_warning` set) if the fusion chemistry couldn't combine this
+        particular sequence.
+    :raises BackboneReconstructionError: If `names` is empty, or contains a name
+        this rule set has no matching rule for.
+    """
+    if not names:
+        raise BackboneReconstructionError("No building blocks given.")
+
+    name_to_rule = {rule.name: rule for rule in rule_set.matching_rules}
+
+    building_blocks: list[str] = []
+    primary_sequence: list[tuple[str, set[int]]] = []
+    eligible: list[bool] = []
+    next_tag = 0
+
+    for name in names:
+        rule = name_to_rule.get(name)
+        if rule is None:
+            raise BackboneReconstructionError(f"Unknown building block name: {name!r}.")
+
+        mol = smiles_to_mol(rule.smiles)
+        eligible.append(any(mol.HasSubstructMatch(pattern) for pattern in eligible_patterns))
+
+        for atom in mol.GetAtoms():
+            next_tag += 1
+            atom.SetIsotope(next_tag)
+
+        primary_sequence.append((rule.name, get_tags_mol(mol)))
+        building_blocks.append(mol_to_smiles(mol, include_tags=True))
+
+    # Mirrors reconstruct_linear_readout's per-path orientation logic: a valid
+    # arrangement has every item eligible, or every item but the first/last
+    # eligible (that one is the non-eligible starter). Anything else -- a
+    # non-eligible item stuck in the middle, or more than one non-eligible item --
+    # isn't a biosynthetic order the fusion chemistry can ever assemble, no matter
+    # which reactions it has; report that plainly rather than attempting fusion and
+    # surfacing BACKBONE_WARNING's "chemistry doesn't cover this" framing, which
+    # would misattribute a structurally invalid sequence to a chemistry gap.
+    non_eligible_idxs = [i for i, e in enumerate(eligible) if not e]
+    valid_arrangement = not non_eligible_idxs or (
+        len(non_eligible_idxs) == 1 and non_eligible_idxs[0] in (0, len(eligible) - 1)
+    )
+
+    if not valid_arrangement:
+        offending = ", ".join(f"'{names[i]}'" for i in non_eligible_idxs)
+        return Reconstruction(
+            tagged_input_smiles="",
+            tagged_backbone_smiles=None,
+            primary_sequence=primary_sequence,
+            backbone_warning=(
+                f"{offending} {'is' if len(non_eligible_idxs) == 1 else 'are'} not a polyketide- or "
+                "amino-acid-type building block that RetroMol's fusion chemistry can extend a chain "
+                "through, so it can only appear as the very first or very last block (the starter "
+                "unit). Move it to one end, or remove it, to generate a backbone."
+            ),
+        )
+
+    starter: str | None
+    if not non_eligible_idxs:
+        starter = None
+    elif non_eligible_idxs[0] == 0:
+        starter = building_blocks[0]
+        building_blocks = building_blocks[1:]
+    else:
+        # The non-eligible starter is at the end -- flip so it's first.
+        building_blocks = list(reversed(building_blocks))
+        primary_sequence = list(reversed(primary_sequence))
+        starter = building_blocks[0]
+        building_blocks = building_blocks[1:]
+
+    tagged_backbone_smiles: str | None = None
+    backbone_warning: str | None = None
+    try:
+        backbone_mol = _reconstruct_backbone(starter, building_blocks)
+        tagged_backbone_smiles = mol_to_smiles(backbone_mol, include_tags=True)
+    except Exception:
+        logger.warning("reconstruct_named_sequence: backbone reconstruction failed", exc_info=True)
+        backbone_warning = BACKBONE_WARNING
+
+    return Reconstruction(
+        tagged_input_smiles="",
+        tagged_backbone_smiles=tagged_backbone_smiles,
+        primary_sequence=primary_sequence,
+        backbone_warning=backbone_warning,
+    )

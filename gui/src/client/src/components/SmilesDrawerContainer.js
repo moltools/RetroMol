@@ -5,9 +5,14 @@ import { useColorScheme } from '@mui/material/styles';
 
 
 class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
-    constructor(options, showIsotopes = false) {
+    constructor(options, showIsotopes = false, orientationTags = null) {
         super(options);
         this.showIsotopes = showIsotopes;
+        // { startTags, endTags }: isotope tags (see retromol.chem.tagging) of the
+        // first and last blocks in a generated sequence -- when given, the drawing
+        // is mirrored horizontally (if needed) so the start block ends up on the
+        // left, matching reading order of the primary sequence shown alongside it.
+        this.orientationTags = orientationTags;
 
         const themeOverrides = {
             light: {
@@ -86,8 +91,35 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         atom.bracket = null;
     }
 
+    orientSequenceLeftToRight(startTags, endTags) {
+        const graph = this.preprocessor?.graph;
+        if (!graph || !startTags?.length || !endTags?.length) return;
+
+        const vertices = graph.vertices.filter((v) => v.position);
+        if (!vertices.length) return;
+
+        const avgX = (tags) => {
+            const matched = vertices.filter((v) => v.value?.bracket && tags.includes(v.value.bracket.isotope));
+            if (!matched.length) return null;
+            return matched.reduce((sum, v) => sum + v.position.x, 0) / matched.length;
+        };
+
+        const startX = avgX(startTags);
+        const endX = avgX(endTags);
+        if (startX === null || endX === null || startX <= endX) return;
+
+        const xs = vertices.map((v) => v.position.x);
+        const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+        for (const vertex of vertices) {
+            vertex.position.x = 2 * centerX - vertex.position.x;
+        }
+    }
+
     drawAtomHighlights(highlights) {
         this.prepareTinAsRightWildcard('Sn');
+        if (this.orientationTags) {
+            this.orientSequenceLeftToRight(this.orientationTags.startTags, this.orientationTags.endTags);
+        }
 
         let preprocessor = this.preprocessor;
         let graph = preprocessor.graph;
@@ -177,12 +209,17 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
  * @property {string} [themeOverride]               force “light” or “dark” drawing theme
  * @property {boolean} [showIsotopes]               draw isotope numbers (e.g. R-group
  *                                                   tags like [1*]/[2*]) instead of hiding them
+ * @property {{startTags: number[], endTags: number[]}} [orientationTags]
+ *                                                   isotope tags of the first/last blocks in a
+ *                                                   generated sequence -- mirrors the drawing
+ *                                                   horizontally (if needed) so the start block
+ *                                                   ends up on the left
  */
 
 /**
  * @param {Props} props
  */
-const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], themeOverride = '', showIsotopes = false }) => {
+const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], themeOverride = '', showIsotopes = false, orientationTags = null }) => {
     const { mode, systemMode } = useColorScheme();
     const [error, setError] = useState(null);
 
@@ -198,7 +235,15 @@ const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], 
 
         // A fresh drawer instance per draw call, since it isn't safe to reuse
         // once it holds a graph for a previous (possibly differently-sized) SMILES.
-        let drawer = new CustomSvgDrawer({ width: size, height: size }, showIsotopes);
+        //
+        // padding is bumped above the library default (10) because that default
+        // only leaves room for atom labels -- it doesn't account for the extra
+        // radius a highlight circle (customDrawAtomHighlight, r = bondLength / 3)
+        // draws around a highlighted atom, so a highlighted atom sitting at the
+        // very edge of the layout (as the first/last block often does once
+        // orientationTags pins it there) gets its highlight clipped by the SVG's
+        // own viewBox.
+        let drawer = new CustomSvgDrawer({ width: size, height: size, padding: 24 }, showIsotopes, orientationTags);
 
         try {
             SmilesDrawer.parse(
@@ -221,7 +266,7 @@ const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], 
             console.error('SmilesDrawerContainer: unexpected error', err);
             setError('Could not render this structure.');
         }
-    }, [identifier, smiles, highlightAtoms, size, themeOverride, showIsotopes, mode, systemMode]);
+    }, [identifier, smiles, highlightAtoms, size, themeOverride, showIsotopes, orientationTags, mode, systemMode]);
 
     if (error) {
         return (
