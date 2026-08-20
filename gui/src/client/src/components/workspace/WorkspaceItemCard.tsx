@@ -26,7 +26,7 @@ import { renameSessionItem } from "../../features/session/api";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { DialogViewItem } from "./DialogViewItem";
-import { PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
+import { PrimarySequenceOverview, PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
 import { ClusterReadoutRows } from "./ClusterReadoutRows";
 import { reconstructCompound } from "../../features/reconstruction/api";
 import { getClusterReadout } from "../../features/clusters/api";
@@ -162,6 +162,7 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
     enabled: expanded && isCompound,
   });
   const reconstructions = reconstructionQuery.data?.reconstructions ?? null;
+  const dbMatchingSequences = reconstructionQuery.data?.dbMatchingSequences ?? [];
   const editor = usePrimarySequenceEditor(session, setSession, item, reconstructions);
   // See DialogViewItem's isUnordered -- an unordered "bag of motifs" result isn't a
   // sequence, so there's nothing meaningful to drag-and-drop reorder.
@@ -491,6 +492,12 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
                 <Typography variant="body2" color="text.secondary">
                   No reconstructed primary sequences found for this compound.
                 </Typography>
+              )}
+
+              {dbMatchingSequences.length > 0 && (
+                <Stack spacing={1} sx={{ mb: 1.5 }}>
+                  <PrimarySequenceOverview data={dbMatchingSequences} />
+                </Stack>
               )}
 
               {reconstructions && reconstructions.length > 0 && (

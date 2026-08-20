@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMotifStructures } from "../features/motifs/api";
 import { MotifName } from "./MotifName";
@@ -23,7 +24,11 @@ function MotifHoverContent({ name, hint }: { name: string; hint?: string }) {
     gcTime: Infinity,
   });
 
-  const smiles = structuresQuery.data?.[name];
+  const smiles = structuresQuery.data?.structures[name];
+  // Some names (e.g. "glycosylation") don't identify one specific rule -- they're
+  // shared by many rules with different structures, so whichever one `smiles`
+  // shows was picked arbitrarily (see /api/motifStructures's ambiguousNames).
+  const isAmbiguous = structuresQuery.data?.ambiguousNames.includes(name) ?? false;
 
   // Must be unique per *mounted instance*, not derived from `name` alone --
   // SmilesDrawerContainer draws into a DOM node it looks up by this id, and the
@@ -60,6 +65,15 @@ function MotifHoverContent({ name, hint }: { name: string; hint?: string }) {
               No structure available
             </Typography>
           )}
+        </Box>
+      )}
+      {isAmbiguous && (
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
+          <WarningAmberIcon color="warning" sx={{ fontSize: "0.9rem", mt: "1px", flexShrink: 0 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "left" }}>
+            Multiple structures share this name: the one shown is picked arbitrarily,
+            not necessarily the one that actually matched here.
+          </Typography>
         </Box>
       )}
       <Typography variant="caption" fontWeight={600}>

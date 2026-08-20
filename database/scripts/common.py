@@ -17,7 +17,7 @@ from retromol.io.streaming import ResultEvent, _init_worker, _process_compound, 
 from retromol.model.result import Result
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol_database.duckdb import FINGERPRINT_SIZE
-from retromol_fingerprint.fingerprint import Fingerprinter, Vocabulary
+from retromol_fingerprint.fingerprint import TOKEN_LINK, Fingerprinter, Vocabulary
 
 # Silences RDKit's kekulization/valence/etc. warnings in *this* (single) process --
 # every pipeline script imports common, so this alone covers create_db.py,
@@ -69,7 +69,16 @@ def build_fingerprint_context(ruleset: RuleSet) -> tuple[dict[str, MatchingRule]
 
 
 def per_monomer_tokens(name: str, name_to_rule: dict[str, MatchingRule]) -> list[str]:
-    """Fingerprinting token list for one compound primary-sequence block (mirrors discovery.py's `_per_monomer_tokens`)."""
+    """Fingerprinting token list for one compound primary sequence block (mirrors discovery.py's `_per_monomer_tokens`).
+
+    TOKEN_LINK is not a building block -- it just joins two merged paths -- and is
+    filtered out by callers before fingerprinting (see load_compounds.py), so it's
+    never actually looked up here. Handled explicitly anyway so a stray call can't
+    silently fall through to the empty-tokens/TOKEN_UNK path instead.
+    """
+    if name == TOKEN_LINK:
+        return [TOKEN_LINK]
+
     if name in PK_GROUP_TOKENS:
         return [name, "PK"]
 
@@ -103,53 +112,26 @@ def npatlas_url(npaid: str | None) -> str | None:
     return NPATLAS_URL_TEMPLATE.format(npaid=npaid)
 
 
-def primary_sequences_from_result(result: Result, min_length: int = 2) -> tuple[list[list[str]], list[str]]:
+def primary_sequence_from_result(result: Result) -> list[str]:
     """
-    Every candidate primary sequence for a parsed compound, read directly off
-    `result.linear_readout.paths` -- no backbone reconstruction involved, that's a
+    The single primary sequence for a parsed compound, read directly off
+    `result.linear_readout` -- no backbone reconstruction involved, that's a
     display-only concern this pipeline has no use for. `result.linear_readout` is
     already computed by retromol.pipelines.parsing.run_retromol (it's just a field
-    on Result), each path is one candidate ordering of monomers through the
-    molecule, and each becomes its own db entry (see load_compounds.py). An
-    unidentified node is named "X", the same convention used everywhere else in
-    RetroMol.
-
-    `result.linear_readout` also includes single-node paths for tailoring events
-    that don't connect to any chain -- most commonly glycosylation (AssemblyGraph
-    only keeps C-C/C-N bonds as "connections", so a sugar attached via a glycosidic
-    C-O-C linkage always ends up disconnected from the main chain) and methylation.
-    These aren't a "sequence" in any useful sense, so they're excluded from the
-    returned primary_sequences by the `min_length` floor -- but they're still real,
-    identified content RetroMol found on this molecule, so their names are returned
-    separately as `extra_tokens`, meant to be folded into the fingerprint alongside
-    each primary_sequence (see per_monomer_tokens) without being displayed as part
-    of it. Dropping them from the fingerprint entirely -- the previous behavior --
-    made two compounds differing only in glycosylation pattern (a common source of
-    real biosynthetic diversity, e.g. erythromycin vs. megalomicin) invisible to
-    that difference.
-
-    `extra_tokens` is NOT deduplicated: Fingerprinter.encode has no final
-    normalization step, so each occurrence adds its own weight -- a molecule with
-    two glycosylation events should end up with roughly twice the glycosylation
-    weight of one with a single event, not the same weight collapsed to "some
-    glycosylation happened". Deduping here would throw that count signal away.
+    on Result); every path through the molecule -- including single-node paths for
+    tailoring events that don't connect to any chain, e.g. glycosylation/methylation
+    (AssemblyGraph only keeps C-C/C-N bonds as "connections", so a sugar attached via
+    a glycosidic C-O-C linkage always ends up disconnected from the main chain) --
+    is merged into one sequence (longest first, ties broken lexicographically, joined
+    by TOKEN_LINK -- see `LinearReadout.primary_sequence`), and that single sequence
+    becomes this compound's one db entry (see load_compounds.py). Nothing found in
+    the assembly graph is dropped. An unidentified node is named "X", the same
+    convention used everywhere else in RetroMol.
 
     :param result: a parsed RetroMol Result
-    :param min_length: drop paths shorter than this from primary_sequences (default 2)
-    :return: (primary_sequences, extra_tokens) -- one extra_tokens entry per
-        qualifying tailoring-event path, duplicates and all
+    :return: the single primary sequence
     """
-    primary_sequences: list[list[str]] = []
-    extra_tokens: list[str] = []
-
-    for path in result.linear_readout.paths:
-        names = [node.identity.matched_rule.name if node.is_identified else "X" for node in path]
-        if len(path) >= min_length:
-            primary_sequences.append(names)
-        else:
-            extra_tokens.extend(n for n in names if n != "X")
-
-    return primary_sequences, extra_tokens
+    return result.linear_readout.primary_sequence()
 
 
 def _init_worker_quiet(ruleset: RuleSet) -> None:

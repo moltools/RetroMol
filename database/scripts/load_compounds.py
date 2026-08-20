@@ -1,18 +1,11 @@
 """Steps 4 & 6: turn parsed compound results into database entries.
 
-For each RetroMol Result, every candidate primary sequence -- one per path in
-result.linear_readout.paths, read directly off the Result (see
-common.primary_sequences_from_result) -- becomes its own "compound" entry.
-Ambiguous parses intentionally produce multiple queryable entries, the same
-convention the webapp uses for an uploaded compound with more than one candidate
-reading. `raw` is always the original input SMILES, the same for every entry a
-given compound produces.
-
-A compound's tailoring events (glycosylation, methylation -- anything that shows up
-as its own disconnected single-node path, see common.primary_sequences_from_result)
-aren't part of any displayed primary_sequence, but their tokens still get folded
-into every one of that compound's fingerprints, so two compounds that only differ
-by e.g. an attached sugar aren't fingerprint-identical.
+For each RetroMol Result, every path found in result.linear_readout -- including a
+compound's tailoring events (glycosylation, methylation -- anything that shows up as
+its own disconnected single-node path) -- is merged into the one primary sequence
+stored for that compound: longest path first, ties broken lexicographically, joined
+by TOKEN_LINK (see common.primary_sequence_from_result). One compound -> one db
+entry, always. `raw` is the original input SMILES.
 """
 
 import argparse
@@ -30,10 +23,11 @@ from common import (
     mibig_url,
     npatlas_url,
     per_monomer_tokens,
-    primary_sequences_from_result,
+    primary_sequence_from_result,
 )
 from retromol.model.result import Result
 from retromol_database.duckdb import RetroMolDuckDB
+from retromol_fingerprint.fingerprint import TOKEN_LINK
 
 log = logging.getLogger(__name__)
 
@@ -96,15 +90,15 @@ def run(
 
                     name = name or result.submission.name or result.submission.inchikey
 
-                    sequences, extra_tokens = primary_sequences_from_result(result)
-                    extra_tokens_encoded = [per_monomer_tokens(n, name_to_rule) for n in extra_tokens]
+                    names = primary_sequence_from_result(result)
 
-                    for names in sequences:
-                        if not names:
-                            skipped += 1
-                            continue
-
-                        tokens = [per_monomer_tokens(n, name_to_rule) for n in names] + extra_tokens_encoded
+                    if not names:
+                        skipped += 1
+                    else:
+                        # TOKEN_LINK only marks where two merged paths join -- it isn't
+                        # a building block, so it's excluded from the fingerprint (an
+                        # empty token list would otherwise silently add TOKEN_UNK mass).
+                        tokens = [per_monomer_tokens(n, name_to_rule) for n in names if n != TOKEN_LINK]
                         fp = fingerprinter.encode(tokens)
 
                         db.add_entry(

@@ -1099,7 +1099,7 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
 
 def bgc_primary_sequence(readout: LinearReadout, ruleset: RuleSet) -> tuple[list[str], list[list[str]]]:
     """
-    Convert a BGC's linear readout into a primary-sequence representation comparable
+    Convert a BGC's linear readout into a primary sequence representation comparable
     to a compound's: one display name and one fingerprint token list per module, both
     drawn from the same matching-rule vocabulary, in biosynthetic order.
 

@@ -44,6 +44,7 @@ import { useNotifications } from "../NotificationProvider";
 import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { SequenceEditor, type SequenceBlock } from "./SequenceEditor";
+import { PrimarySequenceOverview } from "./PrimarySequenceEditor";
 import { DialogViewDiscoveryQuery } from "./DialogViewDiscoveryQuery";
 import {MinimalIconButton} from "../MinimalIconButton";
 
@@ -372,11 +373,6 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
   const [selectedItemId, setSelectedItemId] = React.useState<string>("");
   const selectedItem = session.items.find((item) => item.id === selectedItemId);
   const [blocks, setBlocks] = React.useState<SequenceBlock[]>([]);
-  // Carried alongside `blocks` from whichever candidate "Use this" was clicked on --
-  // only ever non-empty when that candidate was a dbMatchingSequences entry (see
-  // handlePickNames). Folded into the query's fingerprint on submit without being
-  // shown as part of the editable sequence itself.
-  const [extraFingerprintTokens, setExtraFingerprintTokens] = React.useState<string[]>([]);
 
   const [entryType, setEntryType] = React.useState<DiscoveryEntryType>("compound");
   const [scoreMode, setScoreMode] = React.useState<DiscoveryScoreMode>("longest_sequence");
@@ -420,9 +416,8 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
     enabled: selectedItem?.kind === "cluster",
   });
 
-  const handlePickNames = (names: string[], extraTokens: string[] = []) => {
+  const handlePickNames = (names: string[]) => {
     setBlocks(blocksFromNames(names));
-    setExtraFingerprintTokens(extraTokens);
   };
 
   const maxTopX = Math.max(1, Math.min(n, MAX_TOP_X));
@@ -452,7 +447,6 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
         includeUserUploads: includeUserUploads || onlyUserUploads,
         onlyUserUploads,
         queryOriginSmiles,
-        extraFingerprintTokens: extraFingerprintTokens.length > 0 ? extraFingerprintTokens : undefined,
         flags: { computeMsa, computeCompare },
       });
       setSession((prev) => (prev ? { ...prev, items: [...prev.items, item] } : prev));
@@ -607,45 +601,25 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
               {reconstructionQuery.data && reconstructionQuery.data.dbMatchingSequences.length > 0 && (
                 <>
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                    Database-matching sequences -- query with one of these for a fingerprint
-                    guaranteed comparable to what's actually stored
+                    Database-matching sequence -- query with this for a fingerprint
+                    guaranteed comparable to what's actually stored. Nothing is
+                    filtered out of it (tailoring events like glycosylation are
+                    included), so a compound with more than one biosynthetic chain
+                    can also be queried with just one of them below.
                   </Typography>
-                  <Stack spacing={1} sx={{ mb: 2 }}>
-                    {reconstructionQuery.data.dbMatchingSequences.map((reconstruction, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          p: 1,
-                          borderRadius: 1,
-                          border: "1px solid",
-                          borderColor: "info.main",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1.5,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <Tooltip title={reconstruction.backbone_warning ?? ""}>
-                          <Chip label={`db sequence ${idx + 1}`} size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem" }} />
-                        </Tooltip>
-                        <Box sx={{ transform: "translateY(5px)" }}>
-                          <ReconstructionPreview sequence={reconstruction.primary_sequence} />
-                        </Box>
+                  <Stack spacing={1.5} sx={{ mb: 2 }}>
+                    <PrimarySequenceOverview
+                      data={reconstructionQuery.data.dbMatchingSequences}
+                      renderAction={(sequence) => (
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() =>
-                            handlePickNames(
-                              reconstruction.primary_sequence.map(([name]) => name),
-                              reconstruction.extra_fingerprint_tokens
-                            )
-                          }
-                          sx={{ ml: "auto" }}
+                          onClick={() => handlePickNames(sequence.map(([name]) => name))}
                         >
                           Use this
                         </Button>
-                      </Box>
-                    ))}
+                      )}
+                    />
                   </Stack>
                 </>
               )}
@@ -673,7 +647,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                       }}
                     >
                       <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                        {`primary sequence ${idx+1}`}
+                        {`reconstructed backbone ${idx+1}`}
                       </Typography>
                       {override && (
                         <Chip label="Edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem" }} />
