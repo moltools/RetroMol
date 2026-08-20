@@ -807,14 +807,26 @@ def run_discovery_msa(
 ) -> tuple[dict, int]:
     """
     Compute a multiple sequence alignment of a query against a set of sequences,
-    anchored on the query as the star center (so every other sequence is ordered and
-    oriented relative to it, matching how the pairwise results are already anchored).
+    anchored on the query as the star center (so every other sequence is oriented
+    relative to it, matching how the pairwise results are already anchored).
 
     Runs as an RQ job (see routes/queue.py). Intended to be called with the query
     and result sequences already returned by /api/discoveryQuery -- scores for
     display are deliberately NOT recomputed here; the frontend re-attaches each
     row's existing normalizedAlignmentScorePct by id, so the number shown next to a
     row in the MSA always matches the pairwise view.
+
+    Row *order* is likewise taken from `ids` as given, not from calculate_msa's own
+    internal ordering: that function sorts by each sequence's raw, unnormalized
+    alignment score against the query, which has no notion of the score mode
+    (subsequence/longest_sequence) the pairwise ranking was normalized by, and can
+    disagree with it -- a long sequence can out-score a short, proportionally
+    better match once length is no longer accounted for. `ids` is expected to
+    already be in ranked (normalized-score) order, same as /api/discoveryQuery's
+    `results`, so re-sorting the response into that order keeps the two views
+    consistent without changing anything about the alignment itself (each
+    sequence is aligned independently against the pristine center regardless of
+    processing order, so this is purely a display-order fix).
 
     :return: a (response body, HTTP status code) pair
     """
@@ -846,7 +858,7 @@ def run_discovery_msa(
     # every other row's per-column similarity is computed against this exact sequence.
     query_aligned_tokens = aligned[0][2]
 
-    rows = []
+    rows_by_id: dict[str, dict] = {}
     for (_, _, aligned_seq), original_index in zip(aligned, new_order):
         entry_id = all_ids[original_index]
         similarity_to_query = (
@@ -854,7 +866,7 @@ def run_discovery_msa(
             if entry_id == "query"
             else [_pair_similarity(ctx, q_tok, tok) for q_tok, tok in zip(query_aligned_tokens, aligned_seq)]
         )
-        rows.append({
+        rows_by_id[entry_id] = {
             "id": entry_id,
             "alignedSequence": [
                 (_denormalize_for_display(t) if t is not None else None) for t in aligned_seq
@@ -862,7 +874,11 @@ def run_discovery_msa(
             # Per-column Tanimoto similarity against the query's own row at that same MSA
             # column; all None for the query's row itself (nothing to compare it against).
             "similarityToQuery": similarity_to_query,
-        })
+        }
+
+    # Emit in `all_ids` order (query, then `ids` as given), not calculate_msa's own
+    # internal ordering -- see the docstring above.
+    rows = [rows_by_id[entry_id] for entry_id in all_ids]
 
     return {"ok": True, "rows": rows}, 200
 
