@@ -66,15 +66,46 @@ def _iter_compound_records(data: dict[str, Any], root: dict[str, Any], accession
         }
 
 
+# MIBiG's own short biosynthesis-class codes -> friendlier display labels for the
+# chemical_class annotation. Covers every value observed across the full 4.0 corpus
+# (PKS/NRPS/ribosomal/other/terpene/saccharide); an unrecognized future code falls
+# back to itself unchanged rather than being dropped.
+BIOSYN_CLASS_LABELS = {
+    "PKS": "Polyketide",
+    "NRPS": "Nonribosomal peptide",
+    "ribosomal": "RiPP",
+    "terpene": "Terpene",
+    "saccharide": "Saccharide",
+    "other": "Other",
+}
+
+
 def _annotations(root: dict[str, Any]) -> dict[str, Any]:
-    """Phylogeny + chemical-class metadata shared by every compound/BGC under one accession."""
-    organism_name = root.get("organism_name")
-    ncbi_tax_id = root.get("ncbi_tax_id")
-    biosyn_class = root.get("biosyn_class")
+    """Phylogeny + chemical-class metadata shared by every compound/BGC under one accession.
+
+    MIBiG 4.0's real (flat) schema nests these under "taxonomy" ({"name", "ncbiTaxId"})
+    and "biosynthesis" ({"classes": [{"class": "PKS", ...}, ...]}) -- not the top-level
+    "organism_name"/"ncbi_tax_id"/"biosyn_class" keys older MIBiG releases used.
+    """
+    taxonomy = root.get("taxonomy")
+    taxonomy = taxonomy if isinstance(taxonomy, dict) else {}
+    organism_name = taxonomy.get("name")
+    ncbi_tax_id = taxonomy.get("ncbiTaxId")
+
+    biosynthesis = root.get("biosynthesis")
+    biosynthesis = biosynthesis if isinstance(biosynthesis, dict) else {}
+    classes = biosynthesis.get("classes")
+    classes = classes if isinstance(classes, list) else []
+    biosyn_class = [
+        BIOSYN_CLASS_LABELS.get(c.get("class"), c.get("class"))
+        for c in classes
+        if isinstance(c, dict) and c.get("class")
+    ]
+
     return {
         "organism_name": organism_name if isinstance(organism_name, str) else None,
         "ncbi_tax_id": str(ncbi_tax_id) if ncbi_tax_id is not None else None,
-        "biosyn_class": biosyn_class if isinstance(biosyn_class, list) else [],
+        "biosyn_class": biosyn_class,
     }
 
 

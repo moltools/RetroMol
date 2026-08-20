@@ -2,6 +2,11 @@ import { getJson } from "../http";
 import { AnnotationTermsRespSchema, BrowseEntriesRespSchema } from "./types";
 import type { EntryType } from "../enrichment/types";
 
+// Mirrors MAX_BROWSE_ENTRIES in gui/src/server/routes/browse.py -- both browsing and
+// TSV export are capped there so an unfiltered query over a huge database can't pull
+// the whole table into memory; kept here only for the frontend's warning copy.
+export const MAX_BROWSE_ENTRIES = 1000;
+
 function buildParams(entryType: EntryType | "all", termId: string | null): URLSearchParams {
   const params = new URLSearchParams();
   if (entryType !== "all") params.set("type", entryType);

@@ -436,13 +436,9 @@ class RetroMolDuckDB:
             for r in rows
         ]
 
-    def browse_entries(
-        self, *, entry_type: str | None = None, term_id: str | None = None
-    ) -> list[BrowseEntry]:
-        """Every entry (optionally filtered by type and/or a single annotation term id --
-        matching phylogeny at any rank or a chemical class), with its sources and
-        annotations attached. Used for both the Browse tab's table and its TSV export --
-        both need the whole matching set, not a similarity-ranked slice."""
+    def _browse_where_clause(
+        self, *, entry_type: str | None, term_id: str | None
+    ) -> tuple[str, list[object]]:
         where_sql = []
         params: list[object] = []
 
@@ -456,6 +452,38 @@ class RetroMolDuckDB:
             params.append(term_id)
 
         where_clause = f"WHERE {' AND '.join(where_sql)}" if where_sql else ""
+        return where_clause, params
+
+    def count_browse_entries(self, *, entry_type: str | None = None, term_id: str | None = None) -> int:
+        """Total number of entries a `browse_entries(...)` call with the same filters would
+        match, regardless of its `limit` -- lets callers warn when a result set was truncated."""
+        where_clause, params = self._browse_where_clause(entry_type=entry_type, term_id=term_id)
+        return int(
+            self.con.execute(f"SELECT count(*) FROM entries e {where_clause}", params).fetchone()[0]
+        )
+
+    def browse_entries(
+        self, *, entry_type: str | None = None, term_id: str | None = None, limit: int | None = None
+    ) -> list[BrowseEntry]:
+        """Every entry (optionally filtered by type and/or a single annotation term id --
+        matching phylogeny at any rank or a chemical class), with its sources and
+        annotations attached. Used for both the Browse tab's table and its TSV export.
+
+        `limit` bounds how many rows are fetched -- callers should always pass one (see
+        MAX_BROWSE_ENTRIES in routes/browse.py) since an unfiltered call over a
+        multi-million-row database would otherwise materialize the whole table in memory.
+        Use `count_browse_entries` with the same filters to tell whether the result was
+        truncated. Results are ordered by id, so `limit` always returns the same prefix.
+        """
+        if limit is not None and limit < 1:
+            raise ValueError("limit must be >= 1")
+
+        where_clause, params = self._browse_where_clause(entry_type=entry_type, term_id=term_id)
+
+        limit_clause = ""
+        if limit is not None:
+            limit_clause = "LIMIT ?"
+            params = [*params, limit]
 
         rows = self.con.execute(
             f"""
@@ -463,6 +491,7 @@ class RetroMolDuckDB:
             FROM entries e
             {where_clause}
             ORDER BY e.id
+            {limit_clause}
             """,
             params,
         ).fetchall()

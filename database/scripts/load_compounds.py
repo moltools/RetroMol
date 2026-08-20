@@ -50,6 +50,21 @@ def _npatlas_name_and_url(props: dict) -> tuple[str | None, str | None]:
     return name, npatlas_url(npaid)
 
 
+def _npatlas_phylogeny(props: dict) -> tuple[str | None, str | None, str | None]:
+    """NPAtlas's SDF carries type/genus/species directly (unlike MIBiG's free-text
+    organism_name) -- see the `origin_type`/`genus`/`origin_species` SDF properties."""
+    type_key = find_key_ci(props, ["origin_type"])
+    type_label = props.get(type_key) if type_key else None
+
+    genus_key = find_key_ci(props, ["genus"])
+    genus = props.get(genus_key) if genus_key else None
+
+    species_key = find_key_ci(props, ["origin_species"])
+    species = props.get(species_key) if species_key else None
+
+    return (type_label or None), (genus or None), (species or None)
+
+
 def _mibig_name_and_url(props: dict, versions: dict[str, str]) -> tuple[str | None, str | None]:
     accession = props.get("mibig_accession")
     version = versions.get(accession) if accession else None
@@ -141,6 +156,11 @@ def run(
                         )
                         if source == "mibig":
                             _apply_mibig_annotations(db, result.submission.inchikey, props, annotations)
+                        else:
+                            type_label, genus, species = _npatlas_phylogeny(props)
+                            db.add_phylogeny_annotation(
+                                result.submission.inchikey, type_label=type_label, genus=genus, species=species
+                            )
                         added += 1
 
                     compounds += 1

@@ -20,7 +20,8 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useNotifications } from "../../../NotificationProvider";
-import { getAnnotationTerms, getBrowseEntries, browseEntriesExportUrl } from "../../../../features/browse/api";
+import { getAnnotationTerms, getBrowseEntries, browseEntriesExportUrl, MAX_BROWSE_ENTRIES } from "../../../../features/browse/api";
+import { groupSourcesByDatabase } from "../../../../features/sources";
 import type { AnnotationTerm, BrowseEntry } from "../../../../features/browse/types";
 import type { EntryType } from "../../../../features/enrichment/types";
 
@@ -36,7 +37,10 @@ export const WorkspaceBrowse: React.FC = () => {
   const [termId, setTermId] = React.useState<string>(ALL_TERM);
 
   const [entries, setEntries] = React.useState<BrowseEntry[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const [truncated, setTruncated] = React.useState(false);
+  const [hasSearched, setHasSearched] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const [page, setPage] = React.useState(0);
@@ -54,27 +58,24 @@ export const WorkspaceBrowse: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  React.useEffect(() => {
-    const controller = new AbortController();
+  const handleBrowse = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+
     setLoading(true);
     setError(null);
-
-    getBrowseEntries(entryType, termId === ALL_TERM ? null : termId, controller.signal)
-      .then((resp) => {
-        setEntries(resp.entries);
-        setPage(0);
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [entryType, termId]);
+    try {
+      const resp = await getBrowseEntries(entryType, termId === ALL_TERM ? null : termId);
+      setEntries(resp.entries);
+      setTotalCount(resp.totalCount);
+      setTruncated(resp.truncated);
+      setPage(0);
+      setHasSearched(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = React.useMemo(
     () => Array.from(new Set(terms.map((t) => t.category))).sort(),
@@ -102,68 +103,84 @@ export const WorkspaceBrowse: React.FC = () => {
             Browse annotations
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Browse database entries and their annotations, and download the filtered set as a TSV file
-            (compound SMILES/InChIKey, or BGC id, alongside phylogeny and chemical class annotations).
+            Browse database entries and their annotations, and download the filtered set as a TSV file.
           </Typography>
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-            <TextField
-              select
-              label="Type"
-              size="small"
-              sx={{ minWidth: 160 }}
-              value={entryType}
-              onChange={(e) => setEntryType(e.target.value as EntryType | "all")}
-            >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="compound">Compounds</MenuItem>
-              <MenuItem value="bgc">Gene clusters (BGCs)</MenuItem>
-            </TextField>
+          <Box component="form" onSubmit={handleBrowse}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+              <TextField
+                select
+                label="Type"
+                size="small"
+                sx={{ minWidth: 160 }}
+                value={entryType}
+                onChange={(e) => setEntryType(e.target.value as EntryType | "all")}
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="compound">Compounds</MenuItem>
+                <MenuItem value="bgc">Gene clusters (BGCs)</MenuItem>
+              </TextField>
 
-            <TextField
-              select
-              label="Annotation category"
-              size="small"
-              sx={{ minWidth: 200 }}
-              value={category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-            >
-              <MenuItem value={ALL_CATEGORY}>All categories</MenuItem>
-              {categories.map((c) => (
-                <MenuItem key={c} value={c}>{c}</MenuItem>
-              ))}
-            </TextField>
+              <TextField
+                select
+                label="Annotation category"
+                size="small"
+                sx={{ minWidth: 200 }}
+                value={category}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+              >
+                <MenuItem value={ALL_CATEGORY}>All categories</MenuItem>
+                {categories.map((c) => (
+                  <MenuItem key={c} value={c}>{c}</MenuItem>
+                ))}
+              </TextField>
 
-            <TextField
-              select
-              label="Annotation label"
-              size="small"
-              sx={{ minWidth: 220 }}
-              value={termId}
-              onChange={(e) => setTermId(e.target.value)}
-            >
-              <MenuItem value={ALL_TERM}>Any</MenuItem>
-              {termOptions.map((t) => (
-                <MenuItem key={t.id} value={t.id}>
-                  {t.rank ? `${t.rank}: ${t.label}` : t.label}
-                </MenuItem>
-              ))}
-            </TextField>
+              <TextField
+                select
+                label="Annotation label"
+                size="small"
+                sx={{ minWidth: 220 }}
+                value={termId}
+                onChange={(e) => setTermId(e.target.value)}
+              >
+                <MenuItem value={ALL_TERM}>Any</MenuItem>
+                {termOptions.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.rank ? `${t.rank}: ${t.label}` : t.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
 
-            <Tooltip title="Download the entries below (all matching rows, not just this page) as a TSV file">
-              <span>
-                <Button
-                  variant="contained"
-                  startIcon={<DownloadIcon />}
-                  component="a"
-                  href={exportUrl}
-                  disabled={loading || entries.length === 0}
-                >
-                  Download TSV
-                </Button>
-              </span>
-            </Tooltip>
-          </Stack>
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+              <Button type="submit" variant="contained" disabled={loading}>
+                {loading ? <CircularProgress size={20} /> : "Browse"}
+              </Button>
+
+              <Tooltip
+                title={
+                  !hasSearched
+                    ? "Browse first to enable download"
+                    : truncated
+                    ? `Downloads only the first ${MAX_BROWSE_ENTRIES.toLocaleString()} matching rows (of ${totalCount.toLocaleString()}) -- narrow your filters to get the rest`
+                    : "Download all matching rows as a TSV file"
+                }
+                arrow
+              >
+                <span>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    component="a"
+                    href={exportUrl}
+                    disabled={!hasSearched}
+                  >
+                    Download TSV
+                  </Button>
+                </span>
+              </Tooltip>
+            </Stack>
+          </Box>
         </CardContent>
       </Card>
 
@@ -173,17 +190,20 @@ export const WorkspaceBrowse: React.FC = () => {
         </Alert>
       )}
 
-      {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress />
-        </Box>
+      {hasSearched && truncated && !loading && !error && (
+        <Alert severity="info" variant="outlined">
+          {totalCount.toLocaleString()} entries match these filters. Showing (and downloading) only the
+          first {MAX_BROWSE_ENTRIES.toLocaleString()}. Narrow the filters to see/export the rest.
+        </Alert>
       )}
 
-      {!loading && !error && (
+      {hasSearched && !loading && !error && (
         <Card variant="outlined">
           <CardContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {entries.length.toLocaleString()} matching entries
+              {truncated
+                ? `${entries.length.toLocaleString()} of ${totalCount.toLocaleString()} matching entries shown`
+                : `${entries.length.toLocaleString()} matching entries`}
             </Typography>
 
             <TableContainer sx={{ maxHeight: 520 }}>
@@ -207,8 +227,17 @@ export const WorkspaceBrowse: React.FC = () => {
                         {entry.type === "compound" ? entry.smiles ?? "-" : entry.id}
                       </TableCell>
                       <TableCell>
-                        {entry.sources.map((s) => (
-                          <Chip key={s.databaseName + s.name} label={s.databaseName} size="small" sx={{ mr: 0.5 }} />
+                        {groupSourcesByDatabase(entry.sources).map((g) => (
+                          <Tooltip
+                            key={g.databaseName}
+                            title={g.items.map((s) => s.name).join(", ")}
+                          >
+                            <Chip
+                              label={g.count > 1 ? `${g.databaseName} ×${g.count}` : g.databaseName}
+                              size="small"
+                              sx={{ mr: 0.5 }}
+                            />
+                          </Tooltip>
                         ))}
                       </TableCell>
                       <TableCell>

@@ -181,11 +181,17 @@ FUNGAL_GENERA = {
 }
 
 
+# Metagenomic/environmental-sample naming conventions (e.g. "uncultured Streptomyces sp.",
+# "unidentified bacterium") -- not a genus, so skipped when picking the genus token.
+_NON_TAXONOMIC_PREFIXES = {"uncultured", "unclassified", "unidentified"}
+
+
 def phylogeny_from_organism_name(organism_name: str | None) -> tuple[str | None, str | None, str | None]:
     """Split MIBiG's free-text `organism_name` (e.g. "Streptomyces coelicolor A3(2)")
     into (type, genus, species). Type is inferred from `FUNGAL_GENERA` since MIBiG's
-    JSON carries no kingdom field; genus/species are the name's first two tokens, with
-    species dropped when the second token is "sp."/"sp" (strain-only identification).
+    JSON carries no kingdom field; genus/species are the name's first two tokens (after
+    dropping a leading "uncultured"/"unclassified"/"unidentified" marker), with species
+    dropped when the following token is "sp."/"sp" (strain-only identification).
 
     :param organism_name: MIBiG cluster.organism_name, or None
     :return: (type_label, genus, species) -- each may be None if unresolvable
@@ -194,6 +200,8 @@ def phylogeny_from_organism_name(organism_name: str | None) -> tuple[str | None,
         return None, None, None
 
     tokens = organism_name.split()
+    if tokens and tokens[0].lower() in _NON_TAXONOMIC_PREFIXES:
+        tokens = tokens[1:]
     if not tokens:
         return None, None, None
 

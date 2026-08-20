@@ -16,9 +16,11 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useNotifications } from "../../../NotificationProvider";
 import { searchEntries, runEnrichmentAnalysis, MAX_ENTRY_SEARCH_RESULTS, MAX_ENRICHMENT_SELECTION } from "../../../../features/enrichment/api";
+import { groupSourcesByDatabase } from "../../../../features/sources";
 import type { EntryType, EnrichmentResult, SearchEntry } from "../../../../features/enrichment/types";
 
 const Q_VALUE_SIGNIFICANT = 0.05;
@@ -131,6 +133,9 @@ export const WorkspaceEnrichment: React.FC = () => {
                 <MenuItem value="compound">Compounds</MenuItem>
                 <MenuItem value="bgc">Gene clusters (BGCs)</MenuItem>
               </TextField>
+            </Stack>
+
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
               <Button type="submit" variant="contained" disabled={searching || !query.trim()}>
                 {searching ? <CircularProgress size={20} /> : "Search"}
               </Button>
@@ -183,8 +188,14 @@ export const WorkspaceEnrichment: React.FC = () => {
                       <TableCell>{entry.name}</TableCell>
                       <TableCell>{entry.type === "bgc" ? "BGC" : "Compound"}</TableCell>
                       <TableCell>
-                        {entry.sources.map((s) => (
-                          <Chip key={s.databaseName + s.name} label={s.databaseName} size="small" sx={{ mr: 0.5 }} />
+                        {groupSourcesByDatabase(entry.sources).map((g) => (
+                          <Tooltip key={g.databaseName} title={g.items.map((s) => s.name).join(", ")}>
+                            <Chip
+                              label={g.count > 1 ? `${g.databaseName} ×${g.count}` : g.databaseName}
+                              size="small"
+                              sx={{ mr: 0.5 }}
+                            />
+                          </Tooltip>
                         ))}
                       </TableCell>
                     </TableRow>

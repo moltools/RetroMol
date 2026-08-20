@@ -30,5 +30,7 @@ export type BrowseEntry = z.output<typeof BrowseEntrySchema>;
 
 export const BrowseEntriesRespSchema = z.object({
   entries: z.array(BrowseEntrySchema),
+  totalCount: z.number().int().nonnegative(),
+  truncated: z.boolean(),
 });
 export type BrowseEntriesResp = z.output<typeof BrowseEntriesRespSchema>;

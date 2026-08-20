@@ -15,6 +15,14 @@ blp_browse_entries = Blueprint("browse_entries", __name__)
 blp_annotation_terms = Blueprint("annotation_terms", __name__)
 blp_export_entries = Blueprint("export_entries", __name__)
 
+# Both the Browse tab's table and its TSV export fetch the whole matching set (see
+# RetroMolDuckDB.browse_entries's docstring) -- with no cap, an unfiltered browse/export
+# over a database with e.g. a million entries would materialize the whole table in memory
+# and ship a multi-hundred-MB response. Cap both at the same size and tell the caller
+# (via totalCount) when a result was truncated, so the frontend can warn instead of
+# silently handing back a partial set.
+MAX_BROWSE_ENTRIES = 1000
+
 TSV_COLUMNS = [
     "id", "type", "name", "smiles", "inchikey", "url", "sources",
     "phylogeny_type", "genus", "species", "chemical_classes",
@@ -104,11 +112,16 @@ def browse_entries() -> tuple[Response, int]:
 
     try:
         with open_retromol_db() as db:
-            entries = db.browse_entries(entry_type=entry_type, term_id=term_id)
+            total_count = db.count_browse_entries(entry_type=entry_type, term_id=term_id)
+            entries = db.browse_entries(entry_type=entry_type, term_id=term_id, limit=MAX_BROWSE_ENTRIES)
     except Exception as e:
         return jsonify({"error": str(e)}), 503
 
-    return jsonify({"entries": [_browse_entry_payload(e) for e in entries]}), 200
+    return jsonify({
+        "entries": [_browse_entry_payload(e) for e in entries],
+        "totalCount": total_count,
+        "truncated": total_count > len(entries),
+    }), 200
 
 
 @blp_export_entries.get("/api/browseEntries.tsv")
@@ -127,7 +140,7 @@ def export_entries_tsv() -> Response:
 
     try:
         with open_retromol_db() as db:
-            entries = db.browse_entries(entry_type=entry_type, term_id=term_id)
+            entries = db.browse_entries(entry_type=entry_type, term_id=term_id, limit=MAX_BROWSE_ENTRIES)
     except Exception as e:
         return jsonify({"error": str(e)}), 503
 
