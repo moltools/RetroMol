@@ -11,7 +11,6 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import RuleIcon from "@mui/icons-material/Rule";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import TableRowsIcon from "@mui/icons-material/TableRows";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const mainListItems = [
@@ -34,11 +33,6 @@ const mainListItems = [
     text: "Enrichment",
     icon: <BarChartIcon />,
     to: `/dashboard/enrichment`
-  },
-  {
-    text: "Browse",
-    icon: <TableRowsIcon />,
-    to: `/dashboard/browse`
   },
   {
     text: "Generate",
