@@ -34,6 +34,7 @@ from common import (
 from retromol.model.result import Result
 from retromol_database.duckdb import RetroMolDuckDB
 from retromol_fingerprint.fingerprint import TOKEN_LINK
+from taxonomy import TaxonomyDB, resolve_phylogeny
 
 log = logging.getLogger(__name__)
 
@@ -72,18 +73,35 @@ def _mibig_name_and_url(props: dict, versions: dict[str, str]) -> tuple[str | No
     return name, mibig_url(accession, version)
 
 
-def _apply_mibig_annotations(db: RetroMolDuckDB, entry_id: str, props: dict, annotations: dict[str, dict]) -> None:
+def _apply_mibig_annotations(
+    db: RetroMolDuckDB, entry_id: str, props: dict, annotations: dict[str, dict], taxdb: TaxonomyDB | None
+) -> None:
     accession = props.get("mibig_accession")
     record = annotations.get(accession) if accession else None
     if not record:
         return
 
-    type_label, genus, species = phylogeny_from_organism_name(record.get("organism_name"))
-    db.add_phylogeny_annotation(entry_id, type_label=type_label, genus=genus, species=species)
+    fallback_type, fallback_genus, fallback_species = phylogeny_from_organism_name(record.get("organism_name"))
+    resolution = resolve_phylogeny(
+        taxdb,
+        ncbi_tax_id=record.get("ncbi_tax_id"),
+        genus=fallback_genus,
+        species=fallback_species,
+        fallback_type_label=fallback_type,
+    )
+    db.add_phylogeny_annotation(
+        entry_id,
+        type_label=resolution.type_label,
+        type_taxid=resolution.type_taxid,
+        genus=resolution.genus,
+        genus_taxid=resolution.genus_taxid,
+        species=resolution.species,
+        species_taxid=resolution.species_taxid,
+    )
 
     for chemical_class in record.get("biosyn_class") or []:
         if chemical_class:
-            db.add_flat_annotation(entry_id, category="chemical_class", label=str(chemical_class))
+            db.add_biosynthetic_class_annotation(entry_id, str(chemical_class))
 
 
 def run(
@@ -95,10 +113,13 @@ def run(
     match_stereochemistry: bool = False,
     mibig_versions_path: str | Path | None = None,
     mibig_annotations_path: str | Path | None = None,
+    taxdump_dir: str | Path | None = None,
     log_every: int = 1000,
 ) -> None:
     ruleset = load_ruleset(reaction_rules_path, matching_rules_path, match_stereochemistry)
     name_to_rule, fingerprinter = build_fingerprint_context(ruleset)
+
+    taxdb = TaxonomyDB.load(taxdump_dir) if taxdump_dir else None
 
     versions: dict[str, str] = {}
     if source == "mibig" and mibig_versions_path is not None:
@@ -155,11 +176,20 @@ def run(
                             fingerprint=fp,
                         )
                         if source == "mibig":
-                            _apply_mibig_annotations(db, result.submission.inchikey, props, annotations)
+                            _apply_mibig_annotations(db, result.submission.inchikey, props, annotations, taxdb)
                         else:
                             type_label, genus, species = _npatlas_phylogeny(props)
+                            resolution = resolve_phylogeny(
+                                taxdb, genus=genus, species=species, fallback_type_label=type_label
+                            )
                             db.add_phylogeny_annotation(
-                                result.submission.inchikey, type_label=type_label, genus=genus, species=species
+                                result.submission.inchikey,
+                                type_label=resolution.type_label,
+                                type_taxid=resolution.type_taxid,
+                                genus=resolution.genus,
+                                genus_taxid=resolution.genus_taxid,
+                                species=resolution.species,
+                                species_taxid=resolution.species_taxid,
                             )
                         added += 1
 
@@ -190,6 +220,7 @@ def main() -> None:
     ap.add_argument("--match-stereochemistry", action="store_true")
     ap.add_argument("--mibig-versions", default=None, help="required when --source=mibig")
     ap.add_argument("--mibig-annotations", default=None, help="required when --source=mibig")
+    ap.add_argument("--taxdump-dir", default=None, help="dir with NCBI names.dmp/nodes.dmp (skips taxid resolution if omitted)")
     ap.add_argument("--log-every", type=int, default=1000, help="log a progress line every N compounds (0 to disable)")
     args = ap.parse_args()
 
@@ -202,6 +233,7 @@ def main() -> None:
         match_stereochemistry=args.match_stereochemistry,
         mibig_versions_path=args.mibig_versions,
         mibig_annotations_path=args.mibig_annotations,
+        taxdump_dir=args.taxdump_dir,
         log_every=args.log_every,
     )
 

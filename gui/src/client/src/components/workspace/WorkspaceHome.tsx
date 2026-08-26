@@ -11,7 +11,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { getDatabaseStats, getAnnotationStats } from "../../features/database/api";
-import { DatabaseStatsResp, AnnotationStatsResp } from "../../features/database/types";
+import { DatabaseStatsResp, AnnotationStatsResp, Count } from "../../features/database/types";
 
 const ENTRY_TYPE_LABELS: Record<string, string> = {
   compound: "Compounds",
@@ -54,6 +54,29 @@ const ChartCard: React.FC<{ title: string; description?: string; children: React
       {children}
     </CardContent>
   </Card>
+);
+
+const AnnotationBarCard: React.FC<{
+  title: string;
+  description?: string;
+  counts: Count[];
+  color: string;
+  emptyMessage: string;
+}> = ({ title, description, counts, color, emptyMessage }) => (
+  <ChartCard title={title} description={description}>
+    {counts.length === 0 ? (
+      <Typography variant="body2" color="text.secondary">
+        {emptyMessage}
+      </Typography>
+    ) : (
+      <BarChart
+        dataset={counts.map((c) => ({ label: c.label, count: c.count }))}
+        xAxis={[{ scaleType: "band", dataKey: "label" }]}
+        series={[{ dataKey: "count", color }]}
+        height={220}
+      />
+    )}
+  </ChartCard>
 );
 
 export const WorkspaceHome: React.FC = () => {
@@ -252,45 +275,110 @@ export const WorkspaceHome: React.FC = () => {
                 />
               </Box>
 
+              <Typography component="h3" variant="subtitle2" sx={{ mt: 1 }}>
+                Phylogeny
+              </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
-                <ChartCard title="Phylogeny type" description="Bacterium / fungus / other, from MIBiG">
-                  {annotationStats.phylogenyTypeCounts.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">No phylogeny annotations yet.</Typography>
-                  ) : (
-                    <BarChart
-                      dataset={annotationStats.phylogenyTypeCounts.map((c) => ({ label: c.label, count: c.count }))}
-                      xAxis={[{ scaleType: "band", dataKey: "label" }]}
-                      series={[{ dataKey: "count", color: chartColors[0] }]}
-                      height={220}
-                    />
-                  )}
-                </ChartCard>
+                <AnnotationBarCard
+                  title="Type"
+                  description="Bacterium / fungus / archaeon / other"
+                  counts={annotationStats.phylogenyTypeCounts}
+                  color={chartColors[0]}
+                  emptyMessage="No phylogeny annotations yet."
+                />
+                <AnnotationBarCard
+                  title="Genus"
+                  description="Most common genera"
+                  counts={annotationStats.phylogenyGenusCounts}
+                  color={chartColors[1]}
+                  emptyMessage="No phylogeny annotations yet."
+                />
+                <AnnotationBarCard
+                  title="Species"
+                  description="Most common species"
+                  counts={annotationStats.phylogenySpeciesCounts}
+                  color={chartColors[2]}
+                  emptyMessage="No phylogeny annotations yet."
+                />
+              </Box>
 
-                <ChartCard title="Top genera" description="Most common genera, from MIBiG phylogeny">
-                  {annotationStats.topGenera.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">No phylogeny annotations yet.</Typography>
-                  ) : (
-                    <BarChart
-                      dataset={annotationStats.topGenera.map((c) => ({ label: c.label, count: c.count }))}
-                      xAxis={[{ scaleType: "band", dataKey: "label" }]}
-                      series={[{ dataKey: "count", color: chartColors[1] }]}
-                      height={220}
-                    />
-                  )}
-                </ChartCard>
+              <Typography component="h3" variant="subtitle2" sx={{ mt: 1 }}>
+                Chemical class
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: -1 }}>
+                NPClassifier, predicted from every compound's own structure
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+                <AnnotationBarCard
+                  title="Pathway"
+                  counts={annotationStats.chemicalClassPathwayCounts}
+                  color={chartColors[3]}
+                  emptyMessage="No NPClassifier annotations yet."
+                />
+                <AnnotationBarCard
+                  title="Superclass"
+                  counts={annotationStats.chemicalClassSuperclassCounts}
+                  color={chartColors[4]}
+                  emptyMessage="No NPClassifier annotations yet."
+                />
+                <AnnotationBarCard
+                  title="Class"
+                  counts={annotationStats.chemicalClassClassCounts}
+                  color={chartColors[5]}
+                  emptyMessage="No NPClassifier annotations yet."
+                />
+              </Box>
 
-                <ChartCard title="Chemical class" description="Biosynthetic class, from MIBiG">
-                  {annotationStats.chemicalClassCounts.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">No chemical class annotations yet.</Typography>
-                  ) : (
-                    <BarChart
-                      dataset={annotationStats.chemicalClassCounts.map((c) => ({ label: c.label, count: c.count }))}
-                      xAxis={[{ scaleType: "band", dataKey: "label" }]}
-                      series={[{ dataKey: "count", color: chartColors[2] }]}
-                      height={220}
-                    />
-                  )}
-                </ChartCard>
+              <Typography component="h3" variant="subtitle2" sx={{ mt: 1 }}>
+                Biosynthetic class
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: -1 }}>
+                MIBiG's own coarse label (PKS / NRPS / RiPP / ...), a separate classification from NPClassifier's chemical class above
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+                <AnnotationBarCard
+                  title="Biosynthetic class"
+                  counts={annotationStats.biosyntheticClassCounts}
+                  color={chartColors[0]}
+                  emptyMessage="No biosynthetic class annotations yet."
+                />
+              </Box>
+
+              <Typography component="h3" variant="subtitle2" sx={{ mt: 1 }}>
+                Bioactivity
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: -1 }}>
+                ChEMBL + ChEBI, looked up by structure (InChIKey)
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+                <AnnotationBarCard
+                  title="ATC category"
+                  description="WHO therapeutic classification (ChEMBL)"
+                  counts={annotationStats.bioactivityAtcCounts}
+                  color={chartColors[1]}
+                  emptyMessage="No ChEMBL ATC matches yet."
+                />
+                <AnnotationBarCard
+                  title="Clinical phase"
+                  description="Furthest development stage reached (ChEMBL)"
+                  counts={annotationStats.bioactivityMaxPhaseCounts}
+                  color={chartColors[2]}
+                  emptyMessage="No ChEMBL clinical-phase matches yet."
+                />
+                <AnnotationBarCard
+                  title="Biological role"
+                  description="ChEBI role ontology"
+                  counts={annotationStats.bioactivityBiologicalRoleCounts}
+                  color={chartColors[3]}
+                  emptyMessage="No ChEBI biological-role matches yet."
+                />
+                <AnnotationBarCard
+                  title="Chemical role"
+                  description="ChEBI role ontology"
+                  counts={annotationStats.bioactivityChemicalRoleCounts}
+                  color={chartColors[4]}
+                  emptyMessage="No ChEBI chemical-role matches yet."
+                />
               </Box>
             </>
           )}

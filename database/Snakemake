@@ -14,10 +14,13 @@ Fill in database/config.yaml's `sources` URLs before running. The pipeline:
   6. load_mibig_compounds  } turn results into "compound" db entries (linked to MIBiG's URL)
   7. parse_mibig_gbks      - antiSMASH GBKs -> linear module readouts (PARAS-annotated)
   8. load_mibig_bgcs       - turn readouts into "bgc" db entries
+  9. annotate_npclassifier - chemical-class annotation (compounds only, NPClassifier API)
+  10. annotate_chembl      - bioactivity annotation (compounds only, local ChEMBL SQLite)
+  11. annotate_chebi       - bioactivity annotation (compounds only, local ChEBI flat files)
 
-Steps 4, 6, and 8 all mutate the same DuckDB file, so they're chained through marker
-files (rather than each declaring the database itself as `output`) to force
-Snakemake to serialize them -- DuckDB doesn't support concurrent writers.
+Steps 4, 6, 8, 9, 10, and 11 all mutate the same DuckDB file, so they're chained
+through marker files (rather than each declaring the database itself as `output`) to
+force Snakemake to serialize them -- DuckDB doesn't support concurrent writers.
 """
 
 import sys
@@ -39,10 +42,49 @@ PARAS_TRAINING_DATA_PATH = config["paras"].get("training_data_path")
 PARSE_COMPOUNDS_WORKERS = config["compute"]["parse_compounds_workers"]
 PARSE_GBKS_WORKERS = config["compute"]["parse_gbks_workers"]
 
+TAXONOMY_ENABLED = config.get("taxonomy", {}).get("enabled", False)
+TAXDUMP_DIR = WORKDIR / "taxdump"
+
+NPCLASSIFIER_REQUESTS_PER_SECOND = config.get("npclassifier", {}).get("requests_per_second", 2.0)
+
+CHEMBL_SQLITE_URL = config.get("chembl", {}).get("sqlite_url")
+CHEMBL_DIR = WORKDIR / "chembl"
+
+CHEBI_DIR = WORKDIR / "chebi"
+
+# Toggle whole branches of the pipeline off (see config.yaml's `enabled` comment) --
+# disabling npatlas/mibig skips their download+parse rules entirely, not just db
+# loading, since the "real" inputs below are only declared when enabled: nothing else
+# in the DAG needs npatlas/results.jsonl or mibig_gbk/readouts.jsonl, so Snakemake
+# never schedules the rules that would produce them. Same idea for chembl/chebi:
+# disabling either skips its bulk download entirely.
+ENABLED = config.get("enabled", {})
+NPATLAS_ENABLED = ENABLED.get("npatlas", True)
+MIBIG_ENABLED = ENABLED.get("mibig", True)
+NPCLASSIFIER_ENABLED = ENABLED.get("npclassifier", True)
+CHEMBL_ENABLED = ENABLED.get("chembl", True)
+CHEBI_ENABLED = ENABLED.get("chebi", True)
+
 
 rule all:
     input:
-        MARKERS / "bgcs_loaded.done"
+        MARKERS / "bgcs_loaded.done",
+        MARKERS / "npclassifier_annotated.done",
+        MARKERS / "chembl_annotated.done",
+        MARKERS / "chebi_annotated.done"
+
+
+# ---------------------------------------------------------------------------
+# NCBI taxonomy dump (used to standardize phylogeny genus/species/type to taxids)
+# ---------------------------------------------------------------------------
+
+rule download_taxdump:
+    output:
+        names=TAXDUMP_DIR / "names.dmp",
+        nodes=TAXDUMP_DIR / "nodes.dmp"
+    run:
+        import taxonomy
+        taxonomy.download_taxdump(TAXDUMP_DIR)
 
 
 # ---------------------------------------------------------------------------
@@ -131,19 +173,24 @@ rule parse_npatlas:
 
 rule load_npatlas_compounds:
     input:
-        results=WORKDIR / "npatlas" / "results.jsonl",
-        db_created=MARKERS / "db_created.done"
+        db_created=MARKERS / "db_created.done",
+        # Only declared when enabled -- nothing else in the DAG needs npatlas/results.jsonl,
+        # so download_npatlas/resolve_npatlas_sdf/parse_npatlas never run when disabled.
+        **({"results": WORKDIR / "npatlas" / "results.jsonl"} if NPATLAS_ENABLED else {}),
+        **({"taxdump_names": TAXDUMP_DIR / "names.dmp", "taxdump_nodes": TAXDUMP_DIR / "nodes.dmp"} if TAXONOMY_ENABLED and NPATLAS_ENABLED else {})
     output:
         marker=touch(MARKERS / "npatlas_loaded.done")
     run:
-        import load_compounds
-        load_compounds.run(
-            results_path=input.results,
-            db_path=DB_PATH,
-            source="npatlas",
-            reaction_rules_path=RXN_RULES,
-            matching_rules_path=MXN_RULES,
-        )
+        if NPATLAS_ENABLED:
+            import load_compounds
+            load_compounds.run(
+                results_path=input.results,
+                db_path=DB_PATH,
+                source="npatlas",
+                reaction_rules_path=RXN_RULES,
+                matching_rules_path=MXN_RULES,
+                taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -194,25 +241,35 @@ rule parse_mibig_compounds:
 
 rule load_mibig_compounds:
     input:
-        results=WORKDIR / "mibig_json" / "results.jsonl",
-        # MIBiG URLs need an accession's version, from the JSON (see
+        prev=MARKERS / "npatlas_loaded.done",
+        # Only declared when enabled -- nothing else in the DAG needs these, so
+        # download_mibig_json/extract_mibig_compounds/parse_mibig_compounds never run
+        # when disabled. MIBiG URLs need an accession's version, from the JSON (see
         # extract_mibig_compounds rule above) -- not from the GBKs, which no longer carry it.
-        versions=WORKDIR / "mibig_json" / "versions.json",
-        annotations=WORKDIR / "mibig_json" / "annotations.json",
-        prev=MARKERS / "npatlas_loaded.done"
+        **(
+            {
+                "results": WORKDIR / "mibig_json" / "results.jsonl",
+                "versions": WORKDIR / "mibig_json" / "versions.json",
+                "annotations": WORKDIR / "mibig_json" / "annotations.json",
+            }
+            if MIBIG_ENABLED else {}
+        ),
+        **({"taxdump_names": TAXDUMP_DIR / "names.dmp", "taxdump_nodes": TAXDUMP_DIR / "nodes.dmp"} if TAXONOMY_ENABLED and MIBIG_ENABLED else {})
     output:
         marker=touch(MARKERS / "mibig_compounds_loaded.done")
     run:
-        import load_compounds
-        load_compounds.run(
-            results_path=input.results,
-            db_path=DB_PATH,
-            source="mibig",
-            reaction_rules_path=RXN_RULES,
-            matching_rules_path=MXN_RULES,
-            mibig_versions_path=input.versions,
-            mibig_annotations_path=input.annotations,
-        )
+        if MIBIG_ENABLED:
+            import load_compounds
+            load_compounds.run(
+                results_path=input.results,
+                db_path=DB_PATH,
+                source="mibig",
+                reaction_rules_path=RXN_RULES,
+                matching_rules_path=MXN_RULES,
+                mibig_versions_path=input.versions,
+                mibig_annotations_path=input.annotations,
+                taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -239,19 +296,120 @@ rule parse_mibig_gbks:
 
 rule load_mibig_bgcs:
     input:
-        readouts=WORKDIR / "mibig_gbk" / "readouts.jsonl",
-        versions=WORKDIR / "mibig_json" / "versions.json",
-        annotations=WORKDIR / "mibig_json" / "annotations.json",
-        prev=MARKERS / "mibig_compounds_loaded.done"
+        prev=MARKERS / "mibig_compounds_loaded.done",
+        # Only declared when enabled -- nothing else in the DAG needs these, so
+        # download_mibig_gbk/parse_mibig_gbks never run when disabled.
+        **(
+            {
+                "readouts": WORKDIR / "mibig_gbk" / "readouts.jsonl",
+                "versions": WORKDIR / "mibig_json" / "versions.json",
+                "annotations": WORKDIR / "mibig_json" / "annotations.json",
+            }
+            if MIBIG_ENABLED else {}
+        ),
+        **({"taxdump_names": TAXDUMP_DIR / "names.dmp", "taxdump_nodes": TAXDUMP_DIR / "nodes.dmp"} if TAXONOMY_ENABLED and MIBIG_ENABLED else {})
     output:
         marker=touch(MARKERS / "bgcs_loaded.done")
     run:
-        import load_bgcs
-        load_bgcs.run(
-            readouts_path=input.readouts,
-            db_path=DB_PATH,
-            reaction_rules_path=RXN_RULES,
-            matching_rules_path=MXN_RULES,
-            mibig_versions_path=input.versions,
-            mibig_annotations_path=input.annotations,
+        if MIBIG_ENABLED:
+            import load_bgcs
+            load_bgcs.run(
+                readouts_path=input.readouts,
+                db_path=DB_PATH,
+                reaction_rules_path=RXN_RULES,
+                matching_rules_path=MXN_RULES,
+                mibig_versions_path=input.versions,
+                mibig_annotations_path=input.annotations,
+                taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Step 9: NPClassifier chemical-class annotation (compounds only)
+# ---------------------------------------------------------------------------
+
+rule annotate_npclassifier:
+    input:
+        # Chained after bgcs_loaded.done (not just the compound-loading steps) purely to
+        # serialize this write against load_mibig_bgcs's -- both mutate DB_PATH and DuckDB
+        # doesn't support concurrent writers (see module docstring at the top of this file).
+        prev=MARKERS / "bgcs_loaded.done"
+    output:
+        marker=touch(MARKERS / "npclassifier_annotated.done")
+    run:
+        if NPCLASSIFIER_ENABLED:
+            import annotate_npclassifier
+            annotate_npclassifier.run(
+                db_path=DB_PATH,
+                cache_path=WORKDIR / "npclassifier" / "cache.jsonl",
+                requests_per_second=NPCLASSIFIER_REQUESTS_PER_SECOND,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Step 10: ChEMBL bioactivity annotation (compounds only)
+# ---------------------------------------------------------------------------
+
+rule download_chembl:
+    output:
+        extract_dir=directory(CHEMBL_DIR / "extracted")
+    params:
+        url=CHEMBL_SQLITE_URL
+    run:
+        import chembl
+        chembl.download_chembl_sqlite(output.extract_dir, url=params.url)
+
+
+rule annotate_chembl:
+    input:
+        # Chained after npclassifier_annotated.done purely to serialize this write
+        # against annotate_npclassifier's (see module docstring at the top of this file).
+        prev=MARKERS / "npclassifier_annotated.done",
+        # Only declared when enabled -- download_chembl (a multi-GB download) never
+        # runs when disabled.
+        **({"extract_dir": CHEMBL_DIR / "extracted"} if CHEMBL_ENABLED else {})
+    output:
+        marker=touch(MARKERS / "chembl_annotated.done")
+    run:
+        if CHEMBL_ENABLED:
+            import annotate_chembl
+            candidates = sorted(Path(input.extract_dir).rglob("*.db"))
+            if not candidates:
+                raise FileNotFoundError(f"no ChEMBL .db file found under {input.extract_dir}")
+            annotate_chembl.run(db_path=DB_PATH, chembl_sqlite_path=candidates[0])
+
+
+# ---------------------------------------------------------------------------
+# Step 11: ChEBI bioactivity annotation (compounds only)
+# ---------------------------------------------------------------------------
+
+rule download_chebi:
+    output:
+        compounds=CHEBI_DIR / "compounds.tsv.gz",
+        structures=CHEBI_DIR / "structures.tsv.gz",
+        relation=CHEBI_DIR / "relation.tsv.gz"
+    run:
+        import chebi
+        chebi.download_chebi_flat_files(CHEBI_DIR)
+
+
+rule annotate_chebi:
+    input:
+        # Chained after chembl_annotated.done purely to serialize this write against
+        # annotate_chembl's (see module docstring at the top of this file).
+        prev=MARKERS / "chembl_annotated.done",
+        # Only declared when enabled -- download_chebi never runs when disabled.
+        **(
+            {
+                "compounds": CHEBI_DIR / "compounds.tsv.gz",
+                "structures": CHEBI_DIR / "structures.tsv.gz",
+                "relation": CHEBI_DIR / "relation.tsv.gz",
+            }
+            if CHEBI_ENABLED else {}
         )
+    output:
+        marker=touch(MARKERS / "chebi_annotated.done")
+    run:
+        if CHEBI_ENABLED:
+            import annotate_chebi
+            annotate_chebi.run(db_path=DB_PATH, chebi_dir=CHEBI_DIR)

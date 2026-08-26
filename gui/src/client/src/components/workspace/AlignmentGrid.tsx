@@ -23,6 +23,86 @@ import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { buildAlignmentSvg, downloadSvg, type AlignmentSvgRow } from "./alignmentSvgExport";
 import { MinimalIconButton} from "../MinimalIconButton";
+import { getEntryAnnotations } from "../../features/database/api";
+import type { EntryAnnotation } from "../../features/database/types";
+
+const ANNOTATION_CATEGORY_LABELS: Record<string, string> = {
+  phylogeny: "Phylogeny",
+  biosynthetic_class: "Biosynthetic class",
+  chemical_class: "Chemical class",
+  bioactivity: "Bioactivity",
+};
+
+function groupAnnotationsByCategory(annotations: EntryAnnotation[]): [string, EntryAnnotation[]][] {
+  const groups = new Map<string, EntryAnnotation[]>();
+  for (const a of annotations) {
+    const bucket = groups.get(a.category) ?? [];
+    bucket.push(a);
+    groups.set(a.category, bucket);
+  }
+  return Array.from(groups.entries());
+}
+
+const AnnotationChips: React.FC<{ entryId: string }> = ({ entryId }) => {
+  const [annotations, setAnnotations] = React.useState<EntryAnnotation[] | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    getEntryAnnotations(entryId, controller.signal)
+      .then((resp) => setAnnotations(resp.results))
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : String(err));
+      });
+    return () => controller.abort();
+  }, [entryId]);
+
+  if (error) {
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+        Couldn't load annotations: {error}
+      </Typography>
+    );
+  }
+
+  if (annotations === null) {
+    return null;
+  }
+
+  if (annotations.length === 0) {
+    return null;
+  }
+
+  return (
+    <Stack spacing={0.5} sx={{ mb: 1 }}>
+      {groupAnnotationsByCategory(annotations).map(([category, items]) => (
+        <Stack key={category} direction="row" alignItems="center" spacing={1} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110 }}>
+            {ANNOTATION_CATEGORY_LABELS[category] ?? category}
+          </Typography>
+          {items.map((item) =>
+            item.url ? (
+              <Chip
+                key={item.id}
+                component="a"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                clickable
+                size="small"
+                variant="outlined"
+                label={item.label}
+              />
+            ) : (
+              <Chip key={item.id} size="small" variant="outlined" label={item.label} />
+            )
+          )}
+        </Stack>
+      ))}
+    </Stack>
+  );
+};
 
 // Shared vertical sizing (padding, border width, font size, line height) so every
 // row -- label, sequence cells, and score -- resolves to the exact same height.
@@ -327,6 +407,7 @@ export function ResultRow({
               )}
             </Stack>
           )}
+          <AnnotationChips entryId={result.entryId} />
           <AlignmentGrid
             rows={[
               { id: "query", label: "Query", sequence: result.alignedQuery },

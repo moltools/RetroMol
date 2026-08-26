@@ -29,6 +29,7 @@ from pathlib import Path
 from common import build_fingerprint_context, load_ruleset, mibig_url, phylogeny_from_organism_name
 from retromol_antismash.modules import LinearReadout, bgc_primary_sequence
 from retromol_database.duckdb import RetroMolDuckDB
+from taxonomy import TaxonomyDB, resolve_phylogeny
 
 log = logging.getLogger(__name__)
 
@@ -42,9 +43,12 @@ def run(
     mibig_annotations_path: str | Path,
     match_stereochemistry: bool = False,
     include_raw_gbk: bool = True,
+    taxdump_dir: str | Path | None = None,
 ) -> None:
     ruleset = load_ruleset(reaction_rules_path, matching_rules_path, match_stereochemistry)
     _, fingerprinter = build_fingerprint_context(ruleset)
+
+    taxdb = TaxonomyDB.load(taxdump_dir) if taxdump_dir else None
 
     with open(mibig_versions_path) as fh:
         versions: dict[str, str] = json.load(fh)
@@ -98,11 +102,27 @@ def run(
 
                 record = annotations.get(accession) if accession else None
                 if record:
-                    type_label, genus, species = phylogeny_from_organism_name(record.get("organism_name"))
-                    db.add_phylogeny_annotation(entry_id, type_label=type_label, genus=genus, species=species)
-                    for chemical_class in record.get("biosyn_class") or []:
-                        if chemical_class:
-                            db.add_flat_annotation(entry_id, category="chemical_class", label=str(chemical_class))
+                    fallback_type, fallback_genus, fallback_species = phylogeny_from_organism_name(
+                        record.get("organism_name")
+                    )
+                    resolution = resolve_phylogeny(
+                        taxdb,
+                        ncbi_tax_id=record.get("ncbi_tax_id"),
+                        genus=fallback_genus,
+                        species=fallback_species,
+                        fallback_type_label=fallback_type,
+                    )
+                    db.add_phylogeny_annotation(
+                        entry_id,
+                        type_label=resolution.type_label,
+                        type_taxid=resolution.type_taxid,
+                        genus=resolution.genus,
+                        genus_taxid=resolution.genus_taxid,
+                        species=resolution.species,
+                        species_taxid=resolution.species_taxid,
+                    )
+                    # chemical_class is compound-only (see RetroMolDuckDB.add_chemical_class_annotation) --
+                    # a BGC's biosynthetic class isn't populated here anymore.
 
                 added += 1
     finally:
@@ -126,6 +146,7 @@ def main() -> None:
     ap.add_argument("--mibig-annotations", required=True)
     ap.add_argument("--match-stereochemistry", action="store_true")
     ap.add_argument("--no-raw-gbk", action="store_true")
+    ap.add_argument("--taxdump-dir", default=None, help="dir with NCBI names.dmp/nodes.dmp (skips taxid resolution if omitted)")
     args = ap.parse_args()
 
     run(
@@ -137,6 +158,7 @@ def main() -> None:
         mibig_annotations_path=args.mibig_annotations,
         match_stereochemistry=args.match_stereochemistry,
         include_raw_gbk=not args.no_raw_gbk,
+        taxdump_dir=args.taxdump_dir,
     )
 
 

@@ -23,7 +23,30 @@ export const AnnotationStatsRespSchema = z.object({
   withoutAnnotationCount: z.number().int().nonnegative(),
   countsByCategory: z.array(CountSchema),
   phylogenyTypeCounts: z.array(CountSchema),
-  topGenera: z.array(CountSchema),
-  chemicalClassCounts: z.array(CountSchema),
+  phylogenyGenusCounts: z.array(CountSchema),
+  phylogenySpeciesCounts: z.array(CountSchema),
+  biosyntheticClassCounts: z.array(CountSchema),
+  chemicalClassPathwayCounts: z.array(CountSchema),
+  chemicalClassSuperclassCounts: z.array(CountSchema),
+  chemicalClassClassCounts: z.array(CountSchema),
+  bioactivityAtcCounts: z.array(CountSchema),
+  bioactivityMaxPhaseCounts: z.array(CountSchema),
+  bioactivityBiologicalRoleCounts: z.array(CountSchema),
+  bioactivityChemicalRoleCounts: z.array(CountSchema),
 });
 export type AnnotationStatsResp = z.output<typeof AnnotationStatsRespSchema>;
+
+export const EntryAnnotationSchema = z.object({
+  id: z.string(),
+  category: z.string(),
+  rank: z.string().nullable(),
+  label: z.string(),
+  externalId: z.string().nullable(),
+  url: z.string().nullable(),
+});
+export type EntryAnnotation = z.output<typeof EntryAnnotationSchema>;
+
+export const EntryAnnotationsRespSchema = z.object({
+  results: z.array(EntryAnnotationSchema),
+});
+export type EntryAnnotationsResp = z.output<typeof EntryAnnotationsRespSchema>;
