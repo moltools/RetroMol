@@ -182,16 +182,56 @@ FUNGAL_GENERA = {
 
 
 # Metagenomic/environmental-sample naming conventions (e.g. "uncultured Streptomyces sp.",
-# "unidentified bacterium") -- not a genus, so skipped when picking the genus token.
+# "unidentified bacterium") -- not a genus, so skipped when picking the genus token, and
+# rejected outright if a whole genus/species value collapses to just one of these.
 _NON_TAXONOMIC_PREFIXES = {"uncultured", "unclassified", "unidentified"}
+
+# Species-epithet placeholders meaning "no real species-level identification" -- checked
+# against a species token after any leading genus-name duplicate is stripped (see
+# clean_species_epithet), not just the bare "sp."/"sp" abbreviation. Shared by both
+# MIBiG's free-text organism_name and NPAtlas's own origin_species SDF field, which turn
+# out to carry the same kinds of placeholder values (confirmed live: NPAtlas's
+# origin_species includes bare "sp.", genus-duplicated "Streptomyces sp.", and
+# "unidentified" -- none of which are real species, but nothing was rejecting them before
+# this, so they leaked into the phylogeny_annotations species column as if they were).
+_NON_TAXONOMIC_SPECIES_TOKENS = {"sp", "spp", "unidentified", "uncultured", "unclassified"}
+
+
+def clean_genus(genus_raw: str | None) -> str | None:
+    """Reject a genus value that's actually a non-taxonomic placeholder
+    ("unidentified"/"uncultured"/"unclassified") rather than a real genus name."""
+    if not genus_raw:
+        return None
+    genus = genus_raw.strip()
+    if not genus or genus.lower() in _NON_TAXONOMIC_PREFIXES:
+        return None
+    return genus
+
+
+def clean_species_epithet(genus: str | None, species_raw: str | None) -> str | None:
+    """Reject a species value carrying no real species-level information: a bare
+    "sp."/"sp" abbreviation, a genus name duplicated into the species field (e.g.
+    NPAtlas's origin_species="Streptomyces sp." alongside genus="Streptomyces"), or an
+    "unidentified"/"uncultured"/"unclassified" placeholder."""
+    if not species_raw:
+        return None
+
+    species = species_raw.strip()
+    if genus and species.lower().startswith(genus.lower() + " "):
+        species = species[len(genus):].strip()
+
+    if not species or species.rstrip(".").lower() in _NON_TAXONOMIC_SPECIES_TOKENS:
+        return None
+
+    return species
 
 
 def phylogeny_from_organism_name(organism_name: str | None) -> tuple[str | None, str | None, str | None]:
     """Split MIBiG's free-text `organism_name` (e.g. "Streptomyces coelicolor A3(2)")
     into (type, genus, species). Type is inferred from `FUNGAL_GENERA` since MIBiG's
     JSON carries no kingdom field; genus/species are the name's first two tokens (after
-    dropping a leading "uncultured"/"unclassified"/"unidentified" marker), with species
-    dropped when the following token is "sp."/"sp" (strain-only identification).
+    dropping a leading "uncultured"/"unclassified"/"unidentified" marker), with a
+    non-taxonomic species value (see clean_species_epithet) dropped.
 
     :param organism_name: MIBiG cluster.organism_name, or None
     :return: (type_label, genus, species) -- each may be None if unresolvable
@@ -205,10 +245,11 @@ def phylogeny_from_organism_name(organism_name: str | None) -> tuple[str | None,
     if not tokens:
         return None, None, None
 
-    genus = tokens[0]
-    species = tokens[1] if len(tokens) > 1 else None
-    if species is not None and species.rstrip(".").lower() == "sp":
-        species = None
+    genus = clean_genus(tokens[0])
+    if not genus:
+        return None, None, None
+
+    species = clean_species_epithet(genus, tokens[1] if len(tokens) > 1 else None)
 
     type_label = "Fungus" if genus.lower() in FUNGAL_GENERA else "Bacterium"
     return type_label, genus, species

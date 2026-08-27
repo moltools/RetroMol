@@ -126,8 +126,13 @@ def run(
                         species=resolution.species,
                         species_taxid=resolution.species_taxid,
                     )
-                    # chemical_class is compound-only (see RetroMolDuckDB.add_chemical_class_annotation) --
-                    # a BGC's biosynthetic class isn't populated here anymore.
+                    # biosynthetic_class describes this BGC's own biosynthesis machinery
+                    # (PKS/NRPS/RiPP/...) -- a gene-cluster property, not populated for
+                    # compounds (see RetroMolDuckDB.add_biosynthetic_class_annotation /
+                    # load_compounds.py).
+                    for chemical_class in record.get("biosyn_class") or []:
+                        if chemical_class:
+                            db.add_biosynthetic_class_annotation(entry_id, str(chemical_class))
 
                 added += 1
                 pbar.set_postfix(added=added, skipped=skipped, skipped_existing=skipped_existing_file)

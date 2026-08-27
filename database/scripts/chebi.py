@@ -1,10 +1,10 @@
 """ChEBI role-ontology client for bioactivity annotation.
 
 Downloads ChEBI's flat-file bulk release (ftp.ebi.ac.uk) once, then looks up a
-compound's biological/chemical roles by its standard InChIKey. Unlike ChEMBL's
-clinical-development framing, ChEBI's role ontology (`has_role` edges under
-CHEBI:24432 "biological role" / CHEBI:51086 "chemical role") is annotated on generic
-compound classes more often than on specific stereo-defined structures -- confirmed
+compound's biological/chemical roles by its standard InChIKey. ChEBI's role ontology
+(`has_role` edges under CHEBI:24432 "biological role" / CHEBI:51086 "chemical role")
+is annotated on generic compound classes more often than on specific stereo-defined
+structures -- confirmed
 live (2026-08-26): erythromycin A (CHEBI:42355) itself carries no has_role edges, only
 its `is_a` parent "erythromycin" (CHEBI:48923) does (roles: xenobiotic, bacterial
 metabolite, environmental contaminant). So lookups walk a few steps up the `is_a`
@@ -21,6 +21,7 @@ from __future__ import annotations
 import csv
 import gzip
 import logging
+import re
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,6 +32,17 @@ log = logging.getLogger(__name__)
 
 CHEBI_FLAT_FILES_URL = "https://ftp.ebi.ac.uk/pub/databases/chebi/flat_files"
 CHEBI_FILES = ["compounds.tsv.gz", "structures.tsv.gz", "relation.tsv.gz"]
+
+# ChEBI's `name` column carries inline HTML for italicized genus/species names and
+# similar formatting (e.g. "<em>Aspergillus</em> metabolite", "<i>S</i>-configuration"
+# -- confirmed live in compounds.tsv.gz/chemical_data.tsv.gz). Stripped here, once, at
+# load time -- so every consumer of name_by_compound_id (role labels today, anything
+# else later) gets plain text without needing to know this quirk exists.
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _strip_html(text: str) -> str:
+    return _HTML_TAG_RE.sub("", text)
 
 RELATION_TYPE_HAS_ROLE = "4"
 RELATION_TYPE_IS_A = "5"
@@ -120,7 +132,7 @@ class ChebiDB:
                 if len(row) <= accession_idx or not row[accession_idx]:
                     continue
                 chebi_accession_by_compound_id[row[id_idx]] = row[accession_idx]
-                name_by_compound_id[row[id_idx]] = row[name_idx]
+                name_by_compound_id[row[id_idx]] = _strip_html(row[name_idx])
 
         compound_id_by_inchikey: dict[str, str] = {}
         with gzip.open(chebi_dir / "structures.tsv.gz", "rt", encoding="utf-8", errors="replace") as fh:

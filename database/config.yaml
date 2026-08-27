@@ -16,7 +16,6 @@ enabled:
   npatlas: true
   mibig: true
   npclassifier: true
-  chembl: true
   chebi: true
 
 paths:
@@ -41,13 +40,6 @@ npclassifier:
   # CPU-bound, so this is safe to raise well past your core count -- it's bounded by
   # requests_per_second above either way.
   workers: 8
-
-chembl:
-  # ChEMBL's official SQLite release -- a multi-GB bulk download (~5.4GB compressed
-  # as of ChEMBL 37), extracted once into workdir/chembl and queried locally by
-  # InChIKey (see database/scripts/chembl.py). "latest" always points at the newest
-  # ChEMBL release; pin to a specific release's URL for reproducibility across runs.
-  sqlite_url: "https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_37_sqlite.tar.gz"
 
 taxonomy:
   # NCBI taxdump (names.dmp/nodes.dmp), downloaded once into workdir/taxdump and reused

@@ -69,16 +69,27 @@ class AnnotationTerm:
     label: str
     parent_id: str | None
     # An id in whatever external database this term comes from (NCBI taxid for
-    # phylogeny; ATC code/ChEBI accession/ChEMBL id for bioactivity), for linking out
-    # to that database's own page -- None for categories with no such external page
-    # (biosynthetic_class, chemical_class).
+    # phylogeny; ChEBI accession for bioactivity), for linking out to that database's
+    # own page -- None for categories with no such external page (biosynthetic_class,
+    # chemical_class).
     external_id: str | None = None
 
 
 @dataclass(frozen=True)
-class AnnotationStats:
+class AnnotationCoverage:
+    label: str
     with_annotation_count: int
     without_annotation_count: int
+
+
+@dataclass(frozen=True)
+class AnnotationStats:
+    # Coverage per (category, entry type) that actually gets populated for it --
+    # phylogeny applies to both compounds and bgcs (an organism produces both), so it
+    # gets two entries; the rest are single-entry-type by design (see the population
+    # sites: chemical_class/bioactivity are compound-structure-derived, biosynthetic_class
+    # describes a BGC's own biosynthesis machinery).
+    coverage: list[AnnotationCoverage]
     counts_by_category: list[Count]
     # Phylogeny: one chart per rank.
     phylogeny_type_counts: list[Count]
@@ -93,11 +104,7 @@ class AnnotationStats:
     chemical_class_pathway_counts: list[Count]
     chemical_class_superclass_counts: list[Count]
     chemical_class_class_counts: list[Count]
-    # Bioactivity: ChEMBL's two signals (see database/scripts/annotate_chembl.py) --
-    # WHO ATC therapeutic category and clinical-development phase -- plus ChEBI's role
-    # ontology (see database/scripts/annotate_chebi.py).
-    bioactivity_atc_counts: list[Count]
-    bioactivity_max_phase_counts: list[Count]
+    # Bioactivity: ChEBI's role ontology (see database/scripts/annotate_chebi.py).
     bioactivity_biological_role_counts: list[Count]
     bioactivity_chemical_role_counts: list[Count]
 
@@ -190,11 +197,11 @@ class RetroMolDuckDB:
         # Four dedicated annotation tables, one per category, each with its own typed
         # columns instead of a single generic label -- see RetroMolDuckDB.add_phylogeny_annotation
         # / add_bioactivity_annotation / add_biosynthetic_class_annotation / add_chemical_class_annotation.
-        # Phylogeny is one row per entry (an entry has exactly one organism); the other three
-        # are multi-valued per entry. biosynthetic_class/chemical_class are populated for
-        # compounds only (they describe the molecule, not the organism/cluster) -- enforced
-        # by pipeline callers, not by this schema. Bioactivity population logic isn't wired
-        # up yet; that table exists ahead of that.
+        # Phylogeny is one row per entry (an entry has exactly one organism); the other
+        # three are multi-valued per entry. chemical_class/bioactivity are populated for
+        # compounds only (they describe the molecule's own structure); biosynthetic_class
+        # is populated for bgcs only (it describes the gene cluster's biosynthesis
+        # machinery, not the compound) -- enforced by pipeline callers, not by this schema.
         self.con.execute(
             """
             CREATE TABLE IF NOT EXISTS phylogeny_annotations (
@@ -208,16 +215,11 @@ class RetroMolDuckDB:
             )
             """
         )
-        # `level` distinguishes bioactivity's four signals (see
-        # database/scripts/annotate_chembl.py / annotate_chebi.py): ChEMBL's
-        # "chembl_max_phase" (clinical-development stage -- "Approved"/"Phase 3"/... --
-        # only stored when meaningful, same presence-only convention as chemical_class's
-        # is_glycoside) and "chembl_atc" (WHO ATC therapeutic category), plus ChEBI's
-        # "chebi_biological_role" and "chebi_chemical_role" (its role ontology, under
-        # CHEBI:24432/CHEBI:51086). All four are multi-valued per entry except
-        # chembl_max_phase. `external_id` is the id in that row's own external database
-        # (an ATC code, a ChEBI accession, or a ChEMBL id for the max_phase row's own
-        # compound page) -- for building a "view on <source>" link; null when unresolved.
+        # `level` distinguishes bioactivity's two signals (see
+        # database/scripts/annotate_chebi.py): ChEBI's "chebi_biological_role" and
+        # "chebi_chemical_role" (its role ontology, under CHEBI:24432/CHEBI:51086) --
+        # both multi-valued per entry. `external_id` is the term's own ChEBI accession,
+        # for building a "view on ChEBI" link; null when unresolved.
         self.con.execute(
             """
             CREATE TABLE IF NOT EXISTS bioactivity_annotations (
@@ -430,9 +432,9 @@ class RetroMolDuckDB:
         self, entry_id: str, *, level: str, label: str, external_id: str | None = None
     ) -> None:
         """Link `entry_id` (a compound) to a bioactivity label at the given `level` (e.g.
-        "chembl_max_phase", "chembl_atc", "chebi_biological_role", "chebi_chemical_role" --
-        see database/scripts/annotate_chembl.py / annotate_chebi.py). Compounds only --
-        callers must not use this for bgc entries."""
+        "chebi_biological_role", "chebi_chemical_role" -- see
+        database/scripts/annotate_chebi.py). Compounds only -- callers must not use this
+        for bgc entries."""
         self.con.execute(
             """
             INSERT INTO bioactivity_annotations (entry_id, level, label, external_id)
@@ -443,8 +445,8 @@ class RetroMolDuckDB:
         )
 
     def add_biosynthetic_class_annotation(self, entry_id: str, label: str) -> None:
-        """Link `entry_id` (a compound) to a MIBiG biosynthetic-class label (PKS/NRPS/RiPP/...).
-        Compounds only -- callers must not use this for bgc entries."""
+        """Link `entry_id` (a bgc) to a MIBiG biosynthetic-class label (PKS/NRPS/RiPP/...).
+        BGCs only -- callers must not use this for compound entries."""
         self.con.execute(
             """
             INSERT INTO biosynthetic_class_annotations (entry_id, label)
@@ -617,12 +619,39 @@ class RetroMolDuckDB:
         ).fetchall()
         return [Count(label=str(row[0]), count=int(row[1])) for row in rows]
 
+    def _annotation_coverage(self, *, category: str, entry_type: str, label: str) -> AnnotationCoverage:
+        """with/without-annotation counts for one (category, entry type) slice -- e.g.
+        "how many compounds have a chemical_class annotation", not "how many entries of
+        any type have any annotation" (too coarse to be useful once there are several
+        categories that each apply to only one entry type)."""
+        total = self.count_entries_by_type([entry_type])
+        with_count = int(
+            self.con.execute(
+                """
+                SELECT count(DISTINCT ea.entry_id)
+                FROM entry_annotations ea
+                JOIN annotation_terms t ON t.id = ea.term_id
+                JOIN entries e ON e.id = ea.entry_id
+                WHERE t.category = ? AND e.type = ?
+                """,
+                [category, entry_type],
+            ).fetchone()[0]
+        )
+        return AnnotationCoverage(label=label, with_annotation_count=with_count, without_annotation_count=total - with_count)
+
     def annotation_stats(self) -> AnnotationStats:
         """Summary counts over annotation_terms/entry_annotations, for the Dashboard."""
-        with_annotation_count = int(
-            self.con.execute("SELECT count(DISTINCT entry_id) FROM entry_annotations").fetchone()[0]
-        )
-        without_annotation_count = self.count() - with_annotation_count
+        coverage = [
+            self._annotation_coverage(category="phylogeny", entry_type="compound", label="Phylogeny (compounds)"),
+            self._annotation_coverage(category="phylogeny", entry_type="bgc", label="Phylogeny (gene clusters)"),
+            self._annotation_coverage(
+                category="chemical_class", entry_type="compound", label="Chemical class (compounds)"
+            ),
+            self._annotation_coverage(
+                category="biosynthetic_class", entry_type="bgc", label="Biosynthetic class (gene clusters)"
+            ),
+            self._annotation_coverage(category="bioactivity", entry_type="compound", label="Bioactivity (compounds)"),
+        ]
 
         category_rows = self.con.execute(
             """
@@ -636,8 +665,7 @@ class RetroMolDuckDB:
         counts_by_category = [Count(label=str(row[0]), count=int(row[1])) for row in category_rows]
 
         return AnnotationStats(
-            with_annotation_count=with_annotation_count,
-            without_annotation_count=without_annotation_count,
+            coverage=coverage,
             counts_by_category=counts_by_category,
             phylogeny_type_counts=self._label_counts(category="phylogeny", rank="type"),
             phylogeny_genus_counts=self._label_counts(category="phylogeny", rank="genus", limit=15),
@@ -646,8 +674,6 @@ class RetroMolDuckDB:
             chemical_class_pathway_counts=self._label_counts(category="chemical_class", rank="pathway", limit=15),
             chemical_class_superclass_counts=self._label_counts(category="chemical_class", rank="superclass", limit=15),
             chemical_class_class_counts=self._label_counts(category="chemical_class", rank="class", limit=15),
-            bioactivity_atc_counts=self._label_counts(category="bioactivity", rank="chembl_atc", limit=15),
-            bioactivity_max_phase_counts=self._label_counts(category="bioactivity", rank="chembl_max_phase"),
             bioactivity_biological_role_counts=self._label_counts(
                 category="bioactivity", rank="chebi_biological_role", limit=15
             ),

@@ -106,8 +106,11 @@ def _apply(db: RetroMolDuckDB, entry_id: str, result: ClassificationResult) -> N
         db.add_chemical_class_annotation(entry_id, level="superclass", label=label)
     for label in result.class_:
         db.add_chemical_class_annotation(entry_id, level="class", label=label)
+    # Presence-only, same convention as every other flag-shaped annotation: only stored
+    # when true, and with a real name ("Glycoside") rather than a bare "Yes" that means
+    # nothing once it's sitting in a chart/chip out of context.
     if result.is_glycoside:
-        db.add_chemical_class_annotation(entry_id, level="is_glycoside", label="Yes")
+        db.add_chemical_class_annotation(entry_id, level="is_glycoside", label="Glycoside")
 
 
 def run(

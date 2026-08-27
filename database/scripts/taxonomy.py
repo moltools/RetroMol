@@ -172,6 +172,9 @@ class TaxonomyDB:
         return "Other", None
 
 
+_UNRESOLVED = PhylogenyResolution(None, None, None, None, None, None)
+
+
 def resolve_phylogeny(
     taxdb: TaxonomyDB | None,
     *,
@@ -180,19 +183,25 @@ def resolve_phylogeny(
     species: str | None = None,
     fallback_type_label: str | None = None,
 ) -> PhylogenyResolution:
-    """Standardize phylogeny fields to NCBI taxids where possible.
+    """Standardize phylogeny fields to NCBI taxids -- and *only* to NCBI taxids: every
+    label stored is read back off a resolved taxid via TaxonomyDB.canonical_name, never
+    passed through as raw, unstandardized source text. If a taxid can't be resolved at
+    all (no taxdb loaded, or the given ncbi_tax_id/genus/species doesn't match anything
+    in NCBI's taxonomy), the result is fully unannotated -- type/genus/species all
+    None -- rather than a best-effort guess from whatever text the source gave us.
+    `fallback_type_label` (NPAtlas's own origin_type field) is accepted for API
+    compatibility with callers but is deliberately unused for the same reason: it isn't
+    NCBI vocabulary either.
 
     If `ncbi_tax_id` is given (MIBiG), it's the source of truth: genus/species/type and
     their taxids are all derived from its lineage, overriding any given genus/species
-    text. Otherwise (NPAtlas), `genus`/`species` text is resolved to a taxid by name
-    lookup -- "Genus species" first, falling back to genus alone -- and, if resolved,
-    canonical names/taxids for every rank are read back off the same lineage, so both
-    sources end up identically standardized. If nothing resolves (no taxdb, or the
-    name/taxid isn't found), the given genus/species/fallback_type_label pass through
-    unchanged with no taxids -- unresolved is not an error here, just unenriched.
+    text. Otherwise (NPAtlas, or an MIBiG entry whose ncbi_tax_id didn't parse),
+    `genus`/`species` text is resolved to a taxid by name lookup -- "Genus species"
+    first, falling back to genus alone -- so both sources end up identically
+    standardized when they resolve at all.
     """
     if taxdb is None:
-        return PhylogenyResolution(fallback_type_label, None, genus, None, species, None)
+        return _UNRESOLVED
 
     leaf_taxid: int | None = None
     if ncbi_tax_id:
@@ -200,23 +209,24 @@ def resolve_phylogeny(
             leaf_taxid = int(ncbi_tax_id)
         except (TypeError, ValueError):
             leaf_taxid = None
-    elif genus:
+
+    if leaf_taxid is None and genus:
         query = f"{genus} {species}" if species else genus
         leaf_taxid = taxdb.resolve_taxid(query) or taxdb.resolve_taxid(genus)
 
     if leaf_taxid is None:
-        return PhylogenyResolution(fallback_type_label, None, genus, None, species, None)
+        return _UNRESOLVED
 
     type_label, type_taxid = taxdb.type_label_and_taxid(leaf_taxid)
 
     genus_taxid = taxdb.ancestor_at_rank(leaf_taxid, "genus")
-    genus_name = taxdb.canonical_name(genus_taxid) if genus_taxid else genus
+    genus_name = taxdb.canonical_name(genus_taxid) if genus_taxid else None
 
     species_taxid = taxdb.ancestor_at_rank(leaf_taxid, "species")
-    species_name = taxdb.canonical_name(species_taxid) if species_taxid else species
+    species_name = taxdb.canonical_name(species_taxid) if species_taxid else None
 
     return PhylogenyResolution(
-        type_label=type_label or fallback_type_label,
+        type_label=type_label,
         type_taxid=str(type_taxid) if type_taxid is not None else None,
         genus=genus_name,
         genus_taxid=str(genus_taxid) if genus_taxid is not None else None,

@@ -11,8 +11,6 @@ from routes.database import open_retromol_db
 blp_entry_annotations = Blueprint("entry_annotations", __name__)
 
 NCBI_TAXONOMY_URL = "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id={id}"
-CHEMBL_COMPOUND_URL = "https://www.ebi.ac.uk/chembl/compound_report_card/{id}/"
-WHO_ATC_INDEX_URL = "https://www.whocc.no/atc_ddd_index/?code={id}"
 CHEBI_ENTITY_URL = "https://www.ebi.ac.uk/chebi/searchId.do?chebiId={id}"
 
 
@@ -25,10 +23,6 @@ def _annotation_url(category: str, rank: str | None, external_id: str | None) ->
     if category == "phylogeny":
         return NCBI_TAXONOMY_URL.format(id=external_id)
     if category == "bioactivity":
-        if rank == "chembl_max_phase":
-            return CHEMBL_COMPOUND_URL.format(id=external_id)
-        if rank == "chembl_atc":
-            return WHO_ATC_INDEX_URL.format(id=external_id)
         if rank in ("chebi_biological_role", "chebi_chemical_role"):
             return CHEBI_ENTITY_URL.format(id=external_id)
     return None

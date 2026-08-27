@@ -25,6 +25,7 @@ import { buildAlignmentSvg, downloadSvg, type AlignmentSvgRow } from "./alignmen
 import { MinimalIconButton} from "../MinimalIconButton";
 import { getEntryAnnotations } from "../../features/database/api";
 import type { EntryAnnotation } from "../../features/database/types";
+import { isChebiRoleRank, toSentenceCase } from "../../features/database/format";
 
 const ANNOTATION_CATEGORY_LABELS: Record<string, string> = {
   phylogeny: "Phylogeny",
@@ -42,6 +43,23 @@ function groupAnnotationsByCategory(annotations: EntryAnnotation[]): [string, En
   }
   return Array.from(groups.entries());
 }
+
+// Shared by the "Databases" (source) row and every AnnotationChips category row --
+// one component, not parallel copies of the same Stack/Typography markup, so the
+// label-to-chip gap is guaranteed identical by construction rather than by keeping two
+// separate JSX blocks in sync by hand.
+const AnnotationRow: React.FC<{ label: string; sx?: object; children: React.ReactNode }> = ({
+  label,
+  sx,
+  children,
+}) => (
+  <Stack direction="row" alignItems="center" sx={{ flexWrap: "wrap", gap: 0.25, ...sx }}>
+    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110 }}>
+      {label}
+    </Typography>
+    {children}
+  </Stack>
+);
 
 const AnnotationChips: React.FC<{ entryId: string }> = ({ entryId }) => {
   const [annotations, setAnnotations] = React.useState<EntryAnnotation[] | null>(null);
@@ -75,14 +93,12 @@ const AnnotationChips: React.FC<{ entryId: string }> = ({ entryId }) => {
   }
 
   return (
-    <Stack spacing={0.5} sx={{ mb: 1 }}>
+    <Stack spacing={0.5} sx={{ mb: 2.5 }}>
       {groupAnnotationsByCategory(annotations).map(([category, items]) => (
-        <Stack key={category} direction="row" alignItems="center" spacing={1} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110 }}>
-            {ANNOTATION_CATEGORY_LABELS[category] ?? category}
-          </Typography>
-          {items.map((item) =>
-            item.url ? (
+        <AnnotationRow key={category} label={ANNOTATION_CATEGORY_LABELS[category] ?? category}>
+          {items.map((item) => {
+            const label = isChebiRoleRank(item.rank) ? toSentenceCase(item.label) : item.label;
+            return item.url ? (
               <Chip
                 key={item.id}
                 component="a"
@@ -90,15 +106,16 @@ const AnnotationChips: React.FC<{ entryId: string }> = ({ entryId }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 clickable
+                color="primary"
                 size="small"
                 variant="outlined"
-                label={item.label}
+                label={label}
               />
             ) : (
-              <Chip key={item.id} size="small" variant="outlined" label={item.label} />
-            )
-          )}
-        </Stack>
+              <Chip key={item.id} size="small" variant="outlined" label={label} />
+            );
+          })}
+        </AnnotationRow>
       ))}
     </Stack>
   );
@@ -382,7 +399,7 @@ export function ResultRow({
       <Collapse in={expanded} unmountOnExit>
         <Box sx={{ mt: 1, pl: 4.5 }}>
           {result.sources.length > 0 && (
-            <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap", gap: 1 }}>
+            <AnnotationRow label="Databases" sx={{ mb: 0.5 }}>
               {result.sources.map((source, idx) =>
                 source.url ? (
                   <Chip
@@ -392,6 +409,7 @@ export function ResultRow({
                     target="_blank"
                     rel="noopener noreferrer"
                     clickable
+                    color="primary"
                     size="small"
                     variant="outlined"
                     label={`${source.databaseName}: ${source.name}`}
@@ -405,7 +423,7 @@ export function ResultRow({
                   />
                 )
               )}
-            </Stack>
+            </AnnotationRow>
           )}
           <AnnotationChips entryId={result.entryId} />
           <AlignmentGrid

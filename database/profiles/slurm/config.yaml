@@ -15,9 +15,9 @@ jobs: 6  # concurrent Slurm jobs -- mainly matters for the independent download_
 latency-wait: 60
 rerun-incomplete: true
 printshellcmds: true
-# Independent rules (e.g. the download_* rules, or npclassifier/chembl/chebi annotation
-# vs. each other before they're serialized) shouldn't all be killed by one unrelated
-# rule failing/timing out -- let everything already running finish.
+# Independent rules (e.g. the download_* rules, or npclassifier/chebi annotation vs.
+# each other before they're serialized) shouldn't all be killed by one unrelated rule
+# failing/timing out -- let everything already running finish.
 keep-going: true
 
 default-resources:
@@ -48,12 +48,6 @@ set-resources:
     runtime: 60
     mem_mb: 2000
     disk_mb: 5000
-  download_chembl:
-    # ~5.4GB compressed download, extracted to a several-GB sqlite file (see
-    # database/scripts/chembl.py) -- the heaviest single download in this pipeline.
-    runtime: 240
-    mem_mb: 4000
-    disk_mb: 40000
   download_chebi:
     # A few hundred MB total across compounds/structures/relation flat files.
     runtime: 60
@@ -82,11 +76,6 @@ set-resources:
     # -- mostly wall-clock waiting on the network, not compute.
     runtime: 1440
     mem_mb: 2000
-  annotate_chembl:
-    # Local sqlite reads against the downloaded ChEMBL release -- fast, but give it
-    # enough runtime to walk every compound entry once.
-    runtime: 240
-    mem_mb: 4000
   annotate_chebi:
     # Loads all of ChEBI's flat files into memory once (see chebi.py's ChebiDB.load) --
     # a few hundred MB, generous headroom here.

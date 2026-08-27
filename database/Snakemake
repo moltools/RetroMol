@@ -15,12 +15,11 @@ Fill in database/config.yaml's `sources` URLs before running. The pipeline:
   7. parse_mibig_gbks      - antiSMASH GBKs -> linear module readouts (PARAS-annotated)
   8. load_mibig_bgcs       - turn readouts into "bgc" db entries
   9. annotate_npclassifier - chemical-class annotation (compounds only, NPClassifier API)
-  10. annotate_chembl      - bioactivity annotation (compounds only, local ChEMBL SQLite)
-  11. annotate_chebi       - bioactivity annotation (compounds only, local ChEBI flat files)
+  10. annotate_chebi       - bioactivity annotation (compounds only, local ChEBI flat files)
 
-Steps 4, 6, 8, 9, 10, and 11 all mutate the same DuckDB file, so they're chained
-through marker files (rather than each declaring the database itself as `output`) to
-force Snakemake to serialize them -- DuckDB doesn't support concurrent writers.
+Steps 4, 6, 8, 9, and 10 all mutate the same DuckDB file, so they're chained through
+marker files (rather than each declaring the database itself as `output`) to force
+Snakemake to serialize them -- DuckDB doesn't support concurrent writers.
 """
 
 import sys
@@ -48,22 +47,18 @@ TAXDUMP_DIR = WORKDIR / "taxdump"
 NPCLASSIFIER_REQUESTS_PER_SECOND = config.get("npclassifier", {}).get("requests_per_second", 2.0)
 NPCLASSIFIER_WORKERS = config.get("npclassifier", {}).get("workers", 8)
 
-CHEMBL_SQLITE_URL = config.get("chembl", {}).get("sqlite_url")
-CHEMBL_DIR = WORKDIR / "chembl"
-
 CHEBI_DIR = WORKDIR / "chebi"
 
 # Toggle whole branches of the pipeline off (see config.yaml's `enabled` comment) --
 # disabling npatlas/mibig skips their download+parse rules entirely, not just db
 # loading, since the "real" inputs below are only declared when enabled: nothing else
 # in the DAG needs npatlas/results.jsonl or mibig_gbk/readouts.jsonl, so Snakemake
-# never schedules the rules that would produce them. Same idea for chembl/chebi:
-# disabling either skips its bulk download entirely.
+# never schedules the rules that would produce them. Same idea for chebi: disabling it
+# skips its bulk download entirely.
 ENABLED = config.get("enabled", {})
 NPATLAS_ENABLED = ENABLED.get("npatlas", True)
 MIBIG_ENABLED = ENABLED.get("mibig", True)
 NPCLASSIFIER_ENABLED = ENABLED.get("npclassifier", True)
-CHEMBL_ENABLED = ENABLED.get("chembl", True)
 CHEBI_ENABLED = ENABLED.get("chebi", True)
 
 
@@ -71,7 +66,6 @@ rule all:
     input:
         MARKERS / "bgcs_loaded.done",
         MARKERS / "npclassifier_annotated.done",
-        MARKERS / "chembl_annotated.done",
         MARKERS / "chebi_annotated.done"
 
 
@@ -358,40 +352,7 @@ rule annotate_npclassifier:
 
 
 # ---------------------------------------------------------------------------
-# Step 10: ChEMBL bioactivity annotation (compounds only)
-# ---------------------------------------------------------------------------
-
-rule download_chembl:
-    output:
-        extract_dir=directory(CHEMBL_DIR / "extracted")
-    params:
-        url=CHEMBL_SQLITE_URL
-    run:
-        import chembl
-        chembl.download_chembl_sqlite(output.extract_dir, url=params.url)
-
-
-rule annotate_chembl:
-    input:
-        # Chained after npclassifier_annotated.done purely to serialize this write
-        # against annotate_npclassifier's (see module docstring at the top of this file).
-        prev=MARKERS / "npclassifier_annotated.done",
-        # Only declared when enabled -- download_chembl (a multi-GB download) never
-        # runs when disabled.
-        **({"extract_dir": CHEMBL_DIR / "extracted"} if CHEMBL_ENABLED else {})
-    output:
-        marker=touch(MARKERS / "chembl_annotated.done")
-    run:
-        if CHEMBL_ENABLED:
-            import annotate_chembl
-            candidates = sorted(Path(input.extract_dir).rglob("*.db"))
-            if not candidates:
-                raise FileNotFoundError(f"no ChEMBL .db file found under {input.extract_dir}")
-            annotate_chembl.run(db_path=DB_PATH, chembl_sqlite_path=candidates[0])
-
-
-# ---------------------------------------------------------------------------
-# Step 11: ChEBI bioactivity annotation (compounds only)
+# Step 10: ChEBI bioactivity annotation (compounds only)
 # ---------------------------------------------------------------------------
 
 rule download_chebi:
@@ -406,9 +367,9 @@ rule download_chebi:
 
 rule annotate_chebi:
     input:
-        # Chained after chembl_annotated.done purely to serialize this write against
-        # annotate_chembl's (see module docstring at the top of this file).
-        prev=MARKERS / "chembl_annotated.done",
+        # Chained after npclassifier_annotated.done purely to serialize this write
+        # against annotate_npclassifier's (see module docstring at the top of this file).
+        prev=MARKERS / "npclassifier_annotated.done",
         # Only declared when enabled -- download_chebi never runs when disabled.
         **(
             {

@@ -1,11 +1,12 @@
-"""Step 11: annotate every compound entry's bioactivity via ChEBI's role ontology.
+"""Step 10: annotate every compound entry's bioactivity via ChEBI's role ontology.
 
 Runs after compound loading, so every distinct molecule -- regardless of which
-source(s) it came from -- is looked up exactly once. BGC entries are skipped, same
-reasoning as annotate_chembl.py.
+source(s) it came from -- is looked up exactly once. BGC entries are skipped:
+bioactivity here is a property of the compound structure (looked up by its InChIKey
+entry id), not of the producing organism/cluster.
 
-Like annotate_chembl.py, this queries a local bulk release (see chebi.py) rather than
-a rate-limited API -- no pacing or caching needed.
+This queries a local bulk release (see chebi.py) rather than a rate-limited API -- no
+pacing or caching needed, lookups are just local reads.
 """
 
 import argparse

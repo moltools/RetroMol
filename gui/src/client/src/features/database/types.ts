@@ -18,9 +18,15 @@ export const DatabaseStatsRespSchema = z.object({
 });
 export type DatabaseStatsResp = z.output<typeof DatabaseStatsRespSchema>;
 
-export const AnnotationStatsRespSchema = z.object({
+export const AnnotationCoverageSchema = z.object({
+  label: z.string(),
   withAnnotationCount: z.number().int().nonnegative(),
   withoutAnnotationCount: z.number().int().nonnegative(),
+});
+export type AnnotationCoverage = z.output<typeof AnnotationCoverageSchema>;
+
+export const AnnotationStatsRespSchema = z.object({
+  coverage: z.array(AnnotationCoverageSchema),
   countsByCategory: z.array(CountSchema),
   phylogenyTypeCounts: z.array(CountSchema),
   phylogenyGenusCounts: z.array(CountSchema),
@@ -29,8 +35,6 @@ export const AnnotationStatsRespSchema = z.object({
   chemicalClassPathwayCounts: z.array(CountSchema),
   chemicalClassSuperclassCounts: z.array(CountSchema),
   chemicalClassClassCounts: z.array(CountSchema),
-  bioactivityAtcCounts: z.array(CountSchema),
-  bioactivityMaxPhaseCounts: z.array(CountSchema),
   bioactivityBiologicalRoleCounts: z.array(CountSchema),
   bioactivityChemicalRoleCounts: z.array(CountSchema),
 });

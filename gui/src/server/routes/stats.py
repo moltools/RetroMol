@@ -14,6 +14,19 @@ def _to_camel_case(snake: str) -> str:
     return head + "".join(word.capitalize() for word in tail)
 
 
+def _camelize(value):
+    """Recursively camelCase every dict key in `value` -- `asdict()` on a dataclass
+    with nested dataclasses (e.g. AnnotationStats.coverage: list[AnnotationCoverage])
+    only produces nested plain dicts/lists, so a shallow top-level-only conversion
+    misses every key below the first level (that's exactly what broke
+    coverage[i].with_annotation_count -> withAnnotationCount before this)."""
+    if isinstance(value, dict):
+        return {_to_camel_case(k): _camelize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_camelize(v) for v in value]
+    return value
+
+
 @blp_database_stats.get("/api/databaseStats")
 def database_stats() -> tuple[Response, int]:
     """
@@ -25,7 +38,7 @@ def database_stats() -> tuple[Response, int]:
     with open_retromol_db() as db:
         stats = db.stats()
 
-    payload = {_to_camel_case(k): v for k, v in asdict(stats).items()}
+    payload = _camelize(asdict(stats))
     return jsonify(payload), 200
 
 
@@ -40,5 +53,5 @@ def annotation_stats() -> tuple[Response, int]:
     with open_retromol_db() as db:
         stats = db.annotation_stats()
 
-    payload = {_to_camel_case(k): v for k, v in asdict(stats).items()}
+    payload = _camelize(asdict(stats))
     return jsonify(payload), 200

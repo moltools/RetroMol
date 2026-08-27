@@ -23,6 +23,8 @@ from tqdm import tqdm
 
 from common import (
     build_fingerprint_context,
+    clean_genus,
+    clean_species_epithet,
     find_key_ci,
     load_ruleset,
     mibig_url,
@@ -53,17 +55,26 @@ def _npatlas_name_and_url(props: dict) -> tuple[str | None, str | None]:
 
 def _npatlas_phylogeny(props: dict) -> tuple[str | None, str | None, str | None]:
     """NPAtlas's SDF carries type/genus/species directly (unlike MIBiG's free-text
-    organism_name) -- see the `origin_type`/`genus`/`origin_species` SDF properties."""
+    organism_name) -- see the `origin_type`/`genus`/`origin_species` SDF properties.
+
+    Both genus and origin_species are used as-is by NPAtlas's own curators, which
+    turns out to include the same non-taxonomic placeholders MIBiG's free text does
+    (bare "sp.", a genus name duplicated into the species field e.g. "Streptomyces
+    sp.", "unidentified") -- cleaned the same way as MIBiG's organism_name parsing
+    (see common.clean_genus/clean_species_epithet), so neither source's placeholder
+    values end up stored as if they were real species-level identifications.
+    """
     type_key = find_key_ci(props, ["origin_type"])
     type_label = props.get(type_key) if type_key else None
 
     genus_key = find_key_ci(props, ["genus"])
-    genus = props.get(genus_key) if genus_key else None
+    genus = clean_genus(props.get(genus_key) if genus_key else None)
 
     species_key = find_key_ci(props, ["origin_species"])
-    species = props.get(species_key) if species_key else None
+    species_raw = props.get(species_key) if species_key else None
+    species = clean_species_epithet(genus, species_raw)
 
-    return (type_label or None), (genus or None), (species or None)
+    return (type_label or None), genus, species
 
 
 def _mibig_name_and_url(props: dict, versions: dict[str, str]) -> tuple[str | None, str | None]:
@@ -98,10 +109,8 @@ def _apply_mibig_annotations(
         species=resolution.species,
         species_taxid=resolution.species_taxid,
     )
-
-    for chemical_class in record.get("biosyn_class") or []:
-        if chemical_class:
-            db.add_biosynthetic_class_annotation(entry_id, str(chemical_class))
+    # biosynthetic_class describes the BGC's own biosynthesis machinery (PKS/NRPS/...),
+    # not the compound structure -- populated in load_bgcs.py instead, not here.
 
 
 def run(
