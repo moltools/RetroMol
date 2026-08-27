@@ -1,6 +1,6 @@
 # Snakemake workflow profile for running database/Snakemake on a Slurm cluster.
 #
-# Usage (from the repo root, with database/envs/retromol.yaml's env active -- see that
+# Usage (from the repo root, with environment.yml's env active -- see that
 # file's own comment for why there's no --use-conda here):
 #
 #   conda activate retromol

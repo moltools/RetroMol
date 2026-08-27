@@ -1,0 +1,252 @@
+# pmp.yml -- Prediction-to-Monomer mapping rules
+#
+# mxn.yml defines the vocabulary of monomer/unit *rules* (compound side).
+# rxn.yml defines the reaction rules used to decompose compound structures
+# into that vocabulary.
+# This file bridges the *BGC* side: for each axis of substrate prediction
+# (e.g. "which extender unit did this PKS module use", "which amino acid
+# does this NRPS module load"), it lists every available prediction METHOD,
+# and a top-level `predictors` switchboard picks which one is actually used.
+# Adding a new method (a different tool's GenBank qualifier, or a new
+# registered inference model) never requires code changes -- only a new
+# entry here.
+#
+# ---------------------------------------------------------------------------
+# predictors: which named method (from `methods` below) is active for each
+# axis. This is the on/off switch -- change a value here to swap predictors
+# without touching anything else. PKS only has "antismash" for now (there's
+# no other tool wired in yet); NRPS can be pointed at antiSMASH's own call or
+# at RetroMol's PARAS model.
+# ---------------------------------------------------------------------------
+predictors:
+  pks:
+    extender: antismash
+    starter: antismash
+    kr_stereochemistry: antismash
+  nrps:
+    a_domain: paras
+
+# ---------------------------------------------------------------------------
+# methods: every prediction method available for each axis, keyed by name.
+# `predictors` above just has to name one of these keys to use it.
+#
+# Two kinds of method:
+#
+#   source: qualifier   -- reads a value straight out of the GenBank record.
+#     feature:    antiSMASH feature type the domain lives on (always
+#                 "aSDomain" for antiSMASH domain calls).
+#     domain:     the domain's `/aSDomain=` (or `/label=` prefix) value to
+#                 match, e.g. "PKS_AT", "PKS_KR", "AMP-binding".
+#     qualifier:  the GenBank qualifier to read, e.g. "specificity". This is
+#                 a repeated qualifier in antiSMASH output -- every line
+#                 becomes one string in a list, e.g.:
+#                   /specificity="substrate consensus: mmal"
+#                   /specificity="PKS signature: Methylmalonyl-CoA"
+#                   /specificity="Minowa: mmal"
+#     key:        the text before ": " in the qualifier line to select among
+#                 the repeated values, e.g. "substrate consensus" picks the
+#                 combined Minowa+signature vote over the two individual
+#                 predictor calls.
+#
+#   source: model       -- reads the top-scoring result of a registered
+#                           DomainInferenceModel (see
+#                           retromol_antismash/inference/registry.py). Any
+#                           model registered there under `model:`'s name
+#                           can be used this way, including custom ones --
+#                           nothing here is PARAS-specific.
+#     model:      the DomainInferenceModel.name to read predictions from
+#                 (domain.annotations.by_model(model)). The top result by
+#                 score is used.
+#
+# Both kinds then share:
+#     combine_with: how the resolved value becomes a token.
+#                 - "reduction_letter": appended to the module's
+#                   structurally-derived PK_A/B/C/D letter, e.g. letter "A"
+#                   + mapped "2" -> token "A2" (must exist as a `name` in
+#                   mxn.yml, e.g. see mxn.yml's `A2`/`A2^R`/`A2^S` entries).
+#                 - null: the mapped value is a complete mxn.yml `name` (or
+#                   pseudonym) on its own -- used for starter units and NRPS
+#                   monomers, which have no reduction-letter axis.
+#     mapping:    predicted-value -> mxn.yml token/name.
+#                 - Omit this key (or leave it `{}`) to copy the predicted
+#                   value straight through unchanged -- e.g. because the
+#                   predictor's own vocabulary already matches mxn.yml
+#                   names, or because you haven't decided on names yet.
+#                 - For a `source: model` method, `mapping` only needs
+#                   entries for labels whose wording doesn't already match
+#                   mxn.yml: an unmapped label is tried as a literal mxn.yml
+#                   `name` first, and if nothing matches, RetroMol falls
+#                   back to whatever structural resolution the model itself
+#                   provides (for PARAS: matching its predicted SMILES
+#                   against every mxn.yml rule by structure). So `mapping`
+#                   here is for override/rewording, not a full vocabulary
+#                   you have to maintain by hand. This is also the place to
+#                   repoint things when you rename entries in mxn.yml and a
+#                   predictor's existing labels stop lining up.
+#                 - For a `source: qualifier` method there's no structural
+#                   fallback (antiSMASH's qualifier text carries no
+#                   structure) -- an unmapped value is tried as a literal
+#                   mxn.yml `name`, and if that doesn't exist, resolution
+#                   fails for that module.
+#
+# Confidence note on the antiSMASH PKS_AT mappings below (see antiSMASH's
+# own training data, at_analysis/data/pks_signatures.fasta): mal/mmal/emal/
+# mxmal have 10-347 reference sequences each behind the classifier; every
+# other AT substrate call antiSMASH can return (starters, cemal, 2Rhydmal,
+# trans-1,2-CPDA) has only 1-4 -- treat those as low confidence.
+# ---------------------------------------------------------------------------
+methods:
+  pks:
+    extender:
+      # Extension-module AT domain substrate specificity -> the digit half
+      # of the A/B/C/D + digit token (e.g. mmal -> "2", combined with the
+      # structurally-derived letter to give "A2", "B2", "C2", or "D2").
+      antismash:
+        source: qualifier
+        feature: aSDomain
+        domain: PKS_AT
+        qualifier: specificity
+        key: "substrate consensus"
+        combine_with: reduction_letter
+        mapping:
+          mal: "1"      # malonyl-CoA            -> A1/B1/C1/D1
+          mmal: "2"     # methylmalonyl-CoA       -> A2/B2/C2/D2
+          emal: "4"     # ethylmalonyl-CoA        -> A4/B4/C4/D4
+          2Rhydmal: "5" # 2-R-hydroxymalonyl-CoA  -> A5/B5/C5/D5 (low confidence, 1 ref seq)
+          mxmal: "6"    # methoxymalonyl-CoA      -> A6/B6/D6 (no C6: DH doesn't act on this substituent)
+          # cemal, trans-1,2-CPDA: rare trans-AT extenders, 1 ref seq each in
+          # antiSMASH's training set -- left unmapped until there's a
+          # matching mxn.yml entry and someone wants to trust a 1-sequence
+          # call.
+
+    starter:
+      # Loading-module (starter-unit) AT domain substrate specificity. No
+      # reduction-letter axis applies to a starter, so the mapped value
+      # becomes the token directly. Left unmapped for now -- fill in once
+      # the corresponding starter-unit rules exist in mxn.yml.
+      antismash:
+        source: qualifier
+        feature: aSDomain
+        domain: PKS_AT
+        qualifier: specificity
+        key: "substrate consensus"
+        combine_with: null
+        mapping:
+           prop: "propanoic acid"
+           isobut: "isobutyric acid"
+          # 2metbut: "2-Methylbutyryl"
+          # 3metbut: "3-Methylbutyryl"
+           benz: "benzoic acid"
+          # CHC-CoA: "Cyclohexanecarbonyl"
+
+    kr_stereochemistry:
+      # KR-domain reduction stereochemistry: antiSMASH predicts one of
+      # A1/A2/B1/B2/C1/C2/(unknown) here, using the Caffrey (2003) /
+      # Keatinge-Clay (2007) classification -- NOT the same "A1"/"B2" as the
+      # extender tokens above, don't conflate the two. Presence/absence of
+      # the "LDD" KR active-site motif marks which face of the beta-keto
+      # group gets reduced (A-type = L-configured beta-hydroxyl, B-type =
+      # D-configured -- Fischer nomenclature, per the KR-classifier
+      # literature). The 1/2 suffix is a SEPARATE axis: whether the KR also
+      # epimerizes the alpha stereocenter set at extension (subtype 1
+      # retains the original alpha-D configuration, subtype 2 epimerizes to
+      # alpha-L) -- only relevant for extender digits with an actual alpha
+      # substituent (e.g. "2"/"4"/"5"/"6" -- moot for "1"/malonyl), and NOT
+      # resolved here (see note below).
+      #
+      # combine_with: stereo_suffix appends the mapped value onto the
+      # already-resolved specific token as "^<value>" (positioned per
+      # mxn.yml's own convention -- see retromol_antismash/modules.py's
+      # module_primary_sequence_tokens, which currently only applies this
+      # for letter "B", as "B^<value><digit>", e.g. "B^R2"). Unlike the
+      # other axes, an EMPTY mapping here means "don't apply a suffix at
+      # all", not "pass the raw value through" -- antiSMASH's own "A1"/"B2"
+      # class labels are not R/S descriptors, so blindly appending them
+      # would be actively wrong, not just unmapped.
+      #
+      # A-type/B-type -> L/D -> R/S: for a plain beta-hydroxy thioester
+      # (OH, carbonyl-C, alkyl-chain, H at the stereocenter), CIP priority
+      # is OH > carbonyl-C > alkyl-C > H regardless of what the alpha
+      # substituent is, so this doesn't flip across extender digits the way
+      # an alpha-carbon assignment could. Anchored against the
+      # well-established FabG product D-3-hydroxybutyryl-ACP = (R): so
+      # D-OH = R, L-OH = S here too.
+      #   A-type (L-OH) -> S
+      #   B-type (D-OH) -> R
+      # This maps only the beta-hydroxyl carbon (mxn.yml's B-series ^R/^S,
+      # e.g. "B^R2"). C-type KRs don't reduce at all (no beta-hydroxyl to
+      # assign -- see the separate "KR activity" qualifier), and D-series
+      # has none either (consumed by the enoylreductase), so this mapping
+      # is only ever consulted for letter "B" (see module_primary_sequence_
+      # tokens). The alpha-carbon stereocenter (A-series ^R/^S like "A2^R",
+      # and the second suffix in doubly-specified names like "B^R2^R")
+      # isn't wired up at all yet -- resolving it needs to combine this KR's
+      # 1-vs-2 subtype with the extender digit's actual alpha-substituent
+      # structure, and has no resolver here.
+      antismash:
+        source: qualifier
+        feature: aSDomain
+        domain: PKS_KR
+        qualifier: specificity
+        key: "KR stereochemistry"
+        combine_with: stereo_suffix
+        mapping:
+          A1: "S"
+          A2: "S"
+          B1: "R"
+          B2: "R"
+
+  nrps:
+    a_domain:
+      # antiSMASH's own NRPS substrate call, read straight from the
+      # GenBank record. Point `key` at whichever qualifier line your
+      # antiSMASH version writes (e.g. antiSMASH 6+ typically has
+      # "NRPSPredictor2 SVM" and "single-aa Stachelhaus code" in addition to
+      # "substrate consensus").
+      antismash:
+        source: qualifier
+        feature: aSDomain
+        domain: AMP-binding
+        qualifier: specificity
+        key: "substrate consensus"
+        combine_with: null
+        mapping: {}
+
+      # RetroMol's own model: PARAS (retromol_antismash/inference/
+      # model_paras.py) runs ML inference on the A domain's sequence to
+      # predict a substrate class label. By default (empty mapping) an
+      # unmapped label falls back to PARAS' own label->SMILES table plus
+      # structural matching against mxn.yml -- add an entry here only to
+      # force a specific label onto a specific mxn.yml name, e.g. after
+      # renaming something in mxn.yml.
+      paras:
+        source: model
+        model: paras
+        combine_with: null
+        mapping: {}
+
+      # Self-contained reimplementation of PARAS (retromol_paras/, see its
+      # module docstring): same idea as "paras" above (predicted label ->
+      # PARAS' own label->SMILES table -> structural match against mxn.yml),
+      # but domain extraction runs via command-line HMMER2/HMMER3/MUSCLE3
+      # instead of pyhmmer, and the RandomForestClassifier is trained (and
+      # cached) locally against this repo's pinned scikit-learn version
+      # instead of unpickling a model file built under someone else's
+      # sklearn. Requires hmmpfam2/hmmscan/hmmpress/muscle(v3) on PATH.
+      paras_cli:
+        source: model
+        model: paras_cli
+        combine_with: null
+        mapping: {}
+
+      # Template for wiring in your own substrate-prediction model: register
+      # a DomainInferenceModel under `model:`'s name (see
+      # retromol_antismash/inference/registry.py), point `predictors.nrps.
+      # a_domain` at this method's name, and provide a mapping from its
+      # predicted labels to mxn.yml names (or leave the label as a literal
+      # mxn.yml name and omit `mapping` entirely).
+      # my_model:
+      #   source: model
+      #   model: my_model
+      #   combine_with: null
+      #   mapping: {}

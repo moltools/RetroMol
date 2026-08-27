@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PrimarySequenceItemSchema } from "../reconstruction/types";
 
 // Predicted substrate for an NRPS (A-domain) module, as returned by the PARAS model.
 export const ClusterSubstrateSchema = z.object({
@@ -22,6 +23,15 @@ export const ClusterPKSAnatomySchema = z.object({
   has_active_KR: z.boolean(),
   has_active_DH: z.boolean(),
   has_active_ER: z.boolean(),
+  // Resolved via pmp.yml's "pks.extender"/"pks.kr_stereochemistry" axes (see
+  // retromol_antismash/modules.py's PKSAnatomy) -- null when unresolved (e.g.
+  // trans-AT modules, or an unmapped antiSMASH substrate call). These aren't
+  // enough on their own to know the module's *specific* token (e.g. "A2",
+  // "B^R2") -- that also depends on which name actually exists in mxn.yml, so
+  // prefer ReconstructGeneClusterResp's primary_sequence for that instead of
+  // recomputing it client-side from these flags.
+  extender_digit: z.string().nullable().optional(),
+  beta_stereo: z.string().nullable().optional(),
 });
 
 const ClusterModuleBaseSchema = z.object({
@@ -68,12 +78,24 @@ export const GetClusterReadoutRespSchema = z.object({
 
 // One antiSMASH region's readout, mapped onto the same matching-rule vocabulary a
 // compound's primary sequence is drawn from (see
-// retromol_antismash.modules.bgc_primary_sequence on the backend). Unlike a
-// compound's reconstruction, this is just names -- no per-block tags, and no edited
-// overrides yet.
+// retromol_antismash.modules.bgc_primary_sequence on the backend).
+//
+// `modules[i]` is the module `primary_sequence[i]`/`tokens[i]` came from -- all
+// three arrays are index-aligned, in biosynthetic order (NOT the same order as
+// ClusterReadoutSchema.modules, which is raw insertion order: see the comment on
+// gui/src/server/routes/jobs.py's run_gene_cluster_reconstruction).
+//
+// Each primary_sequence entry is a [name, [moduleIndex]] pair -- the same tuple
+// shape as a compound's PrimarySequenceItem, so the same click-to-highlight chip
+// components (PrimarySequenceChips, SequenceEditor) work unmodified. "tags" here
+// is always a single-element array holding the entry's index into `modules`
+// (not an atom index, unlike the compound case) -- use it to link a readout chip
+// back to the gene/domains it came from.
 export const ClusterPrimarySequenceSchema = z.object({
   id: z.string(),
-  primary_sequence: z.array(z.string()),
+  primary_sequence: z.array(PrimarySequenceItemSchema),
+  tokens: z.array(z.array(z.string())).default([]),
+  modules: z.array(ClusterModuleSchema).default([]),
 });
 
 export const ReconstructGeneClusterRespSchema = z.object({

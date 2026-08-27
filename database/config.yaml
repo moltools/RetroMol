@@ -52,12 +52,23 @@ paras:
   threshold: 0.1
   keep_top: 3
 
-  # Path to a training data file to retrain PARAS on the fly before parsing GBKs.
-  # NOT YET IMPLEMENTED -- setting this raises NotImplementedError right now.
-  # null (the default) skips PARAS inference entirely: every NRPS A-domain module
-  # gets an explicit "unknown" substrate instead of a predicted one, rather than
-  # running the bundled pretrained model.
-  training_data_path: null
+  # Path to a pmp.yml prediction-mapping file (see src/retromol/data/pmp.yml).
+  # null -> the packaged default. Its "predictors.nrps.a_domain" selects which
+  # model (if any) actually runs here -- "paras" (pyhmmer, a pretrained model
+  # file), "paras_cli" (src/retromol_paras/, retrained/cached locally from
+  # command-line HMMER2/HMMER3/MUSCLE3 -- see envs/retromol_paras.yaml -- or
+  # rather environment.yml at repo root), or a source: qualifier method that
+  # reads antiSMASH's own NRPS substrate call and runs no model at all. Same
+  # file the GUI backend and scripts/predict_bgc.py read, so switching
+  # predictors here changes every entry point at once.
+  pmp_path: null
+
+  # Cache directory for whichever model pmp_path selects (a download cache for
+  # "paras", a training-signature + fitted-model cache for "paras_cli").
+  cache_dir: null
+
+  # "paras_cli"-only: retrain from scratch even if a cached model is present.
+  force_retrain: false
 
 compute:
   # Both are embarrassingly parallel over independent compounds/files.

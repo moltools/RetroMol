@@ -704,12 +704,12 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                       {region.id}
                     </Typography>
                     <Box sx={{ flex: 1, minWidth: 0, transform: "translateY(5px)" }}>
-                      <NamesPreview names={region.primary_sequence} />
+                      <NamesPreview names={region.primary_sequence.map(([name]) => name)} />
                     </Box>
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => handlePickNames(region.primary_sequence)}
+                      onClick={() => handlePickNames(region.primary_sequence.map(([name]) => name))}
                       sx={{ flexShrink: 0 }}
                     >
                       Use this
