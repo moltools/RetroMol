@@ -46,6 +46,7 @@ TAXONOMY_ENABLED = config.get("taxonomy", {}).get("enabled", False)
 TAXDUMP_DIR = WORKDIR / "taxdump"
 
 NPCLASSIFIER_REQUESTS_PER_SECOND = config.get("npclassifier", {}).get("requests_per_second", 2.0)
+NPCLASSIFIER_WORKERS = config.get("npclassifier", {}).get("workers", 8)
 
 CHEMBL_SQLITE_URL = config.get("chembl", {}).get("sqlite_url")
 CHEMBL_DIR = WORKDIR / "chembl"
@@ -336,6 +337,15 @@ rule annotate_npclassifier:
         prev=MARKERS / "bgcs_loaded.done"
     output:
         marker=touch(MARKERS / "npclassifier_annotated.done")
+    # Declared like parse_npatlas/parse_mibig_gbks's worker counts, even though this
+    # rule is I/O-bound rather than CPU-bound: without a `threads:` declaration,
+    # Snakemake assumes a 1-core job while it actually opens NPCLASSIFIER_WORKERS
+    # concurrent connections, so `--cores` wouldn't see or cap it. Declaring it here
+    # means `--cores` fewer than npclassifier.workers automatically caps this job's
+    # `threads` value at run time -- passed through below instead of the raw config
+    # number, so a run with e.g. `--cores 6` gets at most 6 workers even if
+    # npclassifier.workers says 8.
+    threads: NPCLASSIFIER_WORKERS
     run:
         if NPCLASSIFIER_ENABLED:
             import annotate_npclassifier
@@ -343,6 +353,7 @@ rule annotate_npclassifier:
                 db_path=DB_PATH,
                 cache_path=WORKDIR / "npclassifier" / "cache.jsonl",
                 requests_per_second=NPCLASSIFIER_REQUESTS_PER_SECOND,
+                workers=threads,
             )
 
 
