@@ -10,6 +10,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
+import MuiTooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -22,6 +23,16 @@ import { Q_VALUE_SIGNIFICANT, type EnrichmentResult } from "../../features/enric
 
 function formatScientific(value: number): string {
   return value === 0 ? "0" : value.toExponential(2);
+}
+
+// annotation_terms.category/rank/label come straight from the pipeline in raw form
+// (e.g. "chemical_class", "chebi_biological_role") -- humanized here for display only,
+// same "touch only presentation, never the underlying value" approach as
+// features/database/format.ts's toSentenceCase.
+function humanizeAnnotationText(value: string): string {
+  const spaced = value.replace(/_/g, " ");
+  const sentenceCased = spaced.length > 0 ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : spaced;
+  return sentenceCased.replace(/\bchebi\b/gi, "ChEBI");
 }
 
 function downloadTsv(rows: EnrichmentResult[], filename: string): void {
@@ -62,14 +73,24 @@ function downloadTsv(rows: EnrichmentResult[], filename: string): void {
 }
 
 const columns: GridColDef<EnrichmentResult>[] = [
-  { field: "category", headerName: "Category", width: 140 },
+  {
+    field: "category",
+    headerName: "Category",
+    width: 140,
+    valueFormatter: (value: string | null) => (value ? humanizeAnnotationText(value) : "—"),
+  },
   {
     field: "rank",
     headerName: "Rank",
-    width: 110,
-    valueGetter: (value) => value ?? "—",
+    width: 140,
+    valueFormatter: (value: string | null) => (value ? humanizeAnnotationText(value) : "—"),
   },
-  { field: "label", headerName: "Label", width: 220 },
+  {
+    field: "label",
+    headerName: "Label",
+    width: 220,
+    valueFormatter: (value: string) => humanizeAnnotationText(value),
+  },
   {
     field: "selectedWithTerm",
     headerName: "Selected",
@@ -120,6 +141,14 @@ const columns: GridColDef<EnrichmentResult>[] = [
       ),
   },
 ];
+
+// DataGrid's own "baseTooltip" slot type has no `arrow` prop (it's a stripped-down
+// interface, not @mui/material's full TooltipProps -- see gridBaseSlots.d.ts), so
+// arrow-style tooltips (sort/filter/menu hover hints) need a full slot override
+// rather than a slotProps tweak.
+function GridArrowTooltip(props: React.ComponentProps<typeof MuiTooltip>) {
+  return <MuiTooltip arrow {...props} />;
+}
 
 export const DiscoveryEnrichmentView: React.FC<{ entryIds: string[] }> = ({ entryIds }) => {
   // Recomputes only on mount (first open) and on explicit "Recalculate" clicks --
@@ -208,12 +237,40 @@ export const DiscoveryEnrichmentView: React.FC<{ entryIds: string[] }> = ({ entr
             loading={enrichmentQuery.isLoading}
             density="compact"
             disableRowSelectionOnClick
+            showCellVerticalBorder
+            showColumnVerticalBorder
             initialState={{
               sorting: { sortModel: [{ field: "qValue", sort: "asc" }] },
             }}
             pageSizeOptions={[25, 50, 100]}
+            slots={{ baseTooltip: GridArrowTooltip }}
             sx={{
-              "& .MuiDataGrid-cell": { fontSize: "0.8125rem" },
+              // Explicit border rules rather than relying on the --DataGrid-rowBorderColor
+              // CSS variable / showCellVerticalBorder alone -- confirmed live that the
+              // variable covers vertical cell borders but not the horizontal row
+              // separator in this DataGrid version, so it's set directly here instead.
+              // "divider" resolves through the app's own theme (light/dark both), not a
+              // hardcoded color.
+              "& .MuiDataGrid-cell": {
+                fontSize: "0.8125rem",
+                borderRight: "1px solid",
+                borderRightColor: "divider",
+                borderBottom: "1px solid",
+                borderBottomColor: "divider",
+              },
+              "& .MuiDataGrid-columnHeader": {
+                borderRight: "1px solid",
+                borderRightColor: "divider",
+              },
+              // Sort arrow / column-menu (three dots) icons -- bare icon, no button
+              // chrome (padding, hover box, border) around them.
+              "& .MuiDataGrid-iconButtonContainer .MuiIconButton-root, & .MuiDataGrid-menuIconButton": {
+                padding: 0,
+                border: "none",
+                backgroundColor: "transparent",
+                boxShadow: "none",
+                "&:hover": { backgroundColor: "transparent" },
+              },
             }}
           />
         </Box>
