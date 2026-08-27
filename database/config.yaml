@@ -35,7 +35,7 @@ npclassifier:
   # kept conservative). This is the *combined* rate across all workers below, not
   # per-worker. Classifications are cached in workdir/npclassifier/cache.jsonl, so
   # reruns only pay for compounds not already classified.
-  requests_per_second: 100.0
+  requests_per_second: 50.0
 
   # Concurrent requests. Classification is I/O-bound (waiting on the API), not
   # CPU-bound, so this is safe to raise well past your core count -- it's bounded by

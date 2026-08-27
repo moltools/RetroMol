@@ -26,6 +26,8 @@ import json
 import logging
 from pathlib import Path
 
+from tqdm import tqdm
+
 from common import build_fingerprint_context, load_ruleset, mibig_url, phylogeny_from_organism_name
 from retromol_antismash.modules import LinearReadout, bgc_primary_sequence
 from retromol_database.duckdb import RetroMolDuckDB
@@ -63,7 +65,8 @@ def run(
     db = RetroMolDuckDB.open(db_path)
     try:
         with open(readouts_path) as fh:
-            for line in fh:
+            pbar = tqdm(fh, desc="load_bgcs", unit="region")
+            for line in pbar:
                 line = line.strip()
                 if not line:
                     continue
@@ -73,6 +76,7 @@ def run(
 
                 if file_hash and db.bgc_content_hash_exists(file_hash):
                     skipped_existing_file += 1
+                    pbar.set_postfix(added=added, skipped=skipped, skipped_existing=skipped_existing_file)
                     continue
 
                 readout = LinearReadout.from_dict(entry["readout"])
@@ -80,6 +84,7 @@ def run(
 
                 if not names:
                     skipped += 1
+                    pbar.set_postfix(added=added, skipped=skipped, skipped_existing=skipped_existing_file)
                     continue
 
                 fp = fingerprinter.encode(tokens)
@@ -125,6 +130,7 @@ def run(
                     # a BGC's biosynthetic class isn't populated here anymore.
 
                 added += 1
+                pbar.set_postfix(added=added, skipped=skipped, skipped_existing=skipped_existing_file)
     finally:
         db.close()
 

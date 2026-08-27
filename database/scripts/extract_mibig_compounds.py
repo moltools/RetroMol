@@ -23,6 +23,8 @@ import logging
 from pathlib import Path
 from typing import Any, Iterator
 
+from tqdm import tqdm
+
 log = logging.getLogger(__name__)
 
 
@@ -130,7 +132,7 @@ def run(
     annotations: dict[str, dict[str, Any]] = {}
 
     with open(output_path, "w") as out:
-        for path in json_files:
+        for path in tqdm(json_files, desc="extract_mibig_compounds", unit="file"):
             try:
                 with open(path) as fh:
                     data = json.load(fh)

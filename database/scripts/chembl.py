@@ -15,12 +15,13 @@ Schema confirmed live against ChEMBL's own schema documentation
 from __future__ import annotations
 
 import logging
-import shutil
 import sqlite3
 import tarfile
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+
+from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -60,11 +61,17 @@ def download_chembl_sqlite(dest_dir: str | Path, *, url: str = CHEMBL_SQLITE_URL
     archive_path = dest_dir / "chembl_sqlite.tar.gz"
     log.info("downloading ChEMBL SQLite release from %s", url)
     with urllib.request.urlopen(url) as resp, open(archive_path, "wb") as out:
-        shutil.copyfileobj(resp, out, length=1024 * 1024)
+        total = int(resp.headers.get("Content-Length") or 0) or None
+        with tqdm(total=total, desc="download_chembl", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
+            while chunk := resp.read(1024 * 1024):
+                out.write(chunk)
+                pbar.update(len(chunk))
 
     log.info("extracting %s", archive_path)
     with tarfile.open(archive_path, mode="r:gz") as tar:
-        tar.extractall(path=dest_dir)
+        members = tar.getmembers()
+        for member in tqdm(members, desc="extract_chembl", unit="file"):
+            tar.extract(member, path=dest_dir)
     archive_path.unlink()
 
     found = sorted(dest_dir.rglob("*.db"))

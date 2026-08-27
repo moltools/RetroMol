@@ -60,9 +60,25 @@ def classify_smiles(
                 is_glycoside=bool(data.get("isglycoside", False)),
             )
         except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, TimeoutError, OSError) as exc:
-            log.warning("NPClassifier request failed (attempt %d/%d) for %r: %s", attempt, max_retries, smiles, exc)
+            if isinstance(exc, urllib.error.HTTPError) and exc.code == 429:
+                # Rate-limited: back off much harder than a transient failure, and
+                # respect Retry-After if the server sent one -- retrying at the same
+                # pace that just got us 429'd only makes the storm worse.
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                try:
+                    delay = float(retry_after) if retry_after is not None else backoff_seconds * attempt * 5
+                except ValueError:
+                    delay = backoff_seconds * attempt * 5
+                log.warning(
+                    "NPClassifier rate-limited (429) on attempt %d/%d for %r -- backing off %.1fs",
+                    attempt, max_retries, smiles, delay,
+                )
+            else:
+                delay = backoff_seconds * attempt
+                log.warning("NPClassifier request failed (attempt %d/%d) for %r: %s", attempt, max_retries, smiles, exc)
+
             if attempt < max_retries:
-                time.sleep(backoff_seconds * attempt)
+                time.sleep(delay)
 
     log.error("NPClassifier: giving up on %r after %d attempts", smiles, max_retries)
     return None

@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import requests
+from tqdm import tqdm
 
 
 def download(url: str, dest: str | Path) -> None:
@@ -21,10 +22,13 @@ def download(url: str, dest: str | Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     with requests.get(url, stream=True, timeout=300) as resp:
         resp.raise_for_status()
+        total = int(resp.headers.get("Content-Length") or 0) or None
         with open(dest, "wb") as fh:
-            for chunk in resp.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    fh.write(chunk)
+            with tqdm(total=total, desc=f"download[{dest.name}]", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
+                for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        fh.write(chunk)
+                        pbar.update(len(chunk))
 
 
 def _url_filename(url: str) -> str:

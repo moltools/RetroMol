@@ -10,13 +10,14 @@ sources end up with identically-standardized taxids and canonical names.
 
 from __future__ import annotations
 
-import io
 import logging
 import tarfile
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
+
+from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -47,13 +48,19 @@ def download_taxdump(dest_dir: str | Path, *, force: bool = False) -> Path:
         return dest_dir
 
     log.info("downloading NCBI taxdump from %s", TAXDUMP_URL)
-    with urllib.request.urlopen(TAXDUMP_URL) as resp:
-        raw = resp.read()
+    archive_path = dest_dir / "taxdump.tar.gz"
+    with urllib.request.urlopen(TAXDUMP_URL) as resp, open(archive_path, "wb") as out:
+        total = int(resp.headers.get("Content-Length") or 0) or None
+        with tqdm(total=total, desc="download_taxdump", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
+            while chunk := resp.read(1024 * 1024):
+                out.write(chunk)
+                pbar.update(len(chunk))
 
-    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as tar:
+    with tarfile.open(archive_path, mode="r:gz") as tar:
         for member in tar.getmembers():
             if member.name in ("names.dmp", "nodes.dmp"):
                 tar.extract(member, path=dest_dir)
+    archive_path.unlink()
 
     if not names_path.exists() or not nodes_path.exists():
         raise FileNotFoundError(f"taxdump at {TAXDUMP_URL} did not contain names.dmp/nodes.dmp")

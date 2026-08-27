@@ -12,6 +12,8 @@ import argparse
 import logging
 from pathlib import Path
 
+from tqdm import tqdm
+
 from chebi import ChebiDB
 from retromol_database.duckdb import RetroMolDuckDB
 
@@ -25,28 +27,33 @@ def run(db_path: str | Path, chebi_dir: str | Path, log_every: int = 500) -> Non
 
     db = RetroMolDuckDB.open(db_path)
     try:
+        total = db.count_entries_by_type(["compound"])
         chebi = ChebiDB.load(chebi_dir)
-        for entry in db.iter_entries():
-            if entry.type != "compound":
-                continue
+        with tqdm(total=total, desc="annotate_chebi", unit="cmpd") as pbar:
+            for entry in db.iter_entries():
+                if entry.type != "compound":
+                    continue
 
-            processed += 1
-            result = chebi.roles_for_inchikey(entry.id)
-            if result is not None:
-                matched += 1
-                for role in result.biological_roles:
-                    db.add_bioactivity_annotation(
-                        entry.id, level="chebi_biological_role", label=role.label, external_id=role.chebi_accession
-                    )
-                    annotated += 1
-                for role in result.chemical_roles:
-                    db.add_bioactivity_annotation(
-                        entry.id, level="chebi_chemical_role", label=role.label, external_id=role.chebi_accession
-                    )
-                    annotated += 1
+                processed += 1
+                result = chebi.roles_for_inchikey(entry.id)
+                if result is not None:
+                    matched += 1
+                    for role in result.biological_roles:
+                        db.add_bioactivity_annotation(
+                            entry.id, level="chebi_biological_role", label=role.label, external_id=role.chebi_accession
+                        )
+                        annotated += 1
+                    for role in result.chemical_roles:
+                        db.add_bioactivity_annotation(
+                            entry.id, level="chebi_chemical_role", label=role.label, external_id=role.chebi_accession
+                        )
+                        annotated += 1
 
-            if log_every > 0 and processed % log_every == 0:
-                log.info("annotate_chebi: processed=%d matched=%d annotated=%d", processed, matched, annotated)
+                pbar.update(1)
+                pbar.set_postfix(matched=matched, annotated=annotated)
+
+                if log_every > 0 and processed % log_every == 0:
+                    log.info("annotate_chebi: processed=%d matched=%d annotated=%d", processed, matched, annotated)
     finally:
         db.close()
 

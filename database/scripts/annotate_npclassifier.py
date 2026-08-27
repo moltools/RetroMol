@@ -24,12 +24,15 @@ there -- only the HTTP calls themselves run in parallel.
 """
 
 import argparse
+import itertools
 import json
 import logging
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
+
+from tqdm import tqdm
 
 from npclassifier import ClassificationResult, classify_smiles
 from retromol_database.duckdb import Entry, RetroMolDuckDB
@@ -157,25 +160,53 @@ def run(
             len(to_classify), workers, requests_per_second,
         )
 
-        with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = [pool.submit(classify_one, entry) for entry in to_classify]
+        # Bounded sliding window rather than submitting the whole backlog up front --
+        # at hundreds/thousands of compounds, an upfront submit() for everything means
+        # a Ctrl+C has to wait for every already-launched request (each with its own
+        # retry/backoff chain, worse under rate-limiting) before the pool can actually
+        # exit, since ThreadPoolExecutor won't drop already-running work. Keeping at
+        # most `max_pending` in flight means an interrupt only has to wait for that many
+        # -- same shape as parse_gbks.py's own bounded-window loop, same reason.
+        max_pending = max(workers * 2, 1)
+        entries_iter = iter(to_classify)
 
-            for future in as_completed(futures):
-                entry, result = future.result()
+        pool = ThreadPoolExecutor(max_workers=workers)
+        try:
+            pending = {pool.submit(classify_one, e) for e in itertools.islice(entries_iter, max_pending)}
 
-                if result is None:
-                    failed += 1
-                else:
-                    _apply(db, entry.id, result)
-                    _append_cache(cache_path, entry.id, result)
-                    classified += 1
+            with tqdm(total=len(to_classify), desc="annotate_npclassifier", unit="cmpd") as pbar:
+                while pending:
+                    done_futures, pending = wait(pending, return_when=FIRST_COMPLETED)
 
-                done = classified + failed
-                if log_every > 0 and done % log_every == 0:
-                    log.info(
-                        "annotate_npclassifier: classified=%d reused=%d failed=%d skipped_no_smiles=%d",
-                        classified, reused, failed, skipped_no_smiles,
-                    )
+                    for future in done_futures:
+                        entry, result = future.result()
+
+                        if result is None:
+                            failed += 1
+                        else:
+                            _apply(db, entry.id, result)
+                            _append_cache(cache_path, entry.id, result)
+                            classified += 1
+
+                        pbar.update(1)
+                        pbar.set_postfix(classified=classified, reused=reused, failed=failed)
+
+                        done = classified + failed
+                        if log_every > 0 and done % log_every == 0:
+                            log.info(
+                                "annotate_npclassifier: classified=%d reused=%d failed=%d skipped_no_smiles=%d",
+                                classified, reused, failed, skipped_no_smiles,
+                            )
+
+                        next_entry = next(entries_iter, None)
+                        if next_entry is not None:
+                            pending.add(pool.submit(classify_one, next_entry))
+        except KeyboardInterrupt:
+            log.warning("annotate_npclassifier: interrupted -- cancelling not-yet-started requests")
+            pool.shutdown(wait=False, cancel_futures=True)
+            raise
+        else:
+            pool.shutdown(wait=True)
     finally:
         db.close()
 

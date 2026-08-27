@@ -13,6 +13,8 @@ import argparse
 import logging
 from pathlib import Path
 
+from tqdm import tqdm
+
 from chembl import ChemblDB
 from retromol_database.duckdb import RetroMolDuckDB
 
@@ -26,36 +28,41 @@ def run(db_path: str | Path, chembl_sqlite_path: str | Path, log_every: int = 50
 
     db = RetroMolDuckDB.open(db_path)
     try:
+        total = db.count_entries_by_type(["compound"])
         with ChemblDB(chembl_sqlite_path) as chembl:
-            for entry in db.iter_entries():
-                if entry.type != "compound":
-                    continue
+            with tqdm(total=total, desc="annotate_chembl", unit="cmpd") as pbar:
+                for entry in db.iter_entries():
+                    if entry.type != "compound":
+                        continue
 
-                processed += 1
-                result = chembl.bioactivity_for_inchikey(entry.id)
-                if result is not None:
-                    matched += 1
-                    if result.max_phase_label:
-                        db.add_bioactivity_annotation(
-                            entry.id,
-                            level="chembl_max_phase",
-                            label=result.max_phase_label,
-                            external_id=result.chembl_id,
-                        )
-                        annotated += 1
-                    for atc in result.atc_categories:
-                        db.add_bioactivity_annotation(
-                            entry.id,
-                            level="chembl_atc",
-                            label=atc.level1_description,
-                            external_id=atc.level5,
-                        )
-                        annotated += 1
+                    processed += 1
+                    result = chembl.bioactivity_for_inchikey(entry.id)
+                    if result is not None:
+                        matched += 1
+                        if result.max_phase_label:
+                            db.add_bioactivity_annotation(
+                                entry.id,
+                                level="chembl_max_phase",
+                                label=result.max_phase_label,
+                                external_id=result.chembl_id,
+                            )
+                            annotated += 1
+                        for atc in result.atc_categories:
+                            db.add_bioactivity_annotation(
+                                entry.id,
+                                level="chembl_atc",
+                                label=atc.level1_description,
+                                external_id=atc.level5,
+                            )
+                            annotated += 1
 
-                if log_every > 0 and processed % log_every == 0:
-                    log.info(
-                        "annotate_chembl: processed=%d matched=%d annotated=%d", processed, matched, annotated
-                    )
+                    pbar.update(1)
+                    pbar.set_postfix(matched=matched, annotated=annotated)
+
+                    if log_every > 0 and processed % log_every == 0:
+                        log.info(
+                            "annotate_chembl: processed=%d matched=%d annotated=%d", processed, matched, annotated
+                        )
     finally:
         db.close()
 

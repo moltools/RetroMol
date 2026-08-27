@@ -21,10 +21,11 @@ from __future__ import annotations
 import csv
 import gzip
 import logging
-import shutil
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+
+from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +64,11 @@ def download_chebi_flat_files(dest_dir: str | Path, *, force: bool = False) -> P
         dest = dest_dir / name
         log.info("downloading %s", url)
         with urllib.request.urlopen(url) as resp, open(dest, "wb") as out:
-            shutil.copyfileobj(resp, out, length=1024 * 1024)
+            total = int(resp.headers.get("Content-Length") or 0) or None
+            with tqdm(total=total, desc=f"download_chebi[{name}]", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
+                while chunk := resp.read(1024 * 1024):
+                    out.write(chunk)
+                    pbar.update(len(chunk))
 
     return dest_dir
 
