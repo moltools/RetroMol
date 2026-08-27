@@ -1128,10 +1128,14 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
       rule name (this is where pmp.yml's "nrps.a_domain" `mapping` overrides take effect,
       and where a `source: qualifier` fallback with no SMILES gets resolved). If that
       doesn't match anything, and a SMILES is available (the default PARAS path), it
-      falls back to matching that SMILES against every rule by structure, ignoring
-      stereochemistry (`RuleSet.find_structural_matches`) -- PARAS' raw labels aren't
-      guaranteed to match a rule's `name` string verbatim, and PARAS' predicted
-      stereochemistry need not match the rule's.
+      falls back to matching that SMILES against every rule by structure
+      (`RuleSet.find_structural_matches`) -- PARAS' raw labels aren't guaranteed to
+      match a rule's `name` string verbatim. Whether that structural match also
+      requires matching stereochemistry follows `ruleset.match_stereochemistry`, the
+      same toggle every other structural match in this codebase respects -- PARAS'
+      predicted substrate is a specific named compound (its SMILES comes from a fixed
+      label->structure lookup, not a per-domain stereochemistry guess), so requiring
+      an exact stereo match here is meaningful, not just permissively ignored.
 
     :param module: a PKS or NRPS module from a BGC's LinearReadout.
     :param ruleset: the rule set to resolve the module's substrate against.
@@ -1196,7 +1200,7 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
     except ValueError:
         return "X", []
 
-    matches = ruleset.find_structural_matches(mol, match_stereochemistry=False)
+    matches = ruleset.find_structural_matches(mol, match_stereochemistry=ruleset.match_stereochemistry)
     if not matches:
         return "X", []
 

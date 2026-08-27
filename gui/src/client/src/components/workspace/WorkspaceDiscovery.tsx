@@ -652,7 +652,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                         {`reconstructed backbone ${idx+1}`}
                       </Typography>
                       {override && (
-                        <Chip label="Edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem", flexShrink: 0 }} />
+                        <Chip label="edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem", flexShrink: 0 }} />
                       )}
                       <Box sx={{ flex: 1, minWidth: 0, transform: "translateY(5px)" }}>
                         <ReconstructionPreview sequence={effectiveSequence} />

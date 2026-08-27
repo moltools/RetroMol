@@ -26,6 +26,7 @@ from routes.jobs import (
     blp_submit_gene_cluster,
     blp_get_cluster_readout,
     blp_reconstruct_gene_cluster,
+    check_paras_model_cache,
 )
 from routes.events import blp_events, blp_sse_ticket
 from routes.discovery import (
@@ -274,3 +275,11 @@ try:
     app.logger.info("Discovery context warmed successfully")
 except Exception:
     app.logger.exception("Failed to warm discovery context at startup; will build lazily on first request")
+
+# Surface whether the PARAS substrate model has a pretrained cache to load, since a
+# missing one is otherwise a silent 10+ minute delay (and likely a job timeout) on
+# the first cluster upload rather than an obvious startup error.
+try:
+    check_paras_model_cache()
+except Exception:
+    app.logger.exception("Failed to check PARAS model cache at startup")

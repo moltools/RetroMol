@@ -62,7 +62,6 @@ def _init_worker(
     pmp_path: str | None,
     threshold: float,
     keep_top: int,
-    model_path: str | None,
     cache_dir: str,
     force_retrain: bool,
 ) -> None:
@@ -81,7 +80,6 @@ def _init_worker(
         threshold=threshold,
         keep_top=keep_top,
         cache_dir=cache_dir,
-        model_path=model_path,
         force_retrain=force_retrain,
     )
 
@@ -123,7 +121,6 @@ def run(
     pmp_path: str | Path | None = None,
     paras_threshold: float = 0.1,
     paras_keep_top: int = 3,
-    paras_model_path: str | Path | None = None,
     paras_cache_dir: str | Path = "paras_cache",
     force_retrain: bool = False,
     workers: int = 1,
@@ -136,10 +133,9 @@ def run(
         how this selects (or skips) an NRPS substrate-prediction model.
     :param paras_threshold: minimum predicted probability for a substrate call to be kept.
     :param paras_keep_top: number of top-scoring substrate predictions to keep per domain.
-    :param paras_model_path: "paras"-only: path to a custom PARAS model file.
-    :param paras_cache_dir: model/training cache directory (meaning is model-specific --
-        see build_nrps_a_domain_model).
-    :param force_retrain: "paras_cli"-only: retrain from scratch even if a cached model exists.
+    :param paras_cache_dir: training-signature + fitted-model cache directory (see
+        retromol_paras.train.train_model).
+    :param force_retrain: retrain from scratch even if a cached model exists.
     :param workers: number of worker processes.
     """
     gbk_dir = Path(gbk_dir)
@@ -156,7 +152,6 @@ def run(
         str(pmp_path) if pmp_path else None,
         paras_threshold,
         paras_keep_top,
-        str(paras_model_path) if paras_model_path else None,
         str(paras_cache_dir),
         force_retrain,
     )
@@ -210,9 +205,8 @@ def main() -> None:
     ap.add_argument("--pmp", default=None, help="path to a pmp.yml prediction-mapping file (default: packaged pmp.yml)")
     ap.add_argument("--paras-threshold", type=float, default=0.1)
     ap.add_argument("--paras-keep-top", type=int, default=3)
-    ap.add_argument("--paras-model-path", default=None, help="'paras'-only: path to a custom PARAS model file")
     ap.add_argument("--paras-cache-dir", default="paras_cache")
-    ap.add_argument("--force-retrain", action="store_true", help="'paras_cli'-only: retrain from scratch even if a cached model exists")
+    ap.add_argument("--force-retrain", action="store_true", help="retrain from scratch even if a cached model exists")
     ap.add_argument("--workers", type=int, default=1)
     args = ap.parse_args()
 
@@ -222,7 +216,6 @@ def main() -> None:
         pmp_path=args.pmp,
         paras_threshold=args.paras_threshold,
         paras_keep_top=args.paras_keep_top,
-        paras_model_path=args.paras_model_path,
         paras_cache_dir=args.paras_cache_dir,
         force_retrain=args.force_retrain,
         workers=args.workers,

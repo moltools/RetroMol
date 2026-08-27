@@ -6,6 +6,13 @@ GUI backend (gui/src/server/routes/jobs.py), and the CLI test script
 from the same config, instead of each hardcoding its own model choice. Switching
 predictors (or adding a new one) is a pmp.yml edit plus one branch here, not a
 multi-file change.
+
+There is deliberately no pyhmmer-based model here: "paras_cli"
+(retromol_antismash.inference.model_paras_cli.ParasCliModel, backed by
+src/retromol_paras/) is the only NRPS substrate-prediction model, running domain
+extraction via command-line HMMER2/HMMER3/MUSCLE3 and training its own
+RandomForestClassifier against this repo's pinned scikit-learn version, rather than
+unpickling a pretrained model file built under someone else's environment.
 """
 
 from pathlib import Path
@@ -20,7 +27,6 @@ def build_nrps_a_domain_model(
     threshold: float = 0.1,
     keep_top: int = 3,
     cache_dir: str | Path | None = None,
-    model_path: str | Path | None = None,
     force_retrain: bool = False,
 ) -> DomainInferenceModel | None:
     """
@@ -33,12 +39,9 @@ def build_nrps_a_domain_model(
     :param threshold: minimum predicted probability for a substrate call to be kept
         (passed through to whichever model is built).
     :param keep_top: number of top-scoring substrate predictions to keep per domain.
-    :param cache_dir: model/training cache directory (meaning is model-specific: a
-        download cache for "paras", a training-signature + fitted-model cache for
-        "paras_cli").
-    :param model_path: "paras"-only: path to a custom PARAS model file.
-    :param force_retrain: "paras_cli"-only: retrain from scratch even if a cached
-        model is present.
+    :param cache_dir: training-signature + fitted-model cache directory (see
+        retromol_paras.train.train_model).
+    :param force_retrain: retrain from scratch even if a cached model is present.
     :return: a DomainInferenceModel, or None if the selected method reads
         antiSMASH's own GenBank qualifier instead of running a model
         (source: qualifier) -- there's nothing to build or register in that case;
@@ -52,10 +55,6 @@ def build_nrps_a_domain_model(
 
     if method.source != "model":
         return None
-
-    if method.model == "paras":
-        from retromol_antismash.inference.model_paras import ParasModel
-        return ParasModel(threshold=threshold, keep_top=keep_top, cache_dir=cache_dir, model_path=model_path)
 
     if method.model == "paras_cli":
         from retromol_antismash.inference.model_paras_cli import ParasCliModel

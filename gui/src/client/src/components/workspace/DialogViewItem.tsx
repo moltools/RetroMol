@@ -18,6 +18,7 @@ import { DrawingAttribution } from "../DrawingAttribution";
 import { PrimarySequenceOverview, PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
 import { AnnotatedArrow } from "./AnnotatedArrow";
 import { ClusterReadoutDiagram, useClusterPrimarySequenceEditor } from "./ClusterReadoutDiagram";
+import { horizontalScrollSx } from "../../theme/scrollbarSx";
 
 type HighlightAtom = [number, string];
 
@@ -229,12 +230,12 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
                   label="Download the diagram below as a PNG"
                 />
               </Box>
-              <Box ref={clusterDiagramRef} sx={{ p: 1 }}>
+              <Box ref={clusterDiagramRef} sx={{ p: 1, ...horizontalScrollSx }}>
                 <ClusterReadoutDiagram item={item} data={clusterData} state={clusterEditor} />
               </Box>
               <DescriptionBox
                 title="Explanation"
-                description='Each antiSMASH region is shown as a "genes & domains" row (left), the ordered NRPS/PKS modules RetroMol detected, and a "readout" row (right) -- the same primary-sequence vocabulary a compound is parsed into. Click a chip on either row to highlight the module(s)/token it corresponds to on the other. If a readout was resolved wrong or incompletely, use "Edit sequences" to fix it by hand; saved edits are kept with this gene cluster and reused when you query it from the Discovery tab. "Revert" on a row discards the edit and restores the algorithm’s own parse.'
+                description='Each antiSMASH region is shown as a "genes & domains" row (left), the ordered NRPS/PKS modules RetroMol detected, and a "readout" row (right): the same primary sequence vocabulary a compound is parsed into. Click a chip on either row to highlight the module(s)/token it corresponds to on the other. If a readout was resolved wrong or incompletely, use "Edit sequences" to fix it by hand; saved edits are kept with this gene cluster and reused when you query it from the Discovery tab. "Revert" on a row discards the edit and restores the algorithm’s own parse.'
               />
             </>
           )}

@@ -25,3 +25,10 @@ downloads/
 tmp/
 out/
 .snakemake/
+
+# hmmpress binary index files, auto-generated from the packaged .hmm profile on
+# first use (see src/retromol_paras/hmmer.py's ensure_hmmpress).
+*.h3f
+*.h3i
+*.h3m
+*.h3p

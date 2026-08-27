@@ -174,13 +174,28 @@ def _extend_hmmer2_domains_with_hmmer3_bounds(
                     domain_2.sequence = fasta[domain_2.protein_name][domain_2.start:domain_2.end]
 
 
-def get_domains(path_in_fasta_file: str | Path, path_temp_dir: str | Path) -> list[AdenylationDomain]:
+def get_domains(
+    path_in_fasta_file: str | Path,
+    path_temp_dir: str | Path,
+    hmm_timeout: float | None = None,
+    use_muscle_fallback: bool = True,
+) -> list[AdenylationDomain]:
     """
     Extract every adenylation domain from a (protein) fasta file, following PARAS' default pipeline:
     HMMER2 signature extraction first, HMMER3 + MUSCLE3 profile alignment to pick up anything HMMER2 missed.
 
     :param path_in_fasta_file: protein fasta file to scan.
     :param path_temp_dir: scratch directory for intermediate HMMER/MUSCLE output.
+    :param hmm_timeout: seconds to allow the hmmpfam2/hmmscan calls, or None for their own
+        default -- override this for a large batch fasta file (e.g. retromol_paras.train's
+        ~3654-domain training set), where the default (sized for a single/handful of domains)
+        would time out a legitimately-slow full-file scan.
+    :param use_muscle_fallback: whether to run a MUSCLE3 profile alignment (one subprocess
+        call per affected domain, against a ~1000-sequence reference alignment -- the
+        dominant per-domain cost in practice) to recover signatures for domains HMMER3
+        detects but HMMER2's smaller/older profile misses entirely. False skips this
+        step -- those domains are dropped (no signature, no prediction) instead of
+        recovered, trading some coverage for speed.
     :return: AdenylationDomain instances, each with `signature`/`extended_signature` populated.
     """
     path_temp_dir = Path(path_temp_dir)
@@ -189,33 +204,45 @@ def get_domains(path_in_fasta_file: str | Path, path_temp_dir: str | Path) -> li
 
     hmm2_out = path_temp_dir / "run.hmm2_result"
     hmm3_out = path_temp_dir / "run.hmm3_result"
-    run_hmmpfam2(HMM2_FILE, path_in_fasta_file, hmm2_out)
-    run_hmmscan(HMM3_FILE, path_in_fasta_file, hmm3_out)
+    hmm_kwargs = {} if hmm_timeout is None else {"timeout": hmm_timeout}
+    run_hmmpfam2(HMM2_FILE, path_in_fasta_file, hmm2_out, **hmm_kwargs)
+    run_hmmscan(HMM3_FILE, path_in_fasta_file, hmm3_out, **hmm_kwargs)
 
     id_to_hit_2 = parse_hmm_results(hmm2_out, hmmer_version=2)
     id_to_hit_3 = parse_hmm_results(hmm3_out, hmmer_version=3)
 
     domains_2 = _hits_to_domains(id_to_hit_2, path_in_fasta_file, path_temp_dir, use_profile_alignment=False, hmm_version=2)
-    domains_3 = _hits_to_domains(id_to_hit_3, path_in_fasta_file, path_temp_dir, use_profile_alignment=False, hmm_version=3)
 
-    _extend_hmmer2_domains_with_hmmer3_bounds(domains_2, domains_3, path_in_fasta_file)
-    unique_3 = _hmmer3_only_domains(domains_2, domains_3, path_temp_dir)
+    if use_muscle_fallback:
+        domains_3 = _hits_to_domains(id_to_hit_3, path_in_fasta_file, path_temp_dir, use_profile_alignment=False, hmm_version=3)
+        _extend_hmmer2_domains_with_hmmer3_bounds(domains_2, domains_3, path_in_fasta_file)
+        unique_3 = _hmmer3_only_domains(domains_2, domains_3, path_temp_dir)
+        domains = domains_2 + unique_3
+    else:
+        domains = domains_2
 
-    domains = domains_2 + unique_3
     _renumber_domains(domains)
     return domains
 
 
-def extract_domains(path_in_fasta_file: str | Path, path_temp_dir: str | Path) -> list[AdenylationDomain]:
+def extract_domains(
+    path_in_fasta_file: str | Path,
+    path_temp_dir: str | Path,
+    hmm_timeout: float | None = None,
+    use_muscle_fallback: bool = True,
+) -> list[AdenylationDomain]:
     """
     Like `get_domains`, but safe for arbitrary fasta headers: renames sequences to plain
     integers before running HMMER (some header formats break HMMER's parser), then restores
     the original headers as `protein_name` afterwards. This is the entry point to use for a
     fasta file with headers you don't control.
+
+    :param hmm_timeout: see `get_domains`.
+    :param use_muscle_fallback: see `get_domains`.
     """
     path_temp_dir = Path(path_temp_dir)
     mapping_file, renamed_fasta_file = rename_sequences(path_in_fasta_file, path_temp_dir)
-    domains = get_domains(renamed_fasta_file, path_temp_dir)
+    domains = get_domains(renamed_fasta_file, path_temp_dir, hmm_timeout=hmm_timeout, use_muscle_fallback=use_muscle_fallback)
 
     new_to_original = load_renaming_map(mapping_file)
     for domain in domains:

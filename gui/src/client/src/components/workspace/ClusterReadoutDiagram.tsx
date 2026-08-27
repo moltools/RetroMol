@@ -271,7 +271,7 @@ function RegionDiagram({
           {region.id} ({region.modules.length} module{region.modules.length === 1 ? "" : "s"})
         </Typography>
         {override && !editing && (
-          <Chip label="Edited" size="small" color="info" variant="outlined" sx={{ height: 18, fontSize: "0.65rem" }} />
+          <Chip label="edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.65rem" }} />
         )}
       </Stack>
 
@@ -280,47 +280,122 @@ function RegionDiagram({
           No NRPS/PKS modules were detected in this region.
         </Typography>
       ) : (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
-          <Box sx={{ minWidth: 0 }}>
+        // flex: '0 0 auto' throughout (not the default shrinkable flex item) -- every
+        // section keeps its natural content width, so none of their own internal
+        // horizontal scrollbars (ModulesRow's, PrimarySequenceChips'/SequenceEditor's)
+        // ever has to activate. This whole row overflows instead, and the single
+        // outer diagram container (DialogViewItem.tsx's clusterDiagramRef) scrolls it
+        // as one unit -- same pattern as a compound's structure/backbone/sequence
+        // diagram.
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, width: "max-content" }}>
+          <Box sx={{ flex: "0 0 auto" }}>
             <ModulesRow modules={region.modules} selectedIndices={selectedIndices} onToggleModule={onToggleIndex} />
           </Box>
 
-          <AnnotatedArrow annotation="Readout" />
-
-          <Box sx={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 1 }}>
-            {editing ? (
-              <>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <SequenceEditor
-                    blocks={draftBlocks}
-                    onChange={(blocks) => setDrafts((prev) => ({ ...prev, [regionIndex]: blocks }))}
-                    showProvenance
-                    selectedTags={selectedIndices}
-                    onBlockClick={onToggleMotif}
-                  />
-                </Box>
-                <Tooltip title="Revert to the algorithm-parsed sequence" arrow>
-                  <span>
-                    <MinimalIconButton
-                      size="small"
-                      disabled={!override && !dirty}
-                      onClick={() => handleRevertRow(regionIndex, region.primary_sequence)}
-                    >
-                      {revertingIdx === regionIndex ? <CircularProgress size={16} /> : <RestartAltIcon fontSize="small" />}
-                    </MinimalIconButton>
-                  </span>
-                </Tooltip>
-              </>
-            ) : (
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <PrimarySequenceChips
-                  sequence={override ?? region.primary_sequence}
-                  selectedTags={selectedIndices}
-                  onToggleMotif={onToggleMotif}
-                />
-              </Box>
-            )}
+          {/* Extra breathing room left+right of the arrow, beyond the flex gap already
+              separating it from the boxes on either side. */}
+          <Box sx={{ px: 1.5, flex: "0 0 auto" }}>
+            <AnnotatedArrow annotation="Readout" />
           </Box>
+
+          <RegionReadoutControls
+            override={override}
+            draftBlocks={draftBlocks}
+            editing={editing}
+            dirty={dirty}
+            regionIndex={regionIndex}
+            region={region}
+            revertingIdx={revertingIdx}
+            setDrafts={setDrafts}
+            handleRevertRow={handleRevertRow}
+            selectedIndices={selectedIndices}
+            onToggleMotif={onToggleMotif}
+            fitContent
+          />
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+// The editor-or-chips + revert control shared by RegionDiagram (the full gene->readout
+// view in the "View item" dialog) and ClusterPrimarySequenceRows (the compound-style
+// primary-sequence-only row used in the Upload tab's inline expand).
+function RegionReadoutControls({
+  override,
+  draftBlocks,
+  editing,
+  dirty,
+  regionIndex,
+  region,
+  revertingIdx,
+  setDrafts,
+  handleRevertRow,
+  selectedIndices,
+  onToggleMotif,
+  fitContent = false,
+}: {
+  override: PrimarySequenceItem[] | undefined;
+  draftBlocks: SequenceBlock[];
+  editing: boolean;
+  dirty: boolean;
+  regionIndex: number;
+  region: ClusterPrimarySequence;
+  revertingIdx: number | null;
+  setDrafts: React.Dispatch<React.SetStateAction<Record<number, SequenceBlock[]>>>;
+  handleRevertRow: (idx: number, original: PrimarySequenceItem[]) => void;
+  selectedIndices: number[];
+  onToggleMotif: (tags: number[]) => void;
+  // True for RegionDiagram (the full gene->readout view): the readout keeps its
+  // natural content width instead of shrinking to fit, so PrimarySequenceChips'/
+  // SequenceEditor's own internal scrollbar never has to activate -- the row as a
+  // whole (genes + arrow + readout) overflows instead, letting the single outer
+  // diagram container (see DialogViewItem.tsx's clusterDiagramRef) be the one and
+  // only scroll unit, same as a compound's structure/backbone/sequence diagram.
+  // False (default) for ClusterPrimarySequenceRows (the Upload tab's inline row,
+  // sequence-only, no genes/arrow to combine with) -- there, shrinking to fit and
+  // scrolling internally is the correct, compound-inline-row-matching behavior.
+  fitContent?: boolean;
+}) {
+  const sectionSx = fitContent ? { flex: "0 0 auto" as const } : { flex: 1, minWidth: 0 };
+
+  return (
+    <Box sx={{ ...sectionSx, display: "flex", alignItems: "center", gap: 1 }}>
+      {editing ? (
+        <>
+          <Box sx={sectionSx}>
+            <SequenceEditor
+              blocks={draftBlocks}
+              onChange={(blocks) => setDrafts((prev) => ({ ...prev, [regionIndex]: blocks }))}
+              showProvenance
+              selectedTags={selectedIndices}
+              onBlockClick={onToggleMotif}
+            />
+          </Box>
+          <Tooltip title="Revert to the algorithm-parsed sequence" arrow>
+            <span>
+              <MinimalIconButton
+                size="small"
+                disabled={!override && !dirty}
+                onClick={() => handleRevertRow(regionIndex, region.primary_sequence)}
+                sx={{ transform: "translateY(-6px)"}}
+              >
+                {revertingIdx === regionIndex ? <CircularProgress size={16} /> : <RestartAltIcon fontSize="small" />}
+              </MinimalIconButton>
+            </span>
+          </Tooltip>
+        </>
+      ) : (
+        // mb cancels out PrimarySequenceChips' own reserved scrollbar space (see
+        // horizontalScrollSx's pb) so it doesn't throw off alignItems: "center"
+        // against the label chip -- same fix as PrimarySequenceOverview's row
+        // (PrimarySequenceEditor.tsx) for a compound's primary sequence.
+        <Box sx={{ ...sectionSx, pr: 2, mb: -1.5 }}>
+          <PrimarySequenceChips
+            sequence={override ?? region.primary_sequence}
+            selectedTags={selectedIndices}
+            onToggleMotif={onToggleMotif}
+          />
         </Box>
       )}
     </Box>
@@ -372,6 +447,68 @@ export function ClusterReadoutDiagram({
           onToggleIndex={handleToggleIndex}
         />
       ))}
+    </Stack>
+  );
+}
+
+// Compound-style primary-sequence-only view of a gene cluster's regions -- a
+// "primary sequence" tag + the readout chip row (or, while editing, the
+// SequenceEditor) per region, same shape as PrimarySequenceOverview/
+// PrimarySequenceRows for a compound. No genes/domains track, no arrow -- that's
+// ClusterReadoutDiagram's job in the full "View item" dialog; this is for the
+// Upload tab's inline expandable row.
+export function ClusterPrimarySequenceRows({
+  item,
+  data,
+  state,
+}: {
+  item: SessionItem;
+  data: ClusterPrimarySequence[];
+  state: ClusterPrimarySequenceEditorState;
+}) {
+  const { editing, drafts, setDrafts, revertingIdx, isRowDirty, handleRevertRow } = state;
+
+  if (data.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        No antiSMASH regions were found in this file.
+      </Typography>
+    );
+  }
+
+  return (
+    <Stack spacing={1.5}>
+      {data.map((region, idx) => {
+        const override = item.kind === "cluster" ? (item as ClusterItem).editedPrimarySequences?.[String(idx)] : undefined;
+        const draftBlocks = drafts[idx] ?? blocksFromSequence(override ?? region.primary_sequence);
+        const dirty = isRowDirty(idx, region.primary_sequence);
+
+        return (
+          <Box key={`${region.id}-${idx}`} sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+            <Tooltip title={`${region.id} contains ${region.modules.length} biosynthetic module${region.modules.length === 1 ? "" : "s"}.`} arrow>
+              <Chip label="primary sequence" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem", flexShrink: 0, cursor: "help" }} />
+            </Tooltip>
+            {override && !editing && (
+              <Chip label="edited" size="small" color="info" variant="outlined" sx={{ fontSize: "0.7rem", flexShrink: 0 }} />
+            )}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <RegionReadoutControls
+                override={override}
+                draftBlocks={draftBlocks}
+                editing={editing}
+                dirty={dirty}
+                regionIndex={idx}
+                region={region}
+                revertingIdx={revertingIdx}
+                setDrafts={setDrafts}
+                handleRevertRow={handleRevertRow}
+                selectedIndices={[]}
+                onToggleMotif={() => {}}
+              />
+            </Box>
+          </Box>
+        );
+      })}
     </Stack>
   );
 }

@@ -15,9 +15,9 @@ Examples:
     # antiSMASH's own qualifier fallback without downloading/running/training a model):
     python scripts/predict_bgc.py path/to/cluster.gbk --no-nrps-model
 
-    # Point at a custom PARAS model file instead of the packaged default:
+    # Point at an already-trained model cache instead of training fresh:
     python scripts/predict_bgc.py path/to/cluster.gbk \\
-        --paras-model-path /path/to/all_substrates_model.paras
+        --paras-cache-dir /path/to/paras_cache
 
     # Try edits to pmp.yml/mxn.yml before committing them:
     python scripts/predict_bgc.py path/to/cluster.gbk \\
@@ -74,8 +74,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
     nrps = parser.add_argument_group("NRPS model (used when pmp.yml selects a source: model method for nrps.a_domain, e.g. paras/paras_cli)")
     nrps.add_argument("--no-nrps-model", "--no-paras", dest="no_nrps_model", action="store_true", help="don't register/run any NRPS model, even if pmp.yml selects one")
-    nrps.add_argument("--paras-model-path", type=Path, default=None, help="'paras'-only: path to a custom PARAS model file (default: download/cache the packaged model)")
-    nrps.add_argument("--paras-cache-dir", type=Path, default=None, help="cache directory for whichever model pmp.yml selects (download cache for 'paras', training+model cache for 'paras_cli')")
+    nrps.add_argument("--paras-cache-dir", type=Path, default=None, help="training-signature + fitted-model cache directory for 'paras_cli' (see retromol_paras.train.train_model)")
     nrps.add_argument("--paras-threshold", type=float, default=0.1, help="probability threshold (default: 0.1)")
     nrps.add_argument("--paras-keep-top", type=int, default=3, help="number of top predictions to keep per domain (default: 3)")
     nrps.add_argument("--force-retrain", action="store_true", help="'paras_cli'-only: retrain from scratch even if a cached model exists")
@@ -103,7 +102,6 @@ def _maybe_register_nrps_model(config: PredictionConfig, args: argparse.Namespac
         threshold=args.paras_threshold,
         keep_top=args.paras_keep_top,
         cache_dir=args.paras_cache_dir,
-        model_path=args.paras_model_path,
         force_retrain=args.force_retrain,
     )
     if model is None:

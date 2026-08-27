@@ -24,7 +24,7 @@ predictors:
     starter: antismash
     kr_stereochemistry: antismash
   nrps:
-    a_domain: paras
+    a_domain: paras_cli
 
 # ---------------------------------------------------------------------------
 # methods: every prediction method available for each axis, keyed by name.
@@ -212,27 +212,17 @@ methods:
         combine_with: null
         mapping: {}
 
-      # RetroMol's own model: PARAS (retromol_antismash/inference/
-      # model_paras.py) runs ML inference on the A domain's sequence to
-      # predict a substrate class label. By default (empty mapping) an
-      # unmapped label falls back to PARAS' own label->SMILES table plus
-      # structural matching against mxn.yml -- add an entry here only to
-      # force a specific label onto a specific mxn.yml name, e.g. after
-      # renaming something in mxn.yml.
-      paras:
-        source: model
-        model: paras
-        combine_with: null
-        mapping: {}
-
-      # Self-contained reimplementation of PARAS (retromol_paras/, see its
-      # module docstring): same idea as "paras" above (predicted label ->
-      # PARAS' own label->SMILES table -> structural match against mxn.yml),
-      # but domain extraction runs via command-line HMMER2/HMMER3/MUSCLE3
-      # instead of pyhmmer, and the RandomForestClassifier is trained (and
-      # cached) locally against this repo's pinned scikit-learn version
-      # instead of unpickling a model file built under someone else's
-      # sklearn. Requires hmmpfam2/hmmscan/hmmpress/muscle(v3) on PATH.
+      # RetroMol's own model: PARAS, reimplemented from scratch in
+      # retromol_paras/ (see its module docstring) -- domain extraction runs
+      # via command-line HMMER2/HMMER3/MUSCLE3 (no pyhmmer, no pretrained
+      # model file to unpickle), and the RandomForestClassifier is trained
+      # and cached locally, against this repo's own pinned scikit-learn
+      # version. Requires hmmpfam2/hmmscan/hmmpress/muscle(v3) on PATH --
+      # see environment.yml (repo root). By default (empty mapping) an
+      # unmapped predicted label falls back to PARAS' own label->SMILES
+      # table plus structural matching against mxn.yml -- add an entry here
+      # only to force a specific label onto a specific mxn.yml name, e.g.
+      # after renaming something in mxn.yml.
       paras_cli:
         source: model
         model: paras_cli

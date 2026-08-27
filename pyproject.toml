@@ -74,7 +74,6 @@ include = [
     "src/retromol/data/mxn.yml",
     "src/retromol/data/rxn.yml",
     "src/retromol/data/pmp.yml",
-    "src/retromol_antismash/data/AMP-binding_converted.hmm",
     "src/retromol_paras/data/*.hmm",
     "src/retromol_paras/data/*.txt",
     "src/retromol_paras/data/*.fasta",

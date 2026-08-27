@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
 
-# PARAS' own default (retromol_antismash.inference.model_paras.ParasModel.threshold) --
+# PARAS' own default (retromol_antismash.inference.model_paras_cli.ParasCliModel.threshold) --
 # repeated here since submit_gene_cluster now builds the NRPS model explicitly (see
 # _build_nrps_model) rather than relying on the model's own constructor default.
 PARAS_THRESHOLD_DEFAULT = 0.1
@@ -76,9 +76,41 @@ def _build_nrps_model(threshold: float):
     return build_nrps_a_domain_model(
         PredictionConfig.load_from_file(os.getenv("PMP_PATH")) if os.getenv("PMP_PATH") else PredictionConfig.load_default(),
         threshold=threshold,
-        model_path=os.getenv("PARAS_MODEL_PATH"),
         cache_dir=os.getenv("PARAS_CACHE_DIR", "paras_cache"),
     )
+
+
+def check_paras_model_cache() -> None:
+    """
+    Log, at startup, whether a pretrained "paras_cli" model is already cached at
+    PARAS_CACHE_DIR -- otherwise the first cluster upload silently pays the full
+    from-scratch training cost (HMMER2/HMMER3/MUSCLE3 extraction over the whole
+    PARASECT dataset + a RandomForestClassifier fit -- see
+    retromol_paras.train.train_model), which is slow enough to blow past the RQ job
+    timeout. Doesn't build or train anything itself.
+    """
+    from retromol_paras.train import MODEL_FILE
+
+    model = _build_nrps_model(PARAS_THRESHOLD_DEFAULT)
+    if model is None:
+        logger.info("PARAS model cache check: skipped (pmp.yml's nrps.a_domain reads antiSMASH's own qualifier, no model needed)")
+        return
+
+    cache_dir = getattr(model, "cache_dir", None)
+    if cache_dir is None:
+        logger.info("PARAS model cache check: skipped (selected model has no cache_dir)")
+        return
+
+    model_file = Path(cache_dir) / MODEL_FILE
+    if model_file.exists():
+        logger.info("PARAS model cache: found trained model at %s -- cluster uploads will use it directly", model_file)
+    else:
+        logger.warning(
+            "PARAS model cache: NO trained model found at %s -- the first cluster "
+            "upload will train one from scratch (slow, likely to exceed the job "
+            "timeout). Run scripts/train_paras.py --cache-dir %s once to pre-populate it.",
+            model_file, cache_dir,
+        )
 
 
 @blp_search_compound.get("/api/searchCompound")

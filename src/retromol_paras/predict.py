@@ -58,6 +58,7 @@ def predict_domains(
     protein_sequences: dict[str, str],
     keep_top: int = 3,
     path_temp_dir: str | Path | None = None,
+    use_muscle_fallback: bool = True,
 ) -> list[DomainPrediction]:
     """
     Detect and predict the substrate of every adenylation domain in a set of protein sequences.
@@ -66,6 +67,7 @@ def predict_domains(
     :param protein_sequences: {sequence_id: amino_acid_sequence}.
     :param keep_top: number of top-scoring substrate predictions to keep per domain.
     :param path_temp_dir: scratch directory for HMMER/MUSCLE intermediates; a temp dir is used if not given.
+    :param use_muscle_fallback: see retromol_paras.featurisation.get_domains.
     :return: one DomainPrediction per detected adenylation domain.
     """
     def _run(scratch: Path) -> list[DomainPrediction]:
@@ -74,7 +76,7 @@ def predict_domains(
             for seq_id, seq in protein_sequences.items():
                 fo.write(f">{seq_id}\n{seq}\n")
 
-        domains: list[AdenylationDomain] = extract_domains(fasta_file, scratch)
+        domains: list[AdenylationDomain] = extract_domains(fasta_file, scratch, use_muscle_fallback=use_muscle_fallback)
         if not domains:
             return []
 

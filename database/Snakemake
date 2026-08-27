@@ -33,6 +33,7 @@ MARKERS = WORKDIR / "markers"
 
 RXN_RULES = config["paths"].get("reaction_rules")
 MXN_RULES = config["paths"].get("matching_rules")
+MATCH_STEREOCHEMISTRY = config.get("match_stereochemistry", False)
 
 # null -> pmp.yml's packaged default. See that file's "predictors.nrps.a_domain" for
 # which model (if any) this actually selects -- the same file the GUI backend and
@@ -189,6 +190,7 @@ rule load_npatlas_compounds:
                 source="npatlas",
                 reaction_rules_path=RXN_RULES,
                 matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
                 taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
             )
 
@@ -266,6 +268,7 @@ rule load_mibig_compounds:
                 source="mibig",
                 reaction_rules_path=RXN_RULES,
                 matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
                 mibig_versions_path=input.versions,
                 mibig_annotations_path=input.annotations,
                 taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
@@ -320,6 +323,7 @@ rule load_mibig_bgcs:
                 db_path=DB_PATH,
                 reaction_rules_path=RXN_RULES,
                 matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
                 mibig_versions_path=input.versions,
                 mibig_annotations_path=input.annotations,
                 taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,

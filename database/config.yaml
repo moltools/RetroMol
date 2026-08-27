@@ -29,6 +29,13 @@ paths:
   reaction_rules: null
   matching_rules: null
 
+# Whether structural matching (both compound parsing and NRPS substrate resolution,
+# e.g. matching a PARAS-predicted substrate's SMILES against mxn.yml -- see
+# retromol_antismash.modules.module_primary_sequence_tokens) requires an exact
+# stereochemistry match, not just constitution. False (the default) treats e.g. two
+# rules that only differ in a stereocenter as interchangeable.
+match_stereochemistry: false
+
 npclassifier:
   # Rate limit for the free, GNPS2-hosted NPClassifier API (no published limit --
   # kept conservative). This is the *combined* rate across all workers below, not
