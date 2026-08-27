@@ -46,6 +46,7 @@ export const SubmitDiscoveryQueryReqSchema = z.object({
   flags: z.object({
     computeMsa: z.boolean().optional(),
     computeCompare: z.boolean().optional(),
+    computeEnrichment: z.boolean().optional(),
   }),
 });
 export type SubmitDiscoveryQueryReq = z.output<typeof SubmitDiscoveryQueryReqSchema>;

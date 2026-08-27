@@ -10,7 +10,7 @@ export FLASK_ENV=development
 export PORT=4000
 
 # DB connection
-export RETROMOL_DUCKDB_PATH="$HOME/Downloads/retromol.duckdb"
+export RETROMOL_DUCKDB_PATH="$HOME/Desktop/retromol.duckdb"
 
 # Redis connection (uses Dockerized Redis)
 export REDIS_URL="redis://localhost:6379/0"

@@ -1,0 +1,34 @@
+# Conda env for running database/Snakemake (the database-construction pipeline only --
+# this has no bearing on the GUI/webapp).
+#
+# Every rule in that Snakefile uses Snakemake's `run:` directive (inline Python that
+# imports and calls database/scripts/*.py functions directly), not `shell:`. Snakemake
+# executes `run:` blocks in its own process rather than a subprocess, so a per-rule
+# `conda:` env (the --use-conda mechanism) would NOT actually reach any of this
+# pipeline's own code -- only `shell()` calls made from *within* a `run:` block, which
+# this pipeline never makes. There is deliberately no per-rule conda: directive in
+# database/Snakemake, and no --use-conda flag in the invocation below, because of this.
+#
+# This env is instead the one Snakemake itself runs in, so it needs both Snakemake and
+# every runtime dependency database/scripts/*.py imports (rdkit, duckdb, etc. -- all
+# already listed in the repo's own pyproject.toml, pulled in by the editable install
+# below rather than duplicated here).
+#
+# Usage:
+#
+#   conda env create -f database/envs/retromol.yaml
+#   conda activate retromol
+#   pip install -e .
+#   snakemake -p -s database/Snakemake --configfile database/config.yaml \
+#       --workflow-profile database/profiles/slurm
+name: retromol
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - pip
+  - snakemake
+  - snakemake-executor-plugin-slurm
+  - mamba

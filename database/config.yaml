@@ -6,16 +6,47 @@ sources:
   mibig_json_url: "https://dl.secondarymetabolites.org/mibig/mibig_json_4.0.tar.gz"
   mibig_gbk_url: "https://dl.secondarymetabolites.org/mibig/mibig_gbk_4.0.tar.gz"
 
+enabled:
+  # Toggle whole branches of the pipeline off. Disabling a source skips its downloads
+  # and RetroMol parsing entirely (not just db loading) -- e.g. npatlas: false means
+  # download_npatlas/parse_npatlas never run. mibig covers both MIBiG compounds and
+  # BGCs (they share the same JSON/GBK downloads). npclassifier gates step 9
+  # (chemical-class annotation) independently of which source(s) loaded the compounds
+  # it classifies.
+  npatlas: true
+  mibig: true
+  npclassifier: true
+  chebi: true
+
 paths:
   # Final DuckDB database produced by the pipeline.
-  database: "/Users/davidmeijer/Downloads/retromol.duckdb"
+  database: "/Users/davidmeijer/Desktop/retromol.duckdb"
 
   # Scratch space for downloads and intermediate per-step results.
-  workdir: "/Users/davidmeijer/retromol_tmp"
+  workdir: "/Users/davidmeijer/Desktop/retromol_tmp"
 
   # null -> RuleSet.load_default()'s bundled reaction/matching rules.
   reaction_rules: null
   matching_rules: null
+
+npclassifier:
+  # Rate limit for the free, GNPS2-hosted NPClassifier API (no published limit --
+  # kept conservative). This is the *combined* rate across all workers below, not
+  # per-worker. Classifications are cached in workdir/npclassifier/cache.jsonl, so
+  # reruns only pay for compounds not already classified.
+  requests_per_second: 50.0
+
+  # Concurrent requests. Classification is I/O-bound (waiting on the API), not
+  # CPU-bound, so this is safe to raise well past your core count -- it's bounded by
+  # requests_per_second above either way.
+  workers: 8
+
+taxonomy:
+  # NCBI taxdump (names.dmp/nodes.dmp), downloaded once into workdir/taxdump and reused
+  # across pipeline runs -- used to standardize phylogeny genus/species/type to NCBI
+  # taxids (see database/scripts/taxonomy.py). Set to null to skip taxid resolution
+  # entirely (phylogeny is then stored as raw, unstandardized text/no taxids).
+  enabled: true
 
 paras:
   threshold: 0.1

@@ -165,6 +165,7 @@ function DiscoveryQueryListItem({
   const flagChips = [
     item.flags.computeMsa ? "MSA" : null,
     item.flags.computeCompare ? "Compare" : null,
+    item.flags.computeEnrichment ? "Enrichment" : null,
   ].filter((label): label is string => label !== null);
 
   const handleToggle = (e?: React.SyntheticEvent) => {
@@ -382,6 +383,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
   const [onlyUserUploads, setOnlyUserUploads] = React.useState<boolean>(false);
   const [computeMsa, setComputeMsa] = React.useState<boolean>(true);
   const [computeCompare, setComputeCompare] = React.useState<boolean>(false);
+  const [computeEnrichment, setComputeEnrichment] = React.useState<boolean>(true);
   const [submitting, setSubmitting] = React.useState<boolean>(false);
   const [queryOptionsOpen, setQueryOptionsOpen] = React.useState<boolean>(false);
 
@@ -447,7 +449,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
         includeUserUploads: includeUserUploads || onlyUserUploads,
         onlyUserUploads,
         queryOriginSmiles,
-        flags: { computeMsa, computeCompare },
+        flags: { computeMsa, computeCompare, computeEnrichment },
       });
       setSession((prev) => (prev ? { ...prev, items: [...prev.items, item] } : prev));
       setViewingItemId(item.id);
@@ -906,6 +908,22 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
                     }
                     label="Compute compound comparison"
                   />
+                  <Tooltip
+                    title="Test whether the nearest neighbors are enriched for any annotation (phylogeny, chemical class, ...) vs. the rest of the database. Recalculates in the results view if you narrow down the selection."
+                    arrow
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={computeEnrichment}
+                          onChange={(e) => setComputeEnrichment(e.target.checked)}
+                          disabled={submitting}
+                        />
+                      }
+                      label="Compute enrichment"
+                    />
+                  </Tooltip>
                 </Stack>
               </Box>
             </Stack>

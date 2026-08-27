@@ -23,6 +23,103 @@ import { MotifName } from "../MotifName";
 import { horizontalScrollSx } from "../../theme/scrollbarSx";
 import { buildAlignmentSvg, downloadSvg, type AlignmentSvgRow } from "./alignmentSvgExport";
 import { MinimalIconButton} from "../MinimalIconButton";
+import { getEntryAnnotations } from "../../features/database/api";
+import type { EntryAnnotation } from "../../features/database/types";
+import { isChebiRoleRank, toSentenceCase } from "../../features/database/format";
+
+const ANNOTATION_CATEGORY_LABELS: Record<string, string> = {
+  phylogeny: "Phylogeny",
+  biosynthetic_class: "Biosynthetic class",
+  chemical_class: "Chemical class",
+  bioactivity: "Bioactivity",
+};
+
+function groupAnnotationsByCategory(annotations: EntryAnnotation[]): [string, EntryAnnotation[]][] {
+  const groups = new Map<string, EntryAnnotation[]>();
+  for (const a of annotations) {
+    const bucket = groups.get(a.category) ?? [];
+    bucket.push(a);
+    groups.set(a.category, bucket);
+  }
+  return Array.from(groups.entries());
+}
+
+// Shared by the "Databases" (source) row and every AnnotationChips category row --
+// one component, not parallel copies of the same Stack/Typography markup, so the
+// label-to-chip gap is guaranteed identical by construction rather than by keeping two
+// separate JSX blocks in sync by hand.
+const AnnotationRow: React.FC<{ label: string; sx?: object; children: React.ReactNode }> = ({
+  label,
+  sx,
+  children,
+}) => (
+  <Stack direction="row" alignItems="center" sx={{ flexWrap: "wrap", gap: 0.25, ...sx }}>
+    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110 }}>
+      {label}
+    </Typography>
+    {children}
+  </Stack>
+);
+
+const AnnotationChips: React.FC<{ entryId: string }> = ({ entryId }) => {
+  const [annotations, setAnnotations] = React.useState<EntryAnnotation[] | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    getEntryAnnotations(entryId, controller.signal)
+      .then((resp) => setAnnotations(resp.results))
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : String(err));
+      });
+    return () => controller.abort();
+  }, [entryId]);
+
+  if (error) {
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+        Couldn't load annotations: {error}
+      </Typography>
+    );
+  }
+
+  if (annotations === null) {
+    return null;
+  }
+
+  if (annotations.length === 0) {
+    return null;
+  }
+
+  return (
+    <Stack spacing={0.5} sx={{ mb: 2.5 }}>
+      {groupAnnotationsByCategory(annotations).map(([category, items]) => (
+        <AnnotationRow key={category} label={ANNOTATION_CATEGORY_LABELS[category] ?? category}>
+          {items.map((item) => {
+            const label = isChebiRoleRank(item.rank) ? toSentenceCase(item.label) : item.label;
+            return item.url ? (
+              <Chip
+                key={item.id}
+                component="a"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                clickable
+                color="primary"
+                size="small"
+                variant="outlined"
+                label={label}
+              />
+            ) : (
+              <Chip key={item.id} size="small" variant="outlined" label={label} />
+            );
+          })}
+        </AnnotationRow>
+      ))}
+    </Stack>
+  );
+};
 
 // Shared vertical sizing (padding, border width, font size, line height) so every
 // row -- label, sequence cells, and score -- resolves to the exact same height.
@@ -302,7 +399,7 @@ export function ResultRow({
       <Collapse in={expanded} unmountOnExit>
         <Box sx={{ mt: 1, pl: 4.5 }}>
           {result.sources.length > 0 && (
-            <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap", gap: 1 }}>
+            <AnnotationRow label="Databases" sx={{ mb: 0.5 }}>
               {result.sources.map((source, idx) =>
                 source.url ? (
                   <Chip
@@ -312,6 +409,7 @@ export function ResultRow({
                     target="_blank"
                     rel="noopener noreferrer"
                     clickable
+                    color="primary"
                     size="small"
                     variant="outlined"
                     label={`${source.databaseName}: ${source.name}`}
@@ -325,8 +423,9 @@ export function ResultRow({
                   />
                 )
               )}
-            </Stack>
+            </AnnotationRow>
           )}
+          <AnnotationChips entryId={result.entryId} />
           <AlignmentGrid
             rows={[
               { id: "query", label: "Query", sequence: result.alignedQuery },

@@ -16,10 +16,10 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useQuery } from "@tanstack/react-query";
@@ -29,11 +29,28 @@ import { DISCOVERY_SCORE_MODE_OPTIONS, type DiscoveryResult } from "../../featur
 import { getDiscoveryQueryResult } from "../../features/discovery/api";
 import { AlignmentGrid, ResultRow, DownloadSvgButton, sanitizeFilenamePart, type AlignmentGridRow } from "./AlignmentGrid";
 import { WorkspaceCompare } from "./WorkspaceCompare";
+import { DiscoveryEnrichmentView } from "./DiscoveryEnrichmentView";
 import { downloadJson } from "./downloadJson";
 import { useNotifications } from "../NotificationProvider";
 import { MAX_ITEMS, importCompound, importClustersBatch } from "../../features/jobs/api";
 
-type ViewMode = "pairwise" | "msa" | "compare";
+type ViewMode = "pairwise" | "msa" | "compare" | "enrichment";
+
+const VIEW_MODE_OPTIONS: {
+  value: ViewMode;
+  label: string;
+  flag: keyof DiscoveryQueryItem["flags"] | null;
+  // The "Compute for this query" checkbox's own label (see WorkspaceDiscovery.tsx),
+  // for the disabled-option tooltip -- deliberately not just reusing `label` above,
+  // since the view's display name ("Multiple sequence alignment") and the checkbox
+  // that enables it ("Compute MSA") aren't worded the same.
+  checkboxLabel: string | null;
+}[] = [
+  { value: "pairwise", label: "Pairwise", flag: null, checkboxLabel: null },
+  { value: "msa", label: "Multiple sequence alignment", flag: "computeMsa", checkboxLabel: "Compute MSA" },
+  { value: "compare", label: "Compare", flag: "computeCompare", checkboxLabel: "Compute compound comparison" },
+  { value: "enrichment", label: "Enrichment", flag: "computeEnrichment", checkboxLabel: "Compute enrichment" },
+];
 
 // Same default the "Import BGCs" dialog offers -- a sent-back BGC result has no UI of
 // its own to pick a threshold, so it's reparsed with the standard starting point.
@@ -240,30 +257,34 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
             <>
               <Stack direction="row" alignItems="center" sx={{ mb: 1, justifyContent: "space-between" }}>
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-                  <ToggleButtonGroup
+                  <Select
                     size="small"
-                    exclusive
                     value={resultsView}
-                    onChange={(_, value) => value && setResultsView(value)}
+                    onChange={(e) => setResultsView(e.target.value as ViewMode)}
+                    sx={{ minWidth: 220 }}
                   >
-                    <ToggleButton value="pairwise">Pairwise</ToggleButton>
-
-                    <Tooltip title={item.flags.computeMsa ? "" : disabledReason("Compute MSA")} arrow>
-                      <span>
-                        <ToggleButton value="msa" disabled={!item.flags.computeMsa}>
-                          Multiple sequence alignment
-                        </ToggleButton>
-                      </span>
-                    </Tooltip>
-
-                    <Tooltip title={item.flags.computeCompare ? "" : disabledReason("Compute compound comparison")} arrow>
-                      <span>
-                        <ToggleButton value="compare" disabled={!item.flags.computeCompare}>
-                          Compare
-                        </ToggleButton>
-                      </span>
-                    </Tooltip>
-                  </ToggleButtonGroup>
+                    {VIEW_MODE_OPTIONS.map((option) => {
+                      const enabled = option.flag === null || item.flags[option.flag];
+                      const menuItem = (
+                        <MenuItem key={option.value} value={option.value} disabled={!enabled}>
+                          {option.label}
+                        </MenuItem>
+                      );
+                      if (enabled) return menuItem;
+                      // A disabled MenuItem still needs a wrapping span for the tooltip to
+                      // fire (disabled elements don't receive pointer events on their own).
+                      return (
+                        <Tooltip
+                          key={option.value}
+                          title={disabledReason(option.checkboxLabel ?? option.label)}
+                          arrow
+                          placement="right"
+                        >
+                          <span>{menuItem}</span>
+                        </Tooltip>
+                      );
+                    })}
+                  </Select>
 
                   <Typography variant="caption" color="text.secondary">
                     {selectedForMsa.size} of {payload.results.length} selected
@@ -280,7 +301,7 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                 </Stack>
               </Stack>
 
-              {resultsView !== "compare" && (
+              {(resultsView === "pairwise" || resultsView === "msa") && (
                 <Typography variant="body2" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
                   Cell shading the alignment reflects each motif's structural similarity to the query's aligned motif in
                   that column. Darker means a closer match, so a sequence's weak spots stand out at a glance.
@@ -322,6 +343,10 @@ export const DialogViewDiscoveryQuery: React.FC<DialogViewDiscoveryQueryProps> =
                     <AlignmentGrid rows={msaRows} />
                   </Box>
                 )
+              ) : resultsView === "enrichment" ? (
+                <Box sx={{ py: 1 }}>
+                  <DiscoveryEnrichmentView entryIds={Array.from(selectedForMsa)} />
+                </Box>
               ) : selectedResults.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   Select at least one result above to compare compounds.

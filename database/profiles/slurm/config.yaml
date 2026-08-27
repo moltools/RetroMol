@@ -1,0 +1,83 @@
+# Snakemake workflow profile for running database/Snakemake on a Slurm cluster.
+#
+# Usage (from the repo root, with database/envs/retromol.yaml's env active -- see that
+# file's own comment for why there's no --use-conda here):
+#
+#   conda activate retromol
+#   snakemake -p -s database/Snakemake --configfile database/config.yaml \
+#       --workflow-profile database/profiles/slurm
+executor: slurm
+jobs: 6  # concurrent Slurm jobs -- mainly matters for the independent download_* rules;
+         # everything downstream of them is a strict chain (create_db -> load_* ->
+         # annotate_*), serialized through marker files because DuckDB doesn't support
+         # concurrent writers (see database/Snakemake's module docstring), so raising
+         # this past ~6-8 buys little.
+latency-wait: 60
+rerun-incomplete: true
+printshellcmds: true
+# Independent rules (e.g. the download_* rules, or npclassifier/chebi annotation vs.
+# each other before they're serialized) shouldn't all be killed by one unrelated rule
+# failing/timing out -- let everything already running finish.
+keep-going: true
+
+default-resources:
+  slurm_account: null  # fill in your account, if your cluster requires one
+  slurm_partition: null  # fill in your cluster's partition name
+  runtime: 60
+  mem_mb: 4000
+  disk_mb: 20000
+
+# parse_npatlas/parse_mibig_compounds/parse_mibig_gbks' worker counts come from
+# database/config.yaml's `compute:` section (PARSE_COMPOUNDS_WORKERS/PARSE_GBKS_WORKERS),
+# not from this profile -- deliberately not duplicated here as set-threads to avoid two
+# sources of truth for the same value; edit config.yaml instead.
+set-resources:
+  download_npatlas:
+    runtime: 120
+    mem_mb: 4000
+    disk_mb: 10000
+  download_mibig_json:
+    runtime: 60
+    mem_mb: 2000
+    disk_mb: 5000
+  download_mibig_gbk:
+    runtime: 60
+    mem_mb: 2000
+    disk_mb: 5000
+  download_taxdump:
+    runtime: 60
+    mem_mb: 2000
+    disk_mb: 5000
+  download_chebi:
+    # A few hundred MB total across compounds/structures/relation flat files.
+    runtime: 60
+    mem_mb: 2000
+    disk_mb: 5000
+  parse_npatlas:
+    runtime: 720
+    mem_mb: 16000
+  parse_mibig_compounds:
+    runtime: 240
+    mem_mb: 8000
+  parse_mibig_gbks:
+    runtime: 480
+    mem_mb: 16000
+  load_npatlas_compounds:
+    runtime: 60
+    mem_mb: 4000
+  load_mibig_compounds:
+    runtime: 60
+    mem_mb: 4000
+  load_mibig_bgcs:
+    runtime: 60
+    mem_mb: 4000
+  annotate_npclassifier:
+    # Rate-limited API calls (see database/config.yaml's npclassifier.requests_per_second)
+    # -- mostly wall-clock waiting on the network, not compute.
+    runtime: 1440
+    mem_mb: 2000
+  annotate_chebi:
+    # Loads all of ChEBI's flat files into memory once (see chebi.py's ChebiDB.load) --
+    # a few hundred MB, generous headroom here.
+    runtime: 120
+    mem_mb: 8000

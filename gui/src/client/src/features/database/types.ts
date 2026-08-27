@@ -17,3 +17,40 @@ export const DatabaseStatsRespSchema = z.object({
   withoutSourceUrlCount: z.number().int().nonnegative(),
 });
 export type DatabaseStatsResp = z.output<typeof DatabaseStatsRespSchema>;
+
+export const AnnotationCoverageSchema = z.object({
+  label: z.string(),
+  withAnnotationCount: z.number().int().nonnegative(),
+  withoutAnnotationCount: z.number().int().nonnegative(),
+});
+export type AnnotationCoverage = z.output<typeof AnnotationCoverageSchema>;
+
+export const AnnotationStatsRespSchema = z.object({
+  coverage: z.array(AnnotationCoverageSchema),
+  countsByCategory: z.array(CountSchema),
+  phylogenyTypeCounts: z.array(CountSchema),
+  phylogenyGenusCounts: z.array(CountSchema),
+  phylogenySpeciesCounts: z.array(CountSchema),
+  biosyntheticClassCounts: z.array(CountSchema),
+  chemicalClassPathwayCounts: z.array(CountSchema),
+  chemicalClassSuperclassCounts: z.array(CountSchema),
+  chemicalClassClassCounts: z.array(CountSchema),
+  bioactivityBiologicalRoleCounts: z.array(CountSchema),
+  bioactivityChemicalRoleCounts: z.array(CountSchema),
+});
+export type AnnotationStatsResp = z.output<typeof AnnotationStatsRespSchema>;
+
+export const EntryAnnotationSchema = z.object({
+  id: z.string(),
+  category: z.string(),
+  rank: z.string().nullable(),
+  label: z.string(),
+  externalId: z.string().nullable(),
+  url: z.string().nullable(),
+});
+export type EntryAnnotation = z.output<typeof EntryAnnotationSchema>;
+
+export const EntryAnnotationsRespSchema = z.object({
+  results: z.array(EntryAnnotationSchema),
+});
+export type EntryAnnotationsResp = z.output<typeof EntryAnnotationsRespSchema>;
