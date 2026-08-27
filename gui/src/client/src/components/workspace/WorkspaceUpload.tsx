@@ -286,7 +286,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
             Getting started
           </Typography>
           <Typography variant="body1">
-            In this tab you can import compounds and biosynthetic gene clusters (BGCs) into your workspace. Use the buttons below to upload your data files. After importing, you can visualize and analyze your data within the&nbsp;
+            In this tab you can import compounds and biosynthetic gene clusters (BGCs) into your workspace. Use the buttons below to upload your data files. After importing, you can visualize and analyze your data (including enrichment analysis against your nearest neighbors) within the&nbsp;
             <MuiLink
               component={RouterLink}
               to="/dashboard/discovery"
@@ -296,17 +296,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
             >
               Discovery
             </MuiLink>
-            &nbsp;and&nbsp;
-            <MuiLink
-              component={RouterLink}
-              to="/dashboard/enrichment"
-              underline="hover"
-              color={(theme.vars || theme).palette.primary.main}
-              sx={{ fontWeight: "500" }}
-            >
-              Enrichment
-            </MuiLink>
-            &nbsp;tabs. A maximum of <b>{MAX_ITEMS} items</b> can be imported into the workspace. Keep an eye on <NotificationsRoundedIcon fontSize={'small'} sx={{ verticalAlign: 'middle' }} /> for updates on your queries.
+            &nbsp;tab. A maximum of <b>{MAX_ITEMS} items</b> can be imported into the workspace. Keep an eye on <NotificationsRoundedIcon fontSize={'small'} sx={{ verticalAlign: 'middle' }} /> for updates on your queries.
           </Typography>
 
           <Stack direction="row" spacing={2} sx={{ mt: 2 }}>

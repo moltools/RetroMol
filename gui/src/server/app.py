@@ -40,7 +40,7 @@ from routes.discovery import (
 )
 from routes.rate_limit import limiter, RATE_LIMIT_REJECTIONS
 from routes.rules import blp_rule_set, blp_generate_backbone
-from routes.enrichment import blp_entry_search, blp_enrichment_analysis
+from routes.enrichment import blp_enrichment_analysis
 from routes.entry_annotations import blp_entry_annotations
 
 
@@ -257,7 +257,6 @@ app.register_blueprint(blp_submit_discovery_query)
 app.register_blueprint(blp_get_discovery_query_result)
 app.register_blueprint(blp_rule_set)
 app.register_blueprint(blp_generate_backbone)
-app.register_blueprint(blp_entry_search)
 app.register_blueprint(blp_enrichment_analysis)
 app.register_blueprint(blp_entry_annotations)
 

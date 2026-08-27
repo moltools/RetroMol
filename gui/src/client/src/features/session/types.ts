@@ -40,6 +40,10 @@ export const ClusterItemSchema = BaseItemSchema.extend({
 export const DiscoveryQueryFlagsSchema = z.object({
   computeMsa: z.boolean().default(false),
   computeCompare: z.boolean().default(false),
+  // Not precomputed (see run_discovery_query_job) -- gates whether the results
+  // dialog's Enrichment view is enabled; the analysis itself is fetched live from
+  // /api/enrichmentAnalysis based on whichever nearest neighbors are checked.
+  computeEnrichment: z.boolean().default(true),
 });
 export type DiscoveryQueryFlags = z.output<typeof DiscoveryQueryFlagsSchema>;
 

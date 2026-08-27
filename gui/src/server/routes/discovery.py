@@ -1225,6 +1225,11 @@ def submit_discovery_query() -> tuple[Response, int]:
     flags_normalized = {
         "computeMsa": bool(flags.get("computeMsa", False)),
         "computeCompare": bool(flags.get("computeCompare", False)),
+        # Not precomputed here (unlike MSA/Compare) -- enrichment is recalculated
+        # on-demand from the results dialog via /api/enrichmentAnalysis, since it
+        # depends on which nearest neighbors the user has checked, not the full
+        # result set. This flag only gates whether that dropdown option is enabled.
+        "computeEnrichment": bool(flags.get("computeEnrichment", True)),
     }
 
     full_sess = load_session_with_items(session_id)

@@ -1,65 +1,20 @@
-"""Enrichment tab: search up to MAX_ENTRY_SEARCH_RESULTS db entries, select some of
-them, and test whether the selection is enriched for any annotation term (phylogeny,
-chemical class, ...) compared to its background -- entries of the same type(s) not
-selected. One Fisher's exact test per term observed on the selection, Benjamini-Hochberg
-corrected across all of them.
+"""Enrichment analysis: given a set of db entry ids (a Discovery query's checked
+nearest neighbors), test whether that selection is enriched for any annotation term
+(phylogeny, chemical class, ...) compared to its background -- entries of the same
+type(s) not selected. One Fisher's exact test per term observed on the selection,
+Benjamini-Hochberg corrected across all of them.
 """
 
 from flask import Blueprint, Response, jsonify, request
 from scipy.stats import fisher_exact
 
-from retromol_database.duckdb import ENTRY_TYPES
 from routes.database import open_retromol_db
 
-blp_entry_search = Blueprint("entry_search", __name__)
 blp_enrichment_analysis = Blueprint("enrichment_analysis", __name__)
 
 # Mirrors the frontend's client-side guardrail; must also be enforced here since the
 # frontend check is UX-only (see session_store.py's MAX_SESSION_ITEMS for the same pattern).
-MAX_ENTRY_SEARCH_RESULTS = 100
 MAX_ENRICHMENT_SELECTION = 100
-
-
-def _entry_payload(entry) -> dict:
-    return {
-        "id": entry.id,
-        "name": entry.name,
-        "url": entry.url,
-        "type": entry.type,
-        "sources": [
-            {"name": s.name, "databaseName": s.database_name, "url": s.url} for s in entry.sources
-        ],
-    }
-
-
-@blp_entry_search.get("/api/entrySearch")
-def entry_search() -> tuple[Response, int]:
-    """
-    Search entries by name/id, for the Enrichment tab's "query and select" step.
-
-    :return: a tuple containing the search results and an HTTP status code
-    """
-    query = (request.args.get("q") or "").strip()
-    if not query:
-        return jsonify({"error": "q is required"}), 400
-
-    entry_type = request.args.get("type")
-    if entry_type == "all":
-        entry_type = None
-    if entry_type is not None and entry_type not in ENTRY_TYPES:
-        return jsonify({"error": f"type must be one of {ENTRY_TYPES} or 'all'"}), 400
-
-    limit = request.args.get("limit", default=MAX_ENTRY_SEARCH_RESULTS, type=int)
-    if limit is None or not (1 <= limit <= MAX_ENTRY_SEARCH_RESULTS):
-        return jsonify({"error": f"limit must be an integer between 1 and {MAX_ENTRY_SEARCH_RESULTS}"}), 400
-
-    try:
-        with open_retromol_db() as db:
-            results = db.search_entries(query, entry_type=entry_type, limit=limit)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 503
-
-    return jsonify({"results": [_entry_payload(e) for e in results]}), 200
 
 
 def _benjamini_hochberg(p_values: list[float]) -> list[float]:
