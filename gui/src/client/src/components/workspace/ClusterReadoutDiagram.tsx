@@ -256,7 +256,7 @@ function RegionDiagram({
   selectedIndices: number[];
   onToggleIndex: (index: number) => void;
 }) {
-  const { editing, drafts, setDrafts, revertingIdx, isRowDirty, savedSequenceFor, handleRevertRow } = state;
+  const { editing, drafts, setDrafts, revertingIdx, isRowDirty, handleRevertRow } = state;
 
   const override = item.kind === "cluster" ? (item as ClusterItem).editedPrimarySequences?.[String(regionIndex)] : undefined;
   const draftBlocks = drafts[regionIndex] ?? blocksFromSequence(override ?? region.primary_sequence);
