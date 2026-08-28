@@ -15,7 +15,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."  # go to repo root
 
 # --- Setup environment ---
-export RETROMOL_DUCKDB_PATH="$HOME/Downloads/retromol.duckdb"
+export RETROMOL_DUCKDB_PATH="$HOME/Desktop/retromol.duckdb"
 
 # Redis connection (uses Dockerized Redis)
 export REDIS_URL="redis://localhost:6379/0"
