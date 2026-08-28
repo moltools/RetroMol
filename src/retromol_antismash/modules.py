@@ -13,6 +13,12 @@ from typing import Any, Literal, overload
 from retromol.chem.mol import smiles_to_mol
 from retromol.model.rules import RuleSet
 from retromol_antismash.model import Region, Gene, Strand, Domain
+from retromol_antismash.predictions import (
+    PredictionConfig,
+    extract_specificity_value,
+    resolve_model_result,
+    resolve_qualifier_method,
+)
 
 
 DH_TYPES = {"PKS_DH", "PKS_DHt", "PKS_DH2"}
@@ -237,12 +243,21 @@ class PKSAnatomy:
     :param has_active_DH: Presence of active dehydratase domain.
     :param has_active_ER: Presence of active enoylreductase domain.
     :param has_AT: Presence of acyltransferase domain.
+    :param extender_digit: Extender-unit substituent digit resolved from the AT domain's
+        substrate-specificity prediction (see pmp.yml's "pks.extender" axis), e.g. "2" for
+        methylmalonyl-CoA. None when unresolved (e.g. trans-AT modules, or an unmapped
+        antiSMASH substrate call).
+    :param beta_stereo: R/S suffix for the beta-hydroxyl carbon, resolved from the KR domain's
+        stereochemistry prediction (see pmp.yml's "pks.kr_stereochemistry" axis, "stereo_suffix"
+        combine mode). None when unresolved or (by design) when that axis's mapping is empty.
     """
     AT_loading_mode: ATLoadingMode
 
     has_active_KR: bool
     has_active_DH: bool
     has_active_ER: bool
+    extender_digit: str | None = None
+    beta_stereo: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """
@@ -255,8 +270,10 @@ class PKSAnatomy:
             "has_active_KR": self.has_active_KR,
             "has_active_DH": self.has_active_DH,
             "has_active_ER": self.has_active_ER,
+            "extender_digit": self.extender_digit,
+            "beta_stereo": self.beta_stereo,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "PKSAnatomy":
         """
@@ -273,6 +290,8 @@ class PKSAnatomy:
             has_active_KR=data.get("has_active_KR", False),
             has_active_DH=data.get("has_active_DH", False),
             has_active_ER=data.get("has_active_ER", False),
+            extender_digit=data.get("extender_digit", None),
+            beta_stereo=data.get("beta_stereo", None),
         )
 
 
@@ -300,10 +319,15 @@ class PKSSubstrate:
     Substrate information for a Polyketide Synthase (PKS) module.
 
     :param extender_unit: Type of extender unit used in the PKS module.
+    :param substituent_type: Extender-unit substituent digit (e.g. "2" for methylmalonyl-derived),
+        resolved via pmp.yml's "pks.extender" prediction axis. None when unresolved.
+    :param beta_stereo: R/S suffix for the beta-hydroxyl carbon, resolved via pmp.yml's
+        "pks.kr_stereochemistry" prediction axis. None when unresolved.
     """
 
     extender_unit: PKSExtenderUnit
-    substituent_type: int | None = None
+    substituent_type: str | None = None
+    beta_stereo: str | None = None
 
     def to_dict(self) -> dict[str, str]:
         """
@@ -314,8 +338,9 @@ class PKSSubstrate:
         return {
             "extender_unit": self.extender_unit.value,
             "substituent_type": self.substituent_type,
+            "beta_stereo": self.beta_stereo,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, str]) -> "PKSSubstrate":
         """
@@ -327,6 +352,7 @@ class PKSSubstrate:
         return cls(
             extender_unit=PKSExtenderUnit(data.get("extender_unit", "UNCLASSIFIED")),
             substituent_type=data.get("substituent_type", None),
+            beta_stereo=data.get("beta_stereo", None),
         )
 
 
@@ -430,7 +456,11 @@ class PKSModule(Module):
         """
         # Configure factory type
         def setup_substrate(extender_unit: PKSExtenderUnit) -> PKSSubstrate:
-            return PKSSubstrate(extender_unit=extender_unit)
+            return PKSSubstrate(
+                extender_unit=extender_unit,
+                substituent_type=self.anatomy.extender_digit,
+                beta_stereo=self.anatomy.beta_stereo,
+            )
 
         # Rules:
         # - KS + AT with neither KR nor DH nor ER => PKS_A
@@ -821,13 +851,18 @@ def region_domain_stream(region: Region) -> list[DomainRef]:
     return out
 
 
-def collect_nrps_modules(gene: Gene) -> list[NRPSModule]:
+def collect_nrps_modules(gene: Gene, config: PredictionConfig | None = None) -> list[NRPSModule]:
     """
     Collect NRPS modules from a given gene.
-    
+
     :param gene: Gene object to analyze.
+    :param config: prediction configuration (see pmp.yml) to resolve A-domain substrates with,
+        or None to load the packaged default (see pmp.yml's "predictors.nrps.a_domain").
     :return: List of NRPSModule objects.
     """
+    config = config or PredictionConfig.load_default()
+    a_domain_method = config.get_method("nrps.a_domain")
+
     doms: list[Domain] = domains_biosynthetic(gene)
     out: list[NRPSModule] = []
 
@@ -859,25 +894,26 @@ def collect_nrps_modules(gene: Gene) -> list[NRPSModule]:
         s = min(d.start for d in window)
         e = max(d.end for d in window)
 
-        # Retrieve A domain substrate specificity prediction
+        # Retrieve A domain substrate specificity prediction, via whichever method
+        # pmp.yml's "predictors.nrps.a_domain" currently selects.
         A = doms[ai]
-        anns = A.annotations
         substrate_pred: NRPSSubstrate | None = None
-        if anns:
-            preds = anns.results
 
-            # Highest confidence first
-            preds_sorted = sorted(preds, key=lambda r: r.score or 0.0, reverse=True)
-    
-            # Get highest confidence prediction, if any
-            top_pred = preds_sorted[0] if preds_sorted else None
-
+        if a_domain_method.source == "model":
+            top_pred = resolve_model_result(A, a_domain_method)
             if top_pred:
+                name = top_pred.label
+                if a_domain_method.mapping:
+                    name = a_domain_method.mapping.get(name, name)
                 substrate_pred = NRPSSubstrate(
-                    name=top_pred.label,
-                    smiles=top_pred.metadata.get("smiles", None),
+                    name=name,
+                    smiles=(top_pred.metadata or {}).get("smiles", None),
                     score=top_pred.score,
                 )
+        elif a_domain_method.source == "qualifier":
+            resolved = resolve_qualifier_method(A, a_domain_method)
+            if resolved is not None:
+                substrate_pred = NRPSSubstrate(name=resolved, smiles=None, score=None)
 
         out.append(NRPSModule(
             module_index_in_gene=mi,
@@ -901,14 +937,24 @@ def collect_nrps_modules(gene: Gene) -> list[NRPSModule]:
     return out
 
 
-def collect_pks_modules(region: Region, max_cross_gene_bp: int = 20_000) -> list[PKSModule]:
+def collect_pks_modules(
+    region: Region,
+    max_cross_gene_bp: int = 20_000,
+    config: PredictionConfig | None = None,
+) -> list[PKSModule]:
     """
     Collect PKS modules across a genomic region, allowing for cross-gene module assembly.
 
     :param region: Region object representing the genomic region.
     :param max_cross_gene_bp: Maximum base pair distance to search across genes for module assembly.
+    :param config: prediction configuration (see pmp.yml) to resolve extender-unit substituents
+        with, or None to load the packaged default.
     :return: List of PKSModule objects collected across the region.
     """
+    config = config or PredictionConfig.load_default()
+    extender_method = config.get_method("pks.extender")
+    kr_stereo_method = config.get_method("pks.kr_stereochemistry")
+
     stream = region_domain_stream(region)
 
     # Locate all KS anchors in the stream
@@ -965,11 +1011,31 @@ def collect_pks_modules(region: Region, max_cross_gene_bp: int = 20_000) -> list
             )
 
         # DHt is more commonly found in trans PKS modules, so we treat it as inactive in cis modules
+        extender_digit: str | None = None
         if AT_src is ATLoadingMode.CIS:
             present_DH_types = present.intersection(DH_TYPES)
             if len(present_DH_types) == 1 and "PKS_DHt" in present_DH_types:
                 has_active_DH = False
-        
+
+            # Resolve the extender-unit substituent digit from the module's own AT domain.
+            # Trans-AT modules borrow their AT from elsewhere in the record (or lack one
+            # entirely), so this is only attempted for cis-AT modules with a domain in hand.
+            at_domain = next((d for d in window_domains if d.type in AT_TYPES), None)
+            if at_domain is not None and extender_method.source == "qualifier":
+                extender_digit = resolve_qualifier_method(at_domain, extender_method)
+
+        # Resolve the beta-hydroxyl stereo suffix from the module's own KR domain.
+        # "stereo_suffix" methods deliberately have no-passthrough semantics: an empty
+        # (or non-matching) mapping means "don't apply a suffix", since antiSMASH's raw
+        # "A1"/"B2" class labels aren't R/S descriptors on their own (see pmp.yml).
+        beta_stereo: str | None = None
+        if kr_stereo_method.source == "qualifier" and kr_stereo_method.combine_with == "stereo_suffix":
+            kr_domain = next((d for d in window_domains if d.type in KR_TYPES), None)
+            if kr_domain is not None:
+                raw_kr_class = extract_specificity_value(kr_domain, kr_stereo_method.qualifier, kr_stereo_method.key)
+                if raw_kr_class is not None:
+                    beta_stereo = kr_stereo_method.mapping.get(raw_kr_class)
+
         # Use window_domains bounds for start/end
         s = min(r.domain.start for r in filtered)
         e = max(r.domain.end for r in filtered)
@@ -990,30 +1056,36 @@ def collect_pks_modules(region: Region, max_cross_gene_bp: int = 20_000) -> list
                 has_active_KR=has_active_KR,
                 has_active_DH=has_active_DH,
                 has_active_ER=has_active_ER,
+                extender_digit=extender_digit,
+                beta_stereo=beta_stereo,
             ),
         ))
 
     return out
 
 
-def linear_readout(region: Region) -> LinearReadout:
+def linear_readout(region: Region, config: PredictionConfig | None = None) -> LinearReadout:
     """
     Construct a linear readout from the given genomic region.
 
     :param region: Region object representing the genomic region.
+    :param config: prediction configuration (see pmp.yml) to resolve PKS/NRPS substrates with,
+        or None to load the packaged default.
     :return: LinearReadout object containing the collected modules.
     """
     assert isinstance(region, Region), "region must be an instance of Region"
+
+    config = config or PredictionConfig.load_default()
 
     collected: list[Module] = []
     modifiers: list[str] = []
 
     # Collect NRPS modules (gene-level)
     for gene in region.iter_genes():
-        collected.extend(collect_nrps_modules(gene))
+        collected.extend(collect_nrps_modules(gene, config=config))
 
     # Collect PKS modules region-wide (cross-gene)
-    collected.extend(collect_pks_modules(region))
+    collected.extend(collect_pks_modules(region, config=config))
 
     # Check if there are any gene-level modifiers
     for gene in region.iter_genes():
@@ -1044,18 +1116,26 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
     The two module types resolve very differently, because they carry different kinds
     of evidence:
 
-    - A PKS module's extender unit is only ever known at the reduction-level (its
-      `PKSSubstrate.extender_unit`, e.g. "PK_A") -- there's no model predicting which
-      specific side chain (e.g. "A2" vs "A3") was used. So it maps to the group-level
-      pseudonym tokens every rule at that reduction level shares (e.g. ["PK_A", "PK"])
-      rather than to one specific rule name -- naming a specific rule would claim
-      identity information we don't actually have.
-    - An NRPS module carries a PARAS-predicted substrate SMILES for a *specific*
-      molecule. That SMILES is matched against every rule in the ruleset by structure,
-      ignoring stereochemistry (`RuleSet.find_structural_matches`) rather than by
-      name, since PARAS' substrate labels aren't guaranteed to match a rule's `name`
-      string verbatim (naming/spelling can differ even when the two rules describe the
-      same molecule) and PARAS' predicted stereochemistry need not match the rule's.
+    - A PKS module's extender unit is known at the reduction-level for certain (its
+      `PKSSubstrate.extender_unit`, e.g. "PK_A"), and additionally at the specific
+      side-chain level (`PKSSubstrate.substituent_type`, e.g. "2") whenever pmp.yml's
+      "pks.extender" predictor resolved one from the AT domain's substrate-specificity
+      call. When a specific name (e.g. "A2") exists as a rule in `ruleset`, it's used;
+      otherwise this falls back to the group-level pseudonym tokens every rule at that
+      reduction level shares (e.g. ["PK_A", "PK"]) -- naming a specific rule without one
+      existing would claim identity information we don't actually have.
+    - An NRPS module's `NRPSSubstrate.name` is tried first as a literal
+      rule name (this is where pmp.yml's "nrps.a_domain" `mapping` overrides take effect,
+      and where a `source: qualifier` fallback with no SMILES gets resolved). If that
+      doesn't match anything, and a SMILES is available (the default PARAS path), it
+      falls back to matching that SMILES against every rule by structure
+      (`RuleSet.find_structural_matches`) -- PARAS' raw labels aren't guaranteed to
+      match a rule's `name` string verbatim. Whether that structural match also
+      requires matching stereochemistry follows `ruleset.match_stereochemistry`, the
+      same toggle every other structural match in this codebase respects -- PARAS'
+      predicted substrate is a specific named compound (its SMILES comes from a fixed
+      label->structure lookup, not a per-domain stereochemistry guess), so requiring
+      an exact stereo match here is meaningful, not just permissively ignored.
 
     :param module: a PKS or NRPS module from a BGC's LinearReadout.
     :param ruleset: the rule set to resolve the module's substrate against.
@@ -1063,14 +1143,54 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
         display name is "X" and tokens are empty whenever nothing could be resolved --
         the same "unidentified block" convention used for compound primary sequences.
     """
+    def _by_name(name: str) -> tuple[str, list[str]] | None:
+        matches = [r for r in ruleset.matching_rules if r.name == name]
+        if not matches:
+            return None
+        tokens: set[str] = set()
+        for rule in matches:
+            tokens.add(rule.name)
+            tokens.update(rule.pseudonyms)
+        return min(rule.name for rule in matches), sorted(tokens)
+
     if module.type is ModuleType.PKS:
-        extender_unit = module.substrate.extender_unit
+        substrate = module.substrate
+        extender_unit = substrate.extender_unit
         if extender_unit is PKSExtenderUnit.UNCLASSIFIED:
             return "X", []
+
+        if substrate.substituent_type:
+            letter = extender_unit.value.rsplit("_", 1)[-1]  # "PK_A" -> "A"
+            base_name = f"{letter}{substrate.substituent_type}"
+
+            # mxn.yml's beta-hydroxyl stereo suffix sits right after the letter, before
+            # the digit (e.g. "B^R2", not "B2^R") -- only meaningful for "B" (the only
+            # reduction level with a free beta-hydroxyl: A never has an active KR, C's
+            # is consumed by dehydration into an E/Z alkene instead of an R/S center, and
+            # D's is consumed by the enoylreductase). This intentionally only reaches the
+            # beta-only fallback form (e.g. "B^R2"), not the doubly-stereo-specified forms
+            # that also fix the alpha carbon (e.g. "B^R2^R") -- resolving the alpha center
+            # isn't wired up yet (see pmp.yml's "pks.kr_stereochemistry" comments).
+            if substrate.beta_stereo and letter == "B":
+                stereo_specific = _by_name(f"B^{substrate.beta_stereo}{substrate.substituent_type}")
+                if stereo_specific is not None:
+                    return stereo_specific
+
+            specific = _by_name(base_name)
+            if specific is not None:
+                return specific
+
         return extender_unit.value, [extender_unit.value, "PK"]
 
-    # NRPS: resolve the PARAS-predicted substrate SMILES by structure.
+    # NRPS: try the resolved substrate name as a literal rule name first (this is
+    # where an explicit pmp.yml mapping, or a qualifier-sourced antiSMASH call with
+    # no SMILES, gets resolved), then fall back to structural SMILES matching.
     substrate = module.substrate
+    if substrate and substrate.name:
+        named = _by_name(substrate.name)
+        if named is not None:
+            return named
+
     smiles = substrate.smiles if substrate else None
     if not smiles:
         return "X", []
@@ -1080,7 +1200,7 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
     except ValueError:
         return "X", []
 
-    matches = ruleset.find_structural_matches(mol, match_stereochemistry=False)
+    matches = ruleset.find_structural_matches(mol, match_stereochemistry=ruleset.match_stereochemistry)
     if not matches:
         return "X", []
 

@@ -417,12 +417,11 @@ export function PrimarySequenceRows({
 
               {override && !editing && (
                 <Chip
-                  label="Edited"
+                  label="edited"
                   size="small"
                   color="info"
                   variant="outlined"
                   sx={{
-                    height: 18,
                     fontSize: "0.65rem",
                     flexShrink: 0,
                   }}

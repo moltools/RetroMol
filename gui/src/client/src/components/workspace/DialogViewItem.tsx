@@ -9,14 +9,16 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useQuery } from "@tanstack/react-query";
 import { Session, SessionItem } from "../../features/session/types";
 import { reconstructCompound } from "../../features/reconstruction/api";
-import { getClusterReadout } from "../../features/clusters/api";
+import { reconstructGeneCluster } from "../../features/clusters/api";
 import { DialogWindow } from "../DialogWindow";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { ExportImageButton } from "../ExportImageButton";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
 import { DrawingAttribution } from "../DrawingAttribution";
 import { PrimarySequenceOverview, PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
-import { ClusterReadoutRows } from "./ClusterReadoutRows";
+import { AnnotatedArrow } from "./AnnotatedArrow";
+import { ClusterReadoutDiagram, useClusterPrimarySequenceEditor } from "./ClusterReadoutDiagram";
+import { horizontalScrollSx } from "../../theme/scrollbarSx";
 
 type HighlightAtom = [number, string];
 
@@ -26,45 +28,6 @@ type DialogViewItemProps = {
   item: SessionItem;
   open: boolean;
   onClose: () => void;
-};
-
-function AnnotatedArrow({ annotation }: { annotation: string }) {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0, // don’t let it compress
-      }}
-    >
-      <Typography variant='caption' gutterBottom>
-        {annotation}
-      </Typography>
-      <Box
-        component='svg'
-        width={140} // total width of arrow+shaft
-        height={32}
-        viewBox='0 0 140 32'
-      >
-        {/* horizontal line */}
-        <line
-          x1='0'
-          y1='16'
-          x2='120'
-          y2='16'
-          stroke='currentColor'
-          strokeWidth='2'
-        />
-        {/* arrow head */}
-        <polygon
-          points='120,8 120,24 140,16'
-          fill='currentColor'
-        />
-      </Box>
-    </Box>
-  );
 };
 
 function DescriptionBox({ title, description }: { title: string; description: string }) {
@@ -147,16 +110,28 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
   const allHaveBackbone = hasReconstructions && !isUnordered && (data ?? []).every((r) => !!r.tagged_backbone_smiles);
   const backboneWarning = (data ?? []).find((r) => r.backbone_warning)?.backbone_warning ?? null;
 
-  const clusterReadoutQuery = useQuery({
-    queryKey: ["getClusterReadout", sessionId, item.id],
-    queryFn: ({ signal }) => getClusterReadout(sessionId, item.id, signal),
+  const clusterReconstructionQuery = useQuery({
+    queryKey: ["reconstructGeneCluster", sessionId, item.id],
+    queryFn: ({ signal }) => reconstructGeneCluster(sessionId, item.id, signal),
     enabled: open && !isCompound && item.status === "done",
   });
+  const clusterData = clusterReconstructionQuery.data ?? null;
 
   // resetSignal is `open` -- re-seeding on every open (even for the same item)
   // matches the dialog's existing "fresh state each time" behavior for selectedTags.
   const editor = usePrimarySequenceEditor(session, setSession, item, data, open);
   const { editing, setEditing, anyDirty, saving, handleCancelEdit, handleSaveAll } = editor;
+
+  const clusterEditor = useClusterPrimarySequenceEditor(session, setSession, item, clusterData, open);
+  const {
+    editing: clusterEditing,
+    setEditing: setClusterEditing,
+    anyDirty: clusterAnyDirty,
+    saving: clusterSaving,
+    handleCancelEdit: handleClusterCancelEdit,
+    handleSaveAll: handleClusterSaveAll,
+  } = clusterEditor;
+  const clusterDiagramRef = React.useRef<HTMLDivElement>(null);
 
   return (
     <DialogWindow
@@ -164,7 +139,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
       onClose={onClose}
       title="View item"
       dividers
-      dirty={editing && anyDirty}
+      dirty={(editing && anyDirty) || (clusterEditing && clusterAnyDirty)}
       actions={[
         ...(isCompound && editing
           ? [
@@ -192,12 +167,38 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
               },
             ]
           : []),
+        ...(item.kind === "cluster" && clusterEditing
+          ? [
+              { key: "cancel-cluster-edit", label: "Cancel", variant: "text" as const, color: "inherit" as const, onClick: handleClusterCancelEdit },
+              {
+                key: "save-cluster",
+                label: clusterSaving ? "Saving..." : "Save changes",
+                variant: "contained" as const,
+                color: "primary" as const,
+                onClick: handleClusterSaveAll,
+                disabled: !clusterAnyDirty || clusterSaving,
+                startIcon: clusterSaving ? <CircularProgress size={16} color="inherit" /> : undefined,
+              },
+            ]
+          : []),
+        ...(item.kind === "cluster" && !clusterEditing
+          ? [
+              {
+                key: "edit-cluster",
+                label: "Edit sequences",
+                variant: "contained" as const,
+                color: "primary" as const,
+                onClick: () => setClusterEditing(true),
+                disabled: clusterReconstructionQuery.isLoading || !clusterData || clusterData.length === 0,
+              },
+            ]
+          : []),
         { key: "close", label: "Close", variant: "text" as const, color: "inherit" as const, onClick: onClose },
       ]}
       maxWidth={"lg"}
     >
       {!isCompound && item.kind === "cluster" && (
-        <>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {item.status === "queued" && (
             <Typography variant="body2" color="text.secondary">
               Waiting to be parsed...
@@ -212,18 +213,33 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
             </Alert>
           )}
 
-          {item.status === "done" && clusterReadoutQuery.isLoading && <CircularProgress size={24} />}
+          {item.status === "done" && clusterReconstructionQuery.isLoading && <CircularProgress size={24} />}
 
-          {item.status === "done" && clusterReadoutQuery.error && (
+          {item.status === "done" && clusterReconstructionQuery.error && (
             <Alert severity="error">
-              {(clusterReadoutQuery.error as Error).message || "Failed to load parsed gene cluster."}
+              {(clusterReconstructionQuery.error as Error).message || "Failed to load parsed gene cluster."}
             </Alert>
           )}
 
-          {item.status === "done" && clusterReadoutQuery.data && (
-            <ClusterReadoutRows readouts={clusterReadoutQuery.data.readouts} />
+          {item.status === "done" && clusterData && (
+            <>
+              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                <ExportImageButton
+                  targetRef={clusterDiagramRef}
+                  filename={`retromol-${(item.name || item.id).replace(/[^a-z0-9]+/gi, "-")}-readout`}
+                  label="Download the diagram below as a PNG"
+                />
+              </Box>
+              <Box ref={clusterDiagramRef} sx={{ p: 1, ...horizontalScrollSx }}>
+                <ClusterReadoutDiagram item={item} data={clusterData} state={clusterEditor} />
+              </Box>
+              <DescriptionBox
+                title="Explanation"
+                description='Each antiSMASH region is shown as a "genes & domains" row (left), the ordered NRPS/PKS modules RetroMol detected, and a "readout" row (right): the same primary sequence vocabulary a compound is parsed into. Click a chip on either row to highlight the module(s)/token it corresponds to on the other. If a readout was resolved wrong or incompletely, use "Edit sequences" to fix it by hand; saved edits are kept with this gene cluster and reused when you query it from the Discovery tab. "Revert" on a row discards the edit and restores the algorithm’s own parse.'
+              />
+            </>
           )}
-        </>
+        </Box>
       )}
 
       {loading && (

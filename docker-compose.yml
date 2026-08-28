@@ -2,14 +2,22 @@
 # and need the same Redis/DuckDB/PARAS access, now that discovery_query and
 # reconstruct_gene_cluster (among others) run as RQ jobs on worker too, not just on
 # backend. Kept in one place so the two services can't drift out of sync.
+#
+# PARAS_CACHE_DIR is read by whichever NRPS model pmp.yml's predictors.nrps.a_domain
+# selects (see retromol_antismash.inference.factory.build_nrps_a_domain_model) -- in
+# practice, "paras_cli"'s (src/retromol_paras/) trained-model + extracted-training-
+# signatures cache. Mounted read-only here so containers pick up an already-trained
+# model instead of each one training its own on first use -- run scripts/
+# train_paras.py once (locally, or via `docker compose run backend ...`) to populate
+# PARAS_CACHE_HOST_PATH, then restart backend/worker to pick it up.
 x-backend-env: &backend-common
   env_file:
     - gui/docker/backend.env
   environment:
-    PARAS_MODEL_PATH: ${PARAS_MODEL_PATH}
+    PARAS_CACHE_DIR: ${PARAS_CACHE_DIR}
     RETROMOL_DUCKDB_PATH: /data/retromol.duckdb
   volumes:
-    - ${PARAS_MODEL_HOST_PATH}:${PARAS_MODEL_PATH}:ro
+    - ${PARAS_CACHE_HOST_PATH}:${PARAS_CACHE_DIR}:ro
     - ${RETROMOL_DUCKDB_HOST_PATH}:/data/retromol.duckdb:ro
 
 services:

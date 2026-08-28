@@ -27,9 +27,9 @@ import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { DialogViewItem } from "./DialogViewItem";
 import { PrimarySequenceOverview, PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
-import { ClusterReadoutRows } from "./ClusterReadoutRows";
+import { ClusterPrimarySequenceRows, useClusterPrimarySequenceEditor } from "./ClusterReadoutDiagram";
 import { reconstructCompound } from "../../features/reconstruction/api";
-import { getClusterReadout } from "../../features/clusters/api";
+import { reconstructGeneCluster } from "../../features/clusters/api";
 import { useTick } from "../../hooks/useTick";
 import { useNotifications } from "../NotificationProvider";
 import { MinimalIconButton } from "../MinimalIconButton";
@@ -168,14 +168,17 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
   // sequence, so there's nothing meaningful to drag-and-drop reorder.
   const isUnordered = !!reconstructions?.length && reconstructions.every((r) => r.ordered === false);
 
-  // Same idea as reconstructionQuery, but for gene clusters -- the parsed module
-  // readout is computed server-side at submit time and only ever handed over via
-  // this dedicated endpoint (item.payload is stripped from the session itself).
-  const clusterReadoutQuery = useQuery({
-    queryKey: ["getClusterReadout", session.sessionId, item.id],
-    queryFn: ({ signal }) => getClusterReadout(session.sessionId, item.id, signal),
+  // Same idea as reconstructionQuery, but for gene clusters -- mapped onto the same
+  // matching-rule vocabulary a compound's primary sequence is drawn from. Shares its
+  // query cache (and edit state machine) with DialogViewItem, same as the compound
+  // case above.
+  const clusterReconstructionQuery = useQuery({
+    queryKey: ["reconstructGeneCluster", session.sessionId, item.id],
+    queryFn: ({ signal }) => reconstructGeneCluster(session.sessionId, item.id, signal),
     enabled: expanded && !isCompound && isDone,
   });
+  const clusterData = clusterReconstructionQuery.data ?? null;
+  const clusterEditor = useClusterPrimarySequenceEditor(session, setSession, item, clusterData);
 
   return (
     <>
@@ -559,20 +562,47 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
 
               {isError && (
                 <Typography variant="body2" color="text.secondary">
-                  Parsing failed -- see the error above for details.
+                  Parsing failed: see the error above for details.
                 </Typography>
               )}
 
-              {isDone && clusterReadoutQuery.isLoading && <CircularProgress size={20} />}
+              {isDone && clusterReconstructionQuery.isLoading && <CircularProgress size={20} />}
 
-              {isDone && clusterReadoutQuery.error && (
+              {isDone && clusterReconstructionQuery.error && (
                 <Alert severity="error">
-                  {(clusterReadoutQuery.error as Error).message || "Failed to load parsed gene cluster."}
+                  {(clusterReconstructionQuery.error as Error).message || "Failed to load parsed gene cluster."}
                 </Alert>
               )}
 
-              {isDone && clusterReadoutQuery.data && (
-                <ClusterReadoutRows readouts={clusterReadoutQuery.data.readouts} />
+              {isDone && clusterData && (
+                <Stack spacing={1.5}>
+                  <ClusterPrimarySequenceRows item={item} data={clusterData} state={clusterEditor} />
+
+                  {clusterData.length > 0 && (
+                    <Stack direction="row" spacing={1}>
+                      {clusterEditor.editing ? (
+                        <>
+                          <Button size="small" variant="text" color="inherit" onClick={clusterEditor.handleCancelEdit}>
+                            Cancel
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={clusterEditor.handleSaveAll}
+                            disabled={!clusterEditor.anyDirty || clusterEditor.saving}
+                            startIcon={clusterEditor.saving ? <CircularProgress size={14} color="inherit" /> : undefined}
+                          >
+                            {clusterEditor.saving ? "Saving..." : "Save changes"}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="small" variant="contained" onClick={() => clusterEditor.setEditing(true)}>
+                          Edit sequences
+                        </Button>
+                      )}
+                    </Stack>
+                  )}
+                </Stack>
               )}
             </Box>
           </Collapse>

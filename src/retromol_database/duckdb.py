@@ -393,6 +393,41 @@ class RetroMolDuckDB:
     def count(self) -> int:
         return int(self.con.execute("SELECT count(*) FROM entries").fetchone()[0])
 
+    def delete_entries_by_type(self, entry_type: str) -> int:
+        """
+        Delete every entry of the given type, plus its rows in every annotation/
+        source table (there are no foreign-key cascades in this schema, so each
+        table needs its own DELETE).
+
+        Use this to force a clean re-ingest after a parsing-logic change --
+        `load_bgcs.py`'s per-file content-hash check means simply re-running the
+        pipeline after deleting a marker/cache file skips every already-ingested
+        source file, since the *entries* themselves are untouched by that. Delete
+        the stale entries first (e.g. `delete_entries_by_type("bgc")`), then
+        re-run the load step.
+
+        :param entry_type: "compound" or "bgc".
+        :return: number of entries deleted.
+        """
+        entry_type = _normalize_entry_type(entry_type)
+
+        (n,) = self.con.execute("SELECT count(*) FROM entries WHERE type = ?", [entry_type]).fetchone()
+
+        for table in (
+            "entry_sources",
+            "phylogeny_annotations",
+            "bioactivity_annotations",
+            "biosynthetic_class_annotations",
+            "chemical_class_annotations",
+        ):
+            self.con.execute(
+                f"DELETE FROM {table} WHERE entry_id IN (SELECT id FROM entries WHERE type = ?)",
+                [entry_type],
+            )
+        self.con.execute("DELETE FROM entries WHERE type = ?", [entry_type])
+
+        return int(n)
+
     def add_phylogeny_annotation(
         self,
         entry_id: str,

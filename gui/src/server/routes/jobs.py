@@ -26,7 +26,8 @@ from retromol_synthesis.reconstruction import reconstruct_linear_readout
 from retromol_antismash.io import parse_antismash_gbk, AntiSmashOptions
 from retromol_antismash.modules import LinearReadout, bgc_primary_sequence, linear_readout, ModuleType
 from retromol_antismash.inference.registry import annotate_region
-from retromol_antismash.inference.model_paras import ParasModel
+from retromol_antismash.inference.factory import build_nrps_a_domain_model
+from retromol_antismash.predictions import PredictionConfig
 
 from routes.discovery import get_discovery_context
 
@@ -46,33 +47,70 @@ logger = logging.getLogger(__name__)
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
 
-# PARAS' own default (retromol_antismash.inference.model_paras.ParasModel.threshold) --
-# repeated here since submit_gene_cluster now builds a ParasModel explicitly (see
-# _build_paras_model) rather than relying on ParasModel's constructor default.
+# PARAS' own default (retromol_antismash.inference.model_paras_cli.ParasCliModel.threshold) --
+# repeated here since submit_gene_cluster now builds the NRPS model explicitly (see
+# _build_nrps_model) rather than relying on the model's own constructor default.
 PARAS_THRESHOLD_DEFAULT = 0.1
 
 
-def _build_paras_model(threshold: float) -> ParasModel:
+def _build_nrps_model(threshold: float):
     """
-    Build a PARAS A-domain substrate specificity model configured with the given
-    probability threshold.
+    Build whichever NRPS A-domain substrate-prediction model pmp.yml's
+    "predictors.nrps.a_domain" currently selects, configured with the given
+    probability threshold -- the SAME factory + pmp.yml the database pipeline
+    (database/scripts/parse_gbks.py) and the CLI test script
+    (scripts/predict_bgc.py) use, so a GenBank file resolves substrates
+    identically no matter which of the three parses it.
 
     A fresh instance is built per request rather than registered globally (contrast
     with `retromol_antismash.inference.registry.register_domain_model`, which keeps
     whichever instance was registered first) since the threshold is now a per-upload
-    choice -- see `annotate_region`'s `domain_models` parameter. This is cheap:
-    the actual model file is only downloaded/loaded lazily, the first time
-    `.predict()` runs, and that underlying load is itself cached (see
-    `retromol_antismash.inference.model_paras.load_paras_model`).
+    choice -- see `annotate_region`'s `domain_models` parameter. This is cheap: the
+    underlying model file/training cache is only loaded lazily, the first time
+    `.predict()` runs, and that load is itself cached.
 
     :param threshold: probability threshold below which a prediction is discarded
-    :return: a configured ParasModel instance
+    :return: a configured DomainInferenceModel, or None if pmp.yml's selected method
+        reads antiSMASH's own GenBank qualifier instead of running a model.
     """
-    return ParasModel(
+    return build_nrps_a_domain_model(
+        PredictionConfig.load_from_file(os.getenv("PMP_PATH")) if os.getenv("PMP_PATH") else PredictionConfig.load_default(),
         threshold=threshold,
-        model_path=os.getenv("PARAS_MODEL_PATH"),
         cache_dir=os.getenv("PARAS_CACHE_DIR", "paras_cache"),
     )
+
+
+def check_paras_model_cache() -> None:
+    """
+    Log, at startup, whether a pretrained "paras_cli" model is already cached at
+    PARAS_CACHE_DIR -- otherwise the first cluster upload silently pays the full
+    from-scratch training cost (HMMER2/HMMER3/MUSCLE3 extraction over the whole
+    PARASECT dataset + a RandomForestClassifier fit -- see
+    retromol_paras.train.train_model), which is slow enough to blow past the RQ job
+    timeout. Doesn't build or train anything itself.
+    """
+    from retromol_paras.train import MODEL_FILE
+
+    model = _build_nrps_model(PARAS_THRESHOLD_DEFAULT)
+    if model is None:
+        logger.info("PARAS model cache check: skipped (pmp.yml's nrps.a_domain reads antiSMASH's own qualifier, no model needed)")
+        return
+
+    cache_dir = getattr(model, "cache_dir", None)
+    if cache_dir is None:
+        logger.info("PARAS model cache check: skipped (selected model has no cache_dir)")
+        return
+
+    model_file = Path(cache_dir) / MODEL_FILE
+    if model_file.exists():
+        logger.info("PARAS model cache: found trained model at %s -- cluster uploads will use it directly", model_file)
+    else:
+        logger.warning(
+            "PARAS model cache: NO trained model found at %s -- the first cluster "
+            "upload will train one from scratch (slow, likely to exceed the job "
+            "timeout). Run scripts/train_paras.py --cache-dir %s once to pre-populate it.",
+            model_file, cache_dir,
+        )
 
 
 @blp_search_compound.get("/api/searchCompound")
@@ -416,7 +454,8 @@ def run_gene_cluster_parse(
         return {"error": "Item not found during update"}, 404
 
     try:
-        paras_model = _build_paras_model(paras_threshold)
+        config = PredictionConfig.load_from_file(os.getenv("PMP_PATH")) if os.getenv("PMP_PATH") else PredictionConfig.load_default()
+        nrps_model = _build_nrps_model(paras_threshold)
 
         tmp_path: Path | None = None
         try:
@@ -439,9 +478,13 @@ def run_gene_cluster_parse(
         for region in regions:
             # No gene-level (PFAM/HMM) model is run here, since gene-level
             # classification isn't part of this feature -- gene_models defaults to
-            # whatever's globally registered, which is nothing.
-            annotate_region(region, domain_models=[paras_model])
-            readouts.append(linear_readout(region))
+            # whatever's globally registered, which is nothing. nrps_model is None
+            # when pmp.yml's predictors.nrps.a_domain is source: qualifier (reads
+            # antiSMASH's own GenBank call instead of running a model) -- nothing to
+            # annotate with in that case, linear_readout reads the qualifier directly.
+            if nrps_model is not None:
+                annotate_region(region, domain_models=[nrps_model])
+            readouts.append(linear_readout(region, config=config))
 
         # Rough analog of a compound's parse "coverage" score: fraction of modules
         # with a confident identification. PKS modules are classified directly from
@@ -594,8 +637,25 @@ def run_gene_cluster_reconstruction(item_payload: dict | None) -> tuple[dict, in
         data = []
         for readout_data in readouts_data:
             readout = LinearReadout.from_dict(readout_data)
-            names, _tokens = bgc_primary_sequence(readout, ctx.ruleset)
-            data.append({"id": readout.id, "primary_sequence": names})
+            ordered_modules = readout.biosynthetic_order()
+            names, tokens = bgc_primary_sequence(readout, ctx.ruleset)
+            data.append({
+                "id": readout.id,
+                # [name, [module_index]] pairs, same tuple shape as a compound's
+                # PrimarySequenceItem (see reconstruction/types.ts) so the same
+                # click-to-highlight chip components work unmodified -- "tags" here
+                # is the module's position in `modules` below, not an atom index.
+                "primary_sequence": [[name, [i]] for i, name in enumerate(names)],
+                "tokens": tokens,
+                # Same order as primary_sequence/tokens (bgc_primary_sequence iterates
+                # readout.biosynthetic_order() internally too) -- so modules[i] is the
+                # module primary_sequence[i]/tokens[i] came from. This is NOT the same
+                # order as getClusterReadout's raw readout.modules (insertion order:
+                # NRPS modules gene-by-gene, then all PKS modules), so a client wanting
+                # to link a readout token back to its originating gene/domains needs
+                # this array, not that one.
+                "modules": [module.to_dict() for module in ordered_modules],
+            })
 
         return {"ok": True, "status": "done", "data": data}, 200
 

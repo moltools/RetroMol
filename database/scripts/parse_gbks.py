@@ -1,17 +1,20 @@
 """Step 7: parse antiSMASH GenBank files into linear module readouts.
 
-For each region: PARAS predicts NRPS A-domain substrate specificities
-(retromol_antismash.inference.registry.annotate_region), then
+For each region: whichever model pmp.yml's "predictors.nrps.a_domain" currently
+selects predicts NRPS A-domain substrate specificities
+(retromol_antismash.inference.factory.build_nrps_a_domain_model +
+retromol_antismash.inference.registry.annotate_region), then
 retromol_antismash.modules.linear_readout collects PKS/NRPS modules in
-biosynthetic order. One file per worker process (PARAS model loading is the
-expensive per-process setup cost, so it's paid once per worker, not once per file).
+biosynthetic order -- using the SAME factory + pmp.yml the GUI backend
+(gui/src/server/routes/jobs.py) and the CLI test script (scripts/predict_bgc.py)
+use, so all three ways of parsing a GenBank file resolve substrates identically.
+One file per worker process (model loading is the expensive per-process setup
+cost, so it's paid once per worker, not once per file).
 
-PARAS is optional, gated by `paras_training_data_path`:
-- None (default): PARAS is skipped entirely -- no model is loaded, annotate_region
-  is never called -- and every NRPS module's substrate is set to an explicit
-  "unknown" (see _mark_nrps_unknown) instead of a predicted one.
-- set: raises NotImplementedError. On-the-fly retraining from a training data file
-  isn't built yet; this exists so config can already carry the path for later.
+If pmp.yml's selected method is `source: qualifier` instead of `source: model`
+(e.g. reading antiSMASH's own NRPS substrate call straight from the GenBank
+record), no model is built or run at all -- collect_nrps_modules reads the
+qualifier directly, same as everywhere else this config is used.
 
 Emits one output: readouts JSONL, one line per antiSMASH region, with its
 LinearReadout, the raw GenBank text of its source file, and the MIBiG accession
@@ -40,46 +43,45 @@ from rdkit import RDLogger
 from tqdm import tqdm
 
 from common import split_accession_version
-from retromol_antismash.inference.model_paras import ParasModel
+from retromol_antismash.inference.base import DomainInferenceModel
+from retromol_antismash.inference.factory import build_nrps_a_domain_model
 from retromol_antismash.inference.registry import annotate_region
 from retromol_antismash.io import AntiSmashOptions, parse_antismash_gbk
-from retromol_antismash.modules import LinearReadout, ModuleType, NRPSSubstrate, linear_readout
+from retromol_antismash.modules import linear_readout
+from retromol_antismash.predictions import PredictionConfig
 
 log = logging.getLogger(__name__)
 
 GBK_GLOBS = ("*.gbk", "*.gb", "*.gbff")
 
-UNKNOWN_NRPS_SUBSTRATE = NRPSSubstrate(name="unknown", smiles=None, score=0.0)
-
-_G_PARAS_MODEL: ParasModel | None = None
-
-
-def _mark_nrps_unknown(readout: LinearReadout) -> None:
-    """Set every NRPS module's substrate to an explicit "unknown" -- used when PARAS is skipped
-    so a module with no substrate call is visibly "not predicted", not indistinguishable from one
-    PARAS looked at and genuinely couldn't call (module.predicted_substrate is mutable, not frozen)."""
-    for module in readout.modules:
-        if module.type == ModuleType.NRPS:
-            module.predicted_substrate = UNKNOWN_NRPS_SUBSTRATE
+_G_CONFIG: PredictionConfig | None = None
+_G_NRPS_MODEL: DomainInferenceModel | None = None
 
 
 def _init_worker(
-    use_paras: bool, paras_threshold: float, paras_keep_top: int, paras_model_path: str | None, paras_cache_dir: str
+    pmp_path: str | None,
+    threshold: float,
+    keep_top: int,
+    cache_dir: str,
+    force_retrain: bool,
 ) -> None:
-    global _G_PARAS_MODEL
+    global _G_CONFIG, _G_NRPS_MODEL
     # Belt-and-braces: importing this module (to resolve _init_worker as this pool's
     # initializer) already re-runs common.py's own RDLogger.DisableLog at the top of
     # this file's import chain, but this initializer is what the pool guarantees runs
     # once per worker no matter what -- see common.run_retromol_stream_quiet's
     # docstring for why that guarantee matters more than it might seem.
     RDLogger.DisableLog("rdApp.*")
-    if use_paras:
-        _G_PARAS_MODEL = ParasModel(
-            threshold=paras_threshold,
-            keep_top=paras_keep_top,
-            model_path=paras_model_path,
-            cache_dir=paras_cache_dir,
-        )
+    _G_CONFIG = PredictionConfig.load_from_file(pmp_path) if pmp_path else PredictionConfig.load_default()
+    # None when pmp.yml's predictors.nrps.a_domain is source: qualifier -- nothing to
+    # build or register, collect_nrps_modules reads the qualifier directly.
+    _G_NRPS_MODEL = build_nrps_a_domain_model(
+        _G_CONFIG,
+        threshold=threshold,
+        keep_top=keep_top,
+        cache_dir=cache_dir,
+        force_retrain=force_retrain,
+    )
 
 
 def _process_file(path_str: str) -> tuple[list[dict], str | None]:
@@ -93,13 +95,10 @@ def _process_file(path_str: str) -> tuple[list[dict], str | None]:
         entries: list[dict] = []
 
         for region in regions:
-            if _G_PARAS_MODEL is not None:
-                annotate_region(region, domain_models=[_G_PARAS_MODEL])
+            if _G_NRPS_MODEL is not None:
+                annotate_region(region, domain_models=[_G_NRPS_MODEL])
 
-            readout = linear_readout(region)
-
-            if _G_PARAS_MODEL is None:
-                _mark_nrps_unknown(readout)
+            readout = linear_readout(region, config=_G_CONFIG)
 
             accession, _version = split_accession_version(region.id)
 
@@ -119,21 +118,26 @@ def _process_file(path_str: str) -> tuple[list[dict], str | None]:
 def run(
     gbk_dir: str | Path,
     readouts_output_path: str | Path,
+    pmp_path: str | Path | None = None,
     paras_threshold: float = 0.1,
     paras_keep_top: int = 3,
-    paras_model_path: str | Path | None = None,
     paras_cache_dir: str | Path = "paras_cache",
-    paras_training_data_path: str | Path | None = None,
+    force_retrain: bool = False,
     workers: int = 1,
 ) -> None:
-    if paras_training_data_path is not None:
-        raise NotImplementedError(
-            "retraining PARAS on the fly from a training data file is not implemented yet "
-            f"(got paras_training_data_path={paras_training_data_path!r}); "
-            "set paras.training_data_path back to null in config.yaml to skip PARAS "
-            "and label every NRPS module 'unknown' instead"
-        )
-
+    """
+    :param gbk_dir: directory of antiSMASH GenBank files to parse (searched recursively).
+    :param readouts_output_path: where to write the readouts JSONL.
+    :param pmp_path: path to a pmp.yml prediction-mapping file, or None to use the packaged
+        default -- see retromol_antismash.inference.factory.build_nrps_a_domain_model for
+        how this selects (or skips) an NRPS substrate-prediction model.
+    :param paras_threshold: minimum predicted probability for a substrate call to be kept.
+    :param paras_keep_top: number of top-scoring substrate predictions to keep per domain.
+    :param paras_cache_dir: training-signature + fitted-model cache directory (see
+        retromol_paras.train.train_model).
+    :param force_retrain: retrain from scratch even if a cached model exists.
+    :param workers: number of worker processes.
+    """
     gbk_dir = Path(gbk_dir)
     readouts_output_path = Path(readouts_output_path)
     readouts_output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -144,16 +148,12 @@ def run(
     n_entries = 0
     n_errors = 0
 
-    # PARAS is always disabled for now -- paras_training_data_path is the only way
-    # to opt in once retraining exists, and that path always raises above.
-    use_paras = False
-
     init_args = (
-        use_paras,
+        str(pmp_path) if pmp_path else None,
         paras_threshold,
         paras_keep_top,
-        str(paras_model_path) if paras_model_path else None,
         str(paras_cache_dir),
+        force_retrain,
     )
 
     # Bounded sliding window rather than submitting every file as a future up front --
@@ -202,26 +202,22 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--gbk-dir", required=True)
     ap.add_argument("--readouts-output", required=True)
+    ap.add_argument("--pmp", default=None, help="path to a pmp.yml prediction-mapping file (default: packaged pmp.yml)")
     ap.add_argument("--paras-threshold", type=float, default=0.1)
     ap.add_argument("--paras-keep-top", type=int, default=3)
-    ap.add_argument("--paras-model-path", default=None)
     ap.add_argument("--paras-cache-dir", default="paras_cache")
-    ap.add_argument(
-        "--paras-training-data-path",
-        default=None,
-        help="retrain PARAS on the fly from this file before parsing (NOT YET IMPLEMENTED -- raises if set)",
-    )
+    ap.add_argument("--force-retrain", action="store_true", help="retrain from scratch even if a cached model exists")
     ap.add_argument("--workers", type=int, default=1)
     args = ap.parse_args()
 
     run(
         gbk_dir=args.gbk_dir,
         readouts_output_path=args.readouts_output,
+        pmp_path=args.pmp,
         paras_threshold=args.paras_threshold,
         paras_keep_top=args.paras_keep_top,
-        paras_model_path=args.paras_model_path,
         paras_cache_dir=args.paras_cache_dir,
-        paras_training_data_path=args.paras_training_data_path,
+        force_retrain=args.force_retrain,
         workers=args.workers,
     )
 

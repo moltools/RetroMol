@@ -35,6 +35,12 @@ export const ClusterItemSchema = BaseItemSchema.extend({
   // A-domain module (see retromol_antismash.inference.model_paras.ParasModel).
   // Doesn't affect PKS modules, which are classified directly from domain anatomy.
   parasThreshold: z.number().min(0).max(1).default(0.1),
+  // User overrides for the primary sequence RetroMol parsed out of this gene
+  // cluster, keyed by region index (stringified, for JSON-safe object keys) --
+  // same convention as CompoundItemSchema.editedPrimarySequences above (a
+  // missing key means "use the algorithm's own parse"; reverting just deletes
+  // the key rather than storing a copy of the original).
+  editedPrimarySequences: z.record(z.string(), z.array(PrimarySequenceItemSchema)).nullable().optional(),
 });
 
 export const DiscoveryQueryFlagsSchema = z.object({

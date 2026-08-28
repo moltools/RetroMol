@@ -33,10 +33,16 @@ MARKERS = WORKDIR / "markers"
 
 RXN_RULES = config["paths"].get("reaction_rules")
 MXN_RULES = config["paths"].get("matching_rules")
+MATCH_STEREOCHEMISTRY = config.get("match_stereochemistry", False)
 
+# null -> pmp.yml's packaged default. See that file's "predictors.nrps.a_domain" for
+# which model (if any) this actually selects -- the same file the GUI backend and
+# scripts/predict_bgc.py read, so all three resolve GenBank substrates identically.
+PMP_PATH = config["paras"].get("pmp_path")
 PARAS_THRESHOLD = config["paras"]["threshold"]
 PARAS_KEEP_TOP = config["paras"]["keep_top"]
-PARAS_TRAINING_DATA_PATH = config["paras"].get("training_data_path")
+PARAS_CACHE_DIR = config["paras"].get("cache_dir") or str(WORKDIR / "paras_cache")
+PARAS_FORCE_RETRAIN = config["paras"].get("force_retrain") or False
 
 PARSE_COMPOUNDS_WORKERS = config["compute"]["parse_compounds_workers"]
 PARSE_GBKS_WORKERS = config["compute"]["parse_gbks_workers"]
@@ -184,6 +190,7 @@ rule load_npatlas_compounds:
                 source="npatlas",
                 reaction_rules_path=RXN_RULES,
                 matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
                 taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
             )
 
@@ -261,6 +268,7 @@ rule load_mibig_compounds:
                 source="mibig",
                 reaction_rules_path=RXN_RULES,
                 matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
                 mibig_versions_path=input.versions,
                 mibig_annotations_path=input.annotations,
                 taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
@@ -282,9 +290,11 @@ rule parse_mibig_gbks:
         parse_gbks.run(
             gbk_dir=input.gbk_dir,
             readouts_output_path=output.readouts,
+            pmp_path=PMP_PATH,
             paras_threshold=PARAS_THRESHOLD,
             paras_keep_top=PARAS_KEEP_TOP,
-            paras_training_data_path=PARAS_TRAINING_DATA_PATH,
+            paras_cache_dir=PARAS_CACHE_DIR,
+            force_retrain=PARAS_FORCE_RETRAIN,
             workers=threads,
         )
 
@@ -313,6 +323,7 @@ rule load_mibig_bgcs:
                 db_path=DB_PATH,
                 reaction_rules_path=RXN_RULES,
                 matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
                 mibig_versions_path=input.versions,
                 mibig_annotations_path=input.annotations,
                 taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
