@@ -845,66 +845,368 @@
   smiles: "NC(N)=NCCCC(N)C(=O)O"
 - name: arginine
   smiles: "N=C(N)NCCCC(N)C(=O)O"
+- name: arginine^L
+  smiles: "NC(N)=NCC[C@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["arginine"]
+- name: arginine^D
+  smiles: "NC(N)=NCC[C@@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["arginine"]
+- name: N-methylarginine
+  smiles: "NC(N)=NCCCC(NC)C(=O)O"
+- name: N-methylarginine^L
+  smiles: "NC(N)=NCC[C@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylarginine"]
+- name: N-methylarginine^D
+  smiles: "NC(N)=NCC[C@@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylarginine"]
 
 - name: histidine
   smiles: "NC(Cc1cnc[nH]1)C(=O)O"
+- name: histidine^L
+  smiles: "N[C@@H](Cc1cnc[nH]1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["histidine"]
+- name: histidine^D
+  smiles: "N[C@H](Cc1cnc[nH]1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["histidine"]
+- name: N-methylhistidine
+  smiles: "CNC(Cc1cnc[nH]1)C(=O)O"
+- name: N-methylhistidine^L
+  smiles: "CN[C@@H](Cc1cnc[nH]1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylhistidine"]
+- name: N-methylhistidine^D
+  smiles: "CN[C@H](Cc1cnc[nH]1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylhistidine"]
 
 - name: 3-hydroxy histdine
   smiles: "NC(C(c1[nH]cnc1)O)C(O)=O"
 
 - name: lysine
   smiles: "NCCCCC(N)C(=O)O"
+- name: lysine^L
+  smiles: "NCCCC[C@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["lysine"]
+- name: lysine^D
+  smiles: "NCCCC[C@@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["lysine"]
+- name: N-methyllysine
+  smiles: "NCCCCC(NC)C(=O)O"
+- name: N-methyllysine^L
+  smiles: "NCCCC[C@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methyllysine"]
+- name: N-methyllysine^D
+  smiles: "NCCCC[C@@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methyllysine"]
 
 - name: aspartic acid
   smiles: "NC(CC(=O)O)C(=O)O"
+- name: aspartic acid^L
+  smiles: "N[C@@H](CC(=O)O)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["aspartic acid"]
+- name: aspartic acid^D
+  smiles: "N[C@H](CC(=O)O)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["aspartic acid"]
+- name: N-methylaspartic acid
+  smiles: "CNC(CC(=O)O)C(=O)O"
+- name: N-methylaspartic acid^L
+  smiles: "CN[C@@H](CC(=O)O)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylaspartic acid"]
+- name: N-methylaspartic acid^D
+  smiles: "CN[C@H](CC(=O)O)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylaspartic acid"]
 
 - name: glutamic acid
   smiles: "NC(CCC(=O)O)C(=O)O"
+- name: glutamic acid^L
+  smiles: "N[C@@H](CCC(=O)O)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["glutamic acid"]
+- name: glutamic acid^D
+  smiles: "N[C@H](CCC(=O)O)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["glutamic acid"]
+- name: N-methylglutamic acid
+  smiles: "CNC(CCC(=O)O)C(=O)O"
+- name: N-methylglutamic acid^L
+  smiles: "CN[C@@H](CCC(=O)O)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylglutamic acid"]
+- name: N-methylglutamic acid^D
+  smiles: "CN[C@H](CCC(=O)O)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylglutamic acid"]
 
 - name: serine
   smiles: "NC(CO)C(=O)O"
+- name: serine^L
+  smiles: "N[C@@H](CO)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["serine"]
+- name: serine^D
+  smiles: "N[C@H](CO)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["serine"]
+- name: N-methylserine
+  smiles: "CNC(CO)C(=O)O"
+- name: N-methylserine^L
+  smiles: "CN[C@@H](CO)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylserine"]
+- name: N-methylserine^D
+  smiles: "CN[C@H](CO)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylserine"]
 
 - name: threonine
   smiles: "CC(O)C(N)C(=O)O"
 
 - name: asparagine
   smiles: "NC(=O)CC(N)C(=O)O"
+- name: asparagine^L
+  smiles: "NC(=O)C[C@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["asparagine"]
+- name: asparagine^D
+  smiles: "NC(=O)C[C@@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["asparagine"]
+- name: N-methylasparagine
+  smiles: "NC(=O)CC(NC)C(=O)O"
+- name: N-methylasparagine^L
+  smiles: "NC(=O)C[C@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylasparagine"]
+- name: N-methylasparagine^D
+  smiles: "NC(=O)C[C@@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylasparagine"]
 
 - name: glutamine
   smiles: "NC(=O)CCC(N)C(=O)O"
+- name: glutamine^L
+  smiles: "NC(=O)CC[C@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["glutamine"]
+- name: glutamine^D
+  smiles: "NC(=O)CC[C@@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["glutamine"]
+- name: N-methylglutamine
+  smiles: "NC(=O)CCC(NC)C(=O)O"
+- name: N-methylglutamine^L
+  smiles: "NC(=O)CC[C@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylglutamine"]
+- name: N-methylglutamine^D
+  smiles: "NC(=O)CC[C@@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylglutamine"]
 
 - name: glycine
   smiles: "NCC(=O)O"
 
 - name: proline
   smiles: "O=C(O)C1CCCN1"
+- name: proline^L
+  smiles: "O=C(O)[C@@H]1CCCN1"
+  stereochemistry: true
+  pseudonyms: ["proline"]
+- name: proline^D
+  smiles: "O=C(O)[C@H]1CCCN1"
+  stereochemistry: true
+  pseudonyms: ["proline"]
+- name: N-methylproline
+  smiles: "O=C(O)C1CCCN1C"
+- name: N-methylproline^L
+  smiles: "O=C(O)[C@@H]1CCCN1C"
+  stereochemistry: true
+  pseudonyms: ["N-methylproline"]
+- name: N-methylproline^D
+  smiles: "O=C(O)[C@H]1CCCN1C"
+  stereochemistry: true
+  pseudonyms: ["N-methylproline"]
 
 - name: cysteine
   smiles: "NC(CS)C(=O)O"
+- name: cysteine^L
+  smiles: "N[C@@H](CS)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["cysteine"]
+- name: cysteine^D
+  smiles: "N[C@H](CS)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["cysteine"]
+- name: N-methylcysteine
+  smiles: "CNC(CS)C(=O)O"
+- name: N-methylcysteine^L
+  smiles: "CN[C@@H](CS)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylcysteine"]
+- name: N-methylcysteine^D
+  smiles: "CN[C@H](CS)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylcysteine"]
 
 - name: leucine
   smiles: "CC(C)CC(N)C(=O)O"
+- name: leucine^L
+  smiles: "CC(C)C[C@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["leucine"]
+- name: leucine^D
+  smiles: "CC(C)C[C@@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["leucine"]
+- name: N-methylleucine
+  smiles: "CC(C)CC(NC)C(=O)O"
+- name: N-methylleucine^L
+  smiles: "CC(C)C[C@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylleucine"]
+- name: N-methylleucine^D
+  smiles: "CC(C)C[C@@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylleucine"]
 
 - name: isoleucine
   smiles: "CCC(C)C(N)C(=O)O"
 
 - name: alanine
   smiles: "CC(N)C(=O)O"
+- name: alanine^L
+  smiles: "C[C@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["alanine"]
+- name: alanine^D
+  smiles: "C[C@@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["alanine"]
+- name: N-methylalanine
+  smiles: "CC(NC)C(=O)O"
+- name: N-methylalanine^L
+  smiles: "C[C@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylalanine"]
+- name: N-methylalanine^D
+  smiles: "C[C@@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylalanine"]
 
 - name: valine
   smiles: "CC(C)C(N)C(=O)O"
+- name: valine^L
+  smiles: "CC(C)[C@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["valine"]
+- name: valine^D
+  smiles: "CC(C)[C@@H](N)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["valine"]
+- name: N-methylvaline
+  smiles: "CC(C)C(NC)C(=O)O"
+- name: N-methylvaline^L
+  smiles: "CC(C)[C@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylvaline"]
+- name: N-methylvaline^D
+  smiles: "CC(C)[C@@H](NC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylvaline"]
 
 - name: methionine
   smiles: "CSCCC(C(=O)O)N"
+- name: methionine^L
+  smiles: "CSCC[C@@H](C(=O)O)N"
+  stereochemistry: true
+  pseudonyms: ["methionine"]
+- name: methionine^D
+  smiles: "CSCC[C@H](C(=O)O)N"
+  stereochemistry: true
+  pseudonyms: ["methionine"]
+- name: N-methylmethionine
+  smiles: "CSCCC(C(=O)O)NC"
+- name: N-methylmethionine^L
+  smiles: "CSCC[C@@H](C(=O)O)NC"
+  stereochemistry: true
+  pseudonyms: ["N-methylmethionine"]
+- name: N-methylmethionine^D
+  smiles: "CSCC[C@H](C(=O)O)NC"
+  stereochemistry: true
+  pseudonyms: ["N-methylmethionine"]
 
 - name: phenylalanine
   smiles: "NC(Cc1ccccc1)C(=O)O"
+- name: phenylalanine^L
+  smiles: "N[C@@H](Cc1ccccc1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["phenylalanine"]
+- name: phenylalanine^D
+  smiles: "N[C@H](Cc1ccccc1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["phenylalanine"]
+- name: N-methylphenylalanine^L
+  smiles: "CN[C@@H](Cc1ccccc1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylphenylalanine"]
+- name: N-methylphenylalanine^D
+  smiles: "CN[C@H](Cc1ccccc1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylphenylalanine"]
 
 - name: tryptophan
   smiles: "NC(Cc1c[nH]c2ccccc12)C(=O)O"
+- name: tryptophan^L
+  smiles: "N[C@@H](Cc1c[nH]c2ccccc12)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["tryptophan"]
+- name: tryptophan^D
+  smiles: "N[C@H](Cc1c[nH]c2ccccc12)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["tryptophan"]
+- name: N-methyltryptophan
+  smiles: "CNC(Cc1c[nH]c2ccccc12)C(=O)O"
+- name: N-methyltryptophan^L
+  smiles: "CN[C@@H](Cc1c[nH]c2ccccc12)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methyltryptophan"]
+- name: N-methyltryptophan^D
+  smiles: "CN[C@H](Cc1c[nH]c2ccccc12)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methyltryptophan"]
 
 - name: tyrosine
   smiles: "NC(Cc1ccc(O)cc1)C(=O)O"
+- name: tyrosine^L
+  smiles: "N[C@@H](Cc1ccc(O)cc1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["tyrosine"]
+- name: tyrosine^D
+  smiles: "N[C@H](Cc1ccc(O)cc1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["tyrosine"]
+- name: N-methyltyrosine^L
+  smiles: "CN[C@@H](Cc1ccc(O)cc1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methyltyrosine"]
+- name: N-methyltyrosine^D
+  smiles: "CN[C@H](Cc1ccc(O)cc1)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methyltyrosine"]
 
 - name: 3,4-dihydroxyphenylalanine
   smiles: "NC(C(O)=O)Cc1c(O)cc(O)cc1"

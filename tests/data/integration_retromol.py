@@ -360,7 +360,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "maytansine",
         r"C[C@@H]1[C@@H]2C[C@]([C@@H](/C=C/C=C(/CC3=CC(=C(C(=C3)OC)Cl)N(C(=O)C[C@@H]([C@]4([C@H]1O4)C)OC(=O)[C@H](C)N(C)C(=O)C)C)\C)OC)(NC(=O)O2)O",
         1.0,
-        ["3-amino-5-hydroxybenzoic acid", "A1", "B1", "B2", "C1", "C2", "D11", "D2", "acetic acid", "alanine", "carbamic acid", "chlorination", "methylation", "methylation", "methylation", "methylation", "oxidation"],
+        ["3-amino-5-hydroxybenzoic acid", "A1", "B1", "B2", "C1", "C2", "D11", "D2", "N-methylalanine", "acetic acid", "carbamic acid", "chlorination", "methylation", "methylation", "methylation", "oxidation"],
     ),
     (
         "megalomycin A",

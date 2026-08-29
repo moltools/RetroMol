@@ -524,6 +524,16 @@ class RuleSet:
         reaction_rules = [ReactionRule.from_dict(d) for d in reaction_rules_data]
         matching_rules = [MatchingRule.from_dict(d) for d in matching_rules_data]
 
+        # `match_mol` (see chem/matching.py) is greedy: it returns the first rule that
+        # matches and stops looking. Sort stereochemistry-specific rules (e.g.
+        # "alanine^L") ahead of their achiral fallback (e.g. "alanine") so a specific
+        # rule is always tried before its fallback, regardless of the order they
+        # happen to appear in mxn.yml -- an achiral rule's query has no chirality tags
+        # to violate, so with `useChirality=True` it still matches a stereo-defined
+        # molecule and would otherwise win by appearing first. Stable sort: relative
+        # order within each group (stereo / non-stereo) is preserved from mxn.yml.
+        matching_rules.sort(key=lambda rule: not rule.stereochemistry)
+
         return RuleSet(match_stereochemistry, reaction_rules, matching_rules)
 
     @classmethod
