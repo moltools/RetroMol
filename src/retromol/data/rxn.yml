@@ -34,9 +34,27 @@
   smarts: "[O&D2:1][CH3:2]>>[O:1].[C:2]"
   allowed_in_bulk: true
 
+# allowed_in_bulk deliberately omitted here (unlike reverse O-/S-methylation above):
+# mxn.yml has specific "N-methyl<name>"/"N-methyl<name>^L"/"^D" matching rules for many
+# amino acids (backbone N-methylation installed in-line by an NRPS module's MT domain),
+# and those rules need a chance to match the still-methylated, freshly-isolated residue
+# before this rule strips the methyl. If this were allowed_in_bulk, the bulk-uncontested
+# step (see model/rules.py's index_uncontested/apply_uncontested) would apply this
+# together with whichever bond-breaking rule isolates the residue (e.g. "break ester
+# bond (intermolecular)") in a single combined step whenever their match sites don't
+# overlap, which is the common case for a backbone N-methylated residue. Skipping
+# straight past the intermediate "isolated but still methylated" node and never giving
+# the specific mxn.yml rule a node to match against. Leaving this out of bulk forces it
+# through the slower per-rule "contested" exploration instead, where trying the specific
+# match first is one of the explored orderings and the identify-first path wins on cost
+# (a terminal match costs 0 vs. paying for another decomposition edge). See the
+# maytansine/spongidepsin/thiocoraline entries in tests/data/integration_retromol.py,
+# which regressed to generic name + "methylation" instead of e.g. "N-methylcysteine"
+# when this was still allowed_in_bulk. A residue with no specific mxn.yml rule still
+# falls back to the generic strip + "methylation" tag exactly as before. This only
+# changes ordering, not what this rule itself matches.
 - name: reverse N-methylation
   smarts: "[N:1][CH3:2]>>[N:1].[C:2]"
-  allowed_in_bulk: true
 
 - name: reverse S-methylation
   smarts: "[S:1][CH3:2]>>[S:1].[C:2]"

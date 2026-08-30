@@ -50,20 +50,23 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-// Splits a name like "A2^R" or "C^E2" into plain/superscript runs, matching MotifName's convention.
-// The link token renders as the same muted glyph MotifName uses instead of its literal text.
+// Stereo markers mxn.yml appends after "^": R/S (PK alpha/beta carbons), E/Z (PK
+// alkene geometry), L/D (NRPS amino acid alpha carbons, e.g. "alanine^L").
+const STEREO_MARKER = /^\^[A-Za-z]+$/;
+
+// Splits a name like "A2^R" or "C^E2" or "alanine^L" into plain/superscript runs,
+// matching MotifName's convention. The link token renders as the same muted glyph
+// MotifName uses instead of its literal text.
 function splitStereoMarkers(name: string): { text: string; sup: boolean }[] {
   if (name === LINK_TOKEN) {
     return [{ text: "⋮", sup: false }];
   }
 
   return name
-    .split(/(\^[SREZ])/g)
+    .split(/(\^[A-Za-z]+)/g)
     .filter((part) => part !== "")
     .map((part) =>
-      part === "^S" || part === "^R" || part === "^E" || part === "^Z"
-        ? { text: part.slice(1), sup: true }
-        : { text: part, sup: false }
+      STEREO_MARKER.test(part) ? { text: part.slice(1), sup: true } : { text: part, sup: false }
     );
 }
 

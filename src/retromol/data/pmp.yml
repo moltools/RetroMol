@@ -198,6 +198,27 @@ methods:
 
   nrps:
     a_domain:
+      # Note on stereochemistry and N-methylation: an A-domain substrate call (from
+      # either method below) always names the plain, unmethylated L-residue -- that's
+      # the vocabulary every caller (Stachelhaus code, NRPSPredictor2, PARAS) is trained
+      # on, since substrate specificity is read purely off the A-domain's binding-pocket
+      # residues, which decide the side chain, not what happens to the residue
+      # afterward. Two downstream facts are layered onto that name, neither a
+      # pmp.yml-configurable predictor axis here (both are read directly off module
+      # anatomy, not a qualifier/model prediction):
+      #   - Presence of an epimerization (E) domain elsewhere in the module
+      #     (NRPSAnatomy.has_E) -- the module incorporates the D-epimer instead of the
+      #     predicted L-form.
+      #   - Presence of an N-methyltransferase (MT) domain (NRPSAnatomy.has_MT, whether
+      #     standalone or embedded in the A-domain) -- the module methylates the
+      #     backbone amide nitrogen, independent of stereochemistry.
+      # retromol_antismash/modules.py's module_primary_sequence_tokens reads has_E/has_MT
+      # directly and tries the resolved name with both transforms applied (e.g.
+      # "N-methylalanine^L"), then each alone, then the bare name, before falling back to
+      # PARAS' structural SMILES match -- degrading gracefully since most
+      # non-proteinogenic monomers, and achiral residues like glycine, don't have every
+      # "N-methyl<name>"/"<name>^L"/"<name>^D" variant defined in mxn.yml.
+      #
       # antiSMASH's own NRPS substrate call, read straight from the
       # GenBank record. Point `key` at whichever qualifier line your
       # antiSMASH version writes (e.g. antiSMASH 6+ typically has

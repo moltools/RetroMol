@@ -1126,13 +1126,36 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
       existing would claim identity information we don't actually have.
     - An NRPS module's `NRPSSubstrate.name` is tried first as a literal
       rule name (this is where pmp.yml's "nrps.a_domain" `mapping` overrides take effect,
-      and where a `source: qualifier` fallback with no SMILES gets resolved). If that
-      doesn't match anything, and a SMILES is available (the default PARAS path), it
-      falls back to matching that SMILES against every rule by structure
-      (`RuleSet.find_structural_matches`) -- PARAS' raw labels aren't guaranteed to
-      match a rule's `name` string verbatim. Whether that structural match also
-      requires matching stereochemistry follows `ruleset.match_stereochemistry`, the
-      same toggle every other structural match in this codebase respects -- PARAS'
+      and where a `source: qualifier` fallback with no SMILES gets resolved) -- but before
+      that literal lookup, two anatomy-driven name transforms are tried first, most
+      specific first, since both are downstream modifications no A-domain substrate
+      caller (Stachelhaus code, NRPSPredictor2, PARAS) can see: they all predict identity
+      purely from the A-domain's binding-pocket residues, which only decide which side
+      chain gets activated, so `substrate.name` is always the plain, unmethylated
+      L-residue's identity, regardless of what the rest of the module does to it.
+        1. `NRPSAnatomy.has_MT` (an N-methyltransferase domain, whether standalone or
+           embedded in the A-domain, present in the module) prefixes the name with
+           "N-methyl" (e.g. "leucine" -> "N-methylleucine") -- the MT domain methylates
+           the backbone amide nitrogen of the loaded aminoacyl-PCP intermediate, not the
+           alpha carbon, so this is independent of stereochemistry.
+        2. `NRPSAnatomy.has_E` (an epimerization domain present) appends a "^L"/"^D"
+           stereo suffix (D if present, L otherwise) -- see point 1's independence: this
+           applies on top of, not instead of, the "N-methyl" prefix.
+      Both transforms are tried together first (most specific: "N-methyl<name>^L" or
+      "N-methyl<name>^D"), then MT-only ("N-methyl<name>"), then E-only ("<name>^L" or
+      "<name>^D"), then the bare `name`, so any level of an unmapped combination degrades
+      gracefully instead of returning "X" outright -- most exotic/non-proteinogenic
+      monomers, and achiral residues like glycine, don't have every variant defined in
+      mxn.yml. Neither transform is a pmp.yml-configurable predictor axis like
+      "pks.kr_stereochemistry" -- MT/E domain presence is read directly off the module's
+      anatomy, not a qualifier/model prediction, and the "N-methyl"/"^D" mxn.yml token
+      construction is a fixed biological fact rather than something a predictor swap
+      should override. If nothing in the candidate list matches, and a SMILES is
+      available (the default PARAS path), it falls back to matching that SMILES against
+      every rule by structure (`RuleSet.find_structural_matches`) -- PARAS' raw labels
+      aren't guaranteed to match a rule's `name` string verbatim. Whether that structural
+      match also requires matching stereochemistry follows `ruleset.match_stereochemistry`,
+      the same toggle every other structural match in this codebase respects -- PARAS'
       predicted substrate is a specific named compound (its SMILES comes from a fixed
       label->structure lookup, not a per-domain stereochemistry guess), so requiring
       an exact stereo match here is meaningful, not just permissively ignored.
@@ -1182,14 +1205,37 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
 
         return extender_unit.value, [extender_unit.value, "PK"]
 
-    # NRPS: try the resolved substrate name as a literal rule name first (this is
-    # where an explicit pmp.yml mapping, or a qualifier-sourced antiSMASH call with
-    # no SMILES, gets resolved), then fall back to structural SMILES matching.
+    # NRPS: try the resolved substrate name with both anatomy-driven transforms applied
+    # (an "N-methyl" prefix if `has_MT`, a "^L"/"^D" stereo suffix picked by `has_E`),
+    # then each transform alone, then the bare resolved name as a literal rule name
+    # (this last one is where an explicit pmp.yml mapping, or a qualifier-sourced
+    # antiSMASH call with no SMILES, gets resolved), then fall back to structural SMILES
+    # matching. See docstring above for why both transforms have to be tried independent
+    # of whether mxn.yml actually has a rule for every combination.
     substrate = module.substrate
     if substrate and substrate.name:
-        named = _by_name(substrate.name)
-        if named is not None:
-            return named
+        stereo_suffix = "D" if module.anatomy.has_E else "L"
+        # A dash separates "N-methyl" from a name that starts with a digit or capital
+        # letter (e.g. "N-methyl-N6-hydroxylysine", not "N-methylN6-..." which reads as
+        # if "N6" were a stray token glued onto "methyl") -- mxn.yml's own "N-methyl-*"
+        # entries follow the same rule (see mxn.yml's amino acid section), so this has to
+        # match it exactly for the lookup below to hit.
+        needs_dash = substrate.name[:1].isdigit() or substrate.name[:1].isupper()
+        methylated_name = (
+            f"N-methyl-{substrate.name}" if needs_dash else f"N-methyl{substrate.name}"
+        ) if module.anatomy.has_MT else None
+
+        candidates = []
+        if methylated_name:
+            candidates.append(f"{methylated_name}^{stereo_suffix}")
+            candidates.append(methylated_name)
+        candidates.append(f"{substrate.name}^{stereo_suffix}")
+        candidates.append(substrate.name)
+
+        for candidate in candidates:
+            resolved = _by_name(candidate)
+            if resolved is not None:
+                return resolved
 
     smiles = substrate.smiles if substrate else None
     if not smiles:
