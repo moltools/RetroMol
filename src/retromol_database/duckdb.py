@@ -1,11 +1,11 @@
-import hashlib
-import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Iterator, Literal, Sequence
+from typing import Iterator, Literal, Sequence
 
 import duckdb
 import numpy as np
+
+from retromol_fingerprint.fingerprint import TOKEN_LINK, TOKEN_UNK
 
 ENTRY_TYPES = ("compound", "bgc")
 EntryType = Literal["compound", "bgc"]
@@ -13,20 +13,100 @@ FINGERPRINT_SIZE = 1024
 
 
 @dataclass(frozen=True)
+class EntrySource:
+    name: str
+    database_name: str
+    url: str | None
+
+
+@dataclass(frozen=True)
 class Entry:
     id: str
+    # Primary display name/url -- the first-ever-inserted source for this entry (see
+    # `sources` below and entry_sources.seq). Kept as plain fields (not derived via a
+    # property) so every existing read site and the synthetic upload-candidate Entry(...)
+    # constructions in routes/discovery.py keep working unchanged.
     name: str
     url: str | None
     raw: str | None
     type: EntryType
     primary_sequence: list[str]
     fingerprint: list[float]
+    # Every (name, database_name, url) a source has contributed for this entry, ordered
+    # by insertion. Empty for synthetic (non-database) entries, e.g. session uploads.
+    sources: list[EntrySource] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
 class SearchResult:
     entry: Entry
     similarity: float
+
+
+@dataclass(frozen=True)
+class Count:
+    label: str
+    count: int
+
+
+@dataclass(frozen=True)
+class DatabaseStats:
+    total_entries: int
+    counts_by_type: list[Count]
+    sequence_length_min: int
+    sequence_length_max: int
+    sequence_length_avg: float
+    unique_block_count: int
+    with_source_url_count: int
+    without_source_url_count: int
+
+
+@dataclass(frozen=True)
+class AnnotationTerm:
+    id: str
+    category: str
+    rank: str | None
+    label: str
+    parent_id: str | None
+    # An id in whatever external database this term comes from (NCBI taxid for
+    # phylogeny; ChEBI accession for bioactivity), for linking out to that database's
+    # own page -- None for categories with no such external page (biosynthetic_class,
+    # chemical_class).
+    external_id: str | None = None
+
+
+@dataclass(frozen=True)
+class AnnotationCoverage:
+    label: str
+    with_annotation_count: int
+    without_annotation_count: int
+
+
+@dataclass(frozen=True)
+class AnnotationStats:
+    # Coverage per (category, entry type) that actually gets populated for it --
+    # phylogeny applies to both compounds and bgcs (an organism produces both), so it
+    # gets two entries; the rest are single-entry-type by design (see the population
+    # sites: chemical_class/bioactivity are compound-structure-derived, biosynthetic_class
+    # describes a BGC's own biosynthesis machinery).
+    coverage: list[AnnotationCoverage]
+    counts_by_category: list[Count]
+    # Phylogeny: one chart per rank.
+    phylogeny_type_counts: list[Count]
+    phylogeny_genus_counts: list[Count]
+    phylogeny_species_counts: list[Count]
+    # MIBiG's own coarse biosynthetic-class label -- a distinct category from chemical_class
+    # below, not a rank within it (see biosynthetic_class_annotations table comment).
+    biosynthetic_class_counts: list[Count]
+    # Chemical class: NPClassifier's three structure-derived levels (see
+    # database/scripts/annotate_npclassifier.py), kept as separate charts rather than
+    # pooled, since they're different ranks within the same classification scheme.
+    chemical_class_pathway_counts: list[Count]
+    chemical_class_superclass_counts: list[Count]
+    chemical_class_class_counts: list[Count]
+    # Bioactivity: ChEBI's role ontology (see database/scripts/annotate_chebi.py).
+    bioactivity_biological_role_counts: list[Count]
+    bioactivity_chemical_role_counts: list[Count]
 
 
 def _normalize_entry_type(entry_type: str) -> EntryType:
@@ -47,25 +127,6 @@ def _normalize_fingerprint(fingerprint: Sequence[float] | np.ndarray) -> list[fl
         raise ValueError(f"fingerprint must have shape ({FINGERPRINT_SIZE},), got {fp.shape}")
 
     return fp.astype(float).tolist()
-
-
-def make_entry_id(
-    *,
-    name: str,
-    url: str | None,
-    raw: str | None,
-    entry_type: str,
-    primary_sequence: Sequence[str],
-) -> str:
-    payload = {
-        "name": name,
-        "url": url,
-        "raw": raw,
-        "type": entry_type,
-        "primary_sequence": list(primary_sequence),
-    }
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 class RetroMolDuckDB:
@@ -108,103 +169,651 @@ class RetroMolDuckDB:
         self.con.close()
 
     def create_schema(self) -> None:
+        self.con.execute("CREATE SEQUENCE IF NOT EXISTS entry_sources_seq")
         self.con.execute(
             f"""
             CREATE TABLE IF NOT EXISTS entries (
                 id VARCHAR PRIMARY KEY,
-                name VARCHAR NOT NULL,
-                url VARCHAR,
-                raw VARCHAR,
                 type VARCHAR NOT NULL CHECK (type IN ('compound', 'bgc')),
+                raw VARCHAR,
+                content_hash VARCHAR,
                 primary_sequence VARCHAR[] NOT NULL,
                 fingerprint FLOAT[{FINGERPRINT_SIZE}] NOT NULL
             )
+            """
+        )
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS entry_sources (
+                seq BIGINT DEFAULT nextval('entry_sources_seq'),
+                entry_id VARCHAR NOT NULL,
+                name VARCHAR NOT NULL,
+                database_name VARCHAR NOT NULL,
+                url VARCHAR,
+                PRIMARY KEY (entry_id, database_name, name)
+            )
+            """
+        )
+        # Four dedicated annotation tables, one per category, each with its own typed
+        # columns instead of a single generic label -- see RetroMolDuckDB.add_phylogeny_annotation
+        # / add_bioactivity_annotation / add_biosynthetic_class_annotation / add_chemical_class_annotation.
+        # Phylogeny is one row per entry (an entry has exactly one organism); the other
+        # three are multi-valued per entry. chemical_class/bioactivity are populated for
+        # compounds only (they describe the molecule's own structure); biosynthetic_class
+        # is populated for bgcs only (it describes the gene cluster's biosynthesis
+        # machinery, not the compound) -- enforced by pipeline callers, not by this schema.
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS phylogeny_annotations (
+                entry_id VARCHAR PRIMARY KEY,
+                type_label VARCHAR,
+                type_taxid VARCHAR,
+                genus VARCHAR,
+                genus_taxid VARCHAR,
+                species VARCHAR,
+                species_taxid VARCHAR
+            )
+            """
+        )
+        # `level` distinguishes bioactivity's two signals (see
+        # database/scripts/annotate_chebi.py): ChEBI's "chebi_biological_role" and
+        # "chebi_chemical_role" (its role ontology, under CHEBI:24432/CHEBI:51086) --
+        # both multi-valued per entry. `external_id` is the term's own ChEBI accession,
+        # for building a "view on ChEBI" link; null when unresolved.
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bioactivity_annotations (
+                entry_id VARCHAR NOT NULL,
+                level VARCHAR NOT NULL,
+                label VARCHAR NOT NULL,
+                external_id VARCHAR,
+                PRIMARY KEY (entry_id, level, label)
+            )
+            """
+        )
+        # MIBiG's own coarse biosynthetic-class label (PKS/NRPS/RiPP/terpene/saccharide/other,
+        # from the BGC's annotated biosynthesis machinery) -- a distinct classification scheme
+        # from chemical_class below (NPClassifier's structure-derived classification of the
+        # compound itself), not a rank/level within it.
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS biosynthetic_class_annotations (
+                entry_id VARCHAR NOT NULL,
+                label VARCHAR NOT NULL,
+                PRIMARY KEY (entry_id, label)
+            )
+            """
+        )
+        # `level` distinguishes NPClassifier's "pathway"/"superclass"/"class"/"is_glycoside"
+        # (structure-derived, from a compound's own SMILES -- see
+        # database/scripts/annotate_npclassifier.py) -- every chemical_class row comes from
+        # NPClassifier now (MIBiG's biosynthetic class lives in biosynthetic_class_annotations
+        # above instead). The three list-valued levels can each carry more than one label per
+        # entry (hence label being part of the primary key, same as bioactivity); is_glycoside
+        # is stored as a single ("is_glycoside", "Yes") row only when true -- absence means
+        # false/unclassified, the same presence-only convention every other annotation table uses.
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chemical_class_annotations (
+                entry_id VARCHAR NOT NULL,
+                level VARCHAR NOT NULL,
+                label VARCHAR NOT NULL,
+                PRIMARY KEY (entry_id, level, label)
+            )
+            """
+        )
+        # Read-only views reconstructing the old generic (id/category/rank/label/parent_id)
+        # term shape and (entry_id, term_id) links across all three tables above -- so
+        # annotation_stats/enrichment queries (which are category-agnostic) don't need to
+        # know about the dedicated tables. term_id encodings match the pre-migration scheme
+        # (e.g. "phylogeny:genus:bacterium:streptomyces") so existing consumers are unaffected.
+        self.con.execute(
+            """
+            CREATE OR REPLACE VIEW annotation_terms AS
+            SELECT id, category, rank, label, parent_id, any_value(taxid) AS external_id
+            FROM (
+                SELECT
+                    'phylogeny:type:' || lower(type_label) AS id,
+                    'phylogeny' AS category, 'type' AS rank, type_label AS label,
+                    CAST(NULL AS VARCHAR) AS parent_id, type_taxid AS taxid
+                FROM phylogeny_annotations WHERE type_label IS NOT NULL
+                UNION ALL
+                SELECT
+                    'phylogeny:genus:' || lower(type_label) || ':' || lower(genus) AS id,
+                    'phylogeny' AS category, 'genus' AS rank, genus AS label,
+                    'phylogeny:type:' || lower(type_label) AS parent_id, genus_taxid AS taxid
+                FROM phylogeny_annotations WHERE type_label IS NOT NULL AND genus IS NOT NULL
+                UNION ALL
+                SELECT
+                    'phylogeny:species:' || lower(type_label) || ':' || lower(genus) || ':' || lower(species) AS id,
+                    'phylogeny' AS category, 'species' AS rank, species AS label,
+                    'phylogeny:genus:' || lower(type_label) || ':' || lower(genus) AS parent_id, species_taxid AS taxid
+                FROM phylogeny_annotations
+                WHERE type_label IS NOT NULL AND genus IS NOT NULL AND species IS NOT NULL
+                UNION ALL
+                SELECT
+                    'bioactivity:' || level || ':' || lower(label) AS id,
+                    'bioactivity' AS category, level AS rank, label,
+                    CAST(NULL AS VARCHAR) AS parent_id, external_id AS taxid
+                FROM bioactivity_annotations
+                UNION ALL
+                SELECT
+                    'biosynthetic_class:' || lower(label) AS id,
+                    'biosynthetic_class' AS category, CAST(NULL AS VARCHAR) AS rank, label,
+                    CAST(NULL AS VARCHAR) AS parent_id, CAST(NULL AS VARCHAR) AS taxid
+                FROM biosynthetic_class_annotations
+                UNION ALL
+                SELECT
+                    'chemical_class:' || level || ':' || lower(label) AS id,
+                    'chemical_class' AS category, level AS rank, label,
+                    CAST(NULL AS VARCHAR) AS parent_id, CAST(NULL AS VARCHAR) AS taxid
+                FROM chemical_class_annotations
+            )
+            GROUP BY id, category, rank, label, parent_id
+            """
+        )
+        self.con.execute(
+            """
+            CREATE OR REPLACE VIEW entry_annotations AS
+            SELECT entry_id, 'phylogeny:type:' || lower(type_label) AS term_id
+            FROM phylogeny_annotations WHERE type_label IS NOT NULL
+            UNION ALL
+            SELECT entry_id, 'phylogeny:genus:' || lower(type_label) || ':' || lower(genus)
+            FROM phylogeny_annotations WHERE type_label IS NOT NULL AND genus IS NOT NULL
+            UNION ALL
+            SELECT entry_id, 'phylogeny:species:' || lower(type_label) || ':' || lower(genus) || ':' || lower(species)
+            FROM phylogeny_annotations
+            WHERE type_label IS NOT NULL AND genus IS NOT NULL AND species IS NOT NULL
+            UNION ALL
+            SELECT entry_id, 'bioactivity:' || level || ':' || lower(label) FROM bioactivity_annotations
+            UNION ALL
+            SELECT entry_id, 'biosynthetic_class:' || lower(label) FROM biosynthetic_class_annotations
+            UNION ALL
+            SELECT entry_id, 'chemical_class:' || level || ':' || lower(label) FROM chemical_class_annotations
             """
         )
 
     def add_entry(
         self,
         *,
+        entry_id: str,
         name: str,
+        database_name: str,
         url: str | None,
         raw: str | None,
         entry_type: str,
         primary_sequence: Sequence[str],
         fingerprint: Sequence[float] | np.ndarray,
-        entry_id: str | None = None,
+        content_hash: str | None = None,
     ) -> str:
+        """
+        Add (or extend) an entry.
+
+        `entry_id` is the caller-supplied molecular identity -- an InChIKey for a
+        compound, or a hash of the source .gbk file's content plus region id for a
+        bgc (see database/scripts/load_compounds.py / load_bgcs.py). If an entry
+        with this id already exists, its stored `raw`/`primary_sequence`/
+        `fingerprint` are left untouched (they describe the same molecule/BGC
+        either way) and only a new `(name, database_name, url)` source row is
+        added -- or, if that exact (entry_id, database_name, name) combination was
+        already recorded, its url is refreshed.
+        """
         entry_type = _normalize_entry_type(entry_type)
         sequence = _normalize_primary_sequence(primary_sequence)
         fp = _normalize_fingerprint(fingerprint)
 
-        entry_id: str = entry_id or make_entry_id(
-            name=name,
-            url=url,
-            raw=raw,
-            entry_type=entry_type,
-            primary_sequence=sequence,
+        self.con.execute(
+            """
+            INSERT INTO entries (id, type, raw, content_hash, primary_sequence, fingerprint)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            [entry_id, entry_type, raw, content_hash, sequence, fp],
         )
 
         self.con.execute(
             """
-            INSERT OR REPLACE INTO entries (
-                id,
-                name,
-                url,
-                raw,
-                type,
-                primary_sequence,
-                fingerprint
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO entry_sources (entry_id, name, database_name, url)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (entry_id, database_name, name) DO UPDATE SET url = excluded.url
             """,
-            [entry_id, name, url, raw, entry_type, sequence, fp],
+            [entry_id, name, database_name, url],
         )
 
         return entry_id
 
-    def add_entries(self, entries: Iterable[Entry]) -> int:
-        rows = [
-            (
-                entry.id,
-                entry.name,
-                entry.url,
-                entry.raw,
-                _normalize_entry_type(entry.type),
-                _normalize_primary_sequence(entry.primary_sequence),
-                _normalize_fingerprint(entry.fingerprint),
-            )
-            for entry in entries
-        ]
-
-        if not rows:
-            return 0
-
-        self.con.executemany(
-            """
-            INSERT OR REPLACE INTO entries (
-                id,
-                name,
-                url,
-                raw,
-                type,
-                primary_sequence,
-                fingerprint
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            rows,
-        )
-
-        return len(rows)
+    def bgc_content_hash_exists(self, content_hash: str) -> bool:
+        """Whether a bgc entry sourced from a .gbk file with this content hash already exists."""
+        row = self.con.execute(
+            "SELECT 1 FROM entries WHERE type = 'bgc' AND content_hash = ? LIMIT 1",
+            [content_hash],
+        ).fetchone()
+        return row is not None
 
     def count(self) -> int:
         return int(self.con.execute("SELECT count(*) FROM entries").fetchone()[0])
 
+    def delete_entries_by_type(self, entry_type: str) -> int:
+        """
+        Delete every entry of the given type, plus its rows in every annotation/
+        source table (there are no foreign-key cascades in this schema, so each
+        table needs its own DELETE).
+
+        Use this to force a clean re-ingest after a parsing-logic change --
+        `load_bgcs.py`'s per-file content-hash check means simply re-running the
+        pipeline after deleting a marker/cache file skips every already-ingested
+        source file, since the *entries* themselves are untouched by that. Delete
+        the stale entries first (e.g. `delete_entries_by_type("bgc")`), then
+        re-run the load step.
+
+        :param entry_type: "compound" or "bgc".
+        :return: number of entries deleted.
+        """
+        entry_type = _normalize_entry_type(entry_type)
+
+        (n,) = self.con.execute("SELECT count(*) FROM entries WHERE type = ?", [entry_type]).fetchone()
+
+        for table in (
+            "entry_sources",
+            "phylogeny_annotations",
+            "bioactivity_annotations",
+            "biosynthetic_class_annotations",
+            "chemical_class_annotations",
+        ):
+            self.con.execute(
+                f"DELETE FROM {table} WHERE entry_id IN (SELECT id FROM entries WHERE type = ?)",
+                [entry_type],
+            )
+        self.con.execute("DELETE FROM entries WHERE type = ?", [entry_type])
+
+        return int(n)
+
+    def add_phylogeny_annotation(
+        self,
+        entry_id: str,
+        *,
+        type_label: str | None,
+        type_taxid: str | None = None,
+        genus: str | None = None,
+        genus_taxid: str | None = None,
+        species: str | None = None,
+        species_taxid: str | None = None,
+    ) -> None:
+        """Set (or replace) `entry_id`'s single phylogeny row. `species`/`species_taxid`
+        are only meaningful -- and only surfaced by the annotation_terms/entry_annotations
+        views -- when `genus` is also given; a taxid is optional at every rank (e.g. NPAtlas
+        names that don't resolve against the NCBI taxdump still store their raw genus/species
+        text with a NULL taxid). No-ops if `type_label` isn't resolvable."""
+        if not type_label:
+            return
+
+        self.con.execute(
+            """
+            INSERT INTO phylogeny_annotations
+                (entry_id, type_label, type_taxid, genus, genus_taxid, species, species_taxid)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (entry_id) DO UPDATE SET
+                type_label = excluded.type_label,
+                type_taxid = excluded.type_taxid,
+                genus = excluded.genus,
+                genus_taxid = excluded.genus_taxid,
+                species = excluded.species,
+                species_taxid = excluded.species_taxid
+            """,
+            [entry_id, type_label, type_taxid, genus, genus_taxid, species, species_taxid],
+        )
+
+    def add_bioactivity_annotation(
+        self, entry_id: str, *, level: str, label: str, external_id: str | None = None
+    ) -> None:
+        """Link `entry_id` (a compound) to a bioactivity label at the given `level` (e.g.
+        "chebi_biological_role", "chebi_chemical_role" -- see
+        database/scripts/annotate_chebi.py). Compounds only -- callers must not use this
+        for bgc entries."""
+        self.con.execute(
+            """
+            INSERT INTO bioactivity_annotations (entry_id, level, label, external_id)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (entry_id, level, label) DO NOTHING
+            """,
+            [entry_id, level, label, external_id],
+        )
+
+    def add_biosynthetic_class_annotation(self, entry_id: str, label: str) -> None:
+        """Link `entry_id` (a bgc) to a MIBiG biosynthetic-class label (PKS/NRPS/RiPP/...).
+        BGCs only -- callers must not use this for compound entries."""
+        self.con.execute(
+            """
+            INSERT INTO biosynthetic_class_annotations (entry_id, label)
+            VALUES (?, ?)
+            ON CONFLICT (entry_id, label) DO NOTHING
+            """,
+            [entry_id, label],
+        )
+
+    def add_chemical_class_annotation(self, entry_id: str, *, level: str, label: str) -> None:
+        """Link `entry_id` (a compound) to a chemical-class label at the given `level`
+        (e.g. "biosyn_class", or NPClassifier's "pathway"/"superclass"/"class"/"is_glycoside" --
+        see the chemical_class_annotations table comment in create_schema). Compounds only --
+        callers must not use this for bgc entries."""
+        self.con.execute(
+            """
+            INSERT INTO chemical_class_annotations (entry_id, level, label)
+            VALUES (?, ?, ?)
+            ON CONFLICT (entry_id, level, label) DO NOTHING
+            """,
+            [entry_id, level, label],
+        )
+
+    def count_entries_by_type(self, entry_types: Sequence[str]) -> int:
+        if not entry_types:
+            return 0
+        types = [_normalize_entry_type(t) for t in entry_types]
+        return int(
+            self.con.execute(
+                "SELECT count(*) FROM entries WHERE type IN (SELECT UNNEST(?))",
+                [types],
+            ).fetchone()[0]
+        )
+
+    def annotation_term_counts(self, entry_ids: Sequence[str]) -> dict[str, int]:
+        """For every term linked to at least one of the given entry ids, how many of those
+        ids carry it. Used as the "selected" side of an enrichment contingency table."""
+        if not entry_ids:
+            return {}
+
+        rows = self.con.execute(
+            """
+            SELECT term_id, count(DISTINCT entry_id)
+            FROM entry_annotations
+            WHERE entry_id IN (SELECT UNNEST(?))
+            GROUP BY term_id
+            """,
+            [list(entry_ids)],
+        ).fetchall()
+        return {str(row[0]): int(row[1]) for row in rows}
+
+    def annotation_term_counts_for_types(self, entry_types: Sequence[str]) -> dict[str, int]:
+        """For every term, how many entries of the given type(s) carry it -- the
+        "background pool" side of an enrichment contingency table."""
+        if not entry_types:
+            return {}
+
+        types = [_normalize_entry_type(t) for t in entry_types]
+        rows = self.con.execute(
+            """
+            SELECT ea.term_id, count(DISTINCT ea.entry_id)
+            FROM entry_annotations ea
+            JOIN entries e ON e.id = ea.entry_id
+            WHERE e.type IN (SELECT UNNEST(?))
+            GROUP BY ea.term_id
+            """,
+            [types],
+        ).fetchall()
+        return {str(row[0]): int(row[1]) for row in rows}
+
+    def annotation_terms_by_ids(self, term_ids: Sequence[str]) -> dict[str, AnnotationTerm]:
+        if not term_ids:
+            return {}
+
+        rows = self.con.execute(
+            """
+            SELECT id, category, rank, label, parent_id, external_id
+            FROM annotation_terms
+            WHERE id IN (SELECT UNNEST(?))
+            """,
+            [list(term_ids)],
+        ).fetchall()
+        return {
+            str(row[0]): AnnotationTerm(
+                id=str(row[0]), category=str(row[1]), rank=row[2], label=str(row[3]), parent_id=row[4],
+                external_id=row[5],
+            )
+            for row in rows
+        }
+
+    def entry_annotation_terms(self, entry_id: str) -> list[AnnotationTerm]:
+        """Every annotation term linked to `entry_id`, across all four categories --
+        the "show me everything known about this compound/bgc" query used by the
+        Discovery tab's expanded result view."""
+        rows = self.con.execute(
+            """
+            SELECT t.id, t.category, t.rank, t.label, t.parent_id, t.external_id
+            FROM entry_annotations ea
+            JOIN annotation_terms t ON t.id = ea.term_id
+            WHERE ea.entry_id = ?
+            ORDER BY t.category, t.rank NULLS FIRST, t.label
+            """,
+            [entry_id],
+        ).fetchall()
+        return [
+            AnnotationTerm(
+                id=str(row[0]), category=str(row[1]), rank=row[2], label=str(row[3]), parent_id=row[4],
+                external_id=row[5],
+            )
+            for row in rows
+        ]
+
+    def search_entries(
+        self, query: str, *, entry_type: str | None = None, limit: int = 100
+    ) -> list[Entry]:
+        """Look up up to `limit` entries by a case-insensitive substring match on any of
+        their source names, or an exact match on their id -- the "query and select" lookup
+        used by the Enrichment tab (distinct from `closest()`'s fingerprint-similarity search)."""
+        if limit < 1:
+            raise ValueError("limit must be >= 1")
+
+        where_sql = "WHERE (e.id = $2 OR es.name ILIKE '%' || $2 || '%')"
+        params: list[object] = [limit, query]
+
+        if entry_type is not None:
+            entry_type = _normalize_entry_type(entry_type)
+            where_sql += " AND e.type = $3"
+            params.append(entry_type)
+
+        rows = self.con.execute(
+            f"""
+            SELECT DISTINCT e.id, e.raw, e.type, e.primary_sequence, e.fingerprint
+            FROM entries e
+            LEFT JOIN entry_sources es ON es.entry_id = e.id
+            {where_sql}
+            ORDER BY e.id
+            LIMIT $1
+            """,
+            params,
+        ).fetchall()
+
+        sources_by_id = self._sources_for_entry_ids([str(row[0]) for row in rows])
+        return [_entry_from_row(row, sources_by_id.get(str(row[0]), [])) for row in rows]
+
+    def _label_counts(self, *, category: str, rank: str | None = None, limit: int | None = None) -> list[Count]:
+        """Distinct-entry counts per label, for one (category, rank) slice of
+        annotation_terms/entry_annotations -- the building block for every chart on the
+        Dashboard's Annotations section."""
+        where_sql = "WHERE t.category = ?"
+        params: list[object] = [category]
+        if rank is not None:
+            where_sql += " AND t.rank = ?"
+            params.append(rank)
+
+        limit_sql = " LIMIT ?" if limit is not None else ""
+        if limit is not None:
+            params.append(limit)
+
+        rows = self.con.execute(
+            f"""
+            SELECT t.label, count(DISTINCT ea.entry_id)
+            FROM entry_annotations ea
+            JOIN annotation_terms t ON t.id = ea.term_id
+            {where_sql}
+            GROUP BY t.label
+            ORDER BY count(DISTINCT ea.entry_id) DESC
+            {limit_sql}
+            """,
+            params,
+        ).fetchall()
+        return [Count(label=str(row[0]), count=int(row[1])) for row in rows]
+
+    def _annotation_coverage(self, *, category: str, entry_type: str, label: str) -> AnnotationCoverage:
+        """with/without-annotation counts for one (category, entry type) slice -- e.g.
+        "how many compounds have a chemical_class annotation", not "how many entries of
+        any type have any annotation" (too coarse to be useful once there are several
+        categories that each apply to only one entry type)."""
+        total = self.count_entries_by_type([entry_type])
+        with_count = int(
+            self.con.execute(
+                """
+                SELECT count(DISTINCT ea.entry_id)
+                FROM entry_annotations ea
+                JOIN annotation_terms t ON t.id = ea.term_id
+                JOIN entries e ON e.id = ea.entry_id
+                WHERE t.category = ? AND e.type = ?
+                """,
+                [category, entry_type],
+            ).fetchone()[0]
+        )
+        return AnnotationCoverage(label=label, with_annotation_count=with_count, without_annotation_count=total - with_count)
+
+    def annotation_stats(self) -> AnnotationStats:
+        """Summary counts over annotation_terms/entry_annotations, for the Dashboard."""
+        coverage = [
+            self._annotation_coverage(category="phylogeny", entry_type="compound", label="Phylogeny (compounds)"),
+            self._annotation_coverage(category="phylogeny", entry_type="bgc", label="Phylogeny (gene clusters)"),
+            self._annotation_coverage(
+                category="chemical_class", entry_type="compound", label="Chemical class (compounds)"
+            ),
+            self._annotation_coverage(
+                category="biosynthetic_class", entry_type="bgc", label="Biosynthetic class (gene clusters)"
+            ),
+            self._annotation_coverage(category="bioactivity", entry_type="compound", label="Bioactivity (compounds)"),
+        ]
+
+        category_rows = self.con.execute(
+            """
+            SELECT t.category, count(DISTINCT ea.entry_id)
+            FROM entry_annotations ea
+            JOIN annotation_terms t ON t.id = ea.term_id
+            GROUP BY t.category
+            ORDER BY t.category
+            """
+        ).fetchall()
+        counts_by_category = [Count(label=str(row[0]), count=int(row[1])) for row in category_rows]
+
+        return AnnotationStats(
+            coverage=coverage,
+            counts_by_category=counts_by_category,
+            phylogeny_type_counts=self._label_counts(category="phylogeny", rank="type"),
+            phylogeny_genus_counts=self._label_counts(category="phylogeny", rank="genus", limit=15),
+            phylogeny_species_counts=self._label_counts(category="phylogeny", rank="species", limit=15),
+            biosynthetic_class_counts=self._label_counts(category="biosynthetic_class"),
+            chemical_class_pathway_counts=self._label_counts(category="chemical_class", rank="pathway", limit=15),
+            chemical_class_superclass_counts=self._label_counts(category="chemical_class", rank="superclass", limit=15),
+            chemical_class_class_counts=self._label_counts(category="chemical_class", rank="class", limit=15),
+            bioactivity_biological_role_counts=self._label_counts(
+                category="bioactivity", rank="chebi_biological_role", limit=15
+            ),
+            bioactivity_chemical_role_counts=self._label_counts(
+                category="bioactivity", rank="chebi_chemical_role", limit=15
+            ),
+        )
+
+    def stats(self) -> DatabaseStats:
+        """
+        Compute summary statistics over the whole entries table, for display on a
+        dashboard/overview page.
+
+        Building blocks are the tokens in each entry's primary_sequence -- e.g. amino
+        acid names, PK reduction-state groups, or tailoring events like "methylation".
+        TOKEN_UNK ("<UNK>") marks a block RetroMol couldn't identify and TOKEN_LINK
+        ("<LINK>") just joins two merged paths within one entry's sequence -- neither
+        is a real building block, so both are excluded from unique_block_count.
+
+        :return: a DatabaseStats snapshot
+        """
+        total_entries = self.count()
+
+        type_rows = self.con.execute(
+            "SELECT type, count(*) FROM entries GROUP BY type ORDER BY type"
+        ).fetchall()
+        counts_by_type = [Count(label=str(row[0]), count=int(row[1])) for row in type_rows]
+
+        length_row = self.con.execute(
+            """
+            SELECT
+                min(len(primary_sequence)),
+                max(len(primary_sequence)),
+                avg(len(primary_sequence))
+            FROM entries
+            """
+        ).fetchone()
+        sequence_length_min = int(length_row[0]) if length_row[0] is not None else 0
+        sequence_length_max = int(length_row[1]) if length_row[1] is not None else 0
+        sequence_length_avg = float(length_row[2]) if length_row[2] is not None else 0.0
+
+        unique_block_count = int(
+            self.con.execute(
+                """
+                SELECT count(DISTINCT token)
+                FROM (SELECT unnest(primary_sequence) AS token FROM entries)
+                WHERE token NOT IN (?, ?)
+                """,
+                [TOKEN_UNK, TOKEN_LINK],
+            ).fetchone()[0]
+        )
+
+        url_row = self.con.execute(
+            """
+            SELECT
+                count(*) FILTER (WHERE has_url),
+                count(*) FILTER (WHERE NOT has_url)
+            FROM (
+                SELECT e.id, bool_or(es.url IS NOT NULL) AS has_url
+                FROM entries e
+                LEFT JOIN entry_sources es ON es.entry_id = e.id
+                GROUP BY e.id
+            )
+            """
+        ).fetchone()
+        with_source_url_count = int(url_row[0])
+        without_source_url_count = int(url_row[1])
+
+        return DatabaseStats(
+            total_entries=total_entries,
+            counts_by_type=counts_by_type,
+            sequence_length_min=sequence_length_min,
+            sequence_length_max=sequence_length_max,
+            sequence_length_avg=sequence_length_avg,
+            unique_block_count=unique_block_count,
+            with_source_url_count=with_source_url_count,
+            without_source_url_count=without_source_url_count,
+        )
+
+    def _sources_for_entry_ids(self, entry_ids: Sequence[str]) -> dict[str, list[EntrySource]]:
+        """Batch-fetch every (name, database_name, url) source for the given entry ids, ordered by insertion."""
+        if not entry_ids:
+            return {}
+
+        rows = self.con.execute(
+            """
+            SELECT entry_id, name, database_name, url
+            FROM entry_sources
+            WHERE entry_id IN (SELECT UNNEST(?))
+            ORDER BY entry_id, seq
+            """,
+            [list(entry_ids)],
+        ).fetchall()
+
+        out: dict[str, list[EntrySource]] = {}
+        for entry_id, name, database_name, url in rows:
+            out.setdefault(str(entry_id), []).append(
+                EntrySource(name=str(name), database_name=str(database_name), url=url)
+            )
+        return out
+
     def get_entry(self, entry_id: str) -> Entry | None:
         row = self.con.execute(
             """
-            SELECT id, name, url, raw, type, primary_sequence, fingerprint
+            SELECT id, raw, type, primary_sequence, fingerprint
             FROM entries
             WHERE id = ?
             """,
@@ -214,19 +823,39 @@ class RetroMolDuckDB:
         if row is None:
             return None
 
-        return _entry_from_row(row)
+        sources = self._sources_for_entry_ids([entry_id]).get(entry_id, [])
+        return _entry_from_row(row, sources)
+
+    def get_entries(self, entry_ids: Sequence[str]) -> list[Entry]:
+        """Batch version of get_entry -- one round trip for up to `len(entry_ids)` entries,
+        in no particular order (missing ids are silently omitted, not errored)."""
+        if not entry_ids:
+            return []
+
+        rows = self.con.execute(
+            """
+            SELECT id, raw, type, primary_sequence, fingerprint
+            FROM entries
+            WHERE id IN (SELECT UNNEST(?))
+            """,
+            [list(entry_ids)],
+        ).fetchall()
+
+        sources_by_id = self._sources_for_entry_ids([str(row[0]) for row in rows])
+        return [_entry_from_row(row, sources_by_id.get(str(row[0]), [])) for row in rows]
 
     def iter_entries(self) -> Iterator[Entry]:
         rows = self.con.execute(
             """
-            SELECT id, name, url, raw, type, primary_sequence, fingerprint
+            SELECT id, raw, type, primary_sequence, fingerprint
             FROM entries
             ORDER BY id
             """
         ).fetchall()
 
+        sources_by_id = self._sources_for_entry_ids([str(row[0]) for row in rows])
         for row in rows:
-            yield _entry_from_row(row)
+            yield _entry_from_row(row, sources_by_id.get(str(row[0]), []))
 
     def closest(
         self,
@@ -253,8 +882,6 @@ class RetroMolDuckDB:
             f"""
             SELECT
                 id,
-                name,
-                url,
                 raw,
                 type,
                 primary_sequence,
@@ -268,10 +895,12 @@ class RetroMolDuckDB:
             params,
         ).fetchall()
 
+        sources_by_id = self._sources_for_entry_ids([str(row[0]) for row in rows])
+
         return [
             SearchResult(
-                entry=_entry_from_row(row[:7]),
-                similarity=float(row[7]),
+                entry=_entry_from_row(row[:5], sources_by_id.get(str(row[0]), [])),
+                similarity=float(row[5]),
             )
             for row in rows
         ]
@@ -282,15 +911,17 @@ class RetroMolDuckDB:
             [str(path)],
         )
 
-def _entry_from_row(row) -> Entry:
+def _entry_from_row(row, sources: list[EntrySource]) -> Entry:
+    primary = sources[0] if sources else None
     return Entry(
         id=str(row[0]),
-        name=str(row[1]),
-        url=row[2],  # don't turn into str, might be None
-        raw=row[3],
-        type=_normalize_entry_type(row[4]),
-        primary_sequence=list(row[5]),
-        fingerprint=list(row[6]),
+        name=primary.name if primary else str(row[0]),
+        url=primary.url if primary else None,
+        raw=row[1],
+        type=_normalize_entry_type(row[2]),
+        primary_sequence=list(row[3]),
+        fingerprint=list(row[4]),
+        sources=sources,
     )
 
 

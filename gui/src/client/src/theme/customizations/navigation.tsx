@@ -15,7 +15,7 @@ export const navigationCustomizations: Components<Theme> = {
   MuiMenuItem: {
     styleOverrides: {
       root: ({ theme }) => ({
-        borderRadius: (theme.vars || theme).shape.borderRadius,
+        borderRadius: 0,
         padding: "6px 8px",
         [`&.${menuItemClasses.focusVisible}`]: {
           backgroundColor: "transparent",

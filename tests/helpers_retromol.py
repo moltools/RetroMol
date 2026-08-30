@@ -10,10 +10,19 @@ from retromol.pipelines.parsing import run_retromol_with_timeout
 def load_rule_set() -> RuleSet:
     """
     Load the default RetroMol rule set once.
-    
+
     :return: the loaded RuleSet object
     """
     return RuleSet.load_default(match_stereochemistry=False)
+
+
+def load_stereo_rule_set() -> RuleSet:
+    """
+    Load the default RetroMol rule set once, matching stereochemistry.
+
+    :return: the loaded RuleSet object
+    """
+    return RuleSet.load_default(match_stereochemistry=True)
 
 
 def parse_compound(smiles: str, ruleset: RuleSet) -> Result:

@@ -11,14 +11,16 @@
 </h1>
 
 <p align="center">
-    <a href="https://github.com/MolTools/RetroMol/actions/workflows/tests.yml">
-      <img alt="testing & quality" src="https://github.com/MolTools/RetroMol/actions/workflows/tests.yml/badge.svg" /></a>
+    <a href="https://github.com/MolTools/RetroMol/actions/workflows/gui-tests.yml">
+      <img alt="GUI tests" src="https://github.com/MolTools/RetroMol/actions/workflows/gui-tests.yml/badge.svg?event=pull_request" /></a>
+    <a href="https://github.com/MolTools/RetroMol/actions/workflows/python-tests.yml">
+      <img alt="Python tests" src="https://github.com/MolTools/RetroMol/actions/workflows/python-tests.yml/badge.svg?event=pull_request" /></a>
     <a href="https://pypi.org/project/retromol">
       <img alt="PyPI" src="https://img.shields.io/pypi/v/retromol" /></a>
     <a href="https://pypi.org/project/retromol">
       <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/retromol" /></a>
      <a href="https://doi.org/10.5281/zenodo.17555655">
-      <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.17555655.svg" alt="DOI" /></a>
+      <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17555655-blue.svg" alt="DOI" /></a>
 </p>
 
 RetroMol is retrosynthetic parsing and fingerprinting tool for modular natural products. 

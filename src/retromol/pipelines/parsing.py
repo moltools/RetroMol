@@ -34,6 +34,10 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
     g = ReactionGraph()
 
     original_taken_tags = get_tags_mol(submission.mol)
+    # Copy so bonds discovered mid-pipeline (e.g. a double bond that only becomes
+    # stereo-defined once a ring is opened) can be merged in without mutating the
+    # Submission's own registry.
+    stereo_registry = dict(submission.stereo_registry)
     failed_combos: set[tuple[int, frozenset[int]]] = set()
 
     # Track queue/expansion status by encoding to avoid duplicate work
@@ -68,7 +72,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
         if uncontested:
             log.debug(f"Applying {len(uncontested)} uncontested rule(s) in bulk")
 
-            products, applied_in_bulk, new_failed = apply_uncontested(parent, uncontested, original_taken_tags)
+            products, applied_in_bulk, new_failed = apply_uncontested(parent, uncontested, original_taken_tags, stereo_registry)
             failed_combos.update(new_failed)
 
             # If uncontested existed but none succeed, fall through to contested
@@ -92,7 +96,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
         # Contested exhaustive
         for rl in reaction_rules:
 
-            results = rl.apply(parent, None)
+            results = rl.apply(parent, None, stereo_registry)
             if not results:
                 continue
 

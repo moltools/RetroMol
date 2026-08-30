@@ -2,65 +2,32 @@ import React from "react";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { SessionItem } from "../../features/session/types";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { useQuery } from "@tanstack/react-query";
+import { Session, SessionItem } from "../../features/session/types";
+import { reconstructCompound } from "../../features/reconstruction/api";
+import { reconstructGeneCluster } from "../../features/clusters/api";
 import { DialogWindow } from "../DialogWindow";
+import { ErrorBoundary } from "../ErrorBoundary";
+import { ExportImageButton } from "../ExportImageButton";
 import SmilesDrawerContainer from "../SmilesDrawerContainer.js";
-
-export type PrimarySequenceItem = [string, number[]];
-
-export type Reconstruction = {
-  tagged_input_smiles: string;
-  tagged_backbone_smiles: string;
-  primary_sequence: PrimarySequenceItem[];
-};
+import { DrawingAttribution } from "../DrawingAttribution";
+import { PrimarySequenceOverview, PrimarySequenceRows, usePrimarySequenceEditor } from "./PrimarySequenceEditor";
+import { AnnotatedArrow } from "./AnnotatedArrow";
+import { ClusterReadoutDiagram, useClusterPrimarySequenceEditor } from "./ClusterReadoutDiagram";
+import { horizontalScrollSx } from "../../theme/scrollbarSx";
 
 type HighlightAtom = [number, string];
 
 type DialogViewItemProps = {
-  sessionId: string;
+  session: Session;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
   item: SessionItem;
   open: boolean;
   onClose: () => void;
-};
-
-function AnnotatedArrow({ annotation }: { annotation: string }) {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0, // don’t let it compress
-      }}
-    >
-      <Typography variant='caption' gutterBottom>
-        {annotation}
-      </Typography>
-      <Box
-        component='svg'
-        width={140} // total width of arrow+shaft
-        height={32}
-        viewBox='0 0 140 32'
-      >
-        {/* horizontal line */}
-        <line
-          x1='0'
-          y1='16'
-          x2='120'
-          y2='16'
-          stroke='currentColor'
-          strokeWidth='2'
-        />
-        {/* arrow head */}
-        <polygon
-          points='120,8 120,24 140,16'
-          fill='currentColor'
-        />
-      </Box>
-    </Box>
-  );
 };
 
 function DescriptionBox({ title, description }: { title: string; description: string }) {
@@ -76,100 +43,19 @@ function DescriptionBox({ title, description }: { title: string; description: st
   );
 };
 
-function MotifName({ name }: { name: string }) {
-  const parts = name.split(/(\^[SR])/g);
-
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part === "^S" || part === "^R") {
-          return (
-            <Box
-              key={i}
-              component="sup"
-              sx={{
-                fontSize: "0.7em",
-                lineHeight: 0,
-                verticalAlign: "super",
-              }}
-            >
-              {part.slice(1)}
-            </Box>
-          );
-        }
-
-        return <React.Fragment key={i}>{part}</React.Fragment>;
-      })}
-    </>
-  );
-}
-
-function PrimarySequence({
-  sequence,
-  selectedTags,
-  onToggleMotif,
-}: {
-  sequence: PrimarySequenceItem[];
-  selectedTags: number[];
-  onToggleMotif: (tags: number[]) => void;
-}) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "nowrap",
-        gap: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      {sequence.map(([name, tags], idx) => {
-        const isSelected =
-          tags.length > 0 && tags.every((tag) => selectedTags.includes(tag));
-
-        return (
-          <Box
-            key={`${name}-${idx}`}
-            onClick={() => onToggleMotif(tags)}
-            sx={{
-              px: 1.25,
-              py: 0.75,
-              borderRadius: 1,
-              border: "1px solid",
-              borderColor: isSelected ? "primary.main" : "divider",
-              bgcolor: isSelected ? "primary.main" : "background.paper",
-              color: isSelected ? "primary.contrastText" : "text.primary",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              cursor: "pointer",
-              userSelect: "none",
-              whiteSpace: "nowrap",
-              "&:hover": {
-                borderColor: "primary.main",
-                bgcolor: isSelected ? "primary.dark" : "action.hover",
-              },
-            }}
-          >
-            <MotifName name={name} />
-          </Box>
-        )
-      })}
-    </Box>
-  )
-}
-
 export const DialogViewItem: React.FC<DialogViewItemProps> = ({
-  sessionId,
+  session,
+  setSession,
   item,
   open,
   onClose,
 }) => {
+  const sessionId = session.sessionId;
   const isCompound = item.kind === "compound"; // there are only two types: "compound" and "cluster"
+  const itemScore = typeof item.score === "number" ? item.score : 0;
 
-  const [loading, setLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [data, setData] = React.useState<Reconstruction[] | null>(null);
   const [selectedTags, setSelectedTags] = React.useState<number[]>([]);
+  const diagramRef = React.useRef<HTMLDivElement>(null);
 
   const handleToggleMotif = (tags: number[]) => {
     setSelectedTags((prev) => {
@@ -181,7 +67,13 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
     })
   }
 
-  const highlightAtoms: HighlightAtom[] = selectedTags.map((tag) => [tag, "#027bf3"])
+  // Memoized so it's a stable reference across re-renders that don't touch
+  // selectedTags — otherwise SmilesDrawerContainer redraws on every unrelated
+  // parent re-render (e.g. the item card's periodic "updated Xs ago" tick).
+  const highlightAtoms = React.useMemo<HighlightAtom[]>(
+    () => selectedTags.map((tag) => [tag, "#027bf3"]),
+    [selectedTags]
+  );
 
   // Clear selection when dialog/item changes
   React.useEffect(() => {
@@ -190,34 +82,56 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
     }
   }, [open, item.id]);
 
-  React.useEffect(() => {
-    if (!open) { return; };
-    if (!isCompound) { return; };
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch("/api/reconstructCompound", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sessionId,
-            itemId: item.id,
-          }),
-        });
-        if (!response.ok) { throw new Error(`Error fetching data for linear view: ${response.statusText}`); };
-        const data = await response.json();
-        setData(data.data);
-      } catch (err: any) {
-        setError(err.message || "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [open, isCompound, sessionId, item.id]);
+  const reconstructionQuery = useQuery({
+    queryKey: ["reconstructCompound", sessionId, item.id],
+    queryFn: ({ signal }) => reconstructCompound(sessionId, item.id, signal),
+    enabled: open && isCompound,
+  });
+
+  const data = reconstructionQuery.data?.reconstructions ?? null;
+  const dbMatchingSequences = reconstructionQuery.data?.dbMatchingSequences ?? [];
+  const loading = reconstructionQuery.isLoading;
+  const error = reconstructionQuery.error
+    ? (reconstructionQuery.error as Error).message || "Unknown error"
+    : null;
+
+  // Four possible outcomes from the backend (see retromol_synthesis.reconstruction):
+  //  1. hasReconstructions && allHaveBackbone: full structure -> backbone -> sequence flow.
+  //  2. hasReconstructions && !isUnordered && !allHaveBackbone: a primary sequence was
+  //     found, but the hardcoded backbone-fusion chemistry couldn't rebuild a backbone
+  //     structure for it -- skip the backbone step and go straight from structure to
+  //     sequence.
+  //  3. hasReconstructions && isUnordered: building blocks were identified individually
+  //     (e.g. a branched or cyclic assembly), but couldn't be threaded into a single
+  //     order -- show them as an unordered set, not a sequence.
+  //  4. !hasReconstructions: nothing identified at all -- show the structure on its own.
+  const hasReconstructions = (data?.length ?? 0) > 0;
+  const isUnordered = hasReconstructions && (data ?? []).every((r) => r.ordered === false);
+  const allHaveBackbone = hasReconstructions && !isUnordered && (data ?? []).every((r) => !!r.tagged_backbone_smiles);
+  const backboneWarning = (data ?? []).find((r) => r.backbone_warning)?.backbone_warning ?? null;
+
+  const clusterReconstructionQuery = useQuery({
+    queryKey: ["reconstructGeneCluster", sessionId, item.id],
+    queryFn: ({ signal }) => reconstructGeneCluster(sessionId, item.id, signal),
+    enabled: open && !isCompound && item.status === "done",
+  });
+  const clusterData = clusterReconstructionQuery.data ?? null;
+
+  // resetSignal is `open` -- re-seeding on every open (even for the same item)
+  // matches the dialog's existing "fresh state each time" behavior for selectedTags.
+  const editor = usePrimarySequenceEditor(session, setSession, item, data, open);
+  const { editing, setEditing, anyDirty, saving, handleCancelEdit, handleSaveAll } = editor;
+
+  const clusterEditor = useClusterPrimarySequenceEditor(session, setSession, item, clusterData, open);
+  const {
+    editing: clusterEditing,
+    setEditing: setClusterEditing,
+    anyDirty: clusterAnyDirty,
+    saving: clusterSaving,
+    handleCancelEdit: handleClusterCancelEdit,
+    handleSaveAll: handleClusterSaveAll,
+  } = clusterEditor;
+  const clusterDiagramRef = React.useRef<HTMLDivElement>(null);
 
   return (
     <DialogWindow
@@ -225,15 +139,107 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
       onClose={onClose}
       title="View item"
       dividers
+      dirty={(editing && anyDirty) || (clusterEditing && clusterAnyDirty)}
       actions={[
-        { label: "Close", variant: "text", color: "inherit", onClick: onClose },
+        ...(isCompound && editing
+          ? [
+              { key: "cancel-edit", label: "Cancel", variant: "text" as const, color: "inherit" as const, onClick: handleCancelEdit },
+              {
+                key: "save",
+                label: saving ? "Saving..." : "Save changes",
+                variant: "contained" as const,
+                color: "primary" as const,
+                onClick: handleSaveAll,
+                disabled: !anyDirty || saving,
+                startIcon: saving ? <CircularProgress size={16} color="inherit" /> : undefined,
+              },
+            ]
+          : []),
+        ...(isCompound && !editing
+          ? [
+              {
+                key: "edit",
+                label: "Edit sequences",
+                variant: "contained" as const,
+                color: "primary" as const,
+                onClick: () => setEditing(true),
+                disabled: loading || !data || data.length === 0 || isUnordered,
+              },
+            ]
+          : []),
+        ...(item.kind === "cluster" && clusterEditing
+          ? [
+              { key: "cancel-cluster-edit", label: "Cancel", variant: "text" as const, color: "inherit" as const, onClick: handleClusterCancelEdit },
+              {
+                key: "save-cluster",
+                label: clusterSaving ? "Saving..." : "Save changes",
+                variant: "contained" as const,
+                color: "primary" as const,
+                onClick: handleClusterSaveAll,
+                disabled: !clusterAnyDirty || clusterSaving,
+                startIcon: clusterSaving ? <CircularProgress size={16} color="inherit" /> : undefined,
+              },
+            ]
+          : []),
+        ...(item.kind === "cluster" && !clusterEditing
+          ? [
+              {
+                key: "edit-cluster",
+                label: "Edit sequences",
+                variant: "contained" as const,
+                color: "primary" as const,
+                onClick: () => setClusterEditing(true),
+                disabled: clusterReconstructionQuery.isLoading || !clusterData || clusterData.length === 0,
+              },
+            ]
+          : []),
+        { key: "close", label: "Close", variant: "text" as const, color: "inherit" as const, onClick: onClose },
       ]}
       maxWidth={"lg"}
     >
-      {!isCompound && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Viewing is only available for compounds.
-        </Alert>
+      {!isCompound && item.kind === "cluster" && (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {item.status === "queued" && (
+            <Typography variant="body2" color="text.secondary">
+              Waiting to be parsed...
+            </Typography>
+          )}
+
+          {item.status === "processing" && <CircularProgress size={24} />}
+
+          {item.status === "error" && (
+            <Alert severity="error">
+              {item.errorMessage || "Parsing failed."}
+            </Alert>
+          )}
+
+          {item.status === "done" && clusterReconstructionQuery.isLoading && <CircularProgress size={24} />}
+
+          {item.status === "done" && clusterReconstructionQuery.error && (
+            <Alert severity="error">
+              {(clusterReconstructionQuery.error as Error).message || "Failed to load parsed gene cluster."}
+            </Alert>
+          )}
+
+          {item.status === "done" && clusterData && (
+            <>
+              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                <ExportImageButton
+                  targetRef={clusterDiagramRef}
+                  filename={`retromol-${(item.name || item.id).replace(/[^a-z0-9]+/gi, "-")}-readout`}
+                  label="Download the diagram below as a PNG"
+                />
+              </Box>
+              <Box ref={clusterDiagramRef} sx={{ p: 1, ...horizontalScrollSx }}>
+                <ClusterReadoutDiagram item={item} data={clusterData} state={clusterEditor} />
+              </Box>
+              <DescriptionBox
+                title="Explanation"
+                description='Each antiSMASH region is shown as a "genes & domains" row (left), the ordered NRPS/PKS modules RetroMol detected, and a "readout" row (right): the same primary sequence vocabulary a compound is parsed into. Click a chip on either row to highlight the module(s)/token it corresponds to on the other. If a readout was resolved wrong or incompletely, use "Edit sequences" to fix it by hand; saved edits are kept with this gene cluster and reused when you query it from the Discovery tab. "Revert" on a row discards the edit and restores the algorithm’s own parse.'
+              />
+            </>
+          )}
+        </Box>
       )}
 
       {loading && (
@@ -248,7 +254,58 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
 
       {(isCompound && !loading && !error) && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {!hasReconstructions && (
+            <Alert severity="warning">
+              This compound couldn't be parsed with RetroMol's current rule set, so no
+              primary sequence could be derived from it. The structure is shown below as-is.
+            </Alert>
+          )}
+
+          {hasReconstructions && !allHaveBackbone && (
+            <Alert severity="warning">
+              {backboneWarning ??
+                (isUnordered
+                  ? "RetroMol identified these building blocks individually, but couldn't determine a biosynthetic order between them."
+                  : "The linear backbone could not be reconstructed for this structure.")}
+            </Alert>
+          )}
+
+          {hasReconstructions && itemScore < 0.5 && (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Tooltip
+                title="Coverage is the share of the molecule RetroMol could match to known building blocks. Low or 0% coverage means most (or all) of the structure falls outside its rule set, e.g. an unusual scaffold or a modification the current rules don't recognize. A low coverage leads to primary sequences that may be sparse, incomplete, or empty."
+                placement="bottom-start"
+                arrow
+              >
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ cursor: "help", width: "fit-content" }}>
+                  <InfoOutlinedIcon fontSize="small" color="warning" />
+                  <Typography variant="caption" color="text.secondary">
+                    Low coverage: parts of the structure below may be sparse or empty
+                  </Typography>
+                </Stack>
+              </Tooltip>
+            </Stack>
+          )}
+
+          {dbMatchingSequences.length > 0 && (
+            <Stack spacing={1}>
+              <PrimarySequenceOverview
+                data={dbMatchingSequences}
+                selectedTags={selectedTags}
+                onToggleMotif={handleToggleMotif}
+              />
+            </Stack>
+          )}
+
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <ExportImageButton
+              targetRef={diagramRef}
+              filename={`retromol-${(item.name || item.id).replace(/[^a-z0-9]+/gi, "-")}`}
+              label="Download the diagram below as a PNG"
+            />
+          </Box>
           <Box
+            ref={diagramRef}
             sx={{
               display: 'flex',
               flexDirection: 'row',
@@ -283,125 +340,148 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
                 pl: 2
               }}
             >
-              <SmilesDrawerContainer
-                identifier={`smiles-drawer-${sessionId}-${item.id}-full`}
-                smiles={data?.[0]?.tagged_input_smiles ?? ""}
-                size={300}
-                highlightAtoms={highlightAtoms}
-              />
+              <ErrorBoundary what="molecule structure" fallback={
+                <Typography variant="caption" color="text.secondary">Could not render this structure.</Typography>
+              }>
+                <SmilesDrawerContainer
+                  identifier={`smiles-drawer-${sessionId}-${item.id}-full`}
+                  smiles={hasReconstructions ? (data?.[0]?.tagged_input_smiles ?? "") : item.smiles}
+                  size={300}
+                  highlightAtoms={hasReconstructions ? highlightAtoms : []}
+                />
+              </ErrorBoundary>
             </Box>
-            <AnnotatedArrow annotation={'Linearization'} />
-            <Box
-              sx={{
-                flex: 1,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
-              <Box
-                sx={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                {(data ?? []).map((reconstruction, idx) => (
-                  <React.Fragment key={`backbone-fragment-${idx}`}>
-                    <SmilesDrawerContainer
-                      identifier={`smiles-drawer-${sessionId}-${item.id}-preprocessed-${idx}`}
-                      smiles={reconstruction.tagged_backbone_smiles}
-                      size={260}
-                      highlightAtoms={highlightAtoms}
-                    />
-
-                    {idx < (data?.length ?? 0) - 1 && (
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          lineHeight: 1,
-                          color: "text.secondary",
-                          fontWeight: 500,
-                        }}
-                      >
-                        +
-                      </Typography>
-                    )}
-                  </React.Fragment>
-                ))}
-              </Box>
-            </Box>
-            <AnnotatedArrow annotation={'Sequencing'} />
-            <Box
-              sx={{
-                flex: 1,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                pr: 2
-              }}
-            >
-              <Box
-                sx={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  pr: 2,
-                }}
-              >
-                <Box
-                  sx={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 2,
-                    alignItems: "flex-start",
-                    pr: 2,
-                  }}
-                >
-                  {(data ?? []).map((reconstruction, idx) => (
+            {hasReconstructions && (
+              <>
+                <AnnotatedArrow
+                  annotation={
+                    isUnordered
+                      ? 'Parsed out motifs'
+                      : allHaveBackbone
+                      ? 'Linearization'
+                      : 'Linearization and sequencing'
+                  }
+                />
+                {allHaveBackbone && (
+                  <>
                     <Box
-                      key={`primary-sequence-row-${idx}`}
                       sx={{
-                        display: "flex",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 1,
-                        width: "100%",
+                        flex: 1,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
                       }}
                     >
-                      <Typography
-                        variant="caption"
+                      <Box
                         sx={{
-                          minWidth: 130,
-                          color: "text.secondary",
-                          fontWeight: 600,
+                          flex: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 1,
+                          justifyContent: "center",
+                          alignItems: "center",
                         }}
                       >
-                        {`primary sequence ${idx + 1}`}
-                      </Typography>
+                        {(data ?? []).map((reconstruction, idx) => (
+                          <React.Fragment key={`backbone-fragment-${idx}`}>
+                            <ErrorBoundary what="molecule structure" fallback={
+                              <Typography variant="caption" color="text.secondary">Could not render this structure.</Typography>
+                            }>
+                              <SmilesDrawerContainer
+                                identifier={`smiles-drawer-${sessionId}-${item.id}-preprocessed-${idx}`}
+                                smiles={reconstruction.tagged_backbone_smiles ?? ""}
+                                size={260}
+                                highlightAtoms={highlightAtoms}
+                              />
+                            </ErrorBoundary>
 
-                      <PrimarySequence
-                        sequence={reconstruction.primary_sequence}
+                            {idx < (data?.length ?? 0) - 1 && (
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  lineHeight: 1,
+                                  color: "text.secondary",
+                                  fontWeight: 500,
+                                }}
+                              >
+                                +
+                              </Typography>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </Box>
+                    </Box>
+                    <AnnotatedArrow annotation={'Sequencing'} />
+                  </>
+                )}
+                <Box
+                  sx={{
+                    // Ordered: sized to its natural content width (not squeezed by
+                    // the other flex:1 siblings) -- the full sequence should be
+                    // readable without an extra inner scrollbar; the outer row above
+                    // already scrolls horizontally for anything that doesn't fit.
+                    // Unordered: given a bounded width instead, so the "bag" of
+                    // motifs actually wraps onto multiple lines rather than
+                    // stretching into one long unwrapped row.
+                    flex: isUnordered ? '1 1 0' : '0 0 auto',
+                    minWidth: 0,
+                    maxWidth: isUnordered ? 480 : undefined,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    pr: 2
+                  }}
+                >
+                  <Box
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      pr: 2,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        flex: 1,
+                        minWidth: 0,
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 2,
+                        alignItems: "flex-start",
+                        pr: 2,
+                      }}
+                    >
+                      <PrimarySequenceRows
+                        item={item}
+                        data={data ?? []}
+                        state={editor}
                         selectedTags={selectedTags}
                         onToggleMotif={handleToggleMotif}
                       />
                     </Box>
-                  ))}
+                  </Box>
                 </Box>
-              </Box>
-            </Box>
+              </>
+            )}
           </Box>
-          <DescriptionBox
-            title={'Explanation'}
-            description={'The input SMILES (right) is processed by RetroMol into non-overlapping building blocks, and from these building blocks a linear backbone is reconstructed (middle). The primary sequence, a text representation of the linear backbone, is seen on the right. You can highlight individual motifs by clicking them in the primary sequence above.'}
-          />
+          <DrawingAttribution library="smiles-drawer" sx={{ textAlign: "center" }} />
+          {hasReconstructions && (
+            <DescriptionBox
+              title={'Explanation'}
+              description={
+                isUnordered
+                  ? 'The input SMILES structure (left) is processed by RetroMol into non-overlapping building blocks (right), but no single biosynthetic order could be determined between them. They\'re listed in no particular order, not as a sequence. You can still highlight individual motifs by clicking them.'
+                  : allHaveBackbone
+                  ? 'The input SMILES structure (left) is processed by RetroMol into non-overlapping building blocks, and from these building blocks a linear backbone is reconstructed (middle). The primary sequence, a text representation of the linear backbone, is seen on the right. You can highlight individual motifs by clicking them in the primary sequence above. If a sequence was parsed wrong or incompletely, use "Edit sequences" to fix it by hand. Saved edits are kept with this compound and reused when you query it from the Discovery tab; "Revert" on a row discards the edit and restores the algorithm’s own parse.'
+                  : 'The input SMILES structure (left) is processed by RetroMol into non-overlapping building blocks, and directly linearized into the primary sequence on the right (no reconstructed backbone structure is shown). You can highlight individual motifs by clicking them in the primary sequence above. If a sequence was parsed wrong or incompletely, use "Edit sequences" to fix it by hand. Saved edits are kept with this compound and reused when you query it from the Discovery tab; "Revert" on a row discards the edit and restores the algorithm’s own parse.'
+              }
+            />
+          )}
         </Box>
       )}
     </DialogWindow>

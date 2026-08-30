@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { ServerUptime } from "./ServerUptime";
 
 export default function Hero() {
   return (
@@ -74,6 +75,7 @@ export default function Hero() {
             Perform cross-modal retrieval between natural product compounds and
             BGCs.
           </Typography>
+          <ServerUptime />
         </Stack>
       </Container>
     </Box>

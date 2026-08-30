@@ -1,0 +1,398 @@
+"""RetroMol database-construction pipeline.
+
+Run from the repo root with:
+
+    snakemake -s database/Snakemake --configfile database/config.yaml --cores 4
+
+Fill in database/config.yaml's `sources` URLs before running. The pipeline:
+
+  1. create_db            - empty DuckDB database
+  2. download_*           - fetch NPAtlas SDF + MIBiG JSON/GBK archives
+  3. parse_npatlas         } run RetroMol on NPAtlas compounds
+  4. load_npatlas_compounds} turn results into "compound" db entries
+  5. extract_mibig_compounds + parse_mibig_compounds } run RetroMol on MIBiG's compounds
+  6. load_mibig_compounds  } turn results into "compound" db entries (linked to MIBiG's URL)
+  7. parse_mibig_gbks      - antiSMASH GBKs -> linear module readouts (PARAS-annotated)
+  8. load_mibig_bgcs       - turn readouts into "bgc" db entries
+  9. annotate_npclassifier - chemical-class annotation (compounds only, NPClassifier API)
+  10. annotate_chebi       - bioactivity annotation (compounds only, local ChEBI flat files)
+
+Steps 4, 6, 8, 9, and 10 all mutate the same DuckDB file, so they're chained through
+marker files (rather than each declaring the database itself as `output`) to force
+Snakemake to serialize them -- DuckDB doesn't support concurrent writers.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(workflow.basedir) / "scripts"))
+
+WORKDIR = Path(config["paths"]["workdir"])
+DB_PATH = Path(config["paths"]["database"])
+MARKERS = WORKDIR / "markers"
+
+RXN_RULES = config["paths"].get("reaction_rules")
+MXN_RULES = config["paths"].get("matching_rules")
+MATCH_STEREOCHEMISTRY = config.get("match_stereochemistry", False)
+
+# null -> pmp.yml's packaged default. See that file's "predictors.nrps.a_domain" for
+# which model (if any) this actually selects -- the same file the GUI backend and
+# scripts/predict_bgc.py read, so all three resolve GenBank substrates identically.
+PMP_PATH = config["paras"].get("pmp_path")
+PARAS_THRESHOLD = config["paras"]["threshold"]
+PARAS_KEEP_TOP = config["paras"]["keep_top"]
+PARAS_CACHE_DIR = config["paras"].get("cache_dir") or str(WORKDIR / "paras_cache")
+PARAS_FORCE_RETRAIN = config["paras"].get("force_retrain") or False
+
+PARSE_COMPOUNDS_WORKERS = config["compute"]["parse_compounds_workers"]
+PARSE_GBKS_WORKERS = config["compute"]["parse_gbks_workers"]
+
+TAXONOMY_ENABLED = config.get("taxonomy", {}).get("enabled", False)
+TAXDUMP_DIR = WORKDIR / "taxdump"
+
+NPCLASSIFIER_REQUESTS_PER_SECOND = config.get("npclassifier", {}).get("requests_per_second", 2.0)
+NPCLASSIFIER_WORKERS = config.get("npclassifier", {}).get("workers", 8)
+
+CHEBI_DIR = WORKDIR / "chebi"
+
+# Toggle whole branches of the pipeline off (see config.yaml's `enabled` comment) --
+# disabling npatlas/mibig skips their download+parse rules entirely, not just db
+# loading, since the "real" inputs below are only declared when enabled: nothing else
+# in the DAG needs npatlas/results.jsonl or mibig_gbk/readouts.jsonl, so Snakemake
+# never schedules the rules that would produce them. Same idea for chebi: disabling it
+# skips its bulk download entirely.
+ENABLED = config.get("enabled", {})
+NPATLAS_ENABLED = ENABLED.get("npatlas", True)
+MIBIG_ENABLED = ENABLED.get("mibig", True)
+NPCLASSIFIER_ENABLED = ENABLED.get("npclassifier", True)
+CHEBI_ENABLED = ENABLED.get("chebi", True)
+
+
+rule all:
+    input:
+        MARKERS / "bgcs_loaded.done",
+        MARKERS / "npclassifier_annotated.done",
+        MARKERS / "chebi_annotated.done"
+
+
+# ---------------------------------------------------------------------------
+# NCBI taxonomy dump (used to standardize phylogeny genus/species/type to taxids)
+# ---------------------------------------------------------------------------
+
+rule download_taxdump:
+    output:
+        names=TAXDUMP_DIR / "names.dmp",
+        nodes=TAXDUMP_DIR / "nodes.dmp"
+    run:
+        import taxonomy
+        taxonomy.download_taxdump(TAXDUMP_DIR)
+
+
+# ---------------------------------------------------------------------------
+# Step 1: empty database
+# ---------------------------------------------------------------------------
+
+rule create_db:
+    output:
+        marker=touch(MARKERS / "db_created.done")
+    run:
+        import create_db
+        create_db.run(db_path=DB_PATH, overwrite=True)
+
+
+# ---------------------------------------------------------------------------
+# Step 2: downloads
+# ---------------------------------------------------------------------------
+
+rule download_npatlas:
+    output:
+        raw=WORKDIR / "npatlas" / "download.raw",
+        extract_dir=directory(WORKDIR / "npatlas" / "extracted")
+    params:
+        url=config["sources"]["npatlas_sdf_url"]
+    run:
+        import download_sources
+        download_sources.run(url=params.url, download_path=output.raw, extract_dir=output.extract_dir)
+
+
+rule resolve_npatlas_sdf:
+    input:
+        extract_dir=WORKDIR / "npatlas" / "extracted"
+    output:
+        sdf=WORKDIR / "npatlas" / "npatlas.sdf"
+    run:
+        import shutil
+        candidates = sorted(Path(input.extract_dir).rglob("*.sdf"))
+        if not candidates:
+            raise FileNotFoundError(f"no .sdf file found under {input.extract_dir}")
+        shutil.copy2(candidates[0], output.sdf)
+
+
+rule download_mibig_json:
+    output:
+        raw=WORKDIR / "mibig_json" / "download.raw",
+        extract_dir=directory(WORKDIR / "mibig_json" / "extracted")
+    params:
+        url=config["sources"]["mibig_json_url"]
+    run:
+        import download_sources
+        download_sources.run(url=params.url, download_path=output.raw, extract_dir=output.extract_dir)
+
+
+rule download_mibig_gbk:
+    output:
+        raw=WORKDIR / "mibig_gbk" / "download.raw",
+        extract_dir=directory(WORKDIR / "mibig_gbk" / "extracted")
+    params:
+        url=config["sources"]["mibig_gbk_url"]
+    run:
+        import download_sources
+        download_sources.run(url=params.url, download_path=output.raw, extract_dir=output.extract_dir)
+
+
+# ---------------------------------------------------------------------------
+# Steps 3-4: NPAtlas compounds
+# ---------------------------------------------------------------------------
+
+rule parse_npatlas:
+    input:
+        sdf=WORKDIR / "npatlas" / "npatlas.sdf"
+    output:
+        results=WORKDIR / "npatlas" / "results.jsonl"
+    threads: PARSE_COMPOUNDS_WORKERS
+    run:
+        import parse_compounds
+        parse_compounds.run(
+            input_path=input.sdf,
+            input_format="sdf",
+            output_path=output.results,
+            reaction_rules_path=RXN_RULES,
+            matching_rules_path=MXN_RULES,
+            workers=threads,
+        )
+
+
+rule load_npatlas_compounds:
+    input:
+        db_created=MARKERS / "db_created.done",
+        # Only declared when enabled -- nothing else in the DAG needs npatlas/results.jsonl,
+        # so download_npatlas/resolve_npatlas_sdf/parse_npatlas never run when disabled.
+        **({"results": WORKDIR / "npatlas" / "results.jsonl"} if NPATLAS_ENABLED else {}),
+        **({"taxdump_names": TAXDUMP_DIR / "names.dmp", "taxdump_nodes": TAXDUMP_DIR / "nodes.dmp"} if TAXONOMY_ENABLED and NPATLAS_ENABLED else {})
+    output:
+        marker=touch(MARKERS / "npatlas_loaded.done")
+    run:
+        if NPATLAS_ENABLED:
+            import load_compounds
+            load_compounds.run(
+                results_path=input.results,
+                db_path=DB_PATH,
+                source="npatlas",
+                reaction_rules_path=RXN_RULES,
+                matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
+                taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Steps 5-6: MIBiG compounds
+# ---------------------------------------------------------------------------
+
+rule extract_mibig_compounds:
+    input:
+        extract_dir=WORKDIR / "mibig_json" / "extracted"
+    output:
+        compounds=WORKDIR / "mibig_json" / "compounds.jsonl",
+        # Sole source of MIBiG accession -> version now (see extract_mibig_compounds.py
+        # module docstring): MIBiG 4.0's GBKs dropped the ACCESSION.VERSION suffix
+        # parse_gbks.py used to read this from, but the JSON's own top-level "version"
+        # field still has it.
+        versions=WORKDIR / "mibig_json" / "versions.json",
+        # accession -> {organism_name, ncbi_tax_id, biosyn_class}, consumed by both
+        # load_mibig_compounds and load_mibig_bgcs to populate phylogeny/chemical_class
+        # annotations (see RetroMolDuckDB.add_phylogeny_annotation/add_flat_annotation).
+        annotations=WORKDIR / "mibig_json" / "annotations.json"
+    run:
+        import extract_mibig_compounds
+        extract_mibig_compounds.run(
+            mibig_json_dir=input.extract_dir,
+            output_path=output.compounds,
+            versions_output_path=output.versions,
+            annotations_output_path=output.annotations,
+        )
+
+
+rule parse_mibig_compounds:
+    input:
+        compounds=WORKDIR / "mibig_json" / "compounds.jsonl"
+    output:
+        results=WORKDIR / "mibig_json" / "results.jsonl"
+    threads: PARSE_COMPOUNDS_WORKERS
+    run:
+        import parse_compounds
+        parse_compounds.run(
+            input_path=input.compounds,
+            input_format="jsonl",
+            output_path=output.results,
+            reaction_rules_path=RXN_RULES,
+            matching_rules_path=MXN_RULES,
+            workers=threads,
+        )
+
+
+rule load_mibig_compounds:
+    input:
+        prev=MARKERS / "npatlas_loaded.done",
+        # Only declared when enabled -- nothing else in the DAG needs these, so
+        # download_mibig_json/extract_mibig_compounds/parse_mibig_compounds never run
+        # when disabled. MIBiG URLs need an accession's version, from the JSON (see
+        # extract_mibig_compounds rule above) -- not from the GBKs, which no longer carry it.
+        **(
+            {
+                "results": WORKDIR / "mibig_json" / "results.jsonl",
+                "versions": WORKDIR / "mibig_json" / "versions.json",
+                "annotations": WORKDIR / "mibig_json" / "annotations.json",
+            }
+            if MIBIG_ENABLED else {}
+        ),
+        **({"taxdump_names": TAXDUMP_DIR / "names.dmp", "taxdump_nodes": TAXDUMP_DIR / "nodes.dmp"} if TAXONOMY_ENABLED and MIBIG_ENABLED else {})
+    output:
+        marker=touch(MARKERS / "mibig_compounds_loaded.done")
+    run:
+        if MIBIG_ENABLED:
+            import load_compounds
+            load_compounds.run(
+                results_path=input.results,
+                db_path=DB_PATH,
+                source="mibig",
+                reaction_rules_path=RXN_RULES,
+                matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
+                mibig_versions_path=input.versions,
+                mibig_annotations_path=input.annotations,
+                taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Steps 7-8: MIBiG BGCs
+# ---------------------------------------------------------------------------
+
+rule parse_mibig_gbks:
+    input:
+        gbk_dir=WORKDIR / "mibig_gbk" / "extracted"
+    output:
+        readouts=WORKDIR / "mibig_gbk" / "readouts.jsonl"
+    threads: PARSE_GBKS_WORKERS
+    run:
+        import parse_gbks
+        parse_gbks.run(
+            gbk_dir=input.gbk_dir,
+            readouts_output_path=output.readouts,
+            pmp_path=PMP_PATH,
+            paras_threshold=PARAS_THRESHOLD,
+            paras_keep_top=PARAS_KEEP_TOP,
+            paras_cache_dir=PARAS_CACHE_DIR,
+            force_retrain=PARAS_FORCE_RETRAIN,
+            workers=threads,
+        )
+
+
+rule load_mibig_bgcs:
+    input:
+        prev=MARKERS / "mibig_compounds_loaded.done",
+        # Only declared when enabled -- nothing else in the DAG needs these, so
+        # download_mibig_gbk/parse_mibig_gbks never run when disabled.
+        **(
+            {
+                "readouts": WORKDIR / "mibig_gbk" / "readouts.jsonl",
+                "versions": WORKDIR / "mibig_json" / "versions.json",
+                "annotations": WORKDIR / "mibig_json" / "annotations.json",
+            }
+            if MIBIG_ENABLED else {}
+        ),
+        **({"taxdump_names": TAXDUMP_DIR / "names.dmp", "taxdump_nodes": TAXDUMP_DIR / "nodes.dmp"} if TAXONOMY_ENABLED and MIBIG_ENABLED else {})
+    output:
+        marker=touch(MARKERS / "bgcs_loaded.done")
+    run:
+        if MIBIG_ENABLED:
+            import load_bgcs
+            load_bgcs.run(
+                readouts_path=input.readouts,
+                db_path=DB_PATH,
+                reaction_rules_path=RXN_RULES,
+                matching_rules_path=MXN_RULES,
+                match_stereochemistry=MATCH_STEREOCHEMISTRY,
+                mibig_versions_path=input.versions,
+                mibig_annotations_path=input.annotations,
+                taxdump_dir=TAXDUMP_DIR if TAXONOMY_ENABLED else None,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Step 9: NPClassifier chemical-class annotation (compounds only)
+# ---------------------------------------------------------------------------
+
+rule annotate_npclassifier:
+    input:
+        # Chained after bgcs_loaded.done (not just the compound-loading steps) purely to
+        # serialize this write against load_mibig_bgcs's -- both mutate DB_PATH and DuckDB
+        # doesn't support concurrent writers (see module docstring at the top of this file).
+        prev=MARKERS / "bgcs_loaded.done"
+    output:
+        marker=touch(MARKERS / "npclassifier_annotated.done")
+    # Declared like parse_npatlas/parse_mibig_gbks's worker counts, even though this
+    # rule is I/O-bound rather than CPU-bound: without a `threads:` declaration,
+    # Snakemake assumes a 1-core job while it actually opens NPCLASSIFIER_WORKERS
+    # concurrent connections, so `--cores` wouldn't see or cap it. Declaring it here
+    # means `--cores` fewer than npclassifier.workers automatically caps this job's
+    # `threads` value at run time -- passed through below instead of the raw config
+    # number, so a run with e.g. `--cores 6` gets at most 6 workers even if
+    # npclassifier.workers says 8.
+    threads: NPCLASSIFIER_WORKERS
+    run:
+        if NPCLASSIFIER_ENABLED:
+            import annotate_npclassifier
+            annotate_npclassifier.run(
+                db_path=DB_PATH,
+                cache_path=WORKDIR / "npclassifier" / "cache.jsonl",
+                requests_per_second=NPCLASSIFIER_REQUESTS_PER_SECOND,
+                workers=threads,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Step 10: ChEBI bioactivity annotation (compounds only)
+# ---------------------------------------------------------------------------
+
+rule download_chebi:
+    output:
+        compounds=CHEBI_DIR / "compounds.tsv.gz",
+        structures=CHEBI_DIR / "structures.tsv.gz",
+        relation=CHEBI_DIR / "relation.tsv.gz"
+    run:
+        import chebi
+        chebi.download_chebi_flat_files(CHEBI_DIR)
+
+
+rule annotate_chebi:
+    input:
+        # Chained after npclassifier_annotated.done purely to serialize this write
+        # against annotate_npclassifier's (see module docstring at the top of this file).
+        prev=MARKERS / "npclassifier_annotated.done",
+        # Only declared when enabled -- download_chebi never runs when disabled.
+        **(
+            {
+                "compounds": CHEBI_DIR / "compounds.tsv.gz",
+                "structures": CHEBI_DIR / "structures.tsv.gz",
+                "relation": CHEBI_DIR / "relation.tsv.gz",
+            }
+            if CHEBI_ENABLED else {}
+        )
+    output:
+        marker=touch(MARKERS / "chebi_annotated.done")
+    run:
+        if CHEBI_ENABLED:
+            import annotate_chebi
+            annotate_chebi.run(db_path=DB_PATH, chebi_dir=CHEBI_DIR)
