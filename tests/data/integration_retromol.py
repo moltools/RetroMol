@@ -438,7 +438,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "spongidepsin",
         r"C[C@H]1CCC(CC(OC(=O)[C@@H](N(C(=O)[C@H](C1)C)C)CC2=CC=CC=C2)CCCC#C)C",
         1.0,
-        ["3-butynoic acid", "B1", "D1", "D2", "D2", "D8", "methylation", "phenylalanine"],
+        ["3-butynoic acid", "B1", "D1", "D2", "D2", "D8", "N-methylphenylalanine"],
     ),
     (
         "thailanstatin A",
@@ -468,7 +468,7 @@ CASES: list[tuple[str, str, float, list[str]]] = [
         "thiocoraline",
         r"CN1C2CSSCC(C(=O)N(C(C(=O)SCC(C(=O)NCC1=O)NC(=O)C3=NC4=CC=CC=C4C=C3O)CSC)C)N(C(=O)CNC(=O)C(CSC(=O)C(N(C2=O)C)CSC)NC(=O)C5=NC6=CC=CC=C6C=C5O)C",
         1.0,
-        ["3-hydroxyquinaldic acid", "3-hydroxyquinaldic acid", "cysteine", "cysteine", "cysteine", "cysteine", "cysteine", "cysteine", "glycine", "glycine", "methylation", "methylation", "methylation", "methylation", "methylation", "methylation"],
+        ["3-hydroxyquinaldic acid", "3-hydroxyquinaldic acid", "N-methylcysteine", "N-methylcysteine", "N-methylcysteine", "N-methylcysteine", "cysteine", "cysteine", "glycine", "glycine", "methylation", "methylation"],
     ),
     (
         "zincophorin",
