@@ -1215,7 +1215,15 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
     substrate = module.substrate
     if substrate and substrate.name:
         stereo_suffix = "D" if module.anatomy.has_E else "L"
-        methylated_name = f"N-methyl{substrate.name}" if module.anatomy.has_MT else None
+        # A dash separates "N-methyl" from a name that starts with a digit or capital
+        # letter (e.g. "N-methyl-N6-hydroxylysine", not "N-methylN6-..." which reads as
+        # if "N6" were a stray token glued onto "methyl") -- mxn.yml's own "N-methyl-*"
+        # entries follow the same rule (see mxn.yml's amino acid section), so this has to
+        # match it exactly for the lookup below to hit.
+        needs_dash = substrate.name[:1].isdigit() or substrate.name[:1].isupper()
+        methylated_name = (
+            f"N-methyl-{substrate.name}" if needs_dash else f"N-methyl{substrate.name}"
+        ) if module.anatomy.has_MT else None
 
         candidates = []
         if methylated_name:
