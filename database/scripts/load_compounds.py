@@ -11,6 +11,12 @@ Compounds are deduplicated on `result.submission.inchikey` (stereo-aware, comput
 retromol.model.submission.Submission with keep_stereo=True). The same molecule
 appearing in both NPAtlas and MIBiG lands as one database entry with two source
 records (see RetroMolDuckDB.add_entry) rather than two separate rows.
+
+Each entry also stores `result.calculate_coverage()`, the proportion of the
+compound's atoms threaded into an identified retrosynthesis node. Downstream
+consumers (e.g. benchmark/scripts/figure1_coverage.py) can therefore read it
+straight off the database instead of re-running RetroMol over every compound's
+SMILES.
 """
 
 import argparse
@@ -183,6 +189,7 @@ def run(
                             entry_type="compound",
                             primary_sequence=names,
                             fingerprint=fp,
+                            coverage=result.calculate_coverage(),
                         )
                         if source == "mibig":
                             _apply_mibig_annotations(db, result.submission.inchikey, props, annotations, taxdb)
