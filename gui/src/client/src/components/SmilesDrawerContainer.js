@@ -1,12 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import SmilesDrawer from 'smiles-drawer';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { useColorScheme } from '@mui/material/styles';
 
 
 class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
-    constructor(options) {
+    constructor(options, showIsotopes = false, orientationTags = null) {
         super(options);
+        this.showIsotopes = showIsotopes;
+        // { startTags, endTags }: isotope tags (see retromol.chem.tagging) of the
+        // first and last blocks in a generated sequence -- when given, the drawing
+        // is mirrored horizontally (if needed) so the start block ends up on the
+        // left, matching reading order of the primary sequence shown alongside it.
+        this.orientationTags = orientationTags;
 
         const themeOverrides = {
             light: {
@@ -75,6 +81,9 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
             for (const vertex of vertices) {
                 vertex.position.x = 2 * centerX - vertex.position.x;
             }
+            for (const ring of this.preprocessor?.rings ?? []) {
+                ring.center.x = 2 * centerX - ring.center.x;
+            }
         }
 
         // 2) replace Sn with wildcard atom
@@ -85,24 +94,51 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         atom.bracket = null;
     }
 
+    orientSequenceLeftToRight(startTags, endTags) {
+        const graph = this.preprocessor?.graph;
+        if (!graph || !startTags?.length || !endTags?.length) return;
+
+        const vertices = graph.vertices.filter((v) => v.position);
+        if (!vertices.length) return;
+
+        const avgX = (tags) => {
+            const matched = vertices.filter((v) => v.value?.bracket && tags.includes(v.value.bracket.isotope));
+            if (!matched.length) return null;
+            return matched.reduce((sum, v) => sum + v.position.x, 0) / matched.length;
+        };
+
+        const startX = avgX(startTags);
+        const endX = avgX(endTags);
+        if (startX === null || endX === null || startX <= endX) return;
+
+        const xs = vertices.map((v) => v.position.x);
+        const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+        for (const vertex of vertices) {
+            vertex.position.x = 2 * centerX - vertex.position.x;
+        }
+        for (const ring of this.preprocessor?.rings ?? []) {
+            ring.center.x = 2 * centerX - ring.center.x;
+        }
+    }
+
     drawAtomHighlights(highlights) {
         this.prepareTinAsRightWildcard('Sn');
+        if (this.orientationTags) {
+            this.orientSequenceLeftToRight(this.orientationTags.startTags, this.orientationTags.endTags);
+        }
 
         let preprocessor = this.preprocessor;
-        let opts = preprocessor.opts;
         let graph = preprocessor.graph;
-        let rings = preprocessor.rings;
-        let svgWrapper = this.svgWrapper;
 
         // highlighted atom ids
         const highlightedAtomIds = [];
         const atomIdToHighlight = {};
 
-        for (var i = 0; i < graph.vertices.length; i++) {
+        for (let i = 0; i < graph.vertices.length; i++) {
             let vertex = graph.vertices[i];
             let atom = vertex.value;
 
-            for (var j = 0; j < preprocessor.highlight_atoms.length; j++) {
+            for (let j = 0; j < preprocessor.highlight_atoms.length; j++) {
                 let highlight = preprocessor.highlight_atoms[j]
 
                 // if atom.bracket !== null, then it is a bracket atom, and we continue
@@ -117,7 +153,7 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         };
 
         // loop over edges
-        for (var i = 0; i < graph.edges.length; i++) {
+        for (let i = 0; i < graph.edges.length; i++) {
             let edge = graph.edges[i];
             // if edge.sourceId and edge.targetId in highlightedAtomIds, then draw bond highlight, they also need to have same highlight color
             if (highlightedAtomIds.includes(edge.sourceId) && highlightedAtomIds.includes(edge.targetId)) {
@@ -129,11 +165,15 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
             };
         };
 
-        // loop over all atoms and set atom.bracket to null
-        for (var i = 0; i < graph.vertices.length; i++) {
+        // loop over all atoms and, unless isotopes were asked to be kept (used to show
+        // R-group numbers, e.g. [1*]/[2*], in the rules browser and motif hover card),
+        // clear atom.bracket so isotope/charge annotations don't clutter the drawing.
+        for (let i = 0; i < graph.vertices.length; i++) {
             let vertex = graph.vertices[i];
             let atom = vertex.value;
-            atom.bracket = null;
+            if (!this.showIsotopes) {
+                atom.bracket = null;
+            }
 
             // make sure COOH is drawn fully instead of displayed with text
             if (atom.element === 'C') {
@@ -152,7 +192,7 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
         };
 
         // loop over all bonds
-        for (var i = 0; i < graph.edges.length; i++) {
+        for (let i = 0; i < graph.edges.length; i++) {
             let edge = graph.edges[i];
             // if aromatic bond
             if (edge.isPartOfAromaticRing) {
@@ -173,29 +213,74 @@ class CustomSvgDrawer extends SmilesDrawer.SvgDrawer {
  * @property {number} size                          width & height of the drawing
  * @property {HighlightAtom[]} [highlightAtoms]     array of `[atomNumber, color]`
  * @property {string} [themeOverride]               force “light” or “dark” drawing theme
+ * @property {boolean} [showIsotopes]               draw isotope numbers (e.g. R-group
+ *                                                   tags like [1*]/[2*]) instead of hiding them
+ * @property {{startTags: number[], endTags: number[]}} [orientationTags]
+ *                                                   isotope tags of the first/last blocks in a
+ *                                                   generated sequence -- mirrors the drawing
+ *                                                   horizontally (if needed) so the start block
+ *                                                   ends up on the left
  */
 
 /**
  * @param {Props} props
  */
-const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], themeOverride = '' }) => {
-    // create a new drawer instance
-    let drawer = new CustomSvgDrawer({ width: size, height: size });
-
-    const { mode, systemMode, setMode } = useColorScheme();
+const SmilesDrawerContainer = ({ identifier, smiles, size, highlightAtoms = [], themeOverride = '', showIsotopes = false, orientationTags = null }) => {
+    const { mode, systemMode } = useColorScheme();
+    const [error, setError] = useState(null);
 
     // draw the molecule when the component is mounted
     useEffect(() => {
+        setError(null);
+
         let target = `structure-svg-${identifier}`
         let themeName = themeOverride !== '' ? themeOverride : (systemMode !== undefined) ? systemMode : mode;
         let weights = null;
         let infoOnly = false;
         let weightsNormalized = false;
 
-        SmilesDrawer.parse(smiles, function (tree) {
-            drawer.draw(tree, target, themeName, weights, infoOnly, highlightAtoms, weightsNormalized);
-        });
-    }, [smiles, highlightAtoms, size]);
+        // A fresh drawer instance per draw call, since it isn't safe to reuse
+        // once it holds a graph for a previous (possibly differently-sized) SMILES.
+        //
+        // padding is bumped above the library default (10) because that default
+        // only leaves room for atom labels -- it doesn't account for the extra
+        // radius a highlight circle (customDrawAtomHighlight, r = bondLength / 3)
+        // draws around a highlighted atom, so a highlighted atom sitting at the
+        // very edge of the layout (as the first/last block often does once
+        // orientationTags pins it there) gets its highlight clipped by the SVG's
+        // own viewBox.
+        let drawer = new CustomSvgDrawer({ width: size, height: size, padding: 24 }, showIsotopes, orientationTags);
+
+        try {
+            SmilesDrawer.parse(
+                smiles,
+                function (tree) {
+                    try {
+                        drawer.draw(tree, target, themeName, weights, infoOnly, highlightAtoms, weightsNormalized);
+                    } catch (drawErr) {
+                        console.error('SmilesDrawerContainer: draw failed', drawErr);
+                        setError('Could not render this structure.');
+                    }
+                },
+                function (parseErr) {
+                    console.error('SmilesDrawerContainer: parse failed', parseErr);
+                    setError('Could not parse this SMILES.');
+                }
+            );
+        } catch (err) {
+            // Some malformed input can throw synchronously instead of hitting the error callback
+            console.error('SmilesDrawerContainer: unexpected error', err);
+            setError('Could not render this structure.');
+        }
+    }, [identifier, smiles, highlightAtoms, size, themeOverride, showIsotopes, orientationTags, mode, systemMode]);
+
+    if (error) {
+        return (
+            <Box key={identifier} sx={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', p: 1 }}>
+                <Typography variant="caption" color="text.secondary">{error}</Typography>
+            </Box>
+        );
+    }
 
     return (
         <Box key={identifier} sx={{ width: size, height: size }}>

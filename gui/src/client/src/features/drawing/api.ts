@@ -1,10 +1,10 @@
 import { postJson } from "../http";
-import { PrimarySequence } from "../session/types";
+import { PrimarySequenceItem } from "../reconstruction/types";
 import { ItemDrawingResultSchema } from "./types";
 
 export async function drawCompoundItem(
   taggedParentSmiles: string,
-  primarySequence: PrimarySequence
+  primarySequence: PrimarySequenceItem[]
 ): Promise<string> {
   const data = await postJson(
     "/api/drawCompoundItem",

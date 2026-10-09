@@ -1,44 +1,21 @@
-import React from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useQuery } from "@tanstack/react-query";
 import AppTheme from "../theme/AppTheme";
 import Footer from "../components/Footer";
-
-// Helper function to pad numbers with a leading zero if needed
-const pad = (num: number): string => num.toString().padStart(2, "0")
-
-// Helper function to format seconds into days:hours:minutes:seconds
-const formatUptime = (uptime: number): string => {
-  const days = Math.floor(uptime / (24 * 3600));
-  const hours = Math.floor((uptime % (24 * 3600)) / 3600);
-  const minutes = Math.floor((uptime % 3600) / 60);
-  const seconds = uptime % 60;
-  return `${days} day${days !== 1 ? "s" : ""} and ${pad(hours)}:${pad(minutes)}:${pad(seconds)} hours`;
-}
+import { getServerStartup } from "../features/server/api";
+import { formatUptime } from "../features/server/utils";
 
 const Hero = ({ title, subtitle }: { title?: string; subtitle?: string }) => {
-  const [uptime, setUptime] = React.useState(0);
-
-  // Fetch uptime from api/startup endpoint
-  React.useEffect(() => {
-    const fetchUptime = async () => {
-      try {
-        const response = await fetch("/api/startup");
-        if (!response.ok) {
-          throw new Error("network response was not ok");
-        }
-        const data = await response.json();
-        setUptime(data.uptime);
-      } catch (err) {
-        console.error("error fetching uptime:", err);
-      }
-    };
-    fetchUptime();
-  }, [])
+  const { data } = useQuery({
+    queryKey: ["serverStartup"],
+    queryFn: ({ signal }) => getServerStartup(signal),
+    retry: false,
+  });
 
   return (
     <Box id="hero" sx={{width: "100%"}}>
@@ -84,7 +61,7 @@ const Hero = ({ title, subtitle }: { title?: string; subtitle?: string }) => {
               width: { sm: "100%", md: "80%" },
             }}
           >
-            {`Server uptime: ${formatUptime(uptime)}`}
+            {`Server uptime: ${formatUptime(data?.uptime ?? 0)}`}
           </Typography>
           <Button
             variant="contained"

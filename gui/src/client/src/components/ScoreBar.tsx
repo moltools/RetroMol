@@ -30,7 +30,6 @@ export const ScoreBar: React.FC<ScoreBarProps> = ({
         <Stack direction="row" spacing={0.5} alignItems="center">
           <Box
             sx={(theme) => {
-              const t = theme.vars || theme;
               return {
                 height: height,
                 width: width,

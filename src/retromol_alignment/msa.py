@@ -11,6 +11,58 @@ from retromol_alignment.pairwise import T, Converter, _pairwise_alignment
 log = logging.getLogger(__name__)
 
 
+def _gap_run_lengths(gapped: np.ndarray, ref_length: int, gap_repr) -> list[int]:
+    """
+    Split a gapped version of a length-`ref_length` reference sequence into
+    `ref_length + 1` gap-run counts: how many consecutive gap entries sit
+    immediately before each reference position (the last count is trailing gaps
+    after the final reference position).
+
+    :param gapped: the gapped sequence (its non-gap entries, in order, are the reference)
+    :param ref_length: the length of the underlying (ungapped) reference sequence
+    :param gap_repr: the sentinel value marking a gap in `gapped`
+    :return: a list of ref_length + 1 gap-run counts
+    """
+    runs = [0] * (ref_length + 1)
+    ref_idx = 0
+    run = 0
+    for value in gapped:
+        if value == gap_repr:
+            run += 1
+        else:
+            runs[ref_idx] = run
+            ref_idx += 1
+            run = 0
+    runs[ref_length] = run
+    return runs
+
+
+def _expand_to_merged_runs(
+    gapped: np.ndarray, ref_length: int, own_runs: list[int], merged_runs: list[int], gap_repr
+) -> list:
+    """
+    Re-express `gapped` in the column coordinate system implied by `merged_runs`
+    (elementwise >= `own_runs`), by padding in extra gaps wherever `merged_runs`
+    calls for more than `gapped` already has.
+
+    :param gapped: a sequence whose gap-run-lengths (relative to the shared reference) are `own_runs`
+    :param ref_length: the length of the underlying (ungapped) reference sequence
+    :param own_runs: `gapped`'s own gap-run-lengths, as returned by _gap_run_lengths
+    :param merged_runs: the target gap-run-lengths to expand into
+    :param gap_repr: the sentinel value to pad with
+    :return: `gapped` re-expressed with length sum(merged_runs) + ref_length
+    """
+    out: list = []
+    it = iter(gapped)
+    for k in range(ref_length + 1):
+        for _ in range(own_runs[k]):
+            out.append(next(it))
+        out.extend([gap_repr] * (merged_runs[k] - own_runs[k]))
+        if k < ref_length:
+            out.append(next(it))
+    return out
+
+
 def calculate_msa(
     aligner: PairwiseAligner,
     to_align: list[list[T]],
@@ -92,11 +144,16 @@ def calculate_msa(
     # Align every sequence to the center star sequence
     scores = []
     reversed_flags = []
-    msa = np.array([int_seqs[center_ind]], dtype=np.int32)
+    center_original = int_seqs[center_ind]
+    center_length = len(center_original)
+    msa = np.array([center_original], dtype=np.int32)
 
     for other_ind in other_inds:
-        # Align other sequence to center star sequence
-        t = msa[0]
+        # Always align the pristine (ungapped) center, never the accumulated msa[0] --
+        # by the second round msa[0] already contains gap markers from the previous
+        # merge, and those are not valid alphabet indices, so feeding them straight
+        # into the aligner raises (Biopython: "sequence item i is negative").
+        t = center_original
         q = int_seqs[other_ind]
 
         # Use the same orientation choice as already determined
@@ -108,16 +165,22 @@ def calculate_msa(
 
         s, t_a, q_a = _pairwise_alignment(aligner, t, q, converter.insert_repr)
 
-        # Insert gaps in remainder sequences, if any
-        remainder = msa[1:]
-        if remainder.shape[0] > 0:
-            insert_inds = [i for i, x in enumerate(t_a) if x == converter.insert_repr]
-            for insert_ind in insert_inds:
-                remainder = np.insert(remainder, insert_ind, converter.insert_repr, axis=1)
-            msa = np.vstack([t_a, remainder, q_a])
-        else:
-            msa = np.array([t_a, q_a], dtype=np.int32)
-        
+        # This round's alignment (t_a/q_a) and the existing msa are two independently
+        # gapped versions of the same center_original sequence, so merge their gap
+        # patterns: for each of the center's positions, take whichever side needs more
+        # gaps immediately before it, and pad both out to that shared column count.
+        runs_existing = _gap_run_lengths(msa[0], center_length, converter.gap_repr)
+        runs_fresh = _gap_run_lengths(t_a, center_length, converter.insert_repr)
+        merged_runs = [max(a, b) for a, b in zip(runs_existing, runs_fresh)]
+
+        expanded_msa_rows = [
+            _expand_to_merged_runs(row, center_length, runs_existing, merged_runs, converter.gap_repr)
+            for row in msa
+        ]
+        expanded_q_a = _expand_to_merged_runs(q_a, center_length, runs_fresh, merged_runs, converter.insert_repr)
+
+        msa = np.array([*expanded_msa_rows, expanded_q_a], dtype=np.int32)
+
         scores.append(s)
         reversed_flags.append(is_reversed)
 

@@ -22,6 +22,7 @@ from retromol.chem.mol import (
     reassign_stereochemistry,
 )
 from retromol.chem.reaction import smarts_to_reaction, reactive_template_atoms
+from retromol.chem.stereo import BondStereoRecord, capture_double_bond_stereo, restore_double_bond_stereo
 from retromol.chem.tagging import get_tags_mol
 from retromol.chem.masking import is_masked_preserved
 
@@ -79,14 +80,22 @@ class ReactionRule:
         )
         return reaction_rule
     
-    def apply(self, reactant: Mol, mask_tags: set[int] | None = None) -> list[list[Mol]]:
+    def apply(
+        self,
+        reactant: Mol,
+        mask_tags: set[int] | None = None,
+        stereo_registry: dict[frozenset[int], BondStereoRecord] | None = None,
+    ) -> list[list[Mol]]:
         """
         Apply the reaction to the given reactant molecule, optionally enforcing a mask on atom tags.
 
         :param reactant: The reactant molecule.
         :param mask_tags: Set of atom tags (isotope-based tags) that are allowed to change.
+        :param stereo_registry: Registry of double bond stereo recorded from the original
+            input molecule (see `capture_double_bond_stereo`), used to restore E/Z stereo
+            on products that lost it during this reaction. Skipped when None/empty.
         :return: List of unique product tuples (each tuple as a list[Mol]).
-        """ 
+        """
         log.debug(f"Applying reaction rule '{self.name}'")
 
         results = self.rxn.RunReactants([reactant])
@@ -119,6 +128,21 @@ class ReactionRule:
 
                 # Reassign stereo on the sanitized product
                 prod = reassign_stereochemistry(prod)
+
+                # Restore E/Z stereo the reaction couldn't reconstruct itself, where the
+                # original input molecule had it defined for this same bond
+                if stereo_registry is not None:
+                    if stereo_registry:
+                        prod = restore_double_bond_stereo(prod, stereo_registry)
+
+                    # A bond can also become stereo-defined by this reaction (e.g. a
+                    # ring-opening rule whose product SMARTS hardcodes `/`/`\` geometry
+                    # on a bond that was inside a ring, and therefore not stereo-defined,
+                    # in the reactant). Record any such new bonds so later reactions on
+                    # this product's descendants, which may not hardcode stereo
+                    # themselves, can still restore it via the registry.
+                    for key, record in capture_double_bond_stereo(prod).items():
+                        stereo_registry.setdefault(key, record)
 
                 products.append(prod)
                 atom_tag_sets.append(get_tags_mol(prod))
@@ -223,6 +247,7 @@ def apply_uncontested(
     parent: Mol,
     uncontested: list[tuple[ReactionRule, set[int]]],
     original_taken_tags: set[int],
+    stereo_registry: dict[frozenset[int], BondStereoRecord] | None = None,
 ) -> tuple[list[Mol], list[tuple[ReactionRule, set[int]]], set[tuple[int, frozenset[int]]]]:
     """
     Apply uncontested reactions in bulk.
@@ -230,6 +255,8 @@ def apply_uncontested(
     :param parent: RDKit molecule.
     :param uncontested: List of uncontested reactions.
     :param original_taken_tags: List of atom tags from original reactant.
+    :param stereo_registry: Registry of double bond stereo recorded from the original
+        input molecule, forwarded to `ReactionRule.apply` for stereo restoration.
     :return: List of true products, a list of applied ReactionRules with their masks, and a set of failed combinations.
     """
     applied_reactions: list[tuple[ReactionRule, set[int]]] = []
@@ -294,7 +321,7 @@ def apply_uncontested(
                 temp_taken_tags_uncontested.add(tag)
 
         unmasked_parent = Mol(parent)  # keep original parent for later
-        results = rl.apply(parent, msk)  # apply reaction rule
+        results = rl.apply(parent, msk, stereo_registry)  # apply reaction rule
 
         try:
             if len(results) == 0:
@@ -342,6 +369,10 @@ class MatchingRule:
     :cvar pseudonyms: Pseudonyms associated with the rule.
     :cvar terminal: Whether this rule is terminal (i.e., should not be expanded further).
     :cvar stereochemistry: Whether to consider stereochemistry in matching.
+    :cvar display_smiles: Optional friendlier SMILES to show when depicting this motif (e.g.
+        in the GUI's motif hover preview) instead of `smiles`, which is written for
+        substructure matching (e.g. carrying a reactive leaving-group placeholder) and
+        may not be the clearest depiction of the motif on its own.
     """
 
     name: str
@@ -350,6 +381,7 @@ class MatchingRule:
     pseudonyms: list[str]
     terminal: bool = True
     stereochemistry: bool = False
+    display_smiles: str | None = None
 
     mol: Mol = field(init=False, repr=False)
 
@@ -382,6 +414,7 @@ class MatchingRule:
             "pseudonyms": self.pseudonyms,
             "terminal": self.terminal,
             "stereochemistry": self.stereochemistry,
+            "display_smiles": self.display_smiles,
         }
 
     @classmethod
@@ -399,6 +432,7 @@ class MatchingRule:
             pseudonyms=data.get("pseudonyms", []),
             terminal=data.get("terminal", True),
             stereochemistry=data.get("stereochemistry", False),
+            display_smiles=data.get("display_smiles"),
         )
         return matching_rule
 
@@ -442,6 +476,27 @@ class RuleSet:
         """
         return f"RuleSet({len(self.reaction_rules)} reaction rules, {len(self.matching_rules)} matching rules, match_stereochemistry={self.match_stereochemistry})"
 
+    def find_structural_matches(self, mol: Mol, match_stereochemistry: bool = False) -> list["MatchingRule"]:
+        """
+        Find every matching rule whose motif has the same structure as `mol`.
+
+        Unlike a name lookup, this doesn't require knowing which specific monomer a
+        molecule is -- useful for reconciling a molecule from outside the ruleset
+        (e.g. a substrate-specificity model's predicted SMILES) with whatever
+        monomer(s) in this ruleset it is chemically identical to. Matching with
+        `match_stereochemistry=False` (the default) means two rules that only differ
+        by stereochemistry (e.g. "A2^R" and "A2^S") both match a molecule with
+        undetermined or different stereochemistry, and multiple rules can match at
+        once (e.g. distinct rules that describe the same free-molecule structure but
+        differ in which atom continues the polymer chain, such as "aspartic acid" vs.
+        an isoAsp-linked variant sharing the same 2D graph).
+
+        :param mol: Molecule to match against every rule in this ruleset.
+        :param match_stereochemistry: Whether to consider stereochemistry in matching.
+        :return: Every MatchingRule whose motif has the same structure as `mol`, in ruleset order (possibly empty).
+        """
+        return [rule for rule in self.matching_rules if rule.is_match(mol, match_stereochemistry=match_stereochemistry)]
+
     @classmethod
     def load_from_files(
         cls,
@@ -468,6 +523,16 @@ class RuleSet:
 
         reaction_rules = [ReactionRule.from_dict(d) for d in reaction_rules_data]
         matching_rules = [MatchingRule.from_dict(d) for d in matching_rules_data]
+
+        # `match_mol` (see chem/matching.py) is greedy: it returns the first rule that
+        # matches and stops looking. Sort stereochemistry-specific rules (e.g.
+        # "alanine^L") ahead of their achiral fallback (e.g. "alanine") so a specific
+        # rule is always tried before its fallback, regardless of the order they
+        # happen to appear in mxn.yml -- an achiral rule's query has no chirality tags
+        # to violate, so with `useChirality=True` it still matches a stereo-defined
+        # molecule and would otherwise win by appearing first. Stable sort: relative
+        # order within each group (stereo / non-stereo) is preserved from mxn.yml.
+        matching_rules.sort(key=lambda rule: not rule.stereochemistry)
 
         return RuleSet(match_stereochemistry, reaction_rules, matching_rules)
 
