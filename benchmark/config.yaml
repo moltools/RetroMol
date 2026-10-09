@@ -1,0 +1,116 @@
+paths:
+  # Compiled DuckDB database produced by database/Snakemake (NPAtlas + MIBiG compounds,
+  # MIBiG BGCs, npclassifier chemical-class + biosynthetic-class annotations). Opened
+  # read-only; this pipeline never writes to it.
+  database: "/Users/davidmeijer/Desktop/retromol.duckdb"
+
+  # Scratch space for intermediate JSON (BGC<->compound links).
+  workdir: "/Users/davidmeijer/Desktop/retromol_benchmark_tmp"
+
+  # Where the final figures (and their underlying data tables, as JSON) are written.
+  figures_dir: "/Users/davidmeijer/Desktop/retromol_benchmark_figures"
+
+  # null -> RuleSet.load_default()'s bundled reaction/matching rules. Must match
+  # whatever rules the database itself was built with (see database/config.yaml),
+  # otherwise fingerprints/alignment scores recomputed here won't line up with what's
+  # stored in the database.
+  reaction_rules: null
+  matching_rules: null
+
+# Minimum number of primary-sequence blocks (biosynthetic modules) a MIBiG BGC entry
+# must have to be included anywhere in this pipeline (figures 1, 2, 3, and 4 all read
+# the same links.json, see scripts/link_bgc_compounds.py). A single-module BGC
+# carries little sequence signal for alignment-based retrieval and can make hit rate
+# look artificially easy or hard depending on how trivial that one token is. 1 = no
+# filtering (every BGC with a non-empty primary sequence is eligible).
+min_bgc_modules: 3
+
+# NPClassifier chemical-class groups highlighted in Figure 1's NPAtlas panel, on top
+# of the "all NPAtlas compounds" density curve. `npclassifier_level` is which of
+# NPClassifier's three ranks `npclassifier_labels` are drawn from (see
+# database/scripts/annotate_npclassifier.py). "Oligopeptides"/"Macrolides"/"Cyclic
+# polyketides" are all superclass-level labels in NPClassifier's own taxonomy, not
+# class-level.
+npatlas_highlight_classes:
+  oligopeptides:
+    label: "Oligopeptides"
+    npclassifier_level: "superclass"
+    npclassifier_labels: ["Oligopeptides"]
+  macrolides:
+    label: "Macrolides"
+    npclassifier_level: "superclass"
+    npclassifier_labels: ["Macrolides"]
+  cyclic_polyketides:
+    label: "Cyclic polyketides"
+    npclassifier_level: "superclass"
+    npclassifier_labels: ["Cyclic polyketides"]
+
+# MIBiG biosynthetic-class groups highlighted in figures 1/2/3, on top of "all MIBiG
+# BGCs". `biosynthetic_class_labels` is the EXACT set of biosynthetic_class_annotations
+# labels a BGC's representative entry must carry to join that group -- not "has at
+# least these labels". A BGC labeled e.g. Polyketide + Terpene matches neither
+# "polyketide" nor "hybrid_pks_nrp" below; it only counts toward "all MIBiG BGCs".
+# See common.exact_label_group_accessions.
+#
+# No iterative-vs-non-iterative PKS split: antiSMASH's region `product` qualifier
+# (re-parsed from the raw GBK stored per bgc entry) is "unknown" for every BGC in the
+# compiled database. MIBiG's GBK archive stores curator-defined region boundaries,
+# not output from an actual antiSMASH rule-based run (its own antiSMASH-Data header
+# says `Version :: False`), so that qualifier carries no usable signal here.
+mibig_highlight_classes:
+  polyketide:
+    label: "Polyketide"
+    biosynthetic_class_labels: ["Polyketide"]
+  nrp:
+    label: "Nonribosomal peptide"
+    biosynthetic_class_labels: ["Nonribosomal peptide"]
+  hybrid_pks_nrp:
+    label: "Hybrid polyketide/NRP"
+    biosynthetic_class_labels: ["Polyketide", "Nonribosomal peptide"]
+
+# Whole-molecule Tanimoto (Tc) fingerprint, used everywhere a figure needs "how
+# structurally similar are these two compounds" (figures 2 & 3). Distinct from the
+# database's own per-token cosine fingerprint (used for nearest-neighbor retrieval,
+# see retrieval.fingerprint_only) and from retromol_alignment's per-token Tanimoto
+# scoring matrix (used for alignment-based retrieval, see retrieval.alignment_only).
+tanimoto:
+  radius: 2
+  num_bits: 2048
+  use_chirality: true
+
+retrieval:
+  # Fingerprint-prefilter size for the "combined" method (figure 3) and for building
+  # each query's candidate shortlist before alignment-based re-ranking. Mirrors
+  # gui/src/server/routes/discovery.py's run_discovery_query exactly (fingerprint
+  # cosine nearest-neighbors first, then re-rank the shortlist by alignment).
+  fingerprint_prefilter_n: 1000
+
+  # "longest_sequence" or "subsequence". See ALIGNMENT_SCORE_MODES in
+  # gui/src/server/routes/discovery.py for what each normalizes against.
+  score_mode: "longest_sequence"
+
+  # Candidate pool size for the "alignment_only" method (figure 3), which has no
+  # fingerprint prefilter and so would otherwise pairwise-align every query BGC
+  # against every compound in the database. A random sample (seeded, and always
+  # including every compound that's an actual ground-truth match for some BGC in the
+  # evaluated set, so recall@k stays measurable) keeps this tractable. null = no
+  # cap (every compound in the database); slow at full NPAtlas+MIBiG scale.
+  alignment_only_candidate_pool_size: 3000
+  alignment_only_candidate_pool_seed: 0
+
+figure2:
+  # Retrieval method used to pick each BGC's top-1 candidate for the Tc distribution:
+  # "fingerprint_only", "alignment_only", or "combined" (fingerprint prefilter + realign).
+  method: "combined"
+
+figure3:
+  top_ks: [1, 5, 10, 50, 100]
+  tc_thresholds: [0.4, 0.675]
+  methods: ["fingerprint_only", "combined"]
+#  methods: ["fingerprint_only", "alignment_only", "combined"]
+
+figure4:
+  # Number of random (non-matching) BGC-compound pairs to sample as the null baseline,
+  # matched to the number of real BGC-compound pairs evaluated (null = same count).
+  n_random_pairs: null
+  random_pairs_seed: 0

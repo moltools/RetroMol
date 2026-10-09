@@ -35,6 +35,11 @@ class Entry:
     # Every (name, database_name, url) a source has contributed for this entry, ordered
     # by insertion. Empty for synthetic (non-database) entries, e.g. session uploads.
     sources: list[EntrySource] = field(default_factory=list)
+    # RetroMol's own coverage metric (Result.calculate_coverage(), see
+    # database/scripts/load_compounds.py): the proportion of the compound's atoms
+    # threaded into an identified retrosynthesis node. Compounds only; always None for
+    # bgc entries (a BGC has no Result/coverage of its own) and for synthetic entries.
+    coverage: float | None = None
 
 
 @dataclass(frozen=True)
@@ -178,10 +183,19 @@ class RetroMolDuckDB:
                 raw VARCHAR,
                 content_hash VARCHAR,
                 primary_sequence VARCHAR[] NOT NULL,
-                fingerprint FLOAT[{FINGERPRINT_SIZE}] NOT NULL
+                fingerprint FLOAT[{FINGERPRINT_SIZE}] NOT NULL,
+                -- RetroMol coverage (Result.calculate_coverage()), compounds only.
+                -- Always NULL for bgc entries. See add_entry's `coverage` parameter.
+                coverage FLOAT
             )
             """
         )
+        # Migrates a database created before the coverage column existed. CREATE
+        # TABLE IF NOT EXISTS above is a no-op against an already-existing entries
+        # table, so an older database needs this to actually pick up the column.
+        # Runs on every non-read-only open() (see open()/create() above), so a
+        # database only needs to be reopened for writing, not rebuilt from scratch.
+        self.con.execute("ALTER TABLE entries ADD COLUMN IF NOT EXISTS coverage FLOAT")
         self.con.execute(
             """
             CREATE TABLE IF NOT EXISTS entry_sources (
@@ -345,6 +359,7 @@ class RetroMolDuckDB:
         primary_sequence: Sequence[str],
         fingerprint: Sequence[float] | np.ndarray,
         content_hash: str | None = None,
+        coverage: float | None = None,
     ) -> str:
         """
         Add (or extend) an entry.
@@ -353,10 +368,19 @@ class RetroMolDuckDB:
         compound, or a hash of the source .gbk file's content plus region id for a
         bgc (see database/scripts/load_compounds.py / load_bgcs.py). If an entry
         with this id already exists, its stored `raw`/`primary_sequence`/
-        `fingerprint` are left untouched (they describe the same molecule/BGC
-        either way) and only a new `(name, database_name, url)` source row is
-        added -- or, if that exact (entry_id, database_name, name) combination was
-        already recorded, its url is refreshed.
+        `fingerprint` are left untouched (they describe the same molecule/BGC either
+        way) and only a new `(name, database_name, url)` source row is added -- or,
+        if that exact (entry_id, database_name, name) combination was already
+        recorded, its url is refreshed. `coverage` IS refreshed on conflict (unlike
+        the fields above): it's deterministic from `raw` plus the ruleset, so
+        recomputing it is always safe, and this is also what lets a database built
+        before the coverage column existed get backfilled in place, by simply
+        reopening it and rerunning this same load step against already-parsed
+        results (see RetroMolDuckDB.create_schema's migration comment).
+
+        `coverage` is RetroMol's own coverage metric (Result.calculate_coverage()),
+        compounds only; leave it None for bgc entries, which have no Result of their
+        own.
         """
         entry_type = _normalize_entry_type(entry_type)
         sequence = _normalize_primary_sequence(primary_sequence)
@@ -364,11 +388,11 @@ class RetroMolDuckDB:
 
         self.con.execute(
             """
-            INSERT INTO entries (id, type, raw, content_hash, primary_sequence, fingerprint)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT (id) DO NOTHING
+            INSERT INTO entries (id, type, raw, content_hash, primary_sequence, fingerprint, coverage)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET coverage = excluded.coverage
             """,
-            [entry_id, entry_type, raw, content_hash, sequence, fp],
+            [entry_id, entry_type, raw, content_hash, sequence, fp, coverage],
         )
 
         self.con.execute(
@@ -613,7 +637,7 @@ class RetroMolDuckDB:
 
         rows = self.con.execute(
             f"""
-            SELECT DISTINCT e.id, e.raw, e.type, e.primary_sequence, e.fingerprint
+            SELECT DISTINCT e.id, e.raw, e.type, e.primary_sequence, e.fingerprint, e.coverage
             FROM entries e
             LEFT JOIN entry_sources es ON es.entry_id = e.id
             {where_sql}
@@ -813,7 +837,7 @@ class RetroMolDuckDB:
     def get_entry(self, entry_id: str) -> Entry | None:
         row = self.con.execute(
             """
-            SELECT id, raw, type, primary_sequence, fingerprint
+            SELECT id, raw, type, primary_sequence, fingerprint, coverage
             FROM entries
             WHERE id = ?
             """,
@@ -834,7 +858,7 @@ class RetroMolDuckDB:
 
         rows = self.con.execute(
             """
-            SELECT id, raw, type, primary_sequence, fingerprint
+            SELECT id, raw, type, primary_sequence, fingerprint, coverage
             FROM entries
             WHERE id IN (SELECT UNNEST(?))
             """,
@@ -847,7 +871,7 @@ class RetroMolDuckDB:
     def iter_entries(self) -> Iterator[Entry]:
         rows = self.con.execute(
             """
-            SELECT id, raw, type, primary_sequence, fingerprint
+            SELECT id, raw, type, primary_sequence, fingerprint, coverage
             FROM entries
             ORDER BY id
             """
@@ -886,6 +910,7 @@ class RetroMolDuckDB:
                 type,
                 primary_sequence,
                 fingerprint,
+                coverage,
                 array_cosine_similarity(fingerprint, ?::FLOAT[{FINGERPRINT_SIZE}]) AS similarity
             FROM entries
             {where_sql}
@@ -899,8 +924,8 @@ class RetroMolDuckDB:
 
         return [
             SearchResult(
-                entry=_entry_from_row(row[:5], sources_by_id.get(str(row[0]), [])),
-                similarity=float(row[5]),
+                entry=_entry_from_row(row[:6], sources_by_id.get(str(row[0]), [])),
+                similarity=float(row[6]),
             )
             for row in rows
         ]
@@ -922,6 +947,7 @@ def _entry_from_row(row, sources: list[EntrySource]) -> Entry:
         primary_sequence=list(row[3]),
         fingerprint=list(row[4]),
         sources=sources,
+        coverage=row[5] if len(row) > 5 else None,
     )
 
 
