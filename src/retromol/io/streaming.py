@@ -177,12 +177,12 @@ def stream_sdf_records(sdf_path: str, fast: bool = False) -> Iterator[dict[str, 
             continue
 
 
-def stream_json_records(path: str, jsonl: bool = False) -> Iterator[dict[str, Any]]:
+def stream_json_records(path: str, jsonl: bool | None = None) -> Iterator[dict[str, Any]]:
     """
-    Stream JSON or JSONL records as dicts.
+    Stream plain or gzip JSON or JSONL records as dicts.
 
     :param path: Path to JSON or JSONL file.
-    :param jsonl: If True, treat as JSONL (one JSON object per line).
+    :param jsonl: True for JSONL, False for an array, or infer from suffix (default).
     :return: Iterator over record dicts.
     """
     for rec in iter_json(path, jsonl=jsonl):

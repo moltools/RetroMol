@@ -4,7 +4,9 @@ import argparse
 import json
 import logging
 import os
+import re
 from collections import Counter
+from contextlib import ExitStack
 from datetime import datetime
 from typing import Any
 
@@ -14,11 +16,13 @@ from rdkit import RDLogger
 from retromol.utils.logging import setup_logging, add_file_handler
 from retromol.model.rules import RuleSet
 from retromol.model.result import Result
+from retromol.model.assembly_sampling import AssemblyConstraintError, AssemblyLimitError
 from retromol.model.submission import Submission
 from retromol.pipelines.parsing import run_retromol_with_timeout
 from retromol.io.streaming import run_retromol_stream, stream_sdf_records, stream_table_rows, stream_json_records
-from retromol.chem.mol import encode_mol
+from retromol.io.json import dumps_compact, open_json_file
 from retromol.visualization.reaction_graph import visualize_reaction_graph
+from retromol.visualization.assembly_layout import MoleculeLayout
 
 
 log = logging.getLogger(__name__)
@@ -43,6 +47,28 @@ def add_rule_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--mxn-rules", type=str, default=None, help="path to matching rules YAML (default: None, default ruleset)")
 
 
+def nonnegative_int(value: str) -> int:
+    """Validate counts at argument parsing time, before running chemistry."""
+    try:
+        count = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("must be a nonnegative integer") from None
+    if count < 0:
+        raise argparse.ArgumentTypeError("must be a nonnegative integer")
+    return count
+
+
+def coverage_fraction(value: str) -> float:
+    """Validate an inclusive coverage threshold before running chemistry."""
+    try:
+        coverage = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("must be a finite fraction between 0 and 1") from None
+    if not 0 <= coverage <= 1:
+        raise argparse.ArgumentTypeError("must be a finite fraction between 0 and 1")
+    return coverage
+
+
 def cli() -> argparse.Namespace:
     """
     Parse command line arguments.
@@ -64,6 +90,24 @@ def cli() -> argparse.Namespace:
 
     # For 'single' mode user should just give a SMILES as input
     single_parser.add_argument("-s", "--smiles", type=str, help="SMILES string of the compound to process")
+    single_parser.add_argument(
+        "--max-assembly-graphs", type=nonnegative_int, default=1, metavar="N",
+        help="maximum assembly drawings: 0 skips, 1 prefers the default assembly if eligible, "
+             "larger values sample distinct eligible assemblies (default: 1)",
+    )
+    single_parser.add_argument(
+        "--min-coverage", type=coverage_fraction, default=None, metavar="FRACTION",
+        help="minimum identified heavy-atom coverage from 0 to 1; "
+             "default: only assemblies with the highest attainable coverage; 0 allows all views",
+    )
+    single_parser.add_argument(
+        "--seed", type=int, default=42,
+        help="assembly sampling seed (default: 42)",
+    )
+    single_parser.add_argument(
+        "--compression", choices=["none", "gzip"], default="none",
+        help="result JSON compression (default: none; gzip writes result.json.gz)",
+    )
 
     # For 'batch' mode user should provide a path to an SDF file
     input_group = batch_parser.add_mutually_exclusive_group(required=True)
@@ -75,7 +119,11 @@ def cli() -> argparse.Namespace:
     batch_parser.add_argument("--pool-chunksize", type=int, default=50, help="chunksize hint for imap_unordered (default: 50)")
     batch_parser.add_argument("--maxtasksperchild", type=int, default=2000, help="recycle worker after N tasks (default: 2000)")
     batch_parser.add_argument("--results", choices=["files", "jsonl"], default="jsonl", help="write each result to a file or append to JSONL (default: jsonl)")
-    batch_parser.add_argument("--jsonl-path", type=str, default=None, help="path to results jsonl (default: <outdir>/results.jsonl)")
+    batch_parser.add_argument("--jsonl-path", type=str, default=None, help="path to results JSONL (.gz appended for gzip; default: <outdir>/results.jsonl.gz)")
+    batch_parser.add_argument(
+        "--compression", choices=["none", "gzip"], default="gzip",
+        help="result compression (default: gzip; use none for plain JSONL/JSON)",
+    )
     batch_parser.add_argument("--no-tqdm", action="store_true", help="disable progress bars for lowest overhead")
     batch_parser.add_argument("--rdkit-fast", action="store_true", help="use fast SDF parse (sanitize=False, removeHs=True); we'll sanitize only when needed")
 
@@ -91,20 +139,29 @@ def cli() -> argparse.Namespace:
     add_rule_args(single_parser)
     add_rule_args(batch_parser)
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if (args.mode == "batch" and args.jsonl_path and args.jsonl_path.lower().endswith(".gz")
+            and args.compression == "none"):
+        parser.error("--jsonl-path ending in .gz requires --compression gzip")
+    return args
 
 
-def _open_jsonl(outdir: str, jsonl_path: str | None) -> tuple[Any, str]:
+def _open_jsonl(outdir: str, jsonl_path: str | None, compression: str = "gzip") -> tuple[Any, str]:
     """
-    Open a JSONL file for appending results.
+    Open a plain or gzip JSONL stream for appending results.
     
     :param outdir: str: output directory 
     :param jsonl_path: str | None: path to JSONL file, or None to use default
+    :param compression: gzip (default) or none; append .gz when needed
     :return: tuple[file handle, path]: opened file handle and the path used
     """
     path = jsonl_path or os.path.join(outdir, "results.jsonl")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    return open(path, "a", buffering=1), path  # line-buffered
+    if compression == "gzip" and not path.lower().endswith(".gz"):
+        path += ".gz"
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    # One continuous stream per run, not one gzip member per compound. This
+    # lets compression reuse repeated structures/metadata across records.
+    return open_json_file(path, "at"), path
 
 
 def main() -> None:
@@ -153,29 +210,62 @@ def main() -> None:
 
         # Write out result to file and then read back in again for visualization (test I/O)
         result_dict = result.to_dict()
-        with open(os.path.join(args.outdir, "result.json"), "w") as f:
-            json.dump(result_dict, f, indent=4)
+        result_path = os.path.join(args.outdir, "result.json" + (".gz" if args.compression == "gzip" else ""))
+        with open_json_file(result_path, "wt") as f:
+            f.write(dumps_compact(result_dict))
 
-        with open(os.path.join(args.outdir, "result.json"), "r") as f:
+        with open_json_file(result_path, "rt") as f:
             result_data = json.load(f)
         result2 = Result.from_dict(result_data)
 
-        # Report the percentage of input heavy atoms in identified assembly monomers
-        coverage = result2.calculate_coverage()
-        log.info(f"coverage: {coverage:.2%}")
+        if args.max_assembly_graphs == 0:
+            assemblies = []
+            log.info("Skipping assembly drawings (--max-assembly-graphs 0)")
+        else:
+            space = result2.assembly_space()
+            try:
+                threshold = args.min_coverage
+                default_coverage = result2.calculate_coverage() if args.max_assembly_graphs == 1 else None
+                if threshold is None:
+                    # A fully covered default already proves the maximum and
+                    # avoids enumeration for the usual single-drawing case.
+                    threshold = 1.0 if default_coverage == 1.0 else space.max_coverage
+                if default_coverage is not None and default_coverage >= threshold:
+                    assemblies = [result2.assembly_graph]
+                else:
+                    assemblies = space.sample(args.max_assembly_graphs, seed=args.seed, min_coverage=threshold)
+                    log.info(
+                        "Drawing %d of %d eligible assemblies (%d total; minimum coverage %.2f%%; seed=%d)",
+                        len(assemblies), space.count(min_coverage=threshold), space.count(), 100 * threshold, args.seed,
+                    )
+                    if not assemblies:
+                        if not space.frontiers:
+                            log.warning("No explored assemblies preserve the identified terminal units; skipping drawings.")
+                        else:
+                            log.warning("No assemblies meet minimum coverage %.2f%%; highest attainable coverage is %.2f%%.",
+                                        100 * threshold, 100 * space.max_coverage)
+            except (AssemblyLimitError, AssemblyConstraintError) as exc:
+                log.error("Cannot sample assembly drawings: %s. The reaction graph is saved in %s.", exc, result_path)
+                raise SystemExit(1) from None
 
-        # Get linear readout; draw assembly graph
-        linear_readout = result2.linear_readout
-        out_assembly_graph_fig = os.path.join(args.outdir, "assembly_graph.png")
-        linear_readout.assembly_graph.draw(show_unassigned=True, savepath=out_assembly_graph_fig)
-        log.info(f"linear readout: {linear_readout}")
+        # Rerunning into the same directory must not leave earlier, now-invalid
+        # projections visible beside the new drawings. Only our generated names
+        # are replaced; user-named images in the directory are left alone.
+        for entry in os.scandir(args.outdir):
+            if entry.is_file() and re.fullmatch(r"assembly_graph(?:_[0-9]{3,})?\.png", entry.name):
+                os.remove(entry.path)
+
+        drawing_layout = MoleculeLayout.from_mol(result2.root.mol) if assemblies else None
+        for index, assembly in enumerate(assemblies, start=1):
+            filename = "assembly_graph.png" if args.max_assembly_graphs == 1 else f"assembly_graph_{index:03d}.png"
+            assembly.draw(show_unassigned=True, savepath=os.path.join(args.outdir, filename), layout=drawing_layout)
+            log.info("%s coverage: %.2f%%", filename, 100 * result2.calculate_coverage(assembly))
 
         # Visualize reaction graph
-        root = encode_mol(result2.submission.mol)
         visualize_reaction_graph(
             result2.reaction_graph,
             html_path=os.path.join(args.outdir, "reaction_graph.html"),
-            root_enc=root
+            root_enc=result2.root_enc
         )
 
         result_counts["successes"] += 1
@@ -194,58 +284,55 @@ def main() -> None:
         else:
             source_iter = stream_json_records(args.json)
 
-        # Progress bars: outer ~batches, inner = molecules processed
-        pbar_outer = tqdm(desc="Batches", unit="batch", disable=args.no_tqdm)
-        pbar_inner = tqdm(desc="Processed", unit="mol", disable=args.no_tqdm)
-
-        # Results saved into JSONL format to limit file operations
-        jsonl_fh = None
-        jsonl_path = None
-        if args.results == "jsonl":
-            jsonl_fh, jsonl_path = _open_jsonl(args.outdir, args.jsonl_path)
-            log.info(f"Appending results to JSONL file at: {jsonl_path}")
-
         result_counts = Counter()
-
         processed_in_current_batch = 0
+        # Close streams even if parsing/writing is interrupted, so completed
+        # records and the gzip footer are flushed to disk.
+        with ExitStack() as resources:
+            pbar_outer = resources.enter_context(tqdm(desc="Batches", unit="batch", disable=args.no_tqdm))
+            pbar_inner = resources.enter_context(tqdm(desc="Processed", unit="mol", disable=args.no_tqdm))
+            jsonl_fh = None
+            if args.results == "jsonl":
+                jsonl_fh, jsonl_path = _open_jsonl(args.outdir, args.jsonl_path, args.compression)
+                resources.enter_context(jsonl_fh)
+                log.info(f"Appending results to JSONL file at: {jsonl_path}")
 
-        for evt in run_retromol_stream(
-            ruleset=ruleset,
-            row_iter=source_iter,
-            smiles_col=smiles_col,
-            workers=args.workers,
-            batch_size=args.batch_size,
-            pool_chunksize=args.pool_chunksize,
-            maxtasksperchild=args.maxtasksperchild,
-        ):
-            # evt has: result (dict or None) and error (str or None)
-            if evt.error is not None:
-                log.error(evt.error)
-                result_counts["errors"] += 1
-            elif evt.result is not None:
-                # Result is already serialized as dict
-                jsonl_fh.write(json.dumps(evt.result) + "\n")
-                result_counts["successes"] += 1
-            else:
-                log.error("received empty result with no error message")
-                result_counts["failures"] += 1
+            for record_index, evt in enumerate(run_retromol_stream(
+                ruleset=ruleset,
+                row_iter=source_iter,
+                smiles_col=smiles_col,
+                workers=args.workers,
+                batch_size=args.batch_size,
+                pool_chunksize=args.pool_chunksize,
+                maxtasksperchild=args.maxtasksperchild,
+            ), start=1):
+                if evt.error is not None:
+                    log.error(evt.error)
+                    result_counts["errors"] += 1
+                elif evt.result is not None:
+                    serialized = dumps_compact(evt.result)
+                    if jsonl_fh is not None:
+                        jsonl_fh.write(serialized + "\n")
+                    else:
+                        # Numbered files preserve repeated input IDs. Exclusive
+                        # creation avoids silently replacing a previous run.
+                        suffix = ".json.gz" if args.compression == "gzip" else ".json"
+                        path = os.path.join(args.outdir, f"result_{record_index:09d}{suffix}")
+                        with open_json_file(path, "xt") as f:
+                            f.write(serialized)
+                    result_counts["successes"] += 1
+                else:
+                    log.error("received empty result with no error message")
+                    result_counts["failures"] += 1
 
-            # Progress
-            pbar_inner.update(1)
-            processed_in_current_batch += 1
-            if processed_in_current_batch >= args.batch_size:
+                pbar_inner.update(1)
+                processed_in_current_batch += 1
+                if processed_in_current_batch >= args.batch_size:
+                    pbar_outer.update(1)
+                    processed_in_current_batch = 0
+
+            if processed_in_current_batch > 0:
                 pbar_outer.update(1)
-                processed_in_current_batch = 0
-
-        # If there was a final partial batch, tick the outer bar once more
-        if processed_in_current_batch > 0:
-            pbar_outer.update(1)
-
-        pbar_inner.close()
-        pbar_outer.close()
-
-        if jsonl_fh:
-            jsonl_fh.close()
 
         log.info(f"Streaming complete. Summary: {dict(result_counts)}")
 

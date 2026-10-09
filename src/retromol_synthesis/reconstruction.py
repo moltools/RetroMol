@@ -9,7 +9,7 @@ from rdkit.Chem import Mol, RWMol
 from rdkit.Chem.rdchem import Atom, BondStereo, BondType
 from rdkit.Chem.rdmolops import AssignStereochemistry, SetDoubleBondNeighborDirections
 
-from retromol.chem.mol import encode_mol, smiles_to_mol, smarts_to_mol, mol_to_smiles, sanitize_mol
+from retromol.chem.mol import smiles_to_mol, smarts_to_mol, mol_to_smiles, sanitize_mol
 from retromol.chem.tagging import get_tags_mol
 from retromol.chem.reaction import smarts_to_reaction
 from retromol.chem.stereo import BondStereoRecord
@@ -486,8 +486,9 @@ def reconstruct_linear_readout(result: Result) -> list[Reconstruction]:
     :return: The reconstructed candidates, one per eligible path. Empty if no path
         in the readout consists of (mostly) eligible primary-sequence building blocks.
     """
-    root_enc = encode_mol(result.submission.mol)
-    readout = LinearReadout.from_reaction_graph(root_enc, reaction_graph=result.reaction_graph, identified_only=True)
+    readout = LinearReadout.from_reaction_graph(
+        result.root_enc, reaction_graph=result.selected_reaction_graph, identified_only=True,
+    )
     tagged_input_smiles = mol_to_smiles(result.submission.mol, include_tags=True)
 
     reconstructions: list[Reconstruction] = []

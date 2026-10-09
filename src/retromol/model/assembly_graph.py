@@ -1,15 +1,17 @@
 """Module contains utilities for defining and working with assembly graphs."""
 
 from dataclasses import dataclass, asdict
-from typing import Any, Iterable, Iterable, Iterator, Generator
+from typing import Any, Iterable, Iterator, Generator, Literal
 
 from rdkit.Chem.rdchem import Mol
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 import networkx as nx
 
 from retromol.model.reaction_graph import MolNode
 from retromol.model.identity import MolIdentity
 from retromol.chem.tagging import get_tags_mol
+from retromol.visualization.assembly_layout import MoleculeLayout
 
 
 @dataclass(frozen=True)
@@ -73,13 +75,14 @@ def build_assembly_graph(
     :return: NetworkX graph representing the assembly graph.
     """
     monomers = list(monomers)
+    root_tags = get_tags_mol(root_mol)
 
     tag_to_monomer: dict[int, str] = {}
     monomer_to_tags: dict[str, set[int]] = {}
 
     # Map root tags -> monomers
     for m in monomers:
-        tags = get_tags_mol(m.mol)
+        tags = get_tags_mol(m.mol) & root_tags
         monomer_to_tags[m.enc] = tags
 
         for t in tags:
@@ -89,6 +92,9 @@ def build_assembly_graph(
 
     # Initialize empty graph
     g = nx.Graph()
+    # Visualization context is kept only in memory. NetworkX copies/filtered
+    # views retain it; to_dict deliberately serializes only nodes and bonds.
+    g.graph["root_mol"] = root_mol
 
     # Add monomer nodes
     for m in monomers:
@@ -98,7 +104,7 @@ def build_assembly_graph(
 
     UNASSIGNED = "unassigned"
     if include_unassigned:
-        g.add_node(UNASSIGNED, molnode=None, tags=set(), identity=None)
+        g.add_node(UNASSIGNED, molnode=None, tags=root_tags - tag_to_monomer.keys(), identity=None)
 
     # Scan root bonds
     for b in root_mol.GetBonds():
@@ -638,24 +644,47 @@ class AssemblyGraph:
 
         return ag
     
+    def molecular_layout(self) -> MoleculeLayout:
+        """Lazily create a layout of the original root, independent of monomers."""
+        if "molecule_layout" not in self.g.graph:
+            root = self.g.graph.get("root_mol")
+            if root is None:
+                raise ValueError("Molecular drawing requires the original root molecule; "
+                                 "pass MoleculeLayout.from_mol(root_mol) as layout, or use layout='spring'")
+            self.g.graph["molecule_layout"] = MoleculeLayout.from_mol(root)
+        return self.g.graph["molecule_layout"]
+
+    def monomer_positions(self, layout: MoleculeLayout | None = None) -> dict[str, tuple[float, float]]:
+        """Original-heavy-atom centroids, including nonempty unassigned regions."""
+        layout = self.molecular_layout() if layout is None else layout
+        return {node: position for node, data in self.g.nodes(data=True)
+                if (position := layout.centroid(data.get("tags", set()))) is not None}
+
     def draw(
         self,
         with_labels: bool = True,
         show_unassigned: bool = False,
-        node_size: int = 1600,
+        node_size: int = 900,
         font_size: int = 9,
         edge_with_scale: float = 1.0,
         savepath: str | None = None,
-    ) -> None:
+        *,
+        layout: MoleculeLayout | Literal["molecule", "spring"] = "molecule",
+        ax: Axes | None = None,
+    ) -> Axes:
         """
         Visualize the assembly graph using Matplotlib.
 
         :param with_labels: Whether to show node labels (default: True).
         :param show_unassigned: Whether to show the unassigned node (default: False).
-        :param node_size: Size of the nodes (default: 1600).
+        :param node_size: Size of the nodes (default: 900).
         :param font_size: Font size for labels (default: 9).
         :param edge_with_scale: Scale factor for edge widths (default: 1.0).
         :param savepath: Optional path to save the figure (default: None).
+        :param layout: Original-heavy-atom centroids by default. Pass one shared
+            MoleculeLayout to align alternatives, or 'spring' for a topology view.
+        :param ax: Optional existing axes. These are neither shown nor closed.
+        :return: Axes containing the drawing.
         """
         # Hide unassigned if requested
         if not show_unassigned:
@@ -666,8 +695,18 @@ class AssemblyGraph:
         if g.number_of_nodes() == 0:
             raise ValueError("AssemblyGraph has no nodes to show!")
         
-        # Layout
-        pos = nx.spring_layout(g, seed=42)
+        # Molecular coordinates and bounds depend only on the root, so alternative
+        # projections keep exactly the same orientation and scale.
+        molecular_layout = None
+        if isinstance(layout, MoleculeLayout) or layout == "molecule":
+            molecular_layout = self.molecular_layout() if layout == "molecule" else layout
+            positions = self.monomer_positions(molecular_layout)
+            pos = {node: positions[node] for node in g if node in positions}
+            g = g.subgraph(pos).copy()
+        elif layout == "spring":
+            pos = nx.spring_layout(g, seed=42)
+        else:
+            raise ValueError("Layout must be 'molecule', 'spring', or a MoleculeLayout")
 
         # Node colors
         node_colors = []
@@ -690,19 +729,25 @@ class AssemblyGraph:
         # Edge widths from number of root bonds
         widths = [edge_with_scale * max(1, data.get("n_bonds", 1)) for _, _, data in g.edges(data=True)]
 
-        plt.figure(figsize=(8, 8))
+        own_figure = ax is None
+        if ax is None:
+            figure, ax = plt.subplots(figsize=(8, 8))
+        else:
+            figure = ax.figure
         nx.draw_networkx_nodes(
             g,
             pos,
             node_color=node_colors,
             node_size=node_size,
             edgecolors="black",
+            ax=ax,
         )
         nx.draw_networkx_edges(
             g,
             pos,
             width=widths,
             alpha=0.8,
+            ax=ax,
         )
         
         if with_labels:
@@ -711,12 +756,29 @@ class AssemblyGraph:
                 pos,
                 labels=labels,
                 font_size=font_size,
+                ax=ax,
             )
 
-        plt.axis("off")
-        plt.tight_layout()
+        if molecular_layout is not None:
+            xmin, xmax, ymin, ymax = molecular_layout.bounds
+            ax.set_xlim(xmin, xmax)
+            ax.set_ylim(ymin, ymax)
+            ax.set_aspect("equal", adjustable="box")
+            if not pos:
+                ax.text(.5, .5, "No original heavy atoms to display", transform=ax.transAxes,
+                        ha="center", va="center")
+        ax.axis("off")
+        if own_figure:
+            # Fixed margins: tight bounding boxes based on different labels would
+            # subtly rescale the otherwise aligned assembly drawings.
+            figure.subplots_adjust(left=.04, right=.96, bottom=.04, top=.96)
 
         if savepath is not None:
-            plt.savefig(savepath, dpi=300)
-        else:
+            try:
+                figure.savefig(savepath, dpi=300)
+            finally:
+                if own_figure:
+                    plt.close(figure)
+        elif own_figure:
             plt.show()
+        return ax

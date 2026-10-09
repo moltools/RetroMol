@@ -3,8 +3,10 @@
 import logging
 import itertools
 import hashlib
+import json
 from collections import Counter
 from dataclasses import dataclass, field
+from functools import cached_property
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
@@ -63,6 +65,14 @@ class ReactionRule:
         :return: Unique identifier.
         """
         return hashlib.sha256(self.smarts.encode("utf-8")).hexdigest()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "smarts": self.smarts,
+            "props": self.props,
+            "allowed_in_bulk": self.allowed_in_bulk,
+        }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ReactionRule":
@@ -468,6 +478,27 @@ class RuleSet:
     reaction_rules: list[ReactionRule]
     matching_rules: list[MatchingRule]
 
+    @cached_property
+    def reaction_rules_hash(self) -> str:
+        """SHA-256 of ordered, canonical rule definitions (not YAML formatting).
+
+        Treat a RuleSet and its nested lists/props as immutable once used.
+        """
+        return self._hash_rules(self.reaction_rules)
+
+    @cached_property
+    def matching_rules_hash(self) -> str:
+        """SHA-256 of ordered matching definitions, including names and flags."""
+        return self._hash_rules(self.matching_rules)
+
+    @staticmethod
+    def _hash_rules(rules: list) -> str:
+        content = json.dumps(
+            [rule.to_dict() for rule in rules], sort_keys=True,
+            separators=(",", ":"), ensure_ascii=False, allow_nan=False,
+        )
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
     def __str__(self) -> str:
         """
         String representation of the RuleSet.
@@ -478,18 +509,7 @@ class RuleSet:
 
     def find_structural_matches(self, mol: Mol, match_stereochemistry: bool = False) -> list["MatchingRule"]:
         """
-        Find every matching rule whose motif has the same structure as `mol`.
-
-        Unlike a name lookup, this doesn't require knowing which specific monomer a
-        molecule is -- useful for reconciling a molecule from outside the ruleset
-        (e.g. a substrate-specificity model's predicted SMILES) with whatever
-        monomer(s) in this ruleset it is chemically identical to. Matching with
-        `match_stereochemistry=False` (the default) means two rules that only differ
-        by stereochemistry (e.g. "A2^R" and "A2^S") both match a molecule with
-        undetermined or different stereochemistry, and multiple rules can match at
-        once (e.g. distinct rules that describe the same free-molecule structure but
-        differ in which atom continues the polymer chain, such as "aspartic acid" vs.
-        an isoAsp-linked variant sharing the same 2D graph).
+        Find every matching rule whose motif has the same structure as mol.
 
         :param mol: Molecule to match against every rule in this ruleset.
         :param match_stereochemistry: Whether to consider stereochemistry in matching.
@@ -524,14 +544,6 @@ class RuleSet:
         reaction_rules = [ReactionRule.from_dict(d) for d in reaction_rules_data]
         matching_rules = [MatchingRule.from_dict(d) for d in matching_rules_data]
 
-        # `match_mol` (see chem/matching.py) is greedy: it returns the first rule that
-        # matches and stops looking. Sort stereochemistry-specific rules (e.g.
-        # "alanine^L") ahead of their achiral fallback (e.g. "alanine") so a specific
-        # rule is always tried before its fallback, regardless of the order they
-        # happen to appear in mxn.yml -- an achiral rule's query has no chirality tags
-        # to violate, so with `useChirality=True` it still matches a stereo-defined
-        # molecule and would otherwise win by appearing first. Stable sort: relative
-        # order within each group (stereo / non-stereo) is preserved from mxn.yml.
         matching_rules.sort(key=lambda rule: not rule.stereochemistry)
 
         return RuleSet(match_stereochemistry, reaction_rules, matching_rules)

@@ -5,7 +5,6 @@ import pytest
 
 from retromol.chem.mol import encode_mol, smiles_to_mol
 from retromol.model.reaction_graph import ReactionGraph, ReactionStep
-from retromol.model.readout import LinearReadout
 from retromol.model.result import Result
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol.model.submission import Submission
@@ -57,7 +56,7 @@ def test_cyclic_fragment_does_not_discard_identified_siblings() -> None:
     root = encode_mol(submission.mol)
 
     extracted = extract_min_edge_synthesis_subgraph(graph, root)
-    result = Result(submission, extracted.graph, LinearReadout.from_reaction_graph(root, extracted.graph))
+    result = Result(submission, extracted.graph)
 
     assert root in extracted.graph.nodes
     assert not extracted.solved
@@ -109,7 +108,7 @@ def test_default_rules_preserve_partial_results_for_sulfated_compounds(smiles: s
     result = run_retromol_with_timeout(Submission(smiles), ruleset)
 
     assert encode_mol(result.submission.mol) in result.reaction_graph.nodes
-    assert_acyclic(result.reaction_graph)
+    assert_acyclic(result.selected_reaction_graph)
     assert 0 < result.calculate_coverage() < 1
     assert any(not node.is_identified for node in result.linear_readout.assembly_graph.monomer_nodes())
     restored = Result.from_dict(result.to_dict())

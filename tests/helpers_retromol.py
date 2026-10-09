@@ -3,7 +3,6 @@
 from retromol.model.rules import RuleSet
 from retromol.model.result import Result
 from retromol.model.submission import Submission
-from retromol.model.reaction_graph import MolNode
 from retromol.pipelines.parsing import run_retromol_with_timeout
 
 
@@ -71,7 +70,7 @@ def assert_result(result: Result, expected_coverage: float, expected_monomers: l
     coverage: float = result.calculate_coverage()
     assert compare_floats(coverage, expected_coverage), f"expected coverage {expected_coverage}, got {coverage}"
 
-    ident_nodes: MolNode = result.reaction_graph.identified_nodes.values()
+    ident_nodes = result.selected_reaction_graph.identified_nodes.values()
     assert all(n.is_identified for n in ident_nodes), "not all identified nodes are marked as identified"
     found_monomers: list[str] = [n.identity.name for n in ident_nodes]
 
