@@ -228,7 +228,7 @@ export const WorkspaceItemCard: React.FC<WorkspaceItemCardProps> = ({
             <Tooltip
               title={
                 isCompound
-                  ? "Coverage is the share of the molecule RetroMol could match to known building blocks. Low or 0% coverage means most (or all) of the structure falls outside its rule set, e.g. an unusual scaffold or a modification the current rules don't recognize. A low coverage leads to primary sequences that may be sparse, incomplete, or empty."
+                  ? "Coverage is the share of input heavy atoms assigned to identified building blocks. Low or 0% coverage means most (or all) of the structure falls outside its rule set, e.g. an unusual scaffold or a modification the current rules don't recognize. A low coverage leads to primary sequences that may be sparse, incomplete, or empty."
                   : "Coverage is the share of predicted modules RetroMol could confidently assign a substrate to. Low or 0% usually means PARAS couldn't confidently predict a substrate for the NRPS domains present, so those modules are marked unknown."
               }
               placement="right"

@@ -6,6 +6,7 @@ from typing import Any
 from retromol.model.submission import Submission
 from retromol.model.reaction_graph import ReactionGraph
 from retromol.model.readout import LinearReadout
+from retromol.chem.mol import smiles_to_mol
 from retromol.chem.tagging import get_tags_mol
 
 
@@ -33,24 +34,25 @@ class Result:
     
     def calculate_coverage(self) -> float:
         """
-        Calculate coverage score for result.
-        
+        Calculate the fraction of input heavy atoms in identified assembly monomers.
+
         :return: Coverage score as a float.
         """
-        # Collect all unique tags from identified nodes
-        identified_tags = set()
-        for node in self.reaction_graph.identified_nodes.values():
-            identified_tags.update(get_tags_mol(node.mol))
+        input_heavy_atoms = smiles_to_mol(self.submission.smiles).GetNumHeavyAtoms()
+        if not input_heavy_atoms:
+            return 0.0
 
-        # Get all unique tags from the root
-        root_tags = set(get_tags_mol(self.submission.mol))
+        root_heavy_tags = {
+            atom.GetIsotope()
+            for atom in self.submission.mol.GetAtoms()
+            if atom.GetAtomicNum() > 1 and atom.GetIsotope() != 0
+        }
+        identified_tags: set[int] = set()
+        for node in self.linear_readout.assembly_graph.monomer_nodes():
+            if node.is_identified:
+                identified_tags.update(get_tags_mol(node.mol))
 
-        # Calculate coverage: proportion of root tags identified
-        if root_tags:
-            coverage = len(identified_tags.intersection(root_tags)) / len(root_tags)
-            return coverage
-
-        return 0.0
+        return len(identified_tags.intersection(root_heavy_tags)) / input_heavy_atoms
 
     def to_dict(self) -> dict[str, Any]:
         """

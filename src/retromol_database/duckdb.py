@@ -36,8 +36,8 @@ class Entry:
     # by insertion. Empty for synthetic (non-database) entries, e.g. session uploads.
     sources: list[EntrySource] = field(default_factory=list)
     # RetroMol's own coverage metric (Result.calculate_coverage(), see
-    # database/scripts/load_compounds.py): the proportion of the compound's atoms
-    # threaded into an identified retrosynthesis node. Compounds only; always None for
+    # database/scripts/load_compounds.py): the proportion of all submitted heavy atoms
+    # represented by identified assembly monomers. Compounds only; always None for
     # bgc entries (a BGC has no Result/coverage of its own) and for synthetic entries.
     coverage: float | None = None
 

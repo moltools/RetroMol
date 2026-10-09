@@ -160,7 +160,7 @@ def main() -> None:
             result_data = json.load(f)
         result2 = Result.from_dict(result_data)
 
-        # Report on coverage as percentage of tags identified
+        # Report the percentage of input heavy atoms in identified assembly monomers
         coverage = result2.calculate_coverage()
         log.info(f"coverage: {coverage:.2%}")
 
