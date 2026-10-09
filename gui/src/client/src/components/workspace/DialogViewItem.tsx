@@ -273,7 +273,7 @@ export const DialogViewItem: React.FC<DialogViewItemProps> = ({
           {hasReconstructions && itemScore < 0.5 && (
             <Stack direction="row" spacing={0.5} alignItems="center">
               <Tooltip
-                title="Coverage is the share of the molecule RetroMol could match to known building blocks. Low or 0% coverage means most (or all) of the structure falls outside its rule set, e.g. an unusual scaffold or a modification the current rules don't recognize. A low coverage leads to primary sequences that may be sparse, incomplete, or empty."
+                title="Coverage is the share of input heavy atoms assigned to identified building blocks. Low or 0% coverage means most (or all) of the structure falls outside its rule set, e.g. an unusual scaffold or a modification the current rules don't recognize. A low coverage leads to primary sequences that may be sparse, incomplete, or empty."
                 placement="bottom-start"
                 arrow
               >
