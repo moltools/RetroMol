@@ -43,8 +43,9 @@ def _process_compound(args_tuple: tuple[str, dict[str, Any]]) -> tuple[dict[str,
         result_obj = run_retromol_with_timeout(submission, _G_RULESET)
         return result_obj.to_dict(), None
     except Exception as e:
-        # Traceback not returned here to keep workers light-weight; caller can log
-        return None, str(e)
+        # Keep failures reproducible when results arrive out of input order.
+        # Do not return the full row or traceback for every failed compound.
+        return None, f"{type(e).__name__}: {e} (SMILES={smiles!r})"
 
 
 @dataclass
