@@ -40,6 +40,7 @@ from common import (
     primary_sequence_from_result,
 )
 from retromol.model.result import Result
+from retromol.io.json import open_json_file
 from retromol_database.duckdb import RetroMolDuckDB
 from retromol_fingerprint.fingerprint import TOKEN_LINK
 from taxonomy import TaxonomyDB, resolve_phylogeny
@@ -152,7 +153,7 @@ def run(
 
     db = RetroMolDuckDB.open(db_path)
     try:
-        with open(results_path) as fh:
+        with open_json_file(results_path, "rt") as fh:
             with tqdm(desc=f"load_compounds[{source}]", unit="cmpd") as pbar:
                 for line in fh:
                     line = line.strip()

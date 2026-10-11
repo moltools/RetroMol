@@ -51,11 +51,10 @@ The RetroMol CLI has two modes, single and batch:
 * `single`: process a single compound at a time.
 * `batch`: process multiple compounds in a single command.
 
-In either case a the output folder will contain a log file together with the results in either JSON or JSONL format. JSONL is standard output mode for batch mode to allow for easy parsing of large result sets. Batch mode also supports parallel processing.
-
-Any column, field, or property in the input file, either CSV, TSV, SDF, or JSON, is preserved as props in the output JSON or JSONL.
-
-Stereochemistry parsing is supported by supplying the `-c` flag.
+In either case the output folder contains a log file and results. Batch mode
+defaults to gzip-compressed JSONL (`results.jsonl.gz`), supports parallel
+processing, and writes results as they arrive. Single mode writes compact JSON
+(`result.json`); add `--compression gzip` to write `result.json.gz`.
 
 Result JSONs or lines from a JSONL file can be loaded into Python using RetroMol's `Result` class for further downstream analyses.
 

@@ -97,7 +97,10 @@ class LinearReadout:
         include_unassigned: bool = True,
     ) -> "LinearReadout":
         """
-        Create a LinearReadout from a Result object.
+        Create a LinearReadout from one selected reaction route.
+
+        An explored graph can contain mutually exclusive, overlapping leaves.
+        Select a route first, or use from_assembly_graph with a sampled assembly.
 
         :param root_enc: Encoding of the root molecule.
         :param reaction_graph: ReactionGraph object.
@@ -116,7 +119,12 @@ class LinearReadout:
         # Create assembly graph of monomers; first collect nodes to include
         collected = g.get_leaf_nodes(identified_only=identified_only)
         a = AssemblyGraph.build(root_mol=root, monomers=collected, include_unassigned=include_unassigned)
+        return cls.from_assembly_graph(a)
 
+    @classmethod
+    def from_assembly_graph(cls, assembly_graph: AssemblyGraph) -> "LinearReadout":
+        """Extract sequences from a particular assembly projection on demand."""
+        a = assembly_graph
         # Break bonds between monomers that are not backbone-related bonds (i.e., keep C-C and C-N bonds only)
         f = a.filtered_by_root_bond_elements(allow_pairs={frozenset(("C", "C")), frozenset(("C", "N"))}, drop_isolated=False)
 

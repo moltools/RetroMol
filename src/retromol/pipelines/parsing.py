@@ -11,7 +11,6 @@ from retromol.model.submission import Submission
 from retromol.model.rules import RuleSet, index_uncontested, apply_uncontested
 from retromol.model.result import Result
 from retromol.model.reaction_graph import ReactionGraph, ReactionStep, RxnEdge
-from retromol.model.readout import LinearReadout
 from retromol.model.synthesis import SynthesisExtractResult
 from retromol.chem.mol import Mol, encode_mol, mol_to_smiles
 from retromol.chem.tagging import get_tags_mol
@@ -125,6 +124,7 @@ def extract_min_edge_synthesis_subgraph(
     edge_base_cost: float = 1.0,
     nonterminal_leaf_penalty: float = 0.25,
     unsolved_leaf_penalty: float = 5.0,
+    weight_pruned_atoms: bool = False,
 ) -> SynthesisExtractResult:
     """
     Extract a minimum-edge synthesis subgraph from a retrosynthesis ReactionGraph.
@@ -145,6 +145,8 @@ def extract_min_edge_synthesis_subgraph(
     :param edge_base_cost: Base cost per reaction edge
     :param nonterminal_leaf_penalty: Penalty for identified leaves that are non-terminal
     :param unsolved_leaf_penalty: Penalty for unsolved leaves (i.e., "give up" cost)
+    :param weight_pruned_atoms: Charge collapsed unresolved regions per original
+        heavy atom, so pruning does not make a large unknown region cheap
     :return: The extracted synthesis subgraph and status
     :raises ValueError: If root_enc is not in the graph
     """
@@ -161,6 +163,16 @@ def extract_min_edge_synthesis_subgraph(
         out_edges[e.src].append(ei)
 
     kind_rank = {k: i for i, k in enumerate(prefer_kind)}
+    root_heavy_tags = {
+        atom.GetIsotope() for atom in g.nodes[root_enc].mol.GetAtoms()
+        if atom.GetAtomicNum() > 1 and atom.GetIsotope() != 0
+    }
+
+    def unresolved_cost(enc: str) -> float:
+        node = g.nodes[enc]
+        if not weight_pruned_atoms or not node.pruned:
+            return unsolved_leaf_penalty
+        return unsolved_leaf_penalty * len(get_tags_mol(node.mol) & root_heavy_tags)
 
     def edge_cost(e: RxnEdge) -> float:
         # Primary objective: fewer edges
@@ -196,7 +208,7 @@ def extract_min_edge_synthesis_subgraph(
             # Identified nonterminal with no edges is still fine as 0, else unsolved penalty
             if n and n.is_identified:
                 return 0.0
-            return unsolved_leaf_penalty
+            return unresolved_cost(enc)
 
         # Soft leaves: identified + terminal=False
         leaf_cost = inf
@@ -240,7 +252,7 @@ def extract_min_edge_synthesis_subgraph(
         if best == inf and allow_cycle_frontier:
             # All continuations return to an ancestor. Preserve this molecule as
             # an unresolved leaf rather than discarding its entire parent route.
-            best = unsolved_leaf_penalty
+            best = unresolved_cost(enc)
 
         memo_cost[enc] = best
         memo_choice[enc] = best_ei
@@ -319,26 +331,16 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     g = process_mol(submission, rules)
     log.debug(f"Retrosynthesis graph has {len(g.nodes)} ({len(g.identified_nodes)} identified) nodes and {len(g.edges)} edges")
 
-    # Extract minimum-edge synthesis subgraph
     root = encode_mol(submission.mol)
-    r = extract_min_edge_synthesis_subgraph(
-        g,
-        root_enc=root,
-        edge_base_cost=0.25,                # low base cost encourages longer syntheses
-        nonterminal_leaf_penalty=100.0,     # high penalty forces expansion of non-terminal leaves (e.g., fatty acids)
-    )
-    log.debug(f"Extracted synthesis subgraph has {len(r.graph.nodes)} ({len(r.graph.identified_nodes)} identified) nodes and {len(r.graph.edges)} edges")
-
-    if not r.solved:
-        log.debug("Retrosynthesis extraction retained unresolved frontier fragments")
-
-    # Calculate the linear readouts for the synthesis graph
-    linear_readout = LinearReadout.from_reaction_graph(root, r.graph)
-
+    # Retain all informative explored alternatives. Readout policy belongs to
+    # consumers, and is not applied while parsing or serializing a result.
     return Result(
         submission=submission,
-        reaction_graph=r.graph,
-        linear_readout=linear_readout,
+        reaction_graph=g.prune_unidentified(root),
+        root_enc=root,
+        reaction_rules_hash=rules.reaction_rules_hash,
+        matching_rules_hash=rules.matching_rules_hash,
+        match_stereochemistry=rules.match_stereochemistry,
     )
 
 

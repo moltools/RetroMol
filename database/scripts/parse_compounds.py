@@ -9,7 +9,6 @@ disabled inside every worker (see common.py for why that needs its own initializ
 """
 
 import argparse
-import json
 import logging
 from pathlib import Path
 from typing import Literal
@@ -18,6 +17,7 @@ from tqdm import tqdm
 
 from common import load_ruleset, run_retromol_stream_quiet
 from retromol.io.streaming import stream_json_records, stream_sdf_records
+from retromol.io.json import dumps_compact, open_json_file
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def run(
     successes = 0
     errors = 0
 
-    with open(output_path, "w", buffering=1) as out:
+    with open_json_file(output_path, "wt") as out:
         with tqdm(desc="parse_compounds", unit="cmpd") as pbar:
             for evt in run_retromol_stream_quiet(
                 ruleset=ruleset,
@@ -59,7 +59,7 @@ def run(
                 if evt.error is not None:
                     errors += 1
                 elif evt.result is not None:
-                    out.write(json.dumps(evt.result) + "\n")
+                    out.write(dumps_compact(evt.result) + "\n")
                     successes += 1
 
                 pbar.update(1)
@@ -78,7 +78,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--input", required=True)
     ap.add_argument("--input-format", choices=["sdf", "jsonl"], required=True)
-    ap.add_argument("--output", required=True)
+    ap.add_argument("--output", required=True, help="result JSONL path; use .jsonl.gz for gzip compression")
     ap.add_argument("--rxn-rules", default=None)
     ap.add_argument("--mxn-rules", default=None)
     ap.add_argument("--match-stereochemistry", action="store_true")

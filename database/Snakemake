@@ -58,7 +58,7 @@ CHEBI_DIR = WORKDIR / "chebi"
 # Toggle whole branches of the pipeline off (see config.yaml's `enabled` comment) --
 # disabling npatlas/mibig skips their download+parse rules entirely, not just db
 # loading, since the "real" inputs below are only declared when enabled: nothing else
-# in the DAG needs npatlas/results.jsonl or mibig_gbk/readouts.jsonl, so Snakemake
+# in the DAG needs npatlas/results.jsonl.gz or mibig_gbk/readouts.jsonl, so Snakemake
 # never schedules the rules that would produce them. Same idea for chebi: disabling it
 # skips its bulk download entirely.
 ENABLED = config.get("enabled", {})
@@ -158,7 +158,7 @@ rule parse_npatlas:
     input:
         sdf=WORKDIR / "npatlas" / "npatlas.sdf"
     output:
-        results=WORKDIR / "npatlas" / "results.jsonl"
+        results=WORKDIR / "npatlas" / "results.jsonl.gz"
     threads: PARSE_COMPOUNDS_WORKERS
     run:
         import parse_compounds
@@ -175,9 +175,9 @@ rule parse_npatlas:
 rule load_npatlas_compounds:
     input:
         db_created=MARKERS / "db_created.done",
-        # Only declared when enabled -- nothing else in the DAG needs npatlas/results.jsonl,
+        # Only declared when enabled -- nothing else in the DAG needs npatlas/results.jsonl.gz,
         # so download_npatlas/resolve_npatlas_sdf/parse_npatlas never run when disabled.
-        **({"results": WORKDIR / "npatlas" / "results.jsonl"} if NPATLAS_ENABLED else {}),
+        **({"results": WORKDIR / "npatlas" / "results.jsonl.gz"} if NPATLAS_ENABLED else {}),
         **({"taxdump_names": TAXDUMP_DIR / "names.dmp", "taxdump_nodes": TAXDUMP_DIR / "nodes.dmp"} if TAXONOMY_ENABLED and NPATLAS_ENABLED else {})
     output:
         marker=touch(MARKERS / "npatlas_loaded.done")
@@ -227,7 +227,7 @@ rule parse_mibig_compounds:
     input:
         compounds=WORKDIR / "mibig_json" / "compounds.jsonl"
     output:
-        results=WORKDIR / "mibig_json" / "results.jsonl"
+        results=WORKDIR / "mibig_json" / "results.jsonl.gz"
     threads: PARSE_COMPOUNDS_WORKERS
     run:
         import parse_compounds
@@ -250,7 +250,7 @@ rule load_mibig_compounds:
         # extract_mibig_compounds rule above) -- not from the GBKs, which no longer carry it.
         **(
             {
-                "results": WORKDIR / "mibig_json" / "results.jsonl",
+                "results": WORKDIR / "mibig_json" / "results.jsonl.gz",
                 "versions": WORKDIR / "mibig_json" / "versions.json",
                 "annotations": WORKDIR / "mibig_json" / "annotations.json",
             }
