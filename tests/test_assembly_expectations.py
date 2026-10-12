@@ -27,9 +27,26 @@ WRONG_BRANCH = replace(
 )
 
 
-def test_any_expected_alternative_can_match_without_requiring_the_others():
+@pytest.mark.parametrize("expected", [
+    [FINE_CHAIN, COARSE_CHAIN],
+    [COARSE_CHAIN, FINE_CHAIN],
+])
+def test_all_expected_graphs_match_while_extra_parsed_assemblies_are_allowed(expected):
     result, *_ = layered_result()
-    assert_assemblies(result, [WRONG_BRANCH, FINE_CHAIN])
+    assert result.assembly_space().count() == 4
+    assert_assemblies(result, expected)
+
+
+@pytest.mark.parametrize("expected, missing_index", [
+    ([WRONG_BRANCH, FINE_CHAIN], 1),
+    ([FINE_CHAIN, WRONG_BRANCH], 2),
+])
+def test_one_matching_graph_does_not_hide_a_missing_expected_graph(expected, missing_index):
+    result, *_ = layered_result()
+    with pytest.raises(AssertionError, match="Missing 1 of 2 expected assembly graphs") as exc:
+        assert_assemblies(result, expected)
+    assert f"#{missing_index}:" in str(exc.value)
+    assert f"#{3 - missing_index}:" not in str(exc.value)
 
 
 def test_nondefault_assembly_matches_without_using_default_selection(monkeypatch):
@@ -65,7 +82,7 @@ def test_fixture_node_indices_and_edge_orientation_do_not_matter():
         "wrong-atom-count", "missing-repeated-monomer", "wrong-coverage"])
 def test_graph_mismatches_fail_even_when_monomer_names_overlap(expected):
     result, *_ = layered_result()
-    with pytest.raises(AssertionError, match="No parsed assembly matches any expected graph"):
+    with pytest.raises(AssertionError, match="Missing 1 of 1 expected assembly graphs"):
         assert_assemblies(result, [expected])
 
 
@@ -77,7 +94,7 @@ def test_unresolved_regions_and_their_connections_are_part_of_the_graph():
         edges=((0, 1, ("C-C:SINGLE",)),),
     )
     assert_assemblies(result, [expected])
-    with pytest.raises(AssertionError, match="No parsed assembly"):
+    with pytest.raises(AssertionError, match="Missing 1 of 1 expected assembly graphs"):
         assert_assemblies(result, [replace(expected, nodes=(("C", 1),), edges=())])
 
 
@@ -90,7 +107,7 @@ def test_cyclic_dipeptide_requires_both_root_bonds(ruleset):
         edges=((0, 1, ("C-N:SINGLE", "C-N:SINGLE")),),
     )
     assert_assemblies(result, [expected])
-    with pytest.raises(AssertionError, match="No parsed assembly"):
+    with pytest.raises(AssertionError, match="Missing 1 of 1 expected assembly graphs"):
         assert_assemblies(result, [replace(expected, edges=((0, 1, ("C-N:SINGLE",)),))])
 
 
@@ -109,11 +126,11 @@ def test_stereo_qualified_node_labels_are_not_interchangeable(stereo_ruleset):
     result = parse_compound("N[C@@H](C)C(=O)O", stereo_ruleset)
     expected = ExpectedAssembly(coverage=1.0, nodes=(("alanine^L", 6),), edges=())
     assert_assemblies(result, [expected])
-    with pytest.raises(AssertionError, match="No parsed assembly"):
+    with pytest.raises(AssertionError, match="Missing 1 of 1 expected assembly graphs"):
         assert_assemblies(result, [replace(expected, nodes=(("alanine^D", 6),))])
 
 
-def test_empty_alternative_list_is_an_error():
+def test_empty_expected_graph_list_is_an_error():
     result, *_ = layered_result()
     with pytest.raises(ValueError, match="At least one expected assembly"):
         assert_assemblies(result, [])

@@ -1,3 +1,4 @@
+# Every listed graph must match a parsed assembly. Extra parsed assemblies are allowed.
 "10-deoxymethynolide":
   - coverage: 1.0
     nodes:

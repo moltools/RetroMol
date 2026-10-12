@@ -137,7 +137,7 @@ def assert_assemblies(
     *,
     coverage_tolerance: float = 1e-2,
 ) -> None:
-    """Require ANY expected graph to occur among ALL valid parsed assemblies.
+    """Require EVERY expected graph to occur among the valid parsed assemblies.
 
     Extra assemblies are allowed. Search is exhaustive and deterministic, not
     random sampling or selection of the default route. Enumeration-limit errors
@@ -145,7 +145,8 @@ def assert_assemblies(
     """
     if not expected:
         raise ValueError("At least one expected assembly graph is required")
-    expected_graphs = [(alternative, alternative.graph()) for alternative in expected]
+    unmatched = {index: (fixture, fixture.graph())
+                 for index, fixture in enumerate(expected, start=1)}
     space = result.assembly_space()
     frontiers = space.eligible_frontiers(
         min_coverage=max(0.0, min(alternative.coverage for alternative in expected) - coverage_tolerance),
@@ -159,20 +160,22 @@ def assert_assemblies(
         assembly = space.build(frontier)
         coverage = result.calculate_coverage(assembly)
         actual_graph = assembly_comparison_graph(result, assembly)
-        for alternative, expected_graph in expected_graphs:
-            if abs(coverage - alternative.coverage) > coverage_tolerance:
+        for index, (fixture, expected_graph) in list(unmatched.items()):
+            if abs(coverage - fixture.coverage) > coverage_tolerance:
                 continue
             if nx.is_isomorphic(actual_graph, expected_graph, node_match=node_match, edge_match=edge_match):
-                return
+                del unmatched[index]
+        if not unmatched:
+            return
         if len(diagnostics) < 5:
             diagnostics.append(f"coverage={coverage:.6f}, {_graph_summary(actual_graph)}")
 
     expected_descriptions = [
-        f"coverage={alternative.coverage:.6f}, {_graph_summary(graph)}"
-        for alternative, graph in expected_graphs
+        f"#{index}: coverage={fixture.coverage:.6f}, {_graph_summary(graph)}"
+        for index, (fixture, graph) in unmatched.items()
     ]
     raise AssertionError(
-        "No parsed assembly matches any expected graph.\nExpected alternatives:\n  "
+        f"Missing {len(unmatched)} of {len(expected)} expected assembly graphs.\nUnmatched expected graphs:\n  "
         + "\n  ".join(expected_descriptions)
         + f"\nParsed {len(space.frontiers)} valid assemblies; {len(frontiers)} meet the coverage lower bound."
         + f" Maximum coverage: {space.max_coverage:.6f}.\nFirst candidates (at most 5):\n  "

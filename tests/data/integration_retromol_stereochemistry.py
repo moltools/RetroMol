@@ -2,7 +2,7 @@
 
 """Compound inputs for stereo-aware assembly-graph integration tests.
 
-Expected graphs, including coverage and acceptable alternatives, live in
+Required assembly graphs, including coverage, live in
 integration_retromol_stereochemistry_assemblies.yml. Cases contain (name, SMILES).
 """
 
