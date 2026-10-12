@@ -349,3 +349,35 @@
 
 - name: reverse polyketide unit carbonylation
   smarts: "[O:1][S:2][C:3]([C:4][C:5]([O:6])=[O:7])=[C:8][C:9]([O:10])=[O:11]>>[O:1][S:2][C:3]([C:4][C:5]([O:6])=[O:7])=O.[C:8][C:9]([O:10])=[O:11]"
+
+- name: reverse terminal alpha-amino acid amidation
+  smarts: "[N:1]-[C;X4:2]-[C;X3:3](=[O:4])-[NH2;X3:5]>>[N:1]-[C:2]-[C:3](=[O:4])-[OH].[NH3:5]"
+  allowed_in_bulk: false
+  props:
+    status: candidate
+    positive_example: "CC(N)C(N)=O"
+    note: "Normalize a terminal carboxamide to acid and retain the original amide nitrogen."
+
+- name: reverse terminal alpha-amino aldehyde formation
+  smarts: "[N:1]-[C;X4:2]-[CH1;X3:3]=[O:4]>>[N:1]-[C:2]-[C:3](=[O:4])-[OH]"
+  allowed_in_bulk: false
+  props:
+    status: candidate
+    positive_example: "CC(N)C=O"
+    note: "Structural normalization of a terminal amino aldehyde to its corresponding acid."
+
+- name: reverse N-substituted alpha-peptide bond formation (intermolecular)
+  smarts: "[#6:1]-[C;X3:2](=[O:3])-[N;X3;H0:4](-[#6:5])-[C;X4:6]-[C;X3:7](=[O:8])-[O,N:9]>>[#6:1]-[C:2](=[O:3])-[OH].[N:4](-[#6:5])-[C:6]-[C:7](=[O:8])-[O,N:9]"
+  allowed_in_bulk: false
+  props:
+    status: candidate
+    positive_example: "CC(N)C(=O)N(C)C(C)C(=O)O"
+    note: "Preserve tertiary-amide N substitution when isolating amino-acid residues."
+
+- name: reverse N-substituted alpha-peptide bond formation (intramolecular)
+  smarts: "[#6:1]-[C;X3:2](=[O:3])-[N;X3;H0:4](-[#6:5])-[C;X4:6]-[C;X3:7](=[O:8])-[O,N:9]>>([#6:1]-[C:2](=[O:3])-[OH].[N:4](-[#6:5])-[C:6]-[C:7](=[O:8])-[O,N:9])"
+  allowed_in_bulk: false
+  props:
+    status: candidate
+    positive_example: "CN1C(C)C(=O)N(C)C(C)C1=O"
+    note: "Ring opening for N-substituted cyclic peptides; products must sanitize as one component."

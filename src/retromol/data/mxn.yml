@@ -719,6 +719,12 @@
 - name: phosphonylation
   smiles: "OP(O)(O)O"
 
+- name: phosphate
+  smiles: "O=P(O)(O)O"
+  terminal: true
+  props:
+    note: "Ordinary phosphate, distinct from the existing OP(O)(O)O phosphonylation entry."
+
 - name: fluorination
   smiles: "F"
   pseudonyms: ["halogenation"]
@@ -974,6 +980,9 @@
 
 - name: threonine
   smiles: "CC(O)C(N)C(=O)O"
+- name: N-methylthreonine
+  smiles: "CNC(C(O)C)C(=O)O"
+  terminal: true
 
 - name: asparagine
   smiles: "NC(=O)CC(N)C(=O)O"
@@ -1019,6 +1028,10 @@
 
 - name: glycine
   smiles: "NCC(=O)O"
+- name: sarcosine
+  smiles: "CNCC(=O)O"
+  pseudonyms: ["N-methylglycine"]
+  terminal: true
 
 - name: proline
   smiles: "O=C(O)C1CCCN1"
@@ -1085,6 +1098,9 @@
 
 - name: isoleucine
   smiles: "CCC(C)C(N)C(=O)O"
+- name: N-methylisoleucine
+  smiles: "CNC(C(C)CC)C(=O)O"
+  terminal: true
 
 - name: alanine
   smiles: "CC(N)C(=O)O"
@@ -1348,6 +1364,10 @@
 - name: isobutyric acid
   smiles: "CC(C)C(=O)O"
 
+- name: 2-methylbutyric acid
+  smiles: "CCC(C)C(=O)O"
+  terminal: true
+
 - name: lactic acid
   smiles: "CC(O)C(=O)O"
 
@@ -1445,6 +1465,10 @@
 - name: 3-hydroxy-2,2-dimethyldecanoic acid
   smiles: "CCCCCCCC(C(C)(C(O)=O)C)O"
   terminal: false
+
+- name: cyclohexanecarboxylic acid
+  smiles: "O=C(O)C1CCCCC1"
+  terminal: true
 
 - name: trans-2-hexanoic acid
   smiles: "CCCC=CC(O)=O"
@@ -1613,6 +1637,10 @@
 
 - name: anthranilic acid
   smiles: "Nc1ccccc1C(=O)O"
+
+- name: 3-hydroxyanthranilic acid
+  smiles: "O=C(O)c1cccc(O)c1N"
+  terminal: true
 
 - name: 2-amino-3-hydroxy-4-(4-nitrophenyl)butanoic acid
   smiles: "C1=CC(=CC=C1CC(C(C(=O)O)N)O)[N+](=O)[O-]"
@@ -1805,6 +1833,12 @@
 
 - name: 2-sulfamoylacetic acid
   smiles: "C(C(=O)O)S(=O)(=O)N"
+
+- name: sulfate
+  smiles: "O=S(=O)(O)O"
+  terminal: true
+  props:
+    note: "Neutral representation after sulfate cleavage; avoids re-expanding free sulfate."
 
 - name: 2-hydroxy-3-methylpentanoic acid
   smiles: "CCC(C)C(C(=O)O)O"
@@ -3082,6 +3116,10 @@
 - name: malonamate
   smiles: "NC(=O)CC(=O)O"
 
+- name: aminomalonic acid
+  smiles: "NC(C(=O)O)C(=O)O"
+  terminal: true
+
 - name: meta-tyrosine
   smiles: "C1=CC(=CC(=C1)O)CC(C(=O)O)N"
 - name: meta-tyrosine^L
@@ -3278,3 +3316,69 @@
 
 - name: streptamine
   smiles: "NC1CC(C(C(C1O)O)O)N"
+
+- name: norvaline^L
+  smiles: "N[C@@H](CCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["norvaline"]
+  terminal: true
+- name: norvaline^D
+  smiles: "N[C@H](CCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["norvaline"]
+  terminal: true
+- name: norvaline
+  smiles: "NC(CCC)C(=O)O"
+  terminal: true
+- name: N-methylnorvaline^L
+  smiles: "CN[C@@H](CCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylnorvaline"]
+  terminal: true
+- name: N-methylnorvaline^D
+  smiles: "CN[C@H](CCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylnorvaline"]
+  terminal: true
+- name: N-methylnorvaline
+  smiles: "CNC(CCC)C(=O)O"
+  terminal: true
+
+- name: norleucine^L
+  smiles: "N[C@@H](CCCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["norleucine"]
+  terminal: true
+- name: norleucine^D
+  smiles: "N[C@H](CCCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["norleucine"]
+  terminal: true
+- name: norleucine
+  smiles: "NC(CCCC)C(=O)O"
+  terminal: true
+- name: N-methylnorleucine^L
+  smiles: "CN[C@@H](CCCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylnorleucine"]
+  terminal: true
+- name: N-methylnorleucine^D
+  smiles: "CN[C@H](CCCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylnorleucine"]
+  terminal: true
+- name: N-methylnorleucine
+  smiles: "CNC(CCCC)C(=O)O"
+  terminal: true
+
+- name: glyoxylic acid
+  smiles: "O=CC(=O)O"
+  terminal: true
+
+- name: citric acid
+  smiles: "O=C(O)CC(O)(CC(=O)O)C(=O)O"
+  terminal: true
+
+- name: itaconic acid
+  smiles: "C=C(CC(=O)O)C(=O)O"
+  terminal: true

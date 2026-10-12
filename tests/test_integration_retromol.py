@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""Integration tests for the demo set of compounds."""
+"""Compare parsed assemblies with explicit graph expectations for demo compounds."""
+
+from pathlib import Path
 
 import pytest
 from rdkit import RDLogger
@@ -8,24 +10,23 @@ from rdkit import RDLogger
 from retromol.model.rules import RuleSet
 
 from .data.integration_retromol import CASES
-from .helpers_retromol import assert_result, parse_compound
+from .helpers_retromol import assert_assemblies, load_expected_assemblies, parse_compound
 
 
 # Disable RDKit warnings for cleaner test output
 RDLogger.DisableLog("rdApp.*")
 
+EXPECTED_ASSEMBLIES = load_expected_assemblies(
+    Path(__file__).parent / "data" / "integration_retromol_assemblies.yml"
+)
 
-@pytest.mark.parametrize("name, smiles, expected_coverage, expected_monomers", CASES, ids=[c[0] for c in CASES])
-def test_integration_demo_set(name: str, smiles: str, expected_coverage: float, expected_monomers: list[list[str]], ruleset: RuleSet) -> None:
-    """
-    Integration test for the demo set of compounds.
 
-    :param name: the name of the test case
-    :param smiles: the SMILES string of the compound to test
-    :param expected_coverage: the expected total coverage value
-    :param expected_monomers: the expected list of monomer identities
-    :param ruleset: the RuleSet to use for parsing
-    """
-    print(f"testing {name}...")
+def test_assembly_fixtures_match_compound_cases() -> None:
+    assert set(EXPECTED_ASSEMBLIES) == {name for name, _ in CASES}
+
+
+@pytest.mark.parametrize("name, smiles", CASES, ids=[c[0] for c in CASES])
+def test_integration_demo_set(name: str, smiles: str, ruleset: RuleSet) -> None:
+    """At least one expected graph must occur among the valid parsed assemblies."""
     result = parse_compound(smiles, ruleset)
-    assert_result(result, expected_coverage, expected_monomers)
+    assert_assemblies(result, EXPECTED_ASSEMBLIES[name])

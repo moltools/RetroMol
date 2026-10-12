@@ -10,6 +10,8 @@ from retromol.model.rules import MatchingRule, RuleSet
 from retromol.model.submission import Submission
 from retromol.pipelines.parsing import extract_min_edge_synthesis_subgraph, run_retromol_with_timeout
 
+from .helpers_retromol import ExpectedAssembly, assert_assemblies
+
 
 def add_reaction(graph: ReactionGraph, reactant: str, *products: str) -> None:
     source = graph.add_node(smiles_to_mol(reactant))
@@ -97,12 +99,11 @@ def test_fully_identified_route_can_cost_more_than_unsolved_penalty() -> None:
 @pytest.mark.parametrize(
     "smiles",
     [
-        "CCOS(=O)(=O)O",
         # NPA000139 and NPA000469 reproduced the missing-root error with default rules.
         "O=C(CC(O)(CC(=O)NCCCNCCCNC(=O)c1ccc(O)c(O)c1)C(=O)O)NCCCCNCCCNC(=O)c1ccc(O)c(O)c1S(=O)(=O)O",
         "CCCCCCCCCCCCCCCC(=O)NC1CC(O)C(O)NC(=O)C2C(O)C(C)CN2C(=O)C(C(O)CC(N)=O)NC(=O)C(C(O)Cc2ccc(OS(=O)(=O)O)c(O)c2)NC(=O)C2CC(O)CN2C(=O)C(C(C)O)NC1=O",
     ],
-    ids=["ethyl sulfate", "NPA000139", "NPA000469"],
+    ids=["NPA000139", "NPA000469"],
 )
 def test_default_rules_preserve_partial_results_for_sulfated_compounds(smiles: str, ruleset: RuleSet) -> None:
     result = run_retromol_with_timeout(Submission(smiles), ruleset)
@@ -113,6 +114,19 @@ def test_default_rules_preserve_partial_results_for_sulfated_compounds(smiles: s
     assert any(not node.is_identified for node in result.linear_readout.assembly_graph.monomer_nodes())
     restored = Result.from_dict(result.to_dict())
     assert restored.calculate_coverage() == result.calculate_coverage()
+
+
+def test_ethyl_sulfate_has_a_complete_assembly(ruleset: RuleSet) -> None:
+    result = run_retromol_with_timeout(Submission("CCOS(=O)(=O)O"), ruleset)
+    expected = ExpectedAssembly(
+        coverage=1.0,
+        nodes=(("ethanol", 3), ("sulfate", 4)),
+        edges=((0, 1, ("O-S:SINGLE",)),),
+    )
+    assert encode_mol(result.submission.mol) in result.reaction_graph.nodes
+    assert_acyclic(result.selected_reaction_graph)
+    assert_assemblies(result, [expected])
+    assert_assemblies(Result.from_dict(result.to_dict()), [expected])
 
 
 def test_missing_root_in_invalid_input_graph_still_raises() -> None:
