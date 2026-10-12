@@ -354,7 +354,6 @@
   smarts: "[N:1]-[C;X4:2]-[C;X3:3](=[O:4])-[NH2;X3:5]>>[N:1]-[C:2]-[C:3](=[O:4])-[OH].[NH3:5]"
   allowed_in_bulk: false
   props:
-    status: candidate
     positive_example: "CC(N)C(N)=O"
     note: "Normalize a terminal carboxamide to acid and retain the original amide nitrogen."
 
@@ -362,7 +361,6 @@
   smarts: "[N:1]-[C;X4:2]-[CH1;X3:3]=[O:4]>>[N:1]-[C:2]-[C:3](=[O:4])-[OH]"
   allowed_in_bulk: false
   props:
-    status: candidate
     positive_example: "CC(N)C=O"
     note: "Structural normalization of a terminal amino aldehyde to its corresponding acid."
 
@@ -370,7 +368,6 @@
   smarts: "[#6:1]-[C;X3:2](=[O:3])-[N;X3;H0:4](-[#6:5])-[C;X4:6]-[C;X3:7](=[O:8])-[O,N:9]>>[#6:1]-[C:2](=[O:3])-[OH].[N:4](-[#6:5])-[C:6]-[C:7](=[O:8])-[O,N:9]"
   allowed_in_bulk: false
   props:
-    status: candidate
     positive_example: "CC(N)C(=O)N(C)C(C)C(=O)O"
     note: "Preserve tertiary-amide N substitution when isolating amino-acid residues."
 
@@ -378,6 +375,41 @@
   smarts: "[#6:1]-[C;X3:2](=[O:3])-[N;X3;H0:4](-[#6:5])-[C;X4:6]-[C;X3:7](=[O:8])-[O,N:9]>>([#6:1]-[C:2](=[O:3])-[OH].[N:4](-[#6:5])-[C:6]-[C:7](=[O:8])-[O,N:9])"
   allowed_in_bulk: false
   props:
-    status: candidate
     positive_example: "CN1C(C)C(=O)N(C)C(C)C1=O"
     note: "Ring opening for N-substituted cyclic peptides; products must sanitize as one component."
+
+- name: normalize peptide imidic acid tautomer
+  smarts: '[N;H0:1]=[C:2]([OH:3])-[C,c:4]>>[NH1:1]-[C:2](=[O:3])-[C,c:4]'
+  allowed_in_bulk: true
+
+- name: reverse N-formylation
+  smarts: '[CH1:1](=[O:2])[N:3]>>[CH1:1](=[O:2])[OH].[N:3]'
+  allowed_in_bulk: false
+
+- name: reverse aryl ether crosslink (intermolecular)
+  smarts: '[c:1]-[OX2:2]-[c:3]>>[c:1]-[OH:2].[cH:3]'
+  props:
+    audit_group: aryl_ether
+    audit_note: Diagnostic probe; aryl cleavage requires amino-acid-scaffold guards
+      before production use.
+  allowed_in_bulk: true
+
+- name: reverse aryl ether crosslink (intramolecular)
+  smarts: '[c:1]-[OX2:2]-[c:3]>>([c:1]-[OH:2].[cH:3])'
+  allowed_in_bulk: true
+
+- name: reverse biaryl crosslink (intermolecular)
+  smarts: '[c:1]-[c:2]>>[cH:1].[cH:2]'
+  allowed_in_bulk: true
+
+- name: reverse biaryl crosslink (intramolecular)
+  smarts: '[c:1]-[c:2]>>([cH:1].[cH:2])'
+  allowed_in_bulk: true
+
+- name: reverse hemiaminal (intermolecular)
+  smarts: '[CH1:1]([OH1:2])-[NX3:3]>>[CH1:1]=[O:2].[N:3]'
+  allowed_in_bulk: true
+
+- name: reverse hemiaminal (intramolecular)
+  smarts: '[CH1:1]([OH1:2])-[NX3:3]>>([CH1:1]=[O:2].[N:3])'
+  allowed_in_bulk: true
