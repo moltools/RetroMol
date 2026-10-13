@@ -27,6 +27,6 @@ def test_assembly_fixtures_match_compound_cases() -> None:
 
 @pytest.mark.parametrize("name, smiles", CASES, ids=[c[0] for c in CASES])
 def test_integration_demo_set(name: str, smiles: str, ruleset: RuleSet) -> None:
-    """At least one expected graph must occur among the valid parsed assemblies."""
+    """Every expected graph must occur among the valid parsed assemblies."""
     result = parse_compound(smiles, ruleset)
     assert_assemblies(result, EXPECTED_ASSEMBLIES[name])

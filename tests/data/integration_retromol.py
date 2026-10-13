@@ -365,4 +365,48 @@ CASES: list[tuple[str, str]] = [
         "NRP with intramolecular threonine-cysteine bridges",
         r"CC[C@H](C)[C@@H]1NC(=O)[C@H]2NC(=O)[C@H](Cc3ccc(O)cc3)NC(=O)CNC(=O)[C@H](Cc3c[nH]c4ccccc34)NC(=O)[C@H](Cc3c[nH]cn3)NC(=O)[C@H](CS[C@@H]2C)NC(=O)[C@H](C(C)C)NC(=O)[C@H]2NC(=O)[C@@H](NC(=O)[C@@H](NC(=O)CN)[C@@H](C)O)CS[C@H](C)[C@@H](C(=O)N[C@@H](CCCNC(=N)N)C(=O)N[C@@H](CO)C(=O)O)NC(=O)[C@H](CO)NC(=O)[C@H](Cc3ccccc3)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CS[C@@H]2C)NC(=O)[C@H](CC(C)C)NC1=O",
     ),
+    (
+        "vancomycin",
+        r"CN[C@H](CC(C)C)C(=O)N[C@H]1C(=O)N[C@@H](CC(N)=O)C(=O)N[C@H]2C(=O)N[C@H]3C(=O)N[C@H](C(=O)N[C@H](C(=O)O)c4cc(O)cc(O)c4-c4cc3ccc4O)[C@H](O)c3ccc(c(Cl)c3)Oc3cc2cc(c3O[C@@H]2O[C@H](CO)[C@@H](O)[C@H](O)[C@H]2O[C@H]2C[C@](C)(N)[C@H](O)[C@H](C)O2)Oc2ccc(cc2Cl)[C@H]1O",
+    ),
+    (
+        "capreomycin IA",
+        r"NCCC[C@@H](N)CC(=O)NC[C@@H]1NC(=O)[C@H](CO)NC(=O)[C@@H](N)CNC(=O)[C@H]([C@H]2CCN=C(N)N2)NC(=O)/C(=C/NC(N)=O)NC1=O",
+    ),
+    (
+        "aeruginosin 98-A",
+        r"CC[C@@H](C)[C@@H](NC(=O)C(O)Cc1ccc(O)c(Cl)c1)C(=O)N1C(C(=O)NCCCCNC(=N)N)CC2CCC(OS(=O)(=O)O)CC21",
+    ),
+    (
+        "corpeptin A",
+        r"C=C(N=C(O)[C@@H](N=C(O)[C@@H](N=C(O)[C@H](CCO)N=C(O)/C(=C/C)N=C(O)[C@@H](N=C(O)[C@@H](N=C(O)[C@H](C)N=C(O)[C@H](C)N=C(O)[C@H](C)N=C(O)[C@@H]1CCCN1C(=O)/C(=C/C)N=C(O)CC(O)CCCCCCC)C(C)C)C(C)C)C(C)C)[C@H](C)CC)C(O)=N[C@@H](C)C(O)=N[C@@H](C)C(O)=N[C@@H](C)C(O)=N[C@H](C(O)=N/C(=C\C)C(O)=N[C@@H]1C(O)=N[C@@H](C)C(O)=N[C@@H](CCN)C(O)=N[C@@H](CO)C(O)=N[C@@H]([C@@H](C)CC)C(=O)O[C@H]1C)C(C)C",
+    ),
+    (
+        "cyanopeptolin 1138",
+        r"CCC(C)C1NC(=O)C(Cc2ccccc2)N(C)C(=O)C(C(C)CC)N2C(=O)C(CCC2O)NC(=O)C(CCc2ccc(O)cc2)NC(=O)C(NC(=O)C(CCc2ccc(O)cc2)NC(=O)C(COS(=O)(=O)O)OC)C(C)OC1=O",
+    ),
+    (
+        "gramicidin",
+        r"CC(C)C[C@@H](NC(=O)[C@H](C)NC(=O)CNC(=O)[C@@H](NC=O)C(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](C(=O)N[C@H](C(=O)N[C@H](C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@H](CC(C)C)C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@H](CC(C)C)C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@H](CC(C)C)C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)NCCO)C(C)C)C(C)C)C(C)C",
+    ),
+    (
+        "hormaomycin",
+        r"C/C=C\[C@H]1C[C@H]2C(=O)O[C@H](C)[C@@H](NC(=O)[C@H](C[C@@H]3C[C@H]3[N+](=O)[O-])NC(=O)c3ccc(Cl)n3O)C(=O)N[C@@H]([C@H](C)c3ccccc3)C(=O)N[C@H](C[C@@H]3C[C@H]3[N+](=O)[O-])C(=O)N[C@@H]([C@H](C)c3ccccc3)C(=O)N[C@@H]([C@@H](C)CC)C(=O)N2C1",
+    ),
+    (
+        "myxochelin A",
+        r"O=C(NCCCC[C@@H](CO)NC(=O)c1cccc(O)c1O)c1cccc(O)c1O",
+    ),
+    (
+        "marformycin A",
+        r"CC[C@H](C)[C@H]1NC(=O)[C@@H](Cc2ccc(OC)cc2)NC(=O)[C@@H](NC(=O)[C@@H](NC=O)C(C)C)[C@@H](C)OC(=O)[C@H](C(C)C)N(C)C(=O)[C@H](CC(C)C)NC(=O)[C@@H]2CCCNN2C1=O",
+    ),
+    (
+        "antimycin",
+        r"CCCCCC[C@H]1C(=O)O[C@H](C)[C@H](NC(=O)c2cccc(NC=O)c2O)C(=O)O[C@@H](C)[C@@H]1OC(=O)CC(C)C",
+    ),
+    (
+        "phorbactazole A",
+        r"CO[C@@H]1C[C@H](C)OC(O)(Cc2nc(/C=C(\C)[C@@H]3O[C@@H]4C/C=C(\C)c5nc(co5)[C@@H]5C[C@@H](OC(N)=O)[C@H](O)[C@H](C[C@H](O)C[C@@H](O)[C@@H](O)/C=C/[C@@H]6C[C@@H](O)[C@H](C)[C@@H](C/C=C\C(=O)O[C@@H](C4)[C@H]3C)O6)O5)co2)[C@H]1C",
+    ),
 ]
