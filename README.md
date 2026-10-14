@@ -60,7 +60,7 @@ Result JSONs or lines from a JSONL file can be loaded into Python using RetroMol
 
 ### Using custom rules
 
-RetroMol comes with a default set of retrosynthetic rules for modular natural products. See [the default rules](src/retromol/data/) for examples of the included rules.
+RetroMol comes with a default set of retrosynthetic rules for modular natural products. See the [rule-writing guide](src/retromol/data/README.md) for all supported settings, examples, and how matching and reaction rules work together.
 
 ## Attribution
 

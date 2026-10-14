@@ -10,6 +10,7 @@ export const MatchingRuleSchema = z.object({
   pseudonyms: z.array(z.string()),
   terminal: z.boolean(),
   stereochemistry: z.boolean(),
+  preserveAcrossRoutes: z.boolean(),
   props: z.record(z.string(), z.any()),
 });
 export type MatchingRule = z.output<typeof MatchingRuleSchema>;
@@ -19,6 +20,7 @@ export const ReactionRuleSchema = z.object({
   name: z.string(),
   smarts: z.string(),
   allowedInBulk: z.boolean(),
+  productMaxMatches: z.record(z.string(), z.number().int().nonnegative()),
   props: z.record(z.string(), z.any()),
 });
 export type ReactionRule = z.output<typeof ReactionRuleSchema>;

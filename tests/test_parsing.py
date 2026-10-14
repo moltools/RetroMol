@@ -3,10 +3,10 @@
 import networkx as nx
 import pytest
 
-from retromol.chem.mol import encode_mol, smiles_to_mol
+from retromol.chem.mol import encode_mol, smiles_to_mol, smarts_to_mol
 from retromol.model.reaction_graph import ReactionGraph, ReactionStep
 from retromol.model.result import Result
-from retromol.model.rules import MatchingRule, RuleSet
+from retromol.model.rules import MatchingRule, ReactionRule, RuleSet
 from retromol.model.submission import Submission
 from retromol.pipelines.parsing import extract_min_edge_synthesis_subgraph, run_retromol_with_timeout
 
@@ -132,3 +132,69 @@ def test_ethyl_sulfate_has_a_complete_assembly(ruleset: RuleSet) -> None:
 def test_missing_root_in_invalid_input_graph_still_raises() -> None:
     with pytest.raises(ValueError, match="Root encoding missing"):
         extract_min_edge_synthesis_subgraph(ReactionGraph(), "missing")
+
+
+def test_product_limits_distinguish_added_handles_from_original_sulfur() -> None:
+    rule = ReactionRule.from_dict({
+        "name": "add a terminal handle",
+        "smarts": "[CH2:1](-[S:2]-[OH:3])-[CH3:4]>>[CH2:1](-[S:2]-[OH:3])-[CH2:4]-[S]-[OH]",
+        "product_max_matches": {"[0S]-[0OH]": 1},
+    })
+    # Isotope zero is reserved for reaction-added atoms after input tagging.
+    assert rule.apply(smiles_to_mol("CCSO")) == []
+    assert rule.apply(Submission("CCSO").mol)
+    restored = ReactionRule.from_dict(rule.to_dict())
+    assert restored.apply(smiles_to_mol("CCSO")) == []
+
+
+def test_product_limits_apply_to_each_product_not_the_whole_reaction() -> None:
+    rule = ReactionRule.from_dict({
+        "name": "separate two units",
+        "smarts": "[CH2:1](-[S:2][OH:3])-[CH2:4]-[CH2:5]-[CH3:6]>>[CH2:1](-[S:2][OH:3])-[CH3:4].[CH2:5](-[S][OH])-[CH3:6]",
+        "product_max_matches": {"[0S]-[0OH]": 1},
+    })
+    products = rule.apply(smiles_to_mol("CCCCSO"))
+    assert len(products) == 1
+    assert len(products[0]) == 2
+
+
+def test_pk_head_limit_rejects_starting_again_from_the_opposite_acid(ruleset: RuleSet) -> None:
+    mol = Submission("O=C(O)CCC(O)CCCC(=O)O").mol
+    acid = smarts_to_mol("[C](=[O])-[OH]")
+    # Model one end already advanced by an earlier PK cleavage. The opposite
+    # carboxyl group still consists of original input atoms.
+    for index in mol.GetSubstructMatches(acid)[0]:
+        mol.GetAtomWithIdx(index).SetIsotope(0)
+    template = next(r for r in ruleset.reaction_rules if r.name == "reversed polyketide synthesis (saturated)")
+    unguarded = ReactionRule(template.name, template.smarts, {})
+    guarded = ReactionRule(template.name, template.smarts, {},
+                           product_max_matches={"[0C](=[0O])-[0OH]": 1})
+    head = smarts_to_mol("[0C](=[0O])-[0OH]")
+    assert any(len(product.GetSubstructMatches(head)) == 2
+               for products in unguarded.apply(mol) for product in products)
+    allowed = guarded.apply(mol)
+    assert allowed
+    assert all(len(product.GetSubstructMatches(head)) <= 1
+               for products in allowed for product in products)
+
+
+@pytest.mark.parametrize("limits", [{"O": -1}, {"O": True}, {"O": 1.5}, ["O"]])
+def test_invalid_product_limits_fail_when_loading(limits) -> None:
+    with pytest.raises(ValueError, match="product_max_matches"):
+        ReactionRule.from_dict({"name": "invalid", "smarts": "[C:1]>>[C:1]",
+                                "product_max_matches": limits})
+
+
+def test_product_limits_load_legacy_props_but_serialize_at_top_level() -> None:
+    data = {"name": "identity", "smarts": "[O:1]>>[O:1]",
+            "props": {"note": "test", "product_max_matches": {"O": 0}}}
+    legacy = ReactionRule.from_dict(data)
+    assert legacy.apply(smiles_to_mol("O")) == []
+    assert legacy.props == {"note": "test"}
+    assert legacy.to_dict()["product_max_matches"] == {"O": 0}
+    assert data["props"]["product_max_matches"] == {"O": 0}
+    # An explicit empty top-level mapping overrides the old nested restriction.
+    current = ReactionRule.from_dict({**data, "product_max_matches": {}})
+    assert current.apply(smiles_to_mol("O"))
+    assert current.props == {"note": "test"}
+    assert ReactionRule.from_dict({"name": "identity", "smarts": "[O:1]>>[O:1]"}).product_max_matches == {}

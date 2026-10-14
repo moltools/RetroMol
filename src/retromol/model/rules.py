@@ -19,6 +19,7 @@ import retromol.data
 from retromol.chem.mol import (
     mol_to_smiles,
     smiles_to_mol,
+    smarts_to_mol,
     count_fragments,
     sanitize_mol,
     reassign_stereochemistry,
@@ -39,14 +40,16 @@ class ReactionRule:
 
     :cvar name: str: name of the reaction rule
     :cvar smarts: str: SMARTS pattern defining the reaction
-    :cvar props: dict[str, Any]: additional properties associated with the rule
+    :cvar props: Descriptive metadata, such as notes and references.
     :cvar allowed_in_bulk: bool: whether this rule is allowed to be applied in bulk preprocessing
+    :cvar product_max_matches: SMARTS patterns mapped to maximum occurrences in each product.
     """
 
     name: str
     smarts: str
     props: dict[str, Any]
     allowed_in_bulk: bool = False
+    product_max_matches: dict[str, int] = field(default_factory=dict)
 
     rxn: ChemicalReaction = field(init=False, repr=False)
 
@@ -56,6 +59,20 @@ class ReactionRule:
         """
         rxn = smarts_to_reaction(self.smarts)
         object.__setattr__(self, "rxn", rxn)
+        # Compile declarative guards when loading, so malformed rules fail early.
+        _ = self.product_match_limits
+
+    @cached_property
+    def product_match_limits(self) -> tuple[tuple[Mol, int], ...]:
+        """Limits on SMARTS occurrences in each product, supplied by the rule."""
+        limits = self.product_max_matches
+        if not isinstance(limits, dict) or any(
+            not isinstance(pattern, str) or not pattern
+            or type(limit) is not int or limit < 0
+            for pattern, limit in limits.items()
+        ):
+            raise ValueError(f"{self.name}: product_max_matches must map SMARTS strings to nonnegative integers")
+        return tuple((smarts_to_mol(pattern), limit) for pattern, limit in limits.items())
 
     @property
     def id(self) -> str:
@@ -72,6 +89,7 @@ class ReactionRule:
             "smarts": self.smarts,
             "props": self.props,
             "allowed_in_bulk": self.allowed_in_bulk,
+            "product_max_matches": self.product_max_matches,
         }
 
     @classmethod
@@ -82,11 +100,15 @@ class ReactionRule:
         :param data: Dictionary containing rule data.
         :return: The created ReactionRule instance.
         """
+        # Read older rule files and saved results; serialize only the top-level field.
+        props = dict(data.get("props", {}))
+        legacy_limits = props.pop("product_max_matches", {})
         reaction_rule = cls(
             name=data["name"],
             smarts=data["smarts"],
-            props=data.get("props", {}),
+            props=props,
             allowed_in_bulk=data.get("allowed_in_bulk", False),
+            product_max_matches=data.get("product_max_matches", legacy_limits),
         )
         return reaction_rule
     
@@ -133,6 +155,11 @@ class ReactionRule:
                 # Sanitize in place
                 if not sanitize_mol(prod, fix_hydrogens=True):
                     log.debug("Product sanitization failed, skipping")
+                    ok_tuple = False
+                    break
+
+                if any(len(prod.GetSubstructMatches(pattern, maxMatches=limit + 1)) > limit
+                       for pattern, limit in self.product_match_limits):
                     ok_tuple = False
                     break
 
@@ -375,7 +402,7 @@ class MatchingRule:
 
     :cvar name: Name of the matching rule.
     :cvar smiles: SMILES pattern defining the motif.
-    :cvar props: Additional properties associated with the rule.
+    :cvar props: Descriptive metadata, such as notes and references.
     :cvar pseudonyms: Pseudonyms associated with the rule.
     :cvar terminal: Whether this rule is terminal (i.e., should not be expanded further).
     :cvar stereochemistry: Whether to consider stereochemistry in matching.
@@ -383,6 +410,8 @@ class MatchingRule:
         in the GUI's motif hover preview) instead of `smiles`, which is written for
         substructure matching (e.g. carrying a reactive leaving-group placeholder) and
         may not be the clearest depiction of the motif on its own.
+    :cvar preserve_across_routes: Whether a terminal match also protects its atom
+        region from subdivision in alternative derivations. Defaults to True.
     """
 
     name: str
@@ -392,6 +421,7 @@ class MatchingRule:
     terminal: bool = True
     stereochemistry: bool = False
     display_smiles: str | None = None
+    preserve_across_routes: bool = True
 
     mol: Mol = field(init=False, repr=False)
 
@@ -401,6 +431,8 @@ class MatchingRule:
         """
         mol = smiles_to_mol(self.smiles)
         object.__setattr__(self, "mol", mol)
+        if type(self.preserve_across_routes) is not bool:
+            raise ValueError(f"{self.name}: preserve_across_routes must be a boolean")
 
     @property
     def id(self) -> str:
@@ -425,6 +457,7 @@ class MatchingRule:
             "terminal": self.terminal,
             "stereochemistry": self.stereochemistry,
             "display_smiles": self.display_smiles,
+            "preserve_across_routes": self.preserve_across_routes,
         }
 
     @classmethod
@@ -435,14 +468,18 @@ class MatchingRule:
         :param data: Dictionary containing rule data.
         :return: The created MatchingRule instance.
         """
+        # Keep old YAML/JSON readable without retaining behavior settings in metadata.
+        props = dict(data.get("props", {}))
+        legacy_preserve = props.pop("preserve_across_routes", True)
         matching_rule = cls(
             name=data["name"],
             smiles=data["smiles"],
-            props=data.get("props", {}),
+            props=props,
             pseudonyms=data.get("pseudonyms", []),
             terminal=data.get("terminal", True),
             stereochemistry=data.get("stereochemistry", False),
             display_smiles=data.get("display_smiles"),
+            preserve_across_routes=data.get("preserve_across_routes", legacy_preserve),
         )
         return matching_rule
 

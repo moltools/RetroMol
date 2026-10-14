@@ -323,25 +323,46 @@
   smarts: "[C:1][C:2](=[O:3])[N:4](-[OH:5])[C:6]>>[C:1][C:2](=[O:3])-[OH].[N:4](-[OH:5])[C:6]"
   allowed_in_bulk: true
 
+# Input atoms have positive isotope tags; reaction-added atoms have isotope zero.
+# A PK product may retain one SO unit cap and one continuation acid. This keeps
+# alternate chain directions separate instead of cutting both toward the middle.
 - name: reversed polyketide synthesis (saturated)
   smarts: "[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH:6]"
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
 
 - name: reversed polyketide synthesis (saturated anhydride)
   smarts: "[C,c:1][C;!R:2]-[C;!R:3]-[C:4](=[O:5])[CH2:6][CH3:7]>>[C,c:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH].[C](=[O])([OH])[C:6][C:7]"
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
 
 - name: reversed polyketide synthesis (unsaturated)
   smarts: "[C,c:1][C;!R:2]=[C;!R:3]-[C:4](=[O:5])[OH:6]>>[C,c:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]"
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
 
 - name: reversed polyketide synthesis (unsaturated and shifted type 1)
   smarts: '[C;H0:1]=[C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[CH1:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]'
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
   props:
     note: Restore the hydrogen on the donor carbon when shifting the double bond during cleavage, including reaction-generated explicit-H intermediates.
 
 - name: reversed polyketide synthesis (unsaturated and shifted type 2)
   smarts: "[C:7][C:1]=[C;!R:2]-[C&D4;!R:3]-[C:4](=[O:5])[OH:6]>>[C:7]=[C:1]C(=O)[OH].[OH][S][C:2]-[C:3]-[C:4](=[O:5])[OH:6]"
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
 
 - name: reversed polyketide synthesis (shifted and late stage oxidation)
   smarts: '[C;H0:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[CH1:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]'
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
   props:
     note: Restore the hydrogen on the donor carbon when shifting the double bond during cleavage, including reaction-generated explicit-H intermediates.
 
@@ -480,21 +501,33 @@
 
 - name: reversed polyketide synthesis (unsaturated and shifted type 1; donor H1)
   smarts: '[C;H1:1]=[C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[CH2:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]'
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
   props:
     note: Restore the hydrogen on the donor carbon when shifting the double bond during cleavage, including reaction-generated explicit-H intermediates.
 
 - name: reversed polyketide synthesis (unsaturated and shifted type 1; donor H2)
   smarts: '[C;H2:1]=[C;!R:2]-[C;!R:3]-[C:4](=[O:5])[OH:6]>>[CH3:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6]'
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
   props:
     note: Restore the hydrogen on the donor carbon when shifting the double bond during cleavage, including reaction-generated explicit-H intermediates.
 
 - name: reversed polyketide synthesis (shifted and late stage oxidation; donor H1)
   smarts: '[C;H1:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[CH2:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]'
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
   props:
     note: Restore the hydrogen on the donor carbon when shifting the double bond during cleavage, including reaction-generated explicit-H intermediates.
 
 - name: reversed polyketide synthesis (shifted and late stage oxidation; donor H2)
   smarts: '[C;H2:1]=[C;!R:2]-[C;!R:3](-[OH:7])-[C:4](=[O:5])[OH:6]>>[CH3:1]C(=O)[OH].[OH][S][C:2]=[C:3]-[C:4](=[O:5])[OH:6].[O:7]'
+  product_max_matches:
+    "[0S]-[0OH]": 1
+    "[0C](=[0O])-[0OH]": 1
   props:
     note: Restore the hydrogen on the donor carbon when shifting the double bond during cleavage, including reaction-generated explicit-H intermediates.
 
@@ -513,3 +546,71 @@
   props:
     reference: https://pubmed.ncbi.nlm.nih.gov/23294008/
     note: Restore the dihydroxyketone by hydrolyzing both ketal C-O bonds. Both original ether oxygens become alcohols; the carbonyl oxygen is supplied by water. Optional alternative to dehydrative ring opening.
+
+# Anthrone oxidation and aldol-derived aromatic ring opening.
+# Experimental background: https://pubmed.ncbi.nlm.nih.gov/19549600/ and
+# https://pmc.ncbi.nlm.nih.gov/articles/PMC4750049/; SnoaL ring closure:
+# https://pmc.ncbi.nlm.nih.gov/articles/PMC404321/
+- name: reverse peri-hydroxyanthraquinone oxidation
+  smarts: '[C:5]1(=[O:18])[c:6]2[c:7]([OH:19])[c:8][c:9][c:10][c:11]2[C:12](=[O:20])[c:13]2[c:14][c:15][c:2][c:3]([OH:17])[c:4]21>>[C:5]1(=[O:18])[c:6]2[c:7]([OH:19])[c:8][c:9][c:10][c:11]2[CH2:12][c:13]2[c:14][c:15][c:2][c:3]([OH:17])[c:4]21.[OH2:20]'
+  props:
+    note: Restore the anthrone methylene opposite the carbonyl flanked by two peri hydroxyls; retain the removed
+      oxygen as an oxidation fragment.
+
+- name: reverse decarboxylative aldol aromatization (acyl phenol)
+  smarts: '[cH:1]1[c:2]([OH:7])[c:3](-[C:8](=[O:9]))[c:4](-[CH2:10])[cH:5][c:6]1-[C:11]>>[OH]C(=O)[CH2:1][C:2](=[O:7])[C:3](-[C:8](=[O:9]))=[C:4](-[CH2:10])[CH2:5][C:6](=O)[C:11]'
+  props:
+    note: Restore the lost carboxyl and carbonyls while reopening an aldol-derived acyl phenol. Added carboxyl atoms
+      do not count toward coverage.
+
+- name: reverse aldol aromatization (carboxylated acyl phenol)
+  smarts: '[c:1]1([C:12](=[O:13])[OH:14])[c:2]([OH:7])[c:3](-[C:8](=[O:9]))[c:4](-[CH2:10])[cH:5][c:6]1-[C:11]>>[C:12](=[O:13])([OH:14])[CH2:1][C:2](=[O:7])[C:3](-[C:8](=[O:9]))=[C:4](-[CH2:10])[CH2:5][C:6](=O)[C:11]'
+
+- name: reverse conjugated aldol cyclization (beta-diketone)
+  smarts: '[C:1](=[O:2])-[C;H0:3](-[C:4](=[O:5]))=[C;H0:6](-[C:7])-[C:8]>>([C:1](=[O:2])-[CH2:3]-[C:4](=[O:5]).[C:7]-[C:6](=[O])-[C:8])'
+  props:
+    note: Intramolecular retro-aldol condensation; the donor is activated by two carbonyls. Restore both donor hydrogens
+      and the acceptor carbonyl.
+
+- name: reverse aldol aromatization (acyl resorcinol)
+  smarts: '[C:1](=[O:2])-[c:3]1[c:4]([OH:9])[cH:5][c:6]([OH:10])[cH:7][c:8]1-[C:11]>>[C:1](=[O:2])-[CH2:3]-[C:4](=[O:9])-[CH2:5]-[C:6](=[O:10])-[CH2:7]-[C:8](=[O])-[C:11]'
+  props:
+    note: Regioselective ring opening beside the acyl substituent; restore the alternating carbonyl pattern of the
+      polyketide chain.
+
+- name: reverse cyclic aldol addition (donor H0)
+  smarts: '[C:1](=[O:2])-[C;H0;R:3]-[C;H0;R:4]([OH:5])(-[#6:6])-[#6:7]>>([C:1](=[O:2])-[CH1:3].[#6:6]-[C:4](=[O:5])-[#6:7])'
+  props:
+    note: Open a cyclic beta-hydroxy carbonyl at its aldol bond; restore the donor hydrogen and tertiary alcohol's
+      ketone. Keep as an optional route.
+
+- name: reverse cyclic aldol addition (donor H1)
+  smarts: '[C:1](=[O:2])-[C;H1;R:3]-[C;H0;R:4]([OH:5])(-[#6:6])-[#6:7]>>([C:1](=[O:2])-[CH2:3].[#6:6]-[C:4](=[O:5])-[#6:7])'
+
+- name: reverse cyclic aldol addition (donor H2)
+  smarts: '[C:1](=[O:2])-[C;H2;R:3]-[C;H0;R:4]([OH:5])(-[#6:6])-[#6:7]>>([C:1](=[O:2])-[CH3:3].[#6:6]-[C:4](=[O:5])-[#6:7])'
+
+- name: reverse decarboxylative aldol cyclization (aryl-fused oxygenated ring)
+  smarts: '[c:1]1[c:2][CH2:3][C;H0:4]([OH:5])(-[C:6])[CH2:9][C:10]1~[O:11]>>([c:1]1[c:2][CH2:3]C(=O)[OH].[C:6][C:4](=[O:5])[CH2:9][C:10]1~[O:11])'
+  props:
+    references:
+    - https://pmc.ncbi.nlm.nih.gov/articles/PMC404321/
+    - https://pubmed.ncbi.nlm.nih.gov/26216966/
+    note: Restore the lost carboxyl and reopen the aldol-derived ring. Preserve the neighboring oxygenated position's
+      bond order.
+
+- name: reverse oxidative decarboxylative aldol cyclization (aryl-fused oxygenated ring)
+  smarts: '[c:1]1[c:2][CH1:3]([OH:12])[C;H0:4]([OH:5])(-[C:6])[CH2:9][C:10]1~[O:11]>>([c:1]1[c:2][CH2:3]C(=O)[OH].[C:6][C:4](=[O:5])[CH2:9][C:10]1~[O:11]).[OH2:12]'
+  props:
+    references:
+    - https://pmc.ncbi.nlm.nih.gov/articles/PMC404321/
+    - https://pubmed.ncbi.nlm.nih.gov/26216966/
+    note: Formal reversal of RdmB-like oxidative decarboxylation followed by aldol ring opening; keep the removed
+      oxygen as an oxidation fragment.
+
+- name: reverse benzylic beta-hydroxyketone reduction
+  smarts: '[c:1]-[CH1;!R:2]([OH:3])-[CH2:4]-[C:5](=[O:6])>>[c:1]-[CH0:2](=[O:3])-[CH2:4]-[C:5](=[O:6])'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC404321/
+    note: Optional restoration of a benzylic beta-diketone after ring opening, including the reduced C7 position
+      of anthracyclines.

@@ -118,6 +118,7 @@ def rule_set() -> tuple[Response, int]:
             "pseudonyms": r.pseudonyms,
             "terminal": r.terminal,
             "stereochemistry": r.stereochemistry,
+            "preserveAcrossRoutes": r.preserve_across_routes,
             "props": r.props,
         }
         for r in rules.matching_rules
@@ -129,6 +130,7 @@ def rule_set() -> tuple[Response, int]:
             "name": r.name,
             "smarts": r.smarts,
             "allowedInBulk": r.allowed_in_bulk,
+            "productMaxMatches": r.product_max_matches,
             "props": r.props,
         }
         for r in rules.reaction_rules

@@ -111,7 +111,7 @@ CASES: list[tuple[str, str]] = [
     (
         "carolacton",
         r"C[C@@H]\1CCC[C@@H]([C@H](OC(=O)[C@@H]([C@@H](/C=C1)O)O)/C(=C/[C@@H](C)C(=O)[C@H](C)[C@@H](CC(=O)O)OC)/C)C",
-        # This parsing is ambiguous... can parse from two sides and neither is correct/wrong
+        # Require a continuous route; discard graphs where two artificial acid ends meet.
     ),
     (
         "chaetoglobosin A",
@@ -526,5 +526,85 @@ CASES: list[tuple[str, str]] = [
     (
         "PK shifted alkene donor H2",
         "[CH2]=[CH][CH2]C(=O)O",
+    ),
+    (
+        "stambomycin A",
+        r"CCC(C)CCCC1/C=C(\C)C(O)CC(O)CCCC(O)C(C)C(O)C/C=C/C=C(\C)C(O)C(C)C2C[C@H](O[C@@H]3O[C@H](C)[C@@H](O)[C@H](N(C)C)[C@H]3O)C(C)C(O)(CC(=O)OC(C)/C=C/C(O)CC(O)CCCC(O)C(C)C(O)CCC(C)C(O)CC(O)CC(C)CCC(O)C1O)O2",
+    ),
+    (
+        "stambomycin B",
+        r"C/C1=C\C(CCCCC(C)C)C(O)C(O)CCC(C)CC(O)CC(O)C(C)CCC(O)C(C)C(O)CCCC(O)CC(O)/C=C/C(C)OC(=O)CC2(O)OC(C[C@H](O[C@@H]3O[C@H](C)[C@@H](O)[C@H](N(C)C)[C@H]3O)C2C)C(C)C(O)/C(C)=C/C=C/CC(O)C(C)C(O)CCCC(O)CC1O",
+    ),
+    (
+        "stambomycin C",
+        r"C/C1=C\C(CCCC(C)C)C(O)C(O)CCC(C)CC(O)CC(O)C(C)CCC(O)C(C)C(O)CCCC(O)CC(O)/C=C/C(C)OC(=O)CC2(O)OC(C[C@H](O[C@@H]3O[C@H](C)[C@@H](O)[C@H](N(C)C)[C@H]3O)C2C)C(C)C(O)/C(C)=C/C=C/CC(O)C(C)C(O)CCCC(O)CC1O",
+    ),
+    (
+        "stambomycin D",
+        r"CCCCCCC1/C=C(\C)C(O)CC(O)CCCC(O)C(C)C(O)C/C=C/C=C(\C)C(O)C(C)C2C[C@H](O[C@@H]3O[C@H](C)[C@@H](O)[C@H](N(C)C)[C@H]3O)C(C)C(O)(CC(=O)OC(C)/C=C/C(O)CC(O)CCCC(O)C(C)C(O)CCC(C)C(O)CC(O)CC(C)CCC(O)C1O)O2",
+    ),
+    (
+        "filipin",
+        r"CCCCC[C@@H](O)[C@H]1C(=O)O[C@H](C)[C@@H](O)/C=C/C=C/C=C/C=C/C=C(\C)[C@@H](O)C[C@H](O)C[C@H](O)C[C@H](O)C[C@H](O)C[C@H](O)C[C@@H]1O",
+    ),
+    (
+        "splenocin C",
+        r"CCC(C)C(=O)O[C@H]1[C@H](C)OC(=O)[C@@H](NC(=O)c2cccc(NC=O)c2O)[C@@H](C)OC(=O)[C@@H]1Cc1ccccc1",
+    ),
+    (
+        "solanapyrone D",
+        r"COc1cc([C@H]2[C@@H]3CCCC[C@H]3C=C[C@H]2C)oc(=O)c1C=O",
+    ),
+    (
+        "emodin",
+        r"Cc1cc(O)c2c(c1)C(=O)c1cc(O)cc(O)c1C2=O",
+    ),
+    (
+        "endocrocin",
+        r"Cc1cc2c(c(O)c1C(=O)O)C(=O)c1c(O)cc(O)cc1C2=O",
+    ),
+    (
+        "aclacinomycin",
+        r"CC[C@@]1(O)C[C@H](OC2CC(N(C)C)C(OC3CC(O)C(OC4CCC(=O)C(C)O4)C(C)O3)C(C)O2)c2c(cc3c(c2O)C(=O)c2c(O)cccc2C3=O)[C@H]1C(=O)OC",
+    ),
+    (
+        "daunorubicin",
+        r"COc1cccc2c1C(=O)c1c(O)c3c(c(O)c1C2=O)C[C@@](O)(C(C)=O)C[C@@H]3O[C@H]1C[C@H](N)[C@H](O)[C@H](C)O1",
+    ),
+    (
+        "doxorubicin",
+        r"COc1cccc2c1C(=O)c1c(O)c3c(c(O)c1C2=O)C[C@@](O)(C(=O)CO)C[C@@H]3O[C@H]1C[C@H](N)[C@H](O)[C@H](C)O1",
+    ),
+    (
+        "rhodomycin",
+        r"CC[C@@]1(O)C[C@H](OC2CC(N(C)C)C(O)C(C)O2)c2c(O)c3c(c(O)c2[C@H]1OC1CC(N(C)C)C(O)C(C)O1)C(=O)c1cccc(O)c1C3=O",
+    ),
+    (
+        "nogalaviketone",
+        r"COC(=O)[C@@H]1c2cc3c(c(O)c2C(=O)C[C@]1(C)O)C(=O)c1c(O)cccc1C3=O",
+    ),
+    (
+        "14-hydroxyisochainin",
+        r"CCCC[C@H]1C(=O)O[C@@H](C)[C@@H](O)/C=C/C=C/C=C/C=C/C=C(/C)[C@H](O)C(O)[C@H](O)C[C@H](O)C[C@H](O)C[C@H](O)C[C@@H](O)C[C@H]1O",
+    ),
+    (
+        "PK aldol ring donor H0",
+        r"O=C1C(C)(C)C(O)(CC(=O)O)CCC1",
+    ),
+    (
+        "PK aldol ring donor H1",
+        r"O=C1C(C)C(O)(CC(=O)O)CCC1",
+    ),
+    (
+        "PK aldol ring donor H2",
+        r"O=C1CC(O)(CC(=O)O)CCC1",
+    ),
+    (
+        "PK pentyl-branched beta-hydroxy chain",
+        r"CCC(O)C(CCCCC)C(=O)O",
+    ),
+    (
+        "anthraquinone without peri hydroxyls",
+        r"O=C1c2ccccc2C(=O)c2ccccc21",
     ),
 ]
