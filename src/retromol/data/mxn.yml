@@ -193,6 +193,30 @@
   display_smiles: "CC(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
 
+- name: B2-alpha-carboxy
+  smiles: CC(C(=O)O)(C(=O)O)C(O)SO
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC10434194/
+    note: Formal PK-unit representation following the existing SO handle convention;
+      the pendant carboxyl is an oxidized methyl branch, not an additional extension.
+  display_smiles: CC(C(=O)O)(C(=O)S[2*])C(O)[1*]
+  pseudonyms:
+  - PK_B
+  - PK
+
+- name: B2-alpha-hydroxymethyl
+  smiles: CC(CO)(C(=O)O)C(O)SO
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC10434194/
+    note: Formal PK-unit representation following the existing SO handle convention;
+      retains the oxidized methyl branch.
+  display_smiles: CC(CO)(C(=O)S[2*])C(O)[1*]
+  pseudonyms:
+  - PK_B
+  - PK
+
 - name: B^R3
   smiles: "CC(C(O)=O)([C@@H](SO)O)C"
   display_smiles: "CC(C(S[2*])=O)([C@@H]([1*])O)C"
@@ -3460,3 +3484,77 @@
 
 - name: asparaginol
   smiles: "NC(=O)CC(N)CO"
+
+- name: 3'-deoxy-4',5'-enamino-uridine
+  smiles: NC=C1CC(O)C(n2ccc(=O)[nH]c2=O)O1
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC2947877/
+    note: Modified nucleoside constituent coupled to the peptide by an enamide.
+
+- name: 3'-deoxy-4',5'-enamino-dihydrouridine
+  smiles: NC=C1CC(O)C(N2CCC(=O)NC2=O)O1
+  terminal: true
+  props:
+    note: Dihydrouracil congener of the shared uridyl-peptide nucleoside.
+
+- name: 1-methyl-6-hydroxy-tetrahydroisoquinoline-3-carboxylic acid
+  smiles: CC1NC(C(=O)O)Cc2cc(O)ccc21
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC7898326/
+
+- name: 8-hydroxy-tetrahydroisoquinoline-3-carboxylic acid
+  smiles: O=C(O)C1Cc2cccc(O)c2CN1
+  terminal: true
+  props:
+    reference: https://patents.google.com/patent/CN103183723B/en
+
+- name: methionine sulfoxide
+  smiles: CS(=O)CCC(N)C(=O)O
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC4572928/
+
+- name: 4-methyl-3-hydroxyanthranilic acid
+  smiles: Cc1ccc(C(=O)O)c(N)c1O
+  terminal: true
+  props:
+    reference: https://www.microbiologyresearch.org/content/journal/micro/10.1099/00221287-111-1-121
+
+- name: 4-methyl-3,5-dihydroxyphenylglycine
+  smiles: Cc1c(O)cc(C(N)C(=O)O)cc1O
+  terminal: true
+  props:
+    reference: https://journals.asm.org/doi/abs/10.1128/aac.03349-14
+
+- name: Aeap
+  smiles: N=C(N)N1CC=C(CCN)C1
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC8609519/
+    note: 1-amidino-3-(2-aminoethyl)-3-pyrroline; modified terminal residue.
+
+- name: hydrolyzed suomilide Abn
+  smiles: NC1C(C(=O)O)NC2CC(O)CC1(O)C2O
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC10157211/
+    note: Azabicyclononane residue after the cyclic carbamate has been hydrolyzed;
+      a modified residue identity, not an unmodified NRPS substrate.
+
+- name: 3-aminopropyl-dimethylsulfonium
+  smiles: C[S+](C)CCCN
+  terminal: true
+  props:
+    reference: https://pubmed.ncbi.nlm.nih.gov/6191779/
+    note: Intact terminal amine of bleomycin A2. Preserve its sulfonium charge instead
+      of converting it to protonated homocysteamine.
+
+- name: 2,3-dihydroxy-4-(methylsulfonyl)benzoic acid
+  smiles: CS(=O)(=O)c1ccc(C(=O)O)c(O)c1O
+  terminal: true
+  props:
+    reference: https://pubs.acs.org/doi/10.1021/np4006579
+    note: Modified aromatic acid of the supplied heterobactin S2 structure; preserve
+      the sulfone instead of treating it as a methylated thiol.

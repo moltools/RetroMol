@@ -409,4 +409,68 @@ CASES: list[tuple[str, str]] = [
         "phorbactazole A",
         r"CO[C@@H]1C[C@H](C)OC(O)(Cc2nc(/C=C(\C)[C@@H]3O[C@@H]4C/C=C(\C)c5nc(co5)[C@@H]5C[C@@H](OC(N)=O)[C@H](O)[C@H](C[C@H](O)C[C@@H](O)[C@@H](O)/C=C/[C@@H]6C[C@@H](O)[C@H](C)[C@@H](C/C=C\C(=O)O[C@@H](C4)[C@H]3C)O6)O5)co2)[C@H]1C",
     ),
+    (
+        "pacidamycin 1",
+        "C[C@H](N)C(=O)N[C@@H](Cc1cccc(O)c1)C(=O)N(C)[C@@H](C)[C@H](NC(=O)[C@H](C)NC(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)O)C(=O)N/C=C1/C[C@@H](O)[C@H](n2ccc(=O)[nH]c2=O)O1",
+    ),
+    (
+        "napsamycin C",
+        "CSCCC(NC(=O)NC(Cc1cccc(O)c1)C(=O)O)C(=O)NC(C(=O)N/C=C1/CC(O)C(N2CCC(=O)NC2=O)O1)C(C)N(C)C(=O)C1Cc2cc(O)ccc2CN1",
+    ),
+    (
+        "napsamycin B",
+        "CSCCC(NC(=O)NC(Cc1cccc(O)c1)C(=O)O)C(=O)NC(C(=O)N/C=C1/CC(O)C(n2ccc(=O)[nH]c2=O)O1)C(C)N(C)C(=O)C1Cc2cc(O)ccc2C(C)N1",
+    ),
+    (
+        "sansanmycin C",
+        "CC(C(NC(=O)C(CCS(C)=O)NC(=O)NC(Cc1c[nH]c2ccccc12)C(=O)O)C(=O)N/C=C1\\CC(O)C(n2ccc(=O)[nH]c2=O)O1)N(C)C(=O)C(N)Cc1cccc(O)c1",
+    ),
+    (
+        "sansanmycin K",
+        "CSCC[C@H](NC(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)O)C(=O)N[C@H](C(=O)N/C=C1/C[C@@H](O)[C@H](n2ccc(=O)[nH]c2=O)O1)[C@H](C)N(C)C(=O)[C@@H]1Cc2cccc(O)c2CN1",
+    ),
+    (
+        "tenuazonic acid",
+        "CC[C@H](C)[C@@H]1NC(=O)C(C(C)=O)=C1O",
+    ),
+    (
+        "epifadin",
+        "C/C(=C\\C=C\\C=C\\C=C\\CCCCCCC/C=C/C(=O)C1C(=O)NC(CC(=O)O)C1=O)NC(=O)[C@@H](CC(N)=O)NC(=O)[C@H](CC(=O)O)NC(=O)[C@@H](Cc1ccccc1)NC(=O)[C@@H](N)Cc1ccccc1",
+    ),
+    (
+        "tubulysin A",
+        "CCC(C)C(NC(=O)C1CCCCN1C)C(=O)N(COC(=O)CC(C)C)C(CC(OC(C)=O)c1nc(C(=O)NC(Cc2ccc(O)cc2)CC(C)C(=O)O)cs1)C(C)C",
+    ),
+    (
+        "actinomycin D",
+        "Cc1c2oc3c(C)ccc(C(=O)N[C@@H]4C(=O)N[C@H](C(C)C)C(=O)N5CCC[C@H]5C(=O)N(C)CC(=O)N(C)[C@@H](C(C)C)C(=O)O[C@@H]4C)c3nc-2c(C(=O)N[C@@H]2C(=O)N[C@H](C(C)C)C(=O)N3CCC[C@H]3C(=O)N(C)CC(=O)N(C)[C@@H](C(C)C)C(=O)O[C@@H]2C)c(N)c1=O",
+    ),
+    (
+        "tenellin",
+        "CCC(C)/C=C(C)/C=C/C(=O)c1c(O)c(-c2ccc(O)cc2)cn(O)c1=O",
+    ),
+    (
+        "disorazole Z9",
+        "C/C=C/[C@H](O)[C@](C)(CO)[C@@H]1C/C=C\\C=C\\C=C\\c2nc(co2)C(=O)O[C@H]([C@@](C)(C(=O)O)[C@@H](O)/C=C/C)C/C=C\\C=C\\C=C\\c2nc(co2)C(=O)O1",
+    ),
+    (
+        "Ristocetin B",
+        "COC(=O)[C@H]1NC(=O)[C@H]2NC(=O)[C@H](NC(=O)[C@@H]3NC(=O)[C@H]4NC(=O)[C@H](NC(=O)[C@H](N)c5ccc(O)c(c5)Oc5cc4cc(O)c5C)[C@H](O)c4ccc(cc4)Oc4cc3cc(c4O[C@@H]3O[C@H](COC4O[C@@H](C)[C@H](O)[C@@H](O)[C@H]4O)[C@@H](O)[C@H](O)[C@H]3O)Oc3ccc(cc3)[C@H]2O[C@@H]2C[C@@H](N)[C@@H](O)[C@H](C)O2)c2ccc(O)c(c2)-c2c(O[C@@H]3O[C@H](CO)[C@@H](O)[C@H](O)[C@@H]3O)cc(O)cc21",
+    ),
+    (
+        "suomilide",
+        "CCCCCC(=O)OCC1OC(OC2CC3C(O)C4(C2)OC(=O)NC4C(C(=O)NCCC2=CCN(C(=N)N)C2)N3C(=O)[C@H](NC(=O)C(COS(=O)(=O)O)OC)[C@@H](C)CC)C(OC(=O)CCCCC)C(O)C1O",
+    ),
+    (
+        "3,6-dialkyl-α-pyrone",
+        "C/C=C/c1cc(O)c(CC)c(=O)o1",
+    ),
+    (
+        "heterobactin S2",
+        "CS(=O)(=O)c1ccc(C(=O)N[C@H](CCCNC(N)=NC(=O)c2cccc(O)c2O)C(=O)NCC(=O)N[C@H]2CCCN(O)C2=O)c(O)c1O",
+    ),
+    (
+        "bleomycin A2",
+        "Cc1c(N)nc([C@H](CC(N)=O)NC[C@H](N)C(N)=O)nc1C(=O)N[C@H](C(=O)N[C@H](C)[C@@H](O)[C@H](C)C(=O)N[C@H](C(=O)NCCc1nc(-c2nc(C(=O)NCCC[S+](C)C)cs2)cs1)[C@@H](C)O)[C@@H](O[C@@H]1O[C@@H](CO)[C@@H](O)[C@H](O)[C@@H]1O[C@H]1O[C@H](CO)[C@@H](O)[C@H](OC(N)=O)[C@@H]1O)c1cnc[nH]1",
+    ),
 ]

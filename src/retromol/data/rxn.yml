@@ -38,27 +38,15 @@
 # mxn.yml has specific "N-methyl<name>"/"N-methyl<name>^L"/"^D" matching rules for many
 # amino acids (backbone N-methylation installed in-line by an NRPS module's MT domain),
 # and those rules need a chance to match the still-methylated, freshly-isolated residue
-# before this rule strips the methyl. If this were allowed_in_bulk, the bulk-uncontested
-# step (see model/rules.py's index_uncontested/apply_uncontested) would apply this
-# together with whichever bond-breaking rule isolates the residue (e.g. "break ester
-# bond (intermolecular)") in a single combined step whenever their match sites don't
-# overlap, which is the common case for a backbone N-methylated residue. Skipping
-# straight past the intermediate "isolated but still methylated" node and never giving
-# the specific mxn.yml rule a node to match against. Leaving this out of bulk forces it
-# through the slower per-rule "contested" exploration instead, where trying the specific
-# match first is one of the explored orderings and the identify-first path wins on cost
-# (a terminal match costs 0 vs. paying for another decomposition edge). See the
-# maytansine/spongidepsin/thiocoraline entries in tests/data/integration_retromol.py,
-# which regressed to generic name + "methylation" instead of e.g. "N-methylcysteine"
-# when this was still allowed_in_bulk. A residue with no specific mxn.yml rule still
-# falls back to the generic strip + "methylation" tag exactly as before. This only
-# changes ordering, not what this rule itself matches.
+# before this rule strips the methyl.
 - name: reverse N-methylation
   smarts: "[N:1][CH3:2]>>[N:1].[C:2]"
 
 - name: reverse S-methylation
-  smarts: "[S:1][CH3:2]>>[S:1].[C:2]"
+  smarts: '[S;X2:1][CH3:2]>>[S:1].[C:2]'
   allowed_in_bulk: true
+  props:
+    note: Restrict to divalent sulfides; sulfoxides are not S-methylated thiols.
 
 - name: reverse C-methylation amino acid
   smarts: "[N:1][C:2]([CH3:3])([*:4])[C:5](=[O:6])[O:7]>>[N:1][C:2]([*:4])[C:5](=[O:6])[O:7].[CH3:3]"
@@ -413,3 +401,63 @@
 - name: reverse hemiaminal (intramolecular)
   smarts: '[CH1:1]([OH1:2])-[NX3:3]>>([CH1:1]=[O:2].[N:3])'
   allowed_in_bulk: true
+
+- name: reverse tetramate Dieckmann cyclization (endocyclic enol)
+  smarts: '[N;R:1]1-[C:2](=[O:3])-[C;H0:4]=[C:5]([OH:6])-[C;X4:7]-1>>[N:1](-[C:2](=[O:3])-[CH2:4])-[C:7]-[C:5](=[O:6])-[OH]'
+  allowed_in_bulk: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC7450107/
+
+- name: reverse tetramate Dieckmann cyclization (diketo)
+  smarts: '[N;R:1]1-[C:2](=[O:3])-[C;H1:4]-[C:5](=[O:6])-[C;X4:7]-1>>[N:1](-[C:2](=[O:3])-[CH2:4])-[C:7]-[C:5](=[O:6])-[OH]'
+  allowed_in_bulk: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC7450107/
+
+- name: reverse N-hydroxymethyl hemiaminal
+  smarts: '[CH2:1]([OH1:2])-[NX3:3]>>[CH2:1]=[O:2].[N:3]'
+  allowed_in_bulk: false
+  props:
+    note: Cleavage of N-hydroxymethyl hemiaminal to the amine and formaldehyde.
+
+- name: reverse phenoxazinone oxidative coupling
+  smarts: '[c:1]1[c:2]2[o:3][c:4]3[c:5][c:6][c:7][c:8][c:9]3[n:10][c:11]-2[c:12][c:13]([NH2:14])[c:15]1=[O:16]>>[c:1]1[cH:2][cH:11][c:12][c:13]([NH2:14])[c:15]1[OH:16].[OH:3][c:4]1[c:5][c:6][c:7][c:8][c:9]1[NH2:10]'
+  allowed_in_bulk: false
+  props:
+    reference: https://pubmed.ncbi.nlm.nih.gov/2477054/
+    note: Cleaves the two inter-precursor O-C and N-C bonds and rearomatizes the quinone-imine
+      half.
+
+- name: reverse aryl 2-pyridone ring expansion
+  smarts: '[n:1]1[c:2](=[O:3])[c:4]([C:5](=[O:6]))[c:7]([OH:8])[c:9](-[c:10])[cH:11]1>>[N:1]1[C:2](=[O:3])[C:4]([C:5](=[O:6]))=[C:7]([OH:8])[CH:11]1[CH2:9][c:10]'
+  allowed_in_bulk: false
+  props:
+    reference: https://pubmed.ncbi.nlm.nih.gov/19067514/
+    note: Restricted to the 3-acyl-4-hydroxy-5-aryl 2-pyridone scaffold exemplified
+      by tenellin.
+
+- name: reverse aryl 2-pyridone N-hydroxylation
+  smarts: '[n:1]1([OH:12])[c:2](=[O:3])[c:4]([C:5](=[O:6]))[c:7]([OH:8])[c:9](-[c:10])[cH:11]1>>[nH:1]1[c:2](=[O:3])[c:4]([C:5](=[O:6]))[c:7]([OH:8])[c:9](-[c:10])[cH:11]1.[OH2:12]'
+  allowed_in_bulk: false
+  props:
+    reference: https://pubmed.ncbi.nlm.nih.gov/19067514/
+    note: Restricted to the 3-acyl-4-hydroxy-5-aryl 2-pyridone scaffold exemplified
+      by tenellin.
+
+- name: normalize beta-dicarbonyl enol (alpha H0)
+  smarts: '[C:1]([OH:2])=[C;H0:3]-[C:4](=[O:5])>>[C:1](=[O:2])-[CH1:3]-[C:4](=[O:5])'
+  allowed_in_bulk: false
+  props:
+    note: Optional beta-dicarbonyl tautomer normalization. Keep out of bulk preprocessing
+      so existing valid assembly routes remain available. Explicitly restore the transferred
+      alpha hydrogen, including on reaction-generated molecules with implicit hydrogens
+      disabled.
+
+- name: normalize beta-dicarbonyl enol (alpha H1)
+  smarts: '[C:1]([OH:2])=[C;H1:3]-[C:4](=[O:5])>>[C:1](=[O:2])-[CH2:3]-[C:4](=[O:5])'
+  allowed_in_bulk: false
+  props:
+    note: Optional beta-dicarbonyl tautomer normalization. Keep out of bulk preprocessing
+      so existing valid assembly routes remain available. Explicitly restore the transferred
+      alpha hydrogen, including on reaction-generated molecules with implicit hydrogens
+      disabled.
