@@ -473,4 +473,58 @@ CASES: list[tuple[str, str]] = [
         "bleomycin A2",
         "Cc1c(N)nc([C@H](CC(N)=O)NC[C@H](N)C(N)=O)nc1C(=O)N[C@H](C(=O)N[C@H](C)[C@@H](O)[C@H](C)C(=O)N[C@H](C(=O)NCCc1nc(-c2nc(C(=O)NCCC[S+](C)C)cs2)cs1)[C@@H](C)O)[C@@H](O[C@@H]1O[C@@H](CO)[C@@H](O)[C@H](O)[C@@H]1O[C@H]1O[C@H](CO)[C@@H](O)[C@H](OC(N)=O)[C@@H]1O)c1cnc[nH]1",
     ),
+
+    # MIBiG polyketides and shifted-alkene cleavage cases.
+    (
+        "monensin",
+        "CCC1(C2OC(C3OC(O)(CO)C(C)CC3C)CC2C)CCC(C2(C)CCC3(CC(O)C(C)C(C(C)C(OC)C(C)C(=O)O)O3)O2)O1",
+    ),
+    (
+        "rapamycin",
+        "CO[C@H]1C[C@@H]2CC[C@@H](C)[C@@](O)(O2)C(=O)C(=O)N2CCCC[C@H]2C(=O)O[C@H]([C@H](C)C[C@@H]2CC[C@@H](O)[C@H](OC)C2)CC(=O)[C@H](C)/C=C(\\C)[C@@H](O)[C@@H](OC)C(=O)[C@H](C)C[C@H](C)/C=C/C=C/C=C/1C",
+    ),
+    (
+        "Basiliskamide A",
+        "CC[C@@H](C)[C@H](OC(=O)/C=C/c1ccccc1)[C@H](C)[C@H](O)C/C=C/C=C\\C(N)=O",
+    ),
+    (
+        "epipyriculol",
+        "C/C=C/[C@H](O)[C@@H](O)/C=C/c1cccc(O)c1C=O",
+    ),
+    (
+        "kijanimicin",
+        "COC(=O)N[C@H]1[C@@H](C)O[C@@H](O[C@H]2C/C=C(/C)[C@@H]3C=C[C@@H]4[C@@H](O[C@H]5C[C@@H](O[C@H]6C[C@@H](O[C@H]7C[C@@H](O)[C@@H](O)[C@H](C)O7)[C@@H](O[C@@H]7C[C@@H](O)[C@@H](OC)[C@H](C)O7)[C@H](C)O6)[C@@H](O)[C@H](C)O5)[C@@H](C)C[C@H](C)[C@H]4[C@]3(C)C(=O)C3=C(O)O[C@]4(C[C@@H](C)C(CO)=C[C@H]4/C=C/2C)C3=O)C[C@]1(C)[N+](=O)[O-]",
+    ),
+    (
+        "rubradirin",
+        "COc1ccc2c(=O)c(NC(=O)c3cc(OC4CC(C)([N+](=O)[O-])C(OC)C(C)O4)c(O)c(C(=O)OC4C(C)/C=C(\\C)C(=O)c5c(O)c(C)cc6c5C(=O)C5=C(NCC(C)(O5)C(=O)C4O)C6=O)n3)c(O)oc2c1",
+    ),
+    (
+        "4-hexadecanoyl-3-hydroxy-2-(hydroxymethyl)-2H-furan-5-one",
+        "CCCCCCCCCCCCCCCC(=O)C1=C(O)C(CO)OC1=O",
+    ),
+    (
+        "granaticin",
+        "CC1O[C@H]2CC(=O)O[C@H]2C2=C1C(=O)c1c(O)c3c(c(O)c1C2=O)[C@@H]1C[C@@H](O)[C@@]3(O)[C@@H](C)O1",
+    ),
+    (
+        "actinospirol A",
+        "Cc1cc(O)c2c(c1Cl)[C@@]1(OC2=O)Oc2cccc(C(=O)O)c2C1=O",
+    ),
+    (
+        "acyltetronate diketo tautomer",
+        "CCCCCCCCCCCCCCCC(=O)C1C(=O)C(CO)OC1=O",
+    ),
+    (
+        "PK shifted alkene donor H0",
+        "[CH3][C]([CH3])=[CH][CH2]C(=O)O",
+    ),
+    (
+        "PK shifted alkene donor H1",
+        "[CH3][CH]=[CH][CH2]C(=O)O",
+    ),
+    (
+        "PK shifted alkene donor H2",
+        "[CH2]=[CH][CH2]C(=O)O",
+    ),
 ]

@@ -7,6 +7,16 @@
   display_smiles: "O=C(CC([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
 
+- name: A1-alpha-oxo
+  smiles: O=C(O)C(=O)C(=O)SO
+  display_smiles: O=C(S[2*])C(=O)C(=O)[1*]
+  pseudonyms:
+  - PK_A
+  - PK
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3624582/
+    note: Formal alpha-oxidized PK unit; retains the mature carbonyl state, not a distinct biosynthetic extender substrate.
+
 - name: A2^R
   smiles: "C[C@@H](C(SO)=O)C(O)=O"
   display_smiles: "C[C@@H](C(S[2*])=O)C([1*])=O"
@@ -869,6 +879,18 @@
 
 - name: glycosylation
   smiles: "OC1C(O)C(N(C)C)CC(C)O1"
+
+- name: glycosylation
+  smiles: CC1OC(O)CC(C)([N+](=O)[O-])C1N
+  props:
+    reference: https://pubmed.ncbi.nlm.nih.gov/17985890/
+    note: Kijanose-derived nitrosugar after removing the N-methoxycarbonyl tailoring group.
+
+- name: glycosylation
+  smiles: CC1OC(O)CC(C)([N+](=O)[O-])C1O
+  props:
+    reference: https://doi.org/10.1007/s00203-007-0337-3
+    note: O-demethylated rubranitrose/evernitrose constitution; stereochemistry is not specified.
 
 # Tautomers
 - name: arginine
@@ -3558,3 +3580,9 @@
     reference: https://pubs.acs.org/doi/10.1021/np4006579
     note: Modified aromatic acid of the supplied heterobactin S2 structure; preserve
       the sulfone instead of treating it as a methylated thiol.
+
+- name: 3,4-dihydroxycyclohexanecarboxylic acid
+  smiles: O=C(O)C1CCC(O)C(O)C1
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3064383/
+    note: Reduced cyclohexanecarboxyl starter representation; DHCHC is reduced during loading.
