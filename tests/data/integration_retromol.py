@@ -607,4 +607,61 @@ CASES: list[tuple[str, str]] = [
         "anthraquinone without peri hydroxyls",
         r"O=C1c2ccccc2C(=O)c2ccccc21",
     ),
+    # Reaction-only PK regressions: MIBiG structures and specificity controls.
+    (
+        "cylindrocyclophane F",
+        r"CCCC[C@H]1CCCC[C@H](C)Cc2cc(O)c(c(O)c2)[C@@H](CCCC)CCCC[C@H](C)Cc2cc(O)c1c(O)c2",
+    ),
+    (
+        "carbamidocyclophane A",
+        r"C[C@H]1CCCCC(CCCC(Cl)Cl)c2c(O)cc(cc2O)[C@H](OC(N)=O)[C@@H](C)CCCCC(CCCC(Cl)Cl)c2c(O)cc(cc2O)[C@@H]1OC(N)=O",
+    ),
+    (
+        "geldanamycin",
+        r"COC1=C2C[C@@H](C)C[C@H](OC)[C@H](O)[C@@H](C)/C=C(\C)[C@H](OC(N)=O)[C@@H](OC)/C=C\C=C(/C)C(=O)NC(=CC1=O)C2=O",
+    ),
+    (
+        "herbimycin A",
+        r"CO[C@H]1[C@@H](OC)C[C@H](C)[C@@H](OC)C2=CC(=O)C=C(NC(=O)/C(C)=C/C=C\[C@H](OC)[C@@H](OC(N)=O)/C(C)=C/[C@@H]1C)C2=O",
+    ),
+    (
+        "macbecin II",
+        r"COC1CC(C)C(OC)c2cc(O)cc(c2O)NC(=O)/C(C)=C\C=C/C(C)C(OC(N)=O)/C(C)=C\C(C)C1OC",
+    ),
+    (
+        "orcinol",
+        r"Cc1cc(O)cc(O)c1",
+    ),
+    (
+        "1,3,6,8-tetrahydroxynaphthalene",
+        r"Oc1cc(O)c2c(O)cc(O)cc2c1",
+    ),
+    (
+        "flaviolin",
+        r"O=C1C=C(O)c2c(O)cc(O)cc2C1=O",
+    ),
+    (
+        "alternariol",
+        r"Cc1cc(O)cc2oc(=O)c3c(O)cc(O)cc3c12",
+    ),
+    (
+        "nidulin",
+        r"C/C=C(\C)c1c(Cl)c(OC)c(C)c2c1Oc1c(Cl)c(O)c(Cl)c(C)c1C(=O)O2",
+    ),
+    (
+        "agonodepside A",
+        r"C/C=C(\C)c1cc(O)c(C)c(OC(=O)c2c(/C(C)=C/C)cc(O)c(C)c2O)c1",
+    ),
+    (
+        "resorcinol without a carbon substituent",
+        r"Oc1cccc(O)c1",
+    ),
+    (
+        "monohydroxynaphthalene",
+        r"Oc1ccc2ccccc2c1",
+    ),
+    (
+        "naphthoquinone without peri hydroxyls",
+        r"O=C1C=C(O)C(=O)c2ccccc21",
+    ),
 ]

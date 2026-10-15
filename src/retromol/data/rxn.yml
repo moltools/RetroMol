@@ -132,7 +132,10 @@
     note: Restore the alcohol hydrogen on opening the cyclic ether; preserve bond orders elsewhere in the ring.
 
 - name: reverse macrolactonization type 1
-  smarts: "[C;R;!r6:1](=[O:2])[O;R;!r6:3][C;R;!r6:4]>>([C:1](=[O:2])[OH].[OH:3][C:4])"
+  smarts: "[C;R;!r6:1](=[O:2])[O;R;!r6:3][C,c;R:4]>>([C:1](=[O:2])[OH].[OH:3][C:4])"
+  props:
+    note: Allow aryl ester oxygens in larger lactone rings. The alcohol-side carbon may also belong to a
+      fused six-membered ring; only the ester carbonyl and ester oxygen retain the six-membered-ring exclusion.
 
 - name: reverse macrolactonization type 2
   smarts: '[*;r6:1][*;r6:2]-[C;r6:3][C;r6:4](=[O:5])[O;r6:6][C;r6:7]>>([*:1][*:2]-[C:3][C:4](=[O:5])[OH].[OH:6][C:7])'
@@ -419,11 +422,15 @@
 
 - name: reverse biaryl crosslink (intermolecular)
   smarts: '[c:1]-[c:2]>>[cH:1].[cH:2]'
-  allowed_in_bulk: true
+  allowed_in_bulk: false
+  props:
+    note: Keep biaryl cleavage optional so aromatic PK ring-opening routes can retain the continuous carbon chain.
 
 - name: reverse biaryl crosslink (intramolecular)
   smarts: '[c:1]-[c:2]>>([cH:1].[cH:2])'
-  allowed_in_bulk: true
+  allowed_in_bulk: false
+  props:
+    note: Keep biaryl cleavage optional so aromatic PK ring-opening routes can retain the continuous carbon chain.
 
 - name: reverse hemiaminal (intermolecular)
   smarts: '[CH1:1]([OH1:2])-[NX3:3]>>[CH1:1]=[O:2].[N:3]'
@@ -614,3 +621,84 @@
     reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC404321/
     note: Optional restoration of a benzylic beta-diketone after ring opening, including the reduced C7 position
       of anthracyclines.
+
+- name: reverse decarboxylative aldol aromatization (substituted resorcinol)
+  smarts: '[cH:1]1[c:2]([OH:7])[cH:3][c:4]([OH:8])[cH:5][c:6]1-[C,c:9]>>[OH]C(=O)[CH2:1][C:2](=[O:7])[CH2:3][C:4](=[O:8])[CH2:5][C:6](=O)[C,c:9]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC11413912/
+    note: Reopen an alkyl- or aryl-substituted resorcinol to an alternating beta-keto chain. Restore the lost carboxyl;
+      reaction-added atoms do not contribute to coverage.
+
+- name: reverse aldol aromatization (substituted resorcylic acid)
+  smarts: '[c:1]1([C:10](=[O:11])[OH:12])[c:2]([OH:7])[cH:3][c:4]([OH:8])[cH:5][c:6]1-[C,c:9]>>[C:10](=[O:11])([OH:12])[CH2:1][C:2](=[O:7])[CH2:3][C:4](=[O:8])[CH2:5][C:6](=O)[C,c:9]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3411943/
+    note: Reopen the corresponding aldol-derived resorcylic acid while retaining its original carboxyl group. Accept
+      alkyl and aryl substituents.
+
+- name: reverse resorcinol alkylation (intramolecular)
+  smarts: '[c:1]1([OH:7])[c:2](-[CH1:9](-[CH2:10])-[CH2:11])[c:3]([OH:8])[cH:4][c:5](-[C:12])[cH:6]1>>([c:1]1([OH:7])[cH:2][c:3]([OH:8])[cH:4][c:5](-[C:12])[cH:6]1.[CH2:9](-[CH2:10])-[CH2:11])'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC8916777/
+    note: Formal reversal of resorcinol C2 alkylation plus cryptic halogenation; restore the saturated donor chain.
+
+- name: reverse resorcinol alkylation (intermolecular)
+  smarts: '[c:1]1([OH:7])[c:2](-[CH1:9](-[CH2:10])-[CH2:11])[c:3]([OH:8])[cH:4][c:5](-[C:12])[cH:6]1>>[c:1]1([OH:7])[cH:2][c:3]([OH:8])[cH:4][c:5](-[C:12])[cH:6]1.[CH2:9](-[CH2:10])-[CH2:11]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC8916777/
+    note: Formal reversal of resorcinol C2 alkylation plus cryptic halogenation; restore the saturated donor chain.
+
+- name: reverse amino-benzoquinone starter oxidation
+  smarts: '[NH2:1]-[C:2]1=[CH1:3]-[C:4](=[O:5])-[CH1:6]=[C:7](-[C:10](=[O:11])-[OH:12])-[C:8]1=[O:9]>>[NH2:1]-[c:2]1[cH:3][c:4]([OH:5])[cH:6][c:7](-[C:10](=[O:11])-[OH:12])[cH:8]1.[OH2:9]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3292439/
+    note: Formal reversal of quinone oxidation and the added ortho oxygen on an AHBA-derived free starter; retain
+      that oxygen as a separate oxidation fragment.
+
+- name: reverse aminohydroquinone starter hydroxylation
+  smarts: '[NH2:1]-[c:2]1[cH:3][c:4]([OH:5])[cH:6][c:7](-[C:10](=[O:11])-[OH:12])[c:8]1[OH:9]>>[NH2:1]-[c:2]1[cH:3][c:4]([OH:5])[cH:6][c:7](-[C:10](=[O:11])-[OH:12])[cH:8]1.[OH2:9]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3292439/
+    note: Restore AHBA only after both the free amino group and free starter carboxyl have been exposed. Retain
+      the added oxygen as an oxidation fragment.
+
+- name: reverse hydroxylated amino-benzoquinone starter oxidation
+  smarts: '[NH2:1]-[C:2]1=[CH1:3]-[C:4](=[O:5])-[C:6]([OH:13])=[C:7](-[C:10](=[O:11])-[OH:12])-[C:8]1=[O:9]>>[NH2:1]-[c:2]1[cH:3][c:4]([OH:5])[cH:6][c:7](-[C:10](=[O:11])-[OH:12])[cH:8]1.[OH2:9].[OH2:13]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3292439/
+    note: Restore the free AHBA-derived starter after quinone oxidation and two hydroxylations; retain both added
+      oxygens as oxidation fragments.
+
+- name: reverse aromatized Claisen cyclization (1,3-dihydroxynaphthalene)
+  smarts: '[c:1]1([OH:14])[cH:2][c:3]([OH:15])[c:4]2[c:5][c:6][c:7][c:8][c:9]2[cH:10]1>>[OH][C:1](=[O:14])[CH2:2][C:3](=[O:15])[c:4]1[c:5][c:6][c:7][c:8][c:9]1[CH3:10]'
+  props:
+    reference: https://pubmed.ncbi.nlm.nih.gov/15265863/
+    note: Reopen the aromatic Claisen-derived ring to a beta-keto acid and restore the donor methyl group, retaining
+      the neighboring aromatic ring and substituents.
+
+- name: break aryl ester bond (intermolecular)
+  smarts: '[C,c:1]-[C;!R:2](=[O:3])-[O;!R:4]-[c:5]>>[C,c:1]-[C:2](=[O:3])-[OH].[OH:4]-[c:5]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC10501868/
+    note: Hydrolyze noncyclic phenolic esters, including depsides; cyclic esters use the ring-opening rules.
+  allowed_in_bulk: true
+
+- name: reverse peri-hydroxynaphthoquinone oxidation
+  smarts: '[C:1]1(=[O:11])[CH1:2]=[C:3]([OH:12])[C:4](=[O:13])[c:5]2[cH:6][c:7][c:8][c:9]([OH:15])[c:10]21>>[c:1]1([OH:11])[cH:2][c:3]([OH:12])[cH:4][c:5]2[cH:6][c:7][c:8][c:9]([OH:15])[c:10]21.[OH2:13]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC6176597/
+    note: Formal reversal of the oxidative conversion of hydroxynaphthalenes to flaviolin-like quinones; retain
+      the peri carbonyl oxygen as phenol and the added oxygen as a separate oxidation fragment.
+
+- name: reverse decarboxylative aldol aromatization (2-methylresorcinol)
+  smarts: '[cH:1]1[c:2]([OH:7])[c:3](-[CH3:10])[c:4]([OH:8])[cH:5][c:6]1-[C,c:9]>>[OH]C(=O)[CH2:1][C:2](=[O:7])[CH1:3](-[CH3:10])[C:4](=[O:8])[CH2:5][C:6](=O)[C,c:9]'
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC10501868/
+    note: Restore the alternating beta-keto chain, retaining the methyl as an alpha branch. This formal unit representation
+      does not assign its biosynthetic origin to methylmalonyl-CoA versus SAM.
+
+- name: normalize hydroxy-ortho-naphthoquinone tautomer
+  smarts: '[C:1]1(=[O:2])-[CH1:3]=[C:4]([OH:5])-[c:6]2[c:7][c:8][c:9][c:10][c:11]2-[C:12]1=[O:13]>>[C:1]1([OH:2])=[CH1:3]-[C:4](=[O:5])-[c:6]2[c:7][c:8][c:9][c:10][c:11]2-[C:12]1=[O:13]'
+  props:
+    note: Move the enolic proton and adjacent pi bond to the para-quinone representation without changing the carbon
+      or oxygen skeleton.
