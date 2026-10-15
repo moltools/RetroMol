@@ -79,16 +79,28 @@ class AssemblySpace:
         return terminal
 
     def preserves_terminals(self, frontier: Frontier) -> bool:
-        """Whether a selection keeps terminal regions intact across all routes."""
+        """Respect boundaries whose matching rules protect them across routes.
+
+        A route-dependent unit still stops expansion in its own derivation. Its
+        boundaries need not constrain an alternative derivation that identified
+        different units (for example, after reversing a tailoring reaction).
+        """
         selected = [self._node_tags[enc] for enc in frontier]
         selected_terminals = [self._terminal_tags[enc] for enc in frontier if enc in self._terminal_tags]
-        for region in set(self._terminal_tags.values()):
+        for region in self._protected_terminal_regions:
             if any(region <= tags for tags in selected):
                 continue
             if any(region & tags and tags - region for tags in selected_terminals):
                 continue
             return False
         return True
+
+    @cached_property
+    def _protected_terminal_regions(self) -> frozenset[frozenset[int]]:
+        return frozenset(
+            tags for enc, tags in self._terminal_tags.items()
+            if self.reaction_graph.nodes[enc].identity.matched_rule.preserve_across_routes
+        )
 
     @cached_property
     def frontiers(self) -> tuple[Frontier, ...]:

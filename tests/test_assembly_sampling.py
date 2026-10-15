@@ -142,6 +142,51 @@ def test_nonterminal_setting_explicitly_allows_finer_views_again():
     assert frozenset(singles) in result.assembly_space().frontiers
 
 
+def test_route_scoped_terminal_stops_its_own_expansion_but_allows_other_routes():
+    result, left, right, singles = terminal_bypass_result()
+    graph = result.reaction_graph
+    node = graph.nodes[left]
+    graph.nodes[left] = replace(node, identity=replace(
+        node.identity, matched_rule=replace(
+            node.identity.matched_rule, preserve_across_routes=False,
+        ),
+    ))
+    expected = {frozenset([left, right]), frozenset([left, *singles[2:]]), frozenset(singles)}
+    # The last frontier comes from the independent root shortcut, not from
+    # expanding the terminal left node. Its own finer view remains unavailable.
+    assert set(result.assembly_space().frontiers) == expected
+    assert frozenset([*singles[:2], right]) not in result.assembly_space().frontiers
+    restored = Result.from_dict(json.loads(json.dumps(result.to_dict())))
+    assert set(restored.assembly_space().frontiers) == expected
+
+    # Saved results from before the top-level field migration keep their assemblies.
+    legacy = result.to_dict()
+    for identity in legacy["reaction_graph"]["identities"]:
+        identity["props"] = {**identity["props"],
+                             "preserve_across_routes": identity.pop("preserve_across_routes")}
+    assert set(Result.from_dict(legacy).assembly_space().frontiers) == expected
+
+
+def test_route_preservation_loads_legacy_props_but_serializes_at_top_level():
+    data = {"name": "methane", "smiles": "C",
+            "props": {"note": "test", "preserve_across_routes": False}}
+    legacy = MatchingRule.from_dict(data)
+    assert legacy.preserve_across_routes is False
+    assert legacy.props == {"note": "test"}
+    assert legacy.to_dict()["preserve_across_routes"] is False
+    assert data["props"]["preserve_across_routes"] is False
+    current = MatchingRule.from_dict({**data, "preserve_across_routes": True})
+    assert current.preserve_across_routes is True
+    assert current.props == {"note": "test"}
+    assert MatchingRule.from_dict({"name": "methane", "smiles": "C"}).preserve_across_routes is True
+
+
+@pytest.mark.parametrize("value", ["false", 0, None])
+def test_invalid_route_preservation_fails_when_loading(value):
+    with pytest.raises(ValueError, match="preserve_across_routes"):
+        MatchingRule.from_dict({"name": "methane", "smiles": "C", "preserve_across_routes": value})
+
+
 def test_crossing_terminal_assignments_compete_but_subdivisions_are_excluded():
     submission = Submission('CCC')
     graph = ReactionGraph()
@@ -509,6 +554,12 @@ def test_rule_hashes_include_definition_metadata_and_order(tmp_path):
     assert rules.matching_rules_hash == changed_rxn.matching_rules_hash
     assert rules.matching_rules_hash != changed_match.matching_rules_hash
     assert rules.reaction_rules_hash == changed_match.reaction_rules_hash
+    assert rules.reaction_rules_hash != RuleSet(
+        False, [replace(reaction, product_max_matches={"C": 1})], [matching],
+    ).reaction_rules_hash
+    assert rules.matching_rules_hash != RuleSet(
+        False, [reaction], [replace(matching, preserve_across_routes=False)],
+    ).matching_rules_hash
     assert rules.reaction_rules_hash == RuleSet(False, [replace(reaction, props={'b': 2, 'a': 1})], []).reaction_rules_hash
     a = replace(matching, name='first')
     b = replace(matching, name='second')

@@ -1,705 +1,977 @@
+# PK matches stop expansion within their own route. Their boundaries do not veto
+# independent routes that reverse different cyclizations or tailoring reactions.
 - name: A1
   smiles: "O=C(O)CC(=O)SO"
   display_smiles: "O=C(CC([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A1
   smiles: "O=C(O)C=C(O)SO"
   display_smiles: "O=C(CC([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
+
+- name: A1-alpha-oxo
+  smiles: O=C(O)C(=O)C(=O)SO
+  display_smiles: O=C(S[2*])C(=O)C(=O)[1*]
+  pseudonyms:
+  - PK_A
+  - PK
+  preserve_across_routes: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3624582/
+    note: Formal alpha-oxidized PK unit; retains the mature carbonyl state, not a distinct biosynthetic extender substrate.
 
 - name: A2^R
   smiles: "C[C@@H](C(SO)=O)C(O)=O"
   display_smiles: "C[C@@H](C(S[2*])=O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["A2", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A2^S
   smiles: "C[C@H](C(SO)=O)C(O)=O"
   display_smiles: "C[C@H](C(S[2*])=O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["A2", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A2
   smiles: "CC(C(=O)O)C(=O)SO"
   display_smiles: "O=C(C(C)C([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A2
   smiles: "CC(C(=O)O)=C(O)SO"
   display_smiles: "O=C(C(C)C([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A3
   smiles: "CC(C)(C(=O)O)C(=O)SO"
   display_smiles: "CC(C)(C(=O)[1*])C(=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A4^R
   smiles: "CC[C@@H](C(SO)=O)C(O)=O"
   display_smiles: "CC[C@@H](C(S[2*])=O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["A4", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A4^S
   smiles: "CC[C@H](C(SO)=O)C(O)=O"
   display_smiles: "CC[C@H](C(S[2*])=O)C([1*])=O"
   stereochemistry: true
   pseudonyms: ["A4", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A4
   smiles: "CCC(C(=O)O)C(=O)SO"
   display_smiles: "CCC(C(=O)[1*])C(=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A5^R
   smiles: "O=C([C@H](C(SO)=O)O)O"
   display_smiles: "O=C([C@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["A5", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A5^S
   smiles: "O=C([C@@H](C(SO)=O)O)O"
   display_smiles: "O=C([C@@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["A5", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A5
   smiles: "O=C(O)C(O)C(=O)SO"
   display_smiles: "O=C(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A5
   smiles: "O=C(C(O)=C(SO)O)O"
   display_smiles: "O=C(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A6^R
   smiles: "C[C@@](C(O)=O)(C(SO)=O)O"
   display_smiles: "C[C@@](C([1*])=O)(C(S[2*])=O)O"
   stereochemistry: true
   pseudonyms: ["A6", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A6^S
   smiles: "C[C@](C(O)=O)(C(SO)=O)O"
   display_smiles: "C[C@](C([1*])=O)(C(S[2*])=O)O"
   stereochemistry: true
   pseudonyms: ["A6", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A6
   smiles: "CC(O)(C(=O)O)C(=O)SO"
   display_smiles: "CC(C([1*])=O)(C(S[2*])=O)O"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A7^R
   smiles: "O=C([C@H](C(SO)=O)CO)O"
   display_smiles: "O=C([C@H](C(S[2*])=O)CO)[1*]"
   stereochemistry: true
   pseudonyms: ["A7", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A7^S
   smiles: "O=C([C@@H](C(SO)=O)CO)O"
   display_smiles: "O=C([C@@H](C(S[2*])=O)CO)[1*]"
   stereochemistry: true
   pseudonyms: ["A7", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A7
   smiles: "O=C(O)C(CO)C(=O)SO"
   display_smiles: "O=C(C(C(S[2*])=O)CO)[1*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A7
   smiles: "O=C(O)C(CO)=C(O)SO"
   display_smiles: "O=C(C(C(S[2*])=O)CO)[1*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A8
   smiles: "C=C(CC(=O)O)SO"
   display_smiles: "C=C(CC(=O)S[2*])[1*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A8
   smiles: "CC(=CC(=O)O)SO"
   display_smiles: "C=C(CC(=O)S[2*])[1*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A9^R
   smiles: "C=C([C@@H](C(O)=O)C)SO"
   display_smiles: "C=C([C@@H](C(S[2*])=O)C)[1*]"
   stereochemistry: true
   pseudonyms: ["A9", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A9^S
   smiles: "C=C([C@H](C(O)=O)C)SO"
   display_smiles: "C=C([C@H](C(S[2*])=O)C)[1*]"
   stereochemistry: true
   pseudonyms: ["A9", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A9
   smiles: "C=C(SO)C(C)C(=O)O"
   display_smiles: "C=C(C(C(S[2*])=O)C)[1*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A10^R
   smiles: "C=C([C@@H](C(O)=O)O)SO"
   display_smiles: "C=C([C@@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["A10", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A10^S
   smiles: "C=C([C@H](C(O)=O)O)SO"
   display_smiles: "C=C([C@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["A10", "PK_A", "PK"]
+  preserve_across_routes: false
+
 - name: A10
   smiles: "C=C(SO)C(O)C(=O)O"
   display_smiles: "C=C(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: A11
   smiles: "C=C(SO)C(=O)C(=O)O"
   display_smiles: "C=C([1*])C(=O)C(=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
+  preserve_across_routes: false
 
 - name: B^R1
   smiles: "O=C(C[C@@H](SO)O)O"
   display_smiles: "O=C(C[C@@H]([1*])O)S[2*]"
   stereochemistry: true
   pseudonyms: ["B1", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S1
   smiles: "O=C(C[C@H](SO)O)O"
   display_smiles: "O=C(C[C@H]([1*])O)S[2*]"
   stereochemistry: true
   pseudonyms: ["B1", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B1
   smiles: "O=C(O)CC(O)SO"
   display_smiles: "O=C(CC([1*])O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R2^R
   smiles: "C[C@@H]([C@@H](SO)O)C(O)=O"
   display_smiles: "C[C@@H]([C@@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R2^S
   smiles: "C[C@H]([C@@H](SO)O)C(O)=O"
   display_smiles: "C[C@H]([C@@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R2
   smiles: "CC([C@@H](SO)O)C(O)=O"
   display_smiles: "CC([C@@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S2^R
   smiles: "C[C@@H]([C@H](SO)O)C(O)=O"
   display_smiles: "C[C@@H]([C@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S2^S
   smiles: "C[C@H]([C@H](SO)O)C(O)=O"
   display_smiles: "C[C@H]([C@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S2
   smiles: "CC([C@H](SO)O)C(O)=O"
   display_smiles: "CC([C@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B2
   smiles: "CC(C(=O)O)C(O)SO"
   display_smiles: "CC(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
+
+- name: B2-alpha-carboxy
+  smiles: CC(C(=O)O)(C(=O)O)C(O)SO
+  terminal: true
+  preserve_across_routes: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC10434194/
+    note: Formal PK-unit representation following the existing SO handle convention;
+      the pendant carboxyl is an oxidized methyl branch, not an additional extension.
+  display_smiles: CC(C(=O)O)(C(=O)S[2*])C(O)[1*]
+  pseudonyms:
+  - PK_B
+  - PK
+
+- name: B2-alpha-hydroxymethyl
+  smiles: CC(CO)(C(=O)O)C(O)SO
+  terminal: true
+  preserve_across_routes: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC10434194/
+    note: Formal PK-unit representation following the existing SO handle convention;
+      retains the oxidized methyl branch.
+  display_smiles: CC(CO)(C(=O)S[2*])C(O)[1*]
+  pseudonyms:
+  - PK_B
+  - PK
 
 - name: B^R3
   smiles: "CC(C(O)=O)([C@@H](SO)O)C"
   display_smiles: "CC(C(S[2*])=O)([C@@H]([1*])O)C"
   stereochemistry: true
   pseudonyms: ["B3", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S3
   smiles: "CC(C(O)=O)([C@H](SO)O)C"
   display_smiles: "CC(C(S[2*])=O)([C@H]([1*])O)C"
   stereochemistry: true
   pseudonyms: ["B3", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B3
   smiles: "CC(C)(C(=O)O)C(O)SO"
   display_smiles: "CC(C)(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R4^R
   smiles: "CC[C@@H]([C@@H](SO)O)C(O)=O"
   display_smiles: "CC[C@@H]([C@@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R4^S
   smiles: "CC[C@H]([C@@H](SO)O)C(O)=O"
   display_smiles: "CC[C@H]([C@@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S4^R
   smiles: "CC[C@@H]([C@H](SO)O)C(O)=O"
   display_smiles: "CC[C@@H]([C@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S4^S
   smiles: "CC[C@H]([C@H](SO)O)C(O)=O"
   display_smiles: "CC[C@H]([C@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B4
   smiles: "CCC(C(=O)O)C(O)SO"
   display_smiles: "CCC(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R5^R
   smiles: "O=C([C@H]([C@@H](SO)O)O)O"
   display_smiles: "O=C([C@H]([C@@H]([1*])O)O)S[2*]"
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R5^S
   smiles: "O=C([C@@H]([C@@H](SO)O)O)O"
   display_smiles: "O=C([C@@H]([C@@H]([1*])O)O)S[2*]"
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S5^R
   smiles: "O=C([C@H]([C@H](SO)O)O)O"
   display_smiles: "O=C([C@H]([C@H]([1*])O)O)S[2*]"
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S5^S
   smiles: "O=C([C@@H]([C@H](SO)O)O)O"
   display_smiles: "O=C([C@@H]([C@H]([1*])O)O)S[2*]"
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B5
   smiles: "O=C(O)C(O)C(O)SO"
   display_smiles: "O=C(S[2*])C(O)C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R6^R
   smiles: "C[C@@](C(O)=O)([C@@H](SO)O)O"
   display_smiles: "C[C@@](C(S[2*])=O)([C@@H]([1*])O)O"
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R6^S
   smiles: "C[C@](C(O)=O)([C@@H](SO)O)O"
   display_smiles: "C[C@](C(S[2*])=O)([C@@H]([1*])O)O"
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S6^R
   smiles: "C[C@@](C(O)=O)([C@H](SO)O)O"
   display_smiles: "C[C@@](C(S[2*])=O)([C@H]([1*])O)O"
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S6^S
   smiles: "C[C@](C(O)=O)([C@H](SO)O)O"
   display_smiles: "C[C@](C(S[2*])=O)([C@H]([1*])O)O"
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B6
   smiles: "CC(O)(C(=O)O)C(O)SO"
   display_smiles: "CC(O)(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R7^R
   smiles: "O=C([C@H]([C@@H](SO)O)CO)O"
   display_smiles: "O=C([C@H]([C@@H]([1*])O)CO)S[2*]"
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R7^S
   smiles: "O=C([C@@H]([C@@H](SO)O)CO)O"
   display_smiles: "O=C([C@@H]([C@@H]([1*])O)CO)S[2*]"
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S7^R
   smiles: "O=C([C@H]([C@H](SO)O)CO)O"
   display_smiles: "O=C([C@H]([C@H]([1*])O)CO)S[2*]"
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S7^S
   smiles: "O=C([C@@H]([C@H](SO)O)CO)O"
   display_smiles: "O=C([C@@H]([C@H]([1*])O)CO)S[2*]"
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B7
   smiles: "O=C(O)C(CO)C(O)SO"
   display_smiles: "O=C(S[2*])C(CO)C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R8
   smiles: "C[C@](CC(O)=O)(SO)O"
   display_smiles: "C[C@](CC(S[2*])=O)([1*])O"
   stereochemistry: true
   pseudonyms: ["B8", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S8
   smiles: "C[C@@](CC(O)=O)(SO)O"
   display_smiles: "C[C@@](CC(S[2*])=O)([1*])O"
   stereochemistry: true
   pseudonyms: ["B8", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B8
   smiles: "CC(O)(CC(=O)O)SO"
   display_smiles: "CC(O)(CC(=O)S[2*])[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R9^R
   smiles: "C[C@@H]([C@](O)(SO)C)C(O)=O"
   display_smiles: "C[C@@H]([C@](O)([1*])C)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B9", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R9^S
   smiles: "C[C@H]([C@](O)(SO)C)C(O)=O"
   display_smiles: "C[C@H]([C@](O)([1*])C)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B9", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S9^R
   smiles: "C[C@@H]([C@@](O)(SO)C)C(O)=O"
   display_smiles: "C[C@@H]([C@@](O)([1*])C)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B9", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S9^S
   smiles: "C[C@H]([C@@](O)(SO)C)C(O)=O"
   display_smiles: "C[C@H]([C@@](O)([1*])C)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B9", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B9
   smiles: "CC(C(=O)O)C(C)(O)SO"
   display_smiles: "CC(C(=O)S[2*])C(C)(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R10^R
   smiles: "C[C@@](SO)([C@@H](C(O)=O)O)O"
   display_smiles: "C[C@@]([1*])([C@@H](C(S[2*])=O)O)O"
   stereochemistry: true
   pseudonyms: ["B10", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R10^S
   smiles: "C[C@@](SO)([C@H](C(O)=O)O)O"
   display_smiles: "C[C@@]([1*])([C@H](C(S[2*])=O)O)O"
   stereochemistry: true
   pseudonyms: ["B10", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S10^R
   smiles: "C[C@](SO)([C@@H](C(O)=O)O)O"
   display_smiles: "C[C@]([1*])([C@@H](C(S[2*])=O)O)O"
   stereochemistry: true
   pseudonyms: ["B10", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S10^S
   smiles: "C[C@](SO)([C@H](C(O)=O)O)O"
   display_smiles: "C[C@]([1*])([C@H](C(S[2*])=O)O)O"
   stereochemistry: true
   pseudonyms: ["B10", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B10
   smiles: "CC(O)(SO)C(O)C(=O)O"
   display_smiles: "CC(O)([1*])C(O)C(=O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B11
   smiles: "O=C(O)C(=O)C(O)SO"
   display_smiles: "O=C(S[2*])C(=O)C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R12^R
   smiles: "N[C@@H]([C@@H](SO)O)C(O)=O"
   display_smiles: "N[C@@H]([C@@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B12", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^R12^S
   smiles: "N[C@H]([C@@H](SO)O)C(O)=O"
   display_smiles: "N[C@H]([C@@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B12", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S12^R
   smiles: "N[C@@H]([C@H](SO)O)C(O)=O"
   display_smiles: "N[C@@H]([C@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B12", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S12^S
   smiles: "N[C@H]([C@H](SO)O)C(O)=O"
   display_smiles: "N[C@H]([C@H]([1*])O)C(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["B12", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B12
   smiles: "NC(C(=O)O)C(O)SO"
   display_smiles: "NC(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: B^R13
   smiles: "OS[C@H](C(C(O)=O)C(O)=O)O"
   display_smiles: "[1*][C@H](C(C(S[2*])=O)C(O)=O)O"
   stereochemistry: true
   pseudonyms: ["B13", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B^S13
   smiles: "OS[C@@H](C(C(O)=O)C(O)=O)O"
   display_smiles: "[1*][C@@H](C(C(O)=O)C(S[2*])=O)O"
   stereochemistry: true
   pseudonyms: ["B13", "PK_B", "PK"]
+  preserve_across_routes: false
+
 - name: B13
   smiles: "OSC(O)C(C(=O)O)C(=O)O"
   display_smiles: "[1*]C(O)C(C(=O)O)C(=O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
+  preserve_across_routes: false
 
 - name: C^E1
   smiles: 'O=C(/C=C/SO)O'
   display_smiles: 'O=C(/C=C/[1*])S[2*]'
   stereochemistry: true
   pseudonyms: ["PK_C", "PK"]
+  preserve_across_routes: false
+
 - name: C^Z1
   smiles: 'O=C(/C=C\SO)O'
   display_smiles: 'O=C(/C=C\[1*])S[2*]'
   stereochemistry: true
   pseudonyms: ["PK_C", "PK"]
+  preserve_across_routes: false
+
 - name: C1
   smiles: "O=C(O)C=CSO"
   display_smiles: "O=C(S[2*])C=C[1*]"
   pseudonyms: ["PK_C", "PK"]
+  preserve_across_routes: false
 
 - name: C^E2
   smiles: 'C/C(C(O)=O)=C\SO'
   display_smiles: 'C/C(C(S[2*])=O)=C\[1*]'
   stereochemistry: true
   pseudonyms: ["C2", "PK_C", "PK"]
+  preserve_across_routes: false
+
 - name: C^Z2
   smiles: 'C/C(C(O)=O)=C/SO'
   display_smiles: 'C/C(C(S[2*])=O)=C/[1*]'
   stereochemistry: true
   pseudonyms: ["C2", "PK_C", "PK"]
+  preserve_across_routes: false
+
 - name: C2
   smiles: "CC(=CSO)C(=O)O"
   display_smiles: "CC(=C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_C", "PK"]
+  preserve_across_routes: false
 
 - name: C^E4
   smiles: 'CC/C(C(O)=O)=C\SO'
   display_smiles: 'CC/C(C(S[2*])=O)=C\[1*]'
   stereochemistry: true
   pseudonyms: ["C4", "PK_C", "PK"]
+  preserve_across_routes: false
+
 - name: C^Z4
   smiles: 'CC/C(C(O)=O)=C/SO'
   display_smiles: 'CC/C(C(S[2*])=O)=C/[1*]'
   stereochemistry: true
   pseudonyms: ["C4", "PK_C", "PK"]
+  preserve_across_routes: false
+
 - name: C4
   smiles: "CCC(=CSO)C(=O)O"
   display_smiles: "CCC(=C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_C", "PK"]
+  preserve_across_routes: false
 
 - name: C^E7
   smiles: 'O=C(/C(CO)=C/SO)O'
   display_smiles: 'O=C(/C(CO)=C/[1*])S[2*]'
   stereochemistry: true
   pseudonyms: ["C7", "PK_C", "PK"]
+  preserve_across_routes: false
+
 - name: C^Z7
   smiles: 'O=C(/C(CO)=C\SO)O'
   display_smiles: 'O=C(/C(CO)=C\[1*])S[2*]'
   stereochemistry: true
   pseudonyms: ["C7", "PK_C", "PK"]
+  preserve_across_routes: false
+
 - name: C7
   smiles: "O=C(O)C(=CSO)CO"
   display_smiles: "O=C(S[2*])C(=C[1*])CO"
   pseudonyms: ["PK_C", "PK"]
+  preserve_across_routes: false
 
 - name: C13
   smiles: "O=C(C(C(O)=O)=CSO)O"
   display_smiles: "O=C(C(C(O)=O)=C[1*])S[2*]"
   pseudonyms: ["PK_C", "PK"]
+  preserve_across_routes: false
 
 - name: D1
   smiles: "O=C(O)CCSO"
   display_smiles: "O=C(S[2*])CC[1*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D2^R
   smiles: "C[C@H](C(O)=O)CSO"
   display_smiles: "C[C@H](C(S[2*])=O)C[1*]"
   stereochemistry: true
   pseudonyms: ["D2", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D2^S
   smiles: "C[C@@H](C(O)=O)CSO"
   display_smiles: "C[C@@H](C(S[2*])=O)C[1*]"
   stereochemistry: true
   pseudonyms: ["D2", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D2
   smiles: "CC(CSO)C(=O)O"
   display_smiles: "CC(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D3
   smiles: "CC(C)(CSO)C(=O)O"
   display_smiles: "CC(C)(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D4^R
   smiles: "CC[C@H](C(O)=O)CSO"
   display_smiles: "CC[C@H](C(S[2*])=O)C[1*]"
   stereochemistry: true
   pseudonyms: ["D4", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D4^S
   smiles: "CC[C@@H](C(O)=O)CSO"
   display_smiles: "CC[C@@H](C(S[2*])=O)C[1*]"
   stereochemistry: true
   pseudonyms: ["D4", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D4
   smiles: "CCC(CSO)C(=O)O"
   display_smiles: "CCC(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D5^R
   smiles: "O=C([C@H](CSO)O)O"
   display_smiles: "O=C([C@H](C[1*])O)S[2*]"
   pseudonyms: ["D5", "PK_D", "PK"]
   stereochemistry: true
+  preserve_across_routes: false
+
 - name: D5^S
   smiles: "O=C([C@@H](CSO)O)O"
   display_smiles: "O=C([C@@H](C[1*])O)S[2*]"
   stereochemistry: true
   pseudonyms: ["D5", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D5
   smiles: "O=C(O)C(O)CSO"
   display_smiles: "O=C(S[2*])C(O)C[1*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D6^R
   smiles: "C[C@](CSO)(C(O)=O)O"
   display_smiles: "C[C@](C[1*])(C(S[2*])=O)O"
   stereochemistry: true
   pseudonyms: ["D6", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D6^S
   smiles: "C[C@@](CSO)(C(O)=O)O"
   display_smiles: "C[C@@](C[1*])(C(S[2*])=O)O"
   stereochemistry: true
   pseudonyms: ["D6", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D6
   smiles: "CC(O)(CSO)C(=O)O"
   display_smiles: "CC(O)(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D7^R
   smiles: "O=C([C@H](CSO)CO)O"
   display_smiles: "O=C([C@H](C[1*])CO)S[2*]"
   stereochemistry: true
   pseudonyms: ["D7", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D7^S
   smiles: "O=C([C@@H](CSO)CO)O"
   display_smiles: "O=C([C@@H](C[1*])CO)S[2*]"
   stereochemistry: true
   pseudonyms: ["D7", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D7
   smiles: "O=C(O)C(CO)CSO"
   display_smiles: "O=C(S[2*])C(CO)C[1*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D^R8
   smiles: "C[C@@H](SO)CC(O)=O"
   display_smiles: "C[C@@H]([1*])CC(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["D8", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D^S8
   smiles: "C[C@H](SO)CC(O)=O"
   display_smiles: "C[C@H]([1*])CC(S[2*])=O"
   stereochemistry: true
   pseudonyms: ["D8", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D8
   smiles: "CC(CC(=O)O)SO"
   display_smiles: "CC(CC(=O)S[2*])[1*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D^R10^R
   smiles: "C[C@H]([C@@H](C(O)=O)O)SO"
   display_smiles: "C[C@H]([C@@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["D10", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D^R10^S
   smiles: "C[C@H]([C@H](C(O)=O)O)SO"
   display_smiles: "C[C@H]([C@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["D10", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D^S10^R
   smiles: "C[C@@H]([C@@H](C(O)=O)O)SO"
   display_smiles: "C[C@@H]([C@@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["D10", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D^S10^S
   smiles: "C[C@@H]([C@H](C(O)=O)O)SO"
   display_smiles: "C[C@@H]([C@H](C(S[2*])=O)O)[1*]"
   stereochemistry: true
   pseudonyms: ["D10", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D10
   smiles: "CC(SO)C(O)C(=O)O"
   display_smiles: "CC([1*])C(O)C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D11
   smiles: "O=C(O)C(=O)CSO"
   display_smiles: "O=C(S[2*])C(=O)C[1*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D11
   smiles: "O=C(O)C(O)=CSO"
   display_smiles: "O=C(S[2*])C(O)=C[1*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D14
   smiles: "CC(O)C(CSO)C(=O)O"
   display_smiles: "CC(O)C(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D15
   smiles: "C=C(C(O)=O)CSO"
   display_smiles: "C=C(C(S[2*])=O)C[1*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D16^R
   smiles: "OSC[C@@H](C(O)=O)CC=O"
   display_smiles: "[1*]C[C@@H](C(S[2*])=O)CC=O"
   stereochemistry: true
   pseudonyms: ["D16", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D16^S
   smiles: "OSC[C@H](C(O)=O)CC=O"
   display_smiles: "[1*]C[C@H](C(S[2*])=O)CC=O"
   stereochemistry: true
   pseudonyms: ["D16", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D16
   smiles: "OSCC(CC=O)C(=O)O"
   display_smiles: "[1*]CC(CC=O)C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: D^R17
   smiles: "O=C(O)C([C@H](SO)C)=O"
   display_smiles: "O=C(S[2*])C([C@H]([1*])C)=O"
   stereochemistry: true
   pseudonyms: ["D17", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D^S17
   smiles: "O=C(O)C([C@@H](SO)C)=O"
   display_smiles: "O=C(S[2*])C([C@@H]([1*])C)=O"
   stereochemistry: true
   pseudonyms: ["D17", "PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D17
   smiles: "O=C(C(C(C)SO)=O)O"
   display_smiles: "O=C(C(C(C)[1*])=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
+
 - name: D17
   smiles: "O=C(C(O)=C(C)SO)O"
   display_smiles: "O=C(C(C(C)[1*])=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
+  preserve_across_routes: false
 
 - name: A
   smiles: "OSC(N)CC(=O)O"
   display_smiles: "[1*]C(N)CC(=O)S[2*]"
   pseudonyms: ["PK"]
+  preserve_across_routes: false
 
 - name: A
   smiles: "OSC(N)C(C)C(=O)O"
   display_smiles: "[1*]C(N)C(C)C(=O)S[2*]"
   pseudonyms: ["PK"]
+  preserve_across_routes: false
 
 - name: A
   smiles: "OSC(N)C(C)(C)C(=O)O"
   display_smiles: "[1*]C(N)C(C)(C)C(=O)S[2*]"
   pseudonyms: ["PK"]
+  preserve_across_routes: false
 
 - name: A
   smiles: "OSC(N)C(CC)C(=O)O"
   display_smiles: "[1*]C(N)C(CC)C(=O)S[2*]"
   pseudonyms: ["PK"]
+  preserve_across_routes: false
 
 - name: A
   smiles: "OSC(N)C(C)(O)C(=O)O"
   display_smiles: "[1*]C(N)C(C)(O)C(=O)S[2*]"
   pseudonyms: ["PK"]
+  preserve_across_routes: false
 
 - name: A
   smiles: "NC(C(O)=O)CSO"
   display_smiles: "NC(C(S[2*])=O)C[1*]"
   pseudonyms: ["PK"]
+  preserve_across_routes: false
 
 - name: A
   smiles: "NC(C(C(O)=O)O)SO"
   display_smiles: "NC(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK"]
+  preserve_across_routes: false
 
 - name: A
   smiles: "O=C(C(C(C(O)=O)SO)O)O"
   display_smiles: "O=C(C(C(C(O)=O)[1*])O)S[2*]"
   pseudonyms: ["PK"]
+  preserve_across_routes: false
 
 - name: methylation
   smiles: "C"
@@ -718,6 +990,12 @@
 
 - name: phosphonylation
   smiles: "OP(O)(O)O"
+
+- name: phosphate
+  smiles: "O=P(O)(O)O"
+  terminal: true
+  props:
+    note: "Ordinary phosphate, distinct from the existing OP(O)(O)O phosphonylation entry."
 
 - name: fluorination
   smiles: "F"
@@ -839,6 +1117,24 @@
 
 - name: glycosylation
   smiles: "OC1C(O)C(N(C)C)CC(C)O1"
+
+- name: glycosylation
+  smiles: CC1OC(O)CC(C)([N+](=O)[O-])C1N
+  props:
+    reference: https://pubmed.ncbi.nlm.nih.gov/17985890/
+    note: Kijanose-derived nitrosugar after removing the N-methoxycarbonyl tailoring group.
+
+- name: glycosylation
+  smiles: CC1OC(O)CC(C)([N+](=O)[O-])C1O
+  props:
+    reference: https://doi.org/10.1007/s00203-007-0337-3
+    note: O-demethylated rubranitrose/evernitrose constitution; stereochemistry is not specified.
+
+- name: glycosylation
+  smiles: CC1OC(O)CCC1=O
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC1851095/
+    note: Cinerulose A constitution; retain the anthracycline's terminal keto sugar as one residue instead of opening it into apparent PK units.
 
 # Tautomers
 - name: arginine
@@ -974,6 +1270,9 @@
 
 - name: threonine
   smiles: "CC(O)C(N)C(=O)O"
+- name: N-methylthreonine
+  smiles: "CNC(C(O)C)C(=O)O"
+  terminal: true
 
 - name: asparagine
   smiles: "NC(=O)CC(N)C(=O)O"
@@ -1019,6 +1318,10 @@
 
 - name: glycine
   smiles: "NCC(=O)O"
+- name: sarcosine
+  smiles: "CNCC(=O)O"
+  pseudonyms: ["N-methylglycine"]
+  terminal: true
 
 - name: proline
   smiles: "O=C(O)C1CCCN1"
@@ -1085,6 +1388,9 @@
 
 - name: isoleucine
   smiles: "CCC(C)C(N)C(=O)O"
+- name: N-methylisoleucine
+  smiles: "CNC(C(C)CC)C(=O)O"
+  terminal: true
 
 - name: alanine
   smiles: "CC(N)C(=O)O"
@@ -1348,6 +1654,10 @@
 - name: isobutyric acid
   smiles: "CC(C)C(=O)O"
 
+- name: 2-methylbutyric acid
+  smiles: "CCC(C)C(=O)O"
+  terminal: true
+
 - name: lactic acid
   smiles: "CC(O)C(=O)O"
 
@@ -1445,6 +1755,10 @@
 - name: 3-hydroxy-2,2-dimethyldecanoic acid
   smiles: "CCCCCCCC(C(C)(C(O)=O)C)O"
   terminal: false
+
+- name: cyclohexanecarboxylic acid
+  smiles: "O=C(O)C1CCCCC1"
+  terminal: true
 
 - name: trans-2-hexanoic acid
   smiles: "CCCC=CC(O)=O"
@@ -1613,6 +1927,10 @@
 
 - name: anthranilic acid
   smiles: "Nc1ccccc1C(=O)O"
+
+- name: 3-hydroxyanthranilic acid
+  smiles: "O=C(O)c1cccc(O)c1N"
+  terminal: true
 
 - name: 2-amino-3-hydroxy-4-(4-nitrophenyl)butanoic acid
   smiles: "C1=CC(=CC=C1CC(C(C(=O)O)N)O)[N+](=O)[O-]"
@@ -1805,6 +2123,12 @@
 
 - name: 2-sulfamoylacetic acid
   smiles: "C(C(=O)O)S(=O)(=O)N"
+
+- name: sulfate
+  smiles: "O=S(=O)(O)O"
+  terminal: true
+  props:
+    note: "Neutral representation after sulfate cleavage; avoids re-expanding free sulfate."
 
 - name: 2-hydroxy-3-methylpentanoic acid
   smiles: "CCC(C)C(C(=O)O)O"
@@ -3082,6 +3406,10 @@
 - name: malonamate
   smiles: "NC(=O)CC(=O)O"
 
+- name: aminomalonic acid
+  smiles: "NC(C(=O)O)C(=O)O"
+  terminal: true
+
 - name: meta-tyrosine
   smiles: "C1=CC(=CC(=C1)O)CC(C(=O)O)N"
 - name: meta-tyrosine^L
@@ -3278,3 +3606,330 @@
 
 - name: streptamine
   smiles: "NC1CC(C(C(C1O)O)O)N"
+
+- name: norvaline^L
+  smiles: "N[C@@H](CCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["norvaline"]
+  terminal: true
+- name: norvaline^D
+  smiles: "N[C@H](CCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["norvaline"]
+  terminal: true
+- name: norvaline
+  smiles: "NC(CCC)C(=O)O"
+  terminal: true
+- name: N-methylnorvaline^L
+  smiles: "CN[C@@H](CCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylnorvaline"]
+  terminal: true
+- name: N-methylnorvaline^D
+  smiles: "CN[C@H](CCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylnorvaline"]
+  terminal: true
+- name: N-methylnorvaline
+  smiles: "CNC(CCC)C(=O)O"
+  terminal: true
+
+- name: norleucine^L
+  smiles: "N[C@@H](CCCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["norleucine"]
+  terminal: true
+- name: norleucine^D
+  smiles: "N[C@H](CCCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["norleucine"]
+  terminal: true
+- name: norleucine
+  smiles: "NC(CCCC)C(=O)O"
+  terminal: true
+- name: N-methylnorleucine^L
+  smiles: "CN[C@@H](CCCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylnorleucine"]
+  terminal: true
+- name: N-methylnorleucine^D
+  smiles: "CN[C@H](CCCC)C(=O)O"
+  stereochemistry: true
+  pseudonyms: ["N-methylnorleucine"]
+  terminal: true
+- name: N-methylnorleucine
+  smiles: "CNC(CCCC)C(=O)O"
+  terminal: true
+
+- name: glyoxylic acid
+  smiles: "O=CC(=O)O"
+  terminal: true
+
+- name: citric acid
+  smiles: "O=C(O)CC(O)(CC(=O)O)C(=O)O"
+  terminal: true
+
+- name: itaconic acid
+  smiles: "C=C(CC(=O)O)C(=O)O"
+  terminal: true
+
+- name: agmatine
+  smiles: "N=C(N)NCCCCN"
+
+- name: 3-guanidinopropanoic acid
+  smiles: "N=C(N)NCCC(=O)O"
+
+- name: 3-guanidinopropanoic acid
+  smiles: "NC(N)=NCCC(=O)O"
+
+- name: 2,3-diaminoacrylic acid
+  smiles: "NC=C(N)C(=O)O"
+
+- name: spermidine
+  smiles: "NCCCCNCCCN"
+
+- name: ethanolamine
+  smiles: "NCCO"
+
+- name: N-hydroxyputrescine
+  smiles: "NCCCCNO"
+
+- name: N-hydroxypropane-1,3-diamine
+  smiles: "NCCCNO"
+
+- name: 3-mercaptopropanoic acid
+  smiles: "O=C(O)CCS"
+
+- name: "oxalic acid"
+  smiles: O=C(O)C(=O)O
+
+- name: "acrylic acid"
+  smiles: C=CC(=O)O
+
+- name: "2-oxobut-3-enoic acid"
+  smiles: C=CC(=O)C(=O)O
+
+- name: "formic acid"
+  smiles: O=CO
+
+- name: 3-amino-6-hydroxypiperidin-2-one
+  smiles: "NC1CCC(O)NC1=O"
+
+- name: "glutamate-5-semialdehyde"
+  smiles: NC(CCC=O)C(=O)O
+
+- name: "5-hydroxypiperazic acid"
+  smiles: O=C(O)C1CC(O)CNN1
+
+- name: N-hydroxyalanine
+  smiles: "CC(NO)C(=O)O"
+
+- name: tryptamine
+  smiles: "NCCc1c[nH]c2ccccc12"
+
+- name: propane-1,3-diamine
+  smiles: "NCCCN"
+
+- name: indole-3-carboxylic acid
+  smiles: "O=C(O)c1c[nH]c2ccccc12"
+
+- name: "2-(hydroxyimino)acetic acid"
+  smiles: O=C(O)C=NO
+
+- name: N-hydroxy-3-guanidinopropanoic acid
+  smiles: "N=C(N)N(O)CCC(=O)O"
+
+- name: N-hydroxypyrrole-2-carboxylic acid
+  smiles: "O=C(O)c1cccn1O"
+
+- name: lysinol
+  smiles: "NCCCCC(N)CO"
+
+- name: tyrosinol
+  smiles: "NC(CO)Cc1ccc(O)cc1"
+
+- name: asparaginol
+  smiles: "NC(=O)CC(N)CO"
+
+- name: 3'-deoxy-4',5'-enamino-uridine
+  smiles: NC=C1CC(O)C(n2ccc(=O)[nH]c2=O)O1
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC2947877/
+    note: Modified nucleoside constituent coupled to the peptide by an enamide.
+
+- name: 3'-deoxy-4',5'-enamino-dihydrouridine
+  smiles: NC=C1CC(O)C(N2CCC(=O)NC2=O)O1
+  terminal: true
+  props:
+    note: Dihydrouracil congener of the shared uridyl-peptide nucleoside.
+
+- name: 1-methyl-6-hydroxy-tetrahydroisoquinoline-3-carboxylic acid
+  smiles: CC1NC(C(=O)O)Cc2cc(O)ccc21
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC7898326/
+
+- name: 8-hydroxy-tetrahydroisoquinoline-3-carboxylic acid
+  smiles: O=C(O)C1Cc2cccc(O)c2CN1
+  terminal: true
+  props:
+    reference: https://patents.google.com/patent/CN103183723B/en
+
+- name: methionine sulfoxide
+  smiles: CS(=O)CCC(N)C(=O)O
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC4572928/
+
+- name: 4-methyl-3-hydroxyanthranilic acid
+  smiles: Cc1ccc(C(=O)O)c(N)c1O
+  terminal: true
+  props:
+    reference: https://www.microbiologyresearch.org/content/journal/micro/10.1099/00221287-111-1-121
+
+- name: 4-methyl-3,5-dihydroxyphenylglycine
+  smiles: Cc1c(O)cc(C(N)C(=O)O)cc1O
+  terminal: true
+  props:
+    reference: https://journals.asm.org/doi/abs/10.1128/aac.03349-14
+
+- name: Aeap
+  smiles: N=C(N)N1CC=C(CCN)C1
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC8609519/
+    note: 1-amidino-3-(2-aminoethyl)-3-pyrroline; modified terminal residue.
+
+- name: hydrolyzed suomilide Abn
+  smiles: NC1C(C(=O)O)NC2CC(O)CC1(O)C2O
+  terminal: true
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC10157211/
+    note: Azabicyclononane residue after the cyclic carbamate has been hydrolyzed;
+      a modified residue identity, not an unmodified NRPS substrate.
+
+- name: 3-aminopropyl-dimethylsulfonium
+  smiles: C[S+](C)CCCN
+  terminal: true
+  props:
+    reference: https://pubmed.ncbi.nlm.nih.gov/6191779/
+    note: Intact terminal amine of bleomycin A2. Preserve its sulfonium charge instead
+      of converting it to protonated homocysteamine.
+
+- name: 2,3-dihydroxy-4-(methylsulfonyl)benzoic acid
+  smiles: CS(=O)(=O)c1ccc(C(=O)O)c(O)c1O
+  terminal: true
+  props:
+    reference: https://pubs.acs.org/doi/10.1021/np4006579
+    note: Modified aromatic acid of the supplied heterobactin S2 structure; preserve
+      the sulfone instead of treating it as a methylated thiol.
+
+- name: 3,4-dihydroxycyclohexanecarboxylic acid
+  smiles: O=C(O)C1CCC(O)C(O)C1
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3064383/
+    note: Reduced cyclohexanecarboxyl starter representation; DHCHC is reduced during loading.
+
+- name: hydroxypyruvic acid
+  smiles: O=C(O)C(=O)CO
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC103562/
+    note: Formal oxidized starter fragment retaining the mature anthracycline C13 carbonyl and C14 hydroxyl; not
+      an assignment of hydroxypyruvate as the loaded substrate.
+
+# Substituted PK units retain mature branches/oxidation states; the names do not
+# assert that the displayed capped molecule was the biological extender substrate.
+- name: B-alpha-hexyl
+  smiles: CCCCCCC(C(=O)O)C(O)SO
+  preserve_across_routes: false
+  props:
+    reference: https://www.nature.com/articles/s41467-018-05877-z
+    note: Formal beta-hydroxy unit retaining the hexylmalonyl-derived side chain.
+  pseudonyms:
+  - PK_B
+  - PK
+- name: B-alpha-(4-methylhexyl)
+  smiles: CCC(C)CCCC(C(=O)O)C(O)SO
+  preserve_across_routes: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC5187497/
+  pseudonyms:
+  - PK_B
+  - PK
+- name: B-alpha-(5-methylhexyl)
+  smiles: CC(C)CCCCC(C(=O)O)C(O)SO
+  preserve_across_routes: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC5187497/
+  pseudonyms:
+  - PK_B
+  - PK
+- name: B-alpha-(4-methylpentyl)
+  smiles: CC(C)CCCC(C(=O)O)C(O)SO
+  preserve_across_routes: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC5187497/
+  pseudonyms:
+  - PK_B
+  - PK
+- name: B-alpha-butyl
+  smiles: CCCCC(C(=O)O)C(O)SO
+  preserve_across_routes: false
+  props:
+    reference: https://www.nature.com/articles/s41467-018-05877-z
+  pseudonyms:
+  - PK_B
+  - PK
+- name: B-alpha-pentyl
+  smiles: CCCCCC(C(=O)O)C(O)SO
+  preserve_across_routes: false
+  props:
+    reference: https://www.nature.com/articles/s41467-018-05877-z
+  pseudonyms:
+  - PK_B
+  - PK
+- name: B-beta-carboxymethyl
+  smiles: O=C(O)CC(O)(CC(=O)O)SO
+  preserve_across_routes: false
+  props:
+    note: Formal beta-hydroxy PK unit retaining a carboxymethyl branch; not an assignment of a distinct extender
+      substrate.
+  pseudonyms:
+  - PK_B
+  - PK
+- name: B-alpha-(1-hydroxyhexyl)
+  smiles: CCCCCC(O)C(C(=O)O)C(O)SO
+  preserve_across_routes: false
+  props:
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC4527110/
+    note: Formal hydroxylated hexylmalonyl-derived unit retaining side-chain hydroxylation; not a new extender substrate.
+  pseudonyms:
+  - PK_B
+  - PK
+- name: B-alpha-benzyl
+  smiles: O=C(O)C(Cc1ccccc1)C(O)SO
+  preserve_across_routes: false
+  props:
+    reference: https://pubs.acs.org/doi/10.1021/jacs.5b00728
+    note: Formal beta-hydroxy unit derived from benzylmalonyl-CoA.
+  pseudonyms:
+  - PK_B
+  - PK
+- name: A-alpha-carboxyl
+  smiles: O=C(O)C(C(=O)O)C(=O)SO
+  preserve_across_routes: false
+  props:
+    note: Formal alpha-carboxylated PK unit, corresponding to the keto state of the existing B13 unit; no distinct
+      extender substrate is assigned.
+  pseudonyms:
+  - PK_A
+  - PK
+- name: A-alpha-carboxyl
+  smiles: O=C(O)C(C(=O)O)=C(O)SO
+  preserve_across_routes: false
+  props:
+    note: Enol tautomer of the formal alpha-carboxylated keto PK unit.
+  pseudonyms:
+  - PK_A
+  - PK

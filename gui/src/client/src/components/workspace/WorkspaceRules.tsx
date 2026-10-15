@@ -146,6 +146,13 @@ function MatchingRuleRow({ rule }: { rule: MatchingRule }) {
               </Box>
             )}
 
+            {rule.terminal && (
+              <Typography variant="body2" color="text.secondary">
+                {rule.preserveAcrossRoutes
+                  ? "Protect this fragment from subdivision across alternative routes."
+                  : "Stop at this fragment within its own route; allow other routes to divide it differently."}
+              </Typography>
+            )}
             <PropsList props={rule.props} />
           </Stack>
         </Stack>
@@ -202,6 +209,18 @@ function ReactionRuleRow({ rule }: { rule: ReactionRule }) {
             </Box>
           </Box>
 
+          {Object.keys(rule.productMaxMatches).length > 0 && (
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Maximum matches per product
+              </Typography>
+              {Object.entries(rule.productMaxMatches).map(([pattern, limit]) => (
+                <Typography key={pattern} variant="body2" sx={{ fontFamily: "monospace" }}>
+                  {pattern}: {limit}
+                </Typography>
+              ))}
+            </Box>
+          )}
           <PropsList props={rule.props} />
         </Stack>
       </Collapse>
