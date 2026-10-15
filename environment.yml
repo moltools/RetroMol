@@ -1,0 +1,74 @@
+# Single conda env for this repo: everything needed to run the database-construction
+# Snakemake pipeline (database/Snakemake) AND retromol_paras (src/retromol_paras/, the
+# self-contained PARAS reimplementation used by retromol_antismash's "paras_cli"
+# DomainInferenceModel and selected via pmp.yml's predictors.nrps.a_domain: paras_cli).
+# These two used to be separate env files (database/envs/retromol.yaml,
+# envs/retromol_paras.yaml) -- consolidated here since there's no reason to keep two
+# conda envs around for one repo.
+#
+# Snakemake / database pipeline:
+#   Every rule in database/Snakemake uses Snakemake's `run:` directive (inline Python
+#   that imports and calls database/scripts/*.py functions directly), not `shell:`.
+#   Snakemake executes `run:` blocks in its own process rather than a subprocess, so a
+#   per-rule `conda:` env (the --use-conda mechanism) would NOT actually reach any of
+#   this pipeline's own code -- only `shell()` calls made from *within* a `run:` block,
+#   which this pipeline never makes. There is deliberately no per-rule conda: directive
+#   in database/Snakemake, and no --use-conda flag in the invocation below, because of
+#   this. This env is instead the one Snakemake itself runs in, so it needs both
+#   Snakemake and every runtime dependency database/scripts/*.py imports (rdkit,
+#   duckdb, etc. -- all already listed in the repo's own pyproject.toml, pulled in by
+#   the editable install below rather than duplicated here).
+#
+# retromol_paras / PARAS CLI tools:
+#   None of these are pip-installable -- they're the command-line binaries
+#   retromol_paras shells out to instead of pyhmmer:
+#     - hmmpfam2 (legacy HMMER2)      -> bioconda "hmmer2"
+#     - hmmscan, hmmpress (HMMER3)    -> bioconda "hmmer"
+#     - muscle, MUSCLE v3 CLI syntax  -> bioconda "muscle=3.8.1551" (pinned: bioconda's
+#       unpinned "muscle" resolves to MUSCLE v5 today, whose CLI is incompatible --
+#       `-in1/-in2/-profile` is v3-only)
+#
+# Usage:
+#
+#   conda env create -f environment.yml
+#   conda activate retromol
+#   pip install -e .
+#   snakemake -p -s database/Snakemake --configfile database/config.yaml \
+#       --workflow-profile database/profiles/slurm
+#
+# ---------------------------------------------------------------------------
+# Apple Silicon (arm64) note
+# ---------------------------------------------------------------------------
+# hmmer2 and muscle=3.8.1551 are old, low-traffic bioconda packages -- osx-arm64
+# builds may not exist for every build number, or may exist but not solve
+# together with the rest of this environment's dependencies. If `conda env
+# create` fails to solve, or the env solves but a binary immediately fails at
+# runtime (segfault / "bad CPU type in executable"), force the whole
+# environment onto the osx-64 (Intel) package set instead, which conda then
+# runs through Rosetta 2 automatically:
+#
+#   softwareupdate --install-rosetta          # one-time, if not already installed
+#   CONDA_SUBDIR=osx-64 conda env create -f environment.yml -n retromol
+#   conda activate retromol
+#   conda config --env --set subdir osx-64    # pin osx-64 for this env so future
+#                                              # `conda install`/`conda update` in it
+#                                              # don't drift back to arm64 packages
+#   pip install -e .
+#
+# This makes the whole env (Python included) run under Rosetta, which is fine --
+# it's only these binaries retromol_paras invokes as subprocesses that need it,
+# and there's no measurable performance concern for occasional HMMER/MUSCLE runs.
+name: retromol
+
+channels:
+  - bioconda
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - pip
+  - snakemake
+  - snakemake-executor-plugin-slurm
+  - hmmer2
+  - hmmer
+  - muscle=3.8.1551

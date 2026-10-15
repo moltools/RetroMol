@@ -8,15 +8,11 @@ import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
+import { useQuery } from "@tanstack/react-query";
 import { useNotifications } from "../NotificationProvider";
 import { DialogWindow } from "../DialogWindow";
-
-type CompoundOption = {
-  name: string;
-  smiles: string;
-  databaseName: string;
-  databaseIdentifier: string;
-}
+import { searchCompounds } from "../../features/compounds/api";
+import type { CompoundOption } from "../../features/compounds/types";
 
 type DialogImportCompoundProps = {
   open: boolean;
@@ -41,9 +37,30 @@ export const DialogImportCompound: React.FC<DialogImportCompoundProps> = ({
   // Stereochemistry toggle
   const [matchStereochemistry, setMatchStereochemistry] = React.useState<boolean>(true);
 
-  // Autocomplete state
-  const [options, setOptions] = React.useState<CompoundOption[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(false);
+  // Autocomplete: debounce the raw input, then let react-query own
+  // fetching/caching/loading state (and, critically, discard stale
+  // responses if an older query resolves after a newer one).
+  const [debouncedName, setDebouncedName] = React.useState<string>("");
+  React.useEffect(() => {
+    const handle = setTimeout(() => setDebouncedName(compoundName.trim()), 250);
+    return () => clearTimeout(handle);
+  }, [compoundName]);
+
+  const searchQuery = useQuery({
+    queryKey: ["searchCompound", debouncedName],
+    queryFn: ({ signal }) => searchCompounds(debouncedName, 10, signal),
+    enabled: open && debouncedName.length > 0,
+    staleTime: 60_000,
+  });
+
+  const options = React.useMemo<CompoundOption[]>(() => searchQuery.data ?? [], [searchQuery.data]);
+  const loading = searchQuery.isFetching;
+
+  React.useEffect(() => {
+    if (searchQuery.error) {
+      pushNotification("Error searching compounds: " + (searchQuery.error as Error).message, "error");
+    }
+  }, [searchQuery.error, pushNotification]);
 
   const canImport =
     (mode === "single" &&
@@ -54,9 +71,9 @@ export const DialogImportCompound: React.FC<DialogImportCompoundProps> = ({
   const reset = () => {
     setMode("single");
     setCompoundName("");
+    setDebouncedName("");
     setCompoundSmiles("");
     setBatchFile(null);
-    setOptions([]);
   };
 
   const handleImport = () => {
@@ -72,39 +89,6 @@ export const DialogImportCompound: React.FC<DialogImportCompoundProps> = ({
     reset();
     onClose();
   };
-
-  async function searchCompoundByName(q: string) {
-    const params = new URLSearchParams({q, limit: "10"});
-    const res = await fetch(`/api/searchCompound?${params.toString()}`);
-    if (!res.ok) { throw new Error(`Search failed: ${res.status}`); };
-    return await res.json();
-  };
-
-  // Debounced search when user types a compound name
-  React.useEffect(() => {
-    if (!open) return;
-    const q = compoundName.trim();
-    if (!q) {
-      setOptions([]);
-      return;
-    };
-
-    const handle = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await searchCompoundByName(q);
-        const rows = (res.rows || []) as CompoundOption[];
-        setOptions(rows);
-      } catch (err) {
-        pushNotification("Error searching compounds: " + (err as Error).message, "error");
-        setOptions([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 250); // 250ms debounce
-
-    return () => clearTimeout(handle);
-  }, [compoundName, open]);
 
   return (
     <DialogWindow

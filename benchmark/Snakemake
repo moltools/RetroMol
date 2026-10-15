@@ -1,0 +1,128 @@
+"""RetroMol benchmarking pipeline: figures over a compiled NPAtlas+MIBiG database.
+
+Run from the repo root with:
+
+    snakemake -s benchmark/Snakemake --configfile benchmark/config.yaml --cores 4
+
+Requires a database already built by database/Snakemake (see benchmark/config.yaml's
+`paths.database`); this pipeline only reads it, never writes to it. In particular,
+figure1's coverage numbers are read straight off `entries.coverage`, populated at
+database-build time by database/scripts/load_compounds.py. A database built before
+that column existed needs to be reopened for writing once (e.g. rerun
+`load_npatlas_compounds`/`load_mibig_compounds` from database/Snakemake) so
+RetroMolDuckDB's schema migration backfills it; see that module's docstring. Produces:
+
+  1. link_bgc_compounds - MIBiG accession -> {bgc_entry_ids, compound_entry_ids}
+  2. figure1             - coverage distributions (NPAtlas chemical classes / MIBiG
+                            biosynthetic classes vs. their respective "all")
+  3. figure2             - top-1 retrieved compound Tc per MIBiG BGC
+  4. figure3             - cross-modal retrieval hit@k + per-method timing
+  5. figure4             - BGC-compound pair score distributions vs. random pairs
+
+Steps 2-5 are independent of each other once 1 is done, so they run in parallel
+under `--cores`.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(workflow.basedir) / "scripts"))
+
+DB_PATH = Path(config["paths"]["database"])
+WORKDIR = Path(config["paths"]["workdir"])
+FIGURES_DIR = Path(config["paths"]["figures_dir"])
+
+RXN_RULES = config["paths"].get("reaction_rules")
+MXN_RULES = config["paths"].get("matching_rules")
+
+
+rule all:
+    input:
+        FIGURES_DIR / "figure1_coverage.png",
+        FIGURES_DIR / "figure2_retrieval.png",
+        FIGURES_DIR / "figure3_cross_modal.png",
+        FIGURES_DIR / "figure3_timing.png",
+        FIGURES_DIR / "figure4_score_distributions.png"
+
+
+rule link_bgc_compounds:
+    output:
+        links=WORKDIR / "links.json"
+    run:
+        import link_bgc_compounds
+        link_bgc_compounds.run(
+            db_path=DB_PATH,
+            output_path=output.links,
+            min_modules=config.get("min_bgc_modules", 1),
+        )
+
+
+rule figure1:
+    input:
+        links=WORKDIR / "links.json"
+    output:
+        figure=FIGURES_DIR / "figure1_coverage.png"
+    run:
+        import figure1_coverage
+        figure1_coverage.run(
+            db_path=str(DB_PATH),
+            links_path=str(input.links),
+            npatlas_highlight_classes=config["npatlas_highlight_classes"],
+            mibig_highlight_classes=config["mibig_highlight_classes"],
+            output_path=str(output.figure),
+        )
+
+
+rule figure2:
+    input:
+        links=WORKDIR / "links.json"
+    output:
+        figure=FIGURES_DIR / "figure2_retrieval.png"
+    run:
+        import figure2_retrieval
+        figure2_retrieval.run(
+            db_path=str(DB_PATH),
+            links_path=str(input.links),
+            method=config["figure2"]["method"],
+            mibig_highlight_classes=config["mibig_highlight_classes"],
+            retrieval_cfg=config["retrieval"],
+            tanimoto_cfg=config["tanimoto"],
+            output_path=str(output.figure),
+        )
+
+
+rule figure3:
+    input:
+        links=WORKDIR / "links.json"
+    output:
+        figure=FIGURES_DIR / "figure3_cross_modal.png",
+        timing=FIGURES_DIR / "figure3_timing.png"
+    run:
+        import figure3_cross_modal
+        figure3_cross_modal.run(
+            db_path=str(DB_PATH),
+            links_path=str(input.links),
+            figure3_cfg=config["figure3"],
+            mibig_highlight_classes=config["mibig_highlight_classes"],
+            retrieval_cfg=config["retrieval"],
+            tanimoto_cfg=config["tanimoto"],
+            output_path=str(output.figure),
+            timing_output_path=str(output.timing),
+        )
+
+
+rule figure4:
+    input:
+        links=WORKDIR / "links.json"
+    output:
+        figure=FIGURES_DIR / "figure4_score_distributions.png"
+    run:
+        import figure4_score_distributions
+        figure4_score_distributions.run(
+            db_path=str(DB_PATH),
+            links_path=str(input.links),
+            retrieval_cfg=config["retrieval"],
+            n_random_pairs=config["figure4"]["n_random_pairs"],
+            random_seed=config["figure4"]["random_pairs_seed"],
+            output_path=str(output.figure),
+        )

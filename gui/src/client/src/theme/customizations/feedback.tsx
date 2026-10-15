@@ -26,6 +26,10 @@ export const feedbackCustomizations: Components<Theme> = {
           borderRadius: "10px",
           border: "1px solid",
           borderColor: (theme.vars || theme).palette.divider,
+          backgroundImage: "none", // kill MUI's elevation overlay gradient
+          ...theme.applyStyles("dark", {
+            backgroundColor: (theme.vars || theme).palette.background.paper,
+          }),
         },
       }),
     },

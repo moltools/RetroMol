@@ -6,9 +6,10 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import ExploreIcon from "@mui/icons-material/Explore";
-import BarChartIcon from "@mui/icons-material/BarChart";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import RuleIcon from "@mui/icons-material/Rule";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const mainListItems = [
@@ -28,9 +29,14 @@ const mainListItems = [
     to: `/dashboard/discovery`
   },
   {
-    text: "Enrichment",
-    icon: <BarChartIcon />,
-    to: `/dashboard/enrichment`
+    text: "Generate",
+    icon: <AutoFixHighIcon />,
+    to: `/dashboard/generate`
+  },
+  {
+    text: "Rules",
+    icon: <RuleIcon />,
+    to: `/dashboard/rules`
   },
 ]
 
