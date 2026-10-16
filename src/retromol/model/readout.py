@@ -5,9 +5,6 @@ from typing import Callable, Literal, TypeVar
 
 from retromol.model.reaction_graph import MolNode, ReactionGraph
 from retromol.model.assembly_graph import AssemblyGraph
-from retromol.model.rules import MatchingRule
-from retromol.chem.mol import encode_mol
-from retromol.chem.tagging import get_tags_mol
 from retromol_fingerprint.fingerprint import TOKEN_LINK
 
 
@@ -20,8 +17,8 @@ def merge_named_paths(paths: list[list[T]], key: Callable[[T], str], link_item: 
     """
     Merge candidate primary sequence paths into a single sequence, joined by
     `link_item`, so a compound/BGC with more than one disconnected path (e.g. a
-    branched/cyclic assembly, or a sugar attached via a glycosidic bond that
-    AssemblyGraph never treats as a "connection") still gets exactly one primary
+    branched/cyclic assembly, or a separately represented tailoring moiety)
+    still gets exactly one primary
     sequence to store/query/align, instead of one entry per path.
 
     Longer paths sort first; paths of equal length are ordered lexicographically
@@ -74,11 +71,27 @@ class LinearReadout:
     A linear readout representation of a RetroMol parsing result.
 
     :cvar assembly_graph: AssemblyGraph representing the assembly of monomers.
-    :cvar paths: list of paths (each path is a list of MolNodes) extracted from the assembly graph, representing linear sequences of monomers.
+    :cvar paths: Disjoint paths of identified MolNodes. Unresolved regions break
+        paths and remain only in the source assembly graph.
     """
 
     assembly_graph: AssemblyGraph
     paths: list[list[MolNode]]
+
+    def __post_init__(self) -> None:
+        """Keep direct construction and older serialized paths identified-only."""
+        paths: list[list[MolNode]] = []
+        for path in self.paths:
+            part: list[MolNode] = []
+            for node in path:
+                if node.is_identified and node.identity is not None:
+                    part.append(node)
+                elif part:
+                    paths.append(part)
+                    part = []
+            if part:
+                paths.append(part)
+        object.__setattr__(self, "paths", paths)
 
     def __str__(self) -> str:
         """
@@ -104,7 +117,8 @@ class LinearReadout:
 
         :param root_enc: Encoding of the root molecule.
         :param reaction_graph: ReactionGraph object.
-        :param identified_only: Whether to only include identified monomers.
+        :param identified_only: Whether to only include identified monomers in
+            the source assembly graph. Readout paths are always identified-only.
         :param include_unassigned: Whether to include an unassigned node in the assembly graph.
         :return: LinearReadout instance.
         :raises ValueError: If root_enc not found in reaction graph nodes.
@@ -123,44 +137,81 @@ class LinearReadout:
 
     @classmethod
     def from_assembly_graph(cls, assembly_graph: AssemblyGraph) -> "LinearReadout":
-        """Extract sequences from a particular assembly projection on demand."""
-        a = assembly_graph
-        # Break bonds between monomers that are not backbone-related bonds (i.e., keep C-C and C-N bonds only)
-        f = a.filtered_by_root_bond_elements(allow_pairs={frozenset(("C", "C")), frozenset(("C", "N"))}, drop_isolated=False)
+        """Partition a sampled assembly into deterministic, disjoint paths.
 
-        # Get individual connected components from the assembly graph and extract longest paths (allow to visit each edge only once)
-        hs = f.connected_components()
+        Matching-rule ``sequence_role`` separates tailoring units from other
+        units. Connections between units with the same explicit role survive
+        regardless of bond elements (e.g. a connected sugar chain). Otherwise,
+        the C-C/C-N heuristic applies to non-tailoring units.
+
+        Repeatedly extract a long simple path and process its remaining branches
+        so every identified MolNode occurs exactly once. Unidentified and
+        unassigned nodes are excluded before traversal, breaking paths at gaps.
+        The input graph is unchanged; use its coverage to measure completeness.
+        Rings are opened deterministically, without assigning a biological start
+        or direction; cyclic path selection is heuristic.
+        """
+        g = assembly_graph.g.copy()
+        if g.has_node(assembly_graph.unassigned):
+            g.remove_node(assembly_graph.unassigned)
+
+        roles = {}
+        for node_id, data in list(g.nodes(data=True)):
+            node = data.get("molnode")
+            if node is None:
+                raise ValueError(f"AssemblyGraph node {node_id!r} has no 'molnode' attached!")
+            if not node.is_identified or node.identity is None:
+                g.remove_node(node_id)
+                continue
+            roles[node_id] = node.identity.matched_rule.sequence_role
+
+        backbone_pairs = {frozenset(("C", "C")), frozenset(("C", "N"))}
+        for u, v, data in list(g.edges(data=True)):
+            if roles[u] is not None and roles[u] == roles[v]:
+                continue
+            if "tailoring" in (roles[u], roles[v]) or not any(
+                frozenset((bond.a1_symbol, bond.a2_symbol)) in backbone_pairs
+                for bond in data["bonds"]
+            ):
+                g.remove_edge(u, v)
 
         paths: list[list[MolNode]] = []
-        for h in hs:
+        pending = AssemblyGraph(g, unassigned=assembly_graph.unassigned).connected_components()
+        while pending:
+            h = pending.pop()
             path = h.longest_path()
             paths.append(path)
+            # Graph node IDs need not be identical to MolNode.enc.
+            used = {id(node) for node in path}
+            h.g.remove_nodes_from([n for n, data in h.g.nodes(data=True) if id(data["molnode"]) in used])
+            pending.extend(h.connected_components())
 
-        return cls(assembly_graph=a, paths=paths)
+        paths.sort(key=lambda path: (-len(path), [_node_name(node) for node in path], [node.enc for node in path]))
+        return cls(assembly_graph=assembly_graph, paths=paths)
+
+    def primary_sequence_parts(self) -> list[list[str]]:
+        """Named backbone/tailoring paths, longest first with lexical tie-breaks.
+
+        Each identified assembly monomer occurs once, including repeated
+        identities. Unresolved and unassigned regions are omitted; assembly
+        coverage measures completeness. Sublists do not encode attachment
+        points, omitted crosslinks, or ring closures; retain ``assembly_graph``
+        when those are needed. Untagged paths are not biological role labels.
+        """
+        return sorted(
+            [[_node_name(node) for node in path] for path in self.paths],
+            key=lambda path: (-len(path), path),
+        )
 
     def primary_sequence(self) -> list[str]:
         """
-        The single primary sequence for this readout: every path in `self.paths`
-        -- including single-node ones, e.g. a lone tailoring event like
-        glycosylation or methylation that AssemblyGraph never connects to the
-        main chain (it only keeps C-C/C-N bonds as "connections", so e.g. a sugar
-        attached via a glycosidic C-O-C linkage always ends up disconnected) --
-        merged into one sequence via `merge_named_paths` (longest first, ties
-        broken lexicographically, joined by TOKEN_LINK). Nothing found in the
-        assembly graph is dropped; a caller that wants just one biosynthetic
-        chain, without tailoring events mixed in, can split the result back
-        apart on TOKEN_LINK.
-
-        An unidentified node is named "X", the convention used everywhere else in
-        RetroMol.
+        Compatibility flat view of ``primary_sequence_parts()``, joined by
+        TOKEN_LINK. Use the nested view to keep separate backbone, branch and
+        tailoring paths. Only identified monomers are included.
 
         :return: the single merged primary sequence
         """
-        named_paths = [
-            [node.identity.matched_rule.name if node.is_identified else "X" for node in path]
-            for path in self.paths
-        ]
-        return merge_named_paths(named_paths, key=lambda n: n, link_item=TOKEN_LINK)
+        return merge_named_paths(self.primary_sequence_parts(), key=lambda n: n, link_item=TOKEN_LINK)
 
     def to_dict(self) -> dict:
         """
@@ -184,3 +235,22 @@ class LinearReadout:
         assembly_graph = AssemblyGraph.from_dict(data["assembly_graph"])
         paths = [[MolNode.from_dict(node_data) for node_data in path_data] for path_data in data["paths"]]
         return cls(assembly_graph=assembly_graph, paths=paths)
+
+
+def _node_name(node: MolNode) -> str:
+    return node.identity.name
+
+
+def assembly_to_primary_sequence(assembly_graph: AssemblyGraph) -> list[list[str]]:
+    """Return linear parts of one assembly, including backbone and tailoring.
+
+    Uses matching-rule sequence roles with a C-C/C-N fallback and includes every
+    identified monomer once. Unresolved and unassigned regions are excluded;
+    use ``result.calculate_coverage(assembly_graph)`` for completeness. Parts are ordered
+    longest first, then lexically. Ordering is structural, not biosynthetic;
+    branch attachments and ring closures remain in the input assembly graph.
+
+    For the corresponding MolNodes (including atom tags and identities), use
+    ``LinearReadout.from_assembly_graph(assembly_graph).paths``.
+    """
+    return LinearReadout.from_assembly_graph(assembly_graph).primary_sequence_parts()

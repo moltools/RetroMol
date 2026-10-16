@@ -5,12 +5,14 @@
   display_smiles: "O=C(CC([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A1
   smiles: "O=C(O)C=C(O)SO"
   display_smiles: "O=C(CC([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A1-alpha-oxo
   smiles: O=C(O)C(=O)C(=O)SO
@@ -19,6 +21,7 @@
   - PK_A
   - PK
   preserve_across_routes: false
+  sequence_role: backbone
   props:
     reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC3624582/
     note: Formal alpha-oxidized PK unit; retains the mature carbonyl state, not a distinct biosynthetic extender substrate.
@@ -29,6 +32,7 @@
   stereochemistry: true
   pseudonyms: ["A2", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A2^S
   smiles: "C[C@H](C(SO)=O)C(O)=O"
@@ -36,24 +40,28 @@
   stereochemistry: true
   pseudonyms: ["A2", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A2
   smiles: "CC(C(=O)O)C(=O)SO"
   display_smiles: "O=C(C(C)C([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A2
   smiles: "CC(C(=O)O)=C(O)SO"
   display_smiles: "O=C(C(C)C([1*])=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A3
   smiles: "CC(C)(C(=O)O)C(=O)SO"
   display_smiles: "CC(C)(C(=O)[1*])C(=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A4^R
   smiles: "CC[C@@H](C(SO)=O)C(O)=O"
@@ -61,6 +69,7 @@
   stereochemistry: true
   pseudonyms: ["A4", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A4^S
   smiles: "CC[C@H](C(SO)=O)C(O)=O"
@@ -68,12 +77,14 @@
   stereochemistry: true
   pseudonyms: ["A4", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A4
   smiles: "CCC(C(=O)O)C(=O)SO"
   display_smiles: "CCC(C(=O)[1*])C(=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A5^R
   smiles: "O=C([C@H](C(SO)=O)O)O"
@@ -81,6 +92,7 @@
   stereochemistry: true
   pseudonyms: ["A5", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A5^S
   smiles: "O=C([C@@H](C(SO)=O)O)O"
@@ -88,18 +100,21 @@
   stereochemistry: true
   pseudonyms: ["A5", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A5
   smiles: "O=C(O)C(O)C(=O)SO"
   display_smiles: "O=C(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A5
   smiles: "O=C(C(O)=C(SO)O)O"
   display_smiles: "O=C(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A6^R
   smiles: "C[C@@](C(O)=O)(C(SO)=O)O"
@@ -107,6 +122,7 @@
   stereochemistry: true
   pseudonyms: ["A6", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A6^S
   smiles: "C[C@](C(O)=O)(C(SO)=O)O"
@@ -114,12 +130,14 @@
   stereochemistry: true
   pseudonyms: ["A6", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A6
   smiles: "CC(O)(C(=O)O)C(=O)SO"
   display_smiles: "CC(C([1*])=O)(C(S[2*])=O)O"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A7^R
   smiles: "O=C([C@H](C(SO)=O)CO)O"
@@ -127,6 +145,7 @@
   stereochemistry: true
   pseudonyms: ["A7", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A7^S
   smiles: "O=C([C@@H](C(SO)=O)CO)O"
@@ -134,30 +153,35 @@
   stereochemistry: true
   pseudonyms: ["A7", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A7
   smiles: "O=C(O)C(CO)C(=O)SO"
   display_smiles: "O=C(C(C(S[2*])=O)CO)[1*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A7
   smiles: "O=C(O)C(CO)=C(O)SO"
   display_smiles: "O=C(C(C(S[2*])=O)CO)[1*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A8
   smiles: "C=C(CC(=O)O)SO"
   display_smiles: "C=C(CC(=O)S[2*])[1*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A8
   smiles: "CC(=CC(=O)O)SO"
   display_smiles: "C=C(CC(=O)S[2*])[1*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A9^R
   smiles: "C=C([C@@H](C(O)=O)C)SO"
@@ -165,6 +189,7 @@
   stereochemistry: true
   pseudonyms: ["A9", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A9^S
   smiles: "C=C([C@H](C(O)=O)C)SO"
@@ -172,12 +197,14 @@
   stereochemistry: true
   pseudonyms: ["A9", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A9
   smiles: "C=C(SO)C(C)C(=O)O"
   display_smiles: "C=C(C(C(S[2*])=O)C)[1*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A10^R
   smiles: "C=C([C@@H](C(O)=O)O)SO"
@@ -185,6 +212,7 @@
   stereochemistry: true
   pseudonyms: ["A10", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A10^S
   smiles: "C=C([C@H](C(O)=O)O)SO"
@@ -192,18 +220,21 @@
   stereochemistry: true
   pseudonyms: ["A10", "PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A10
   smiles: "C=C(SO)C(O)C(=O)O"
   display_smiles: "C=C(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A11
   smiles: "C=C(SO)C(=O)C(=O)O"
   display_smiles: "C=C([1*])C(=O)C(=O)S[2*]"
   pseudonyms: ["PK_A", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R1
   smiles: "O=C(C[C@@H](SO)O)O"
@@ -211,6 +242,7 @@
   stereochemistry: true
   pseudonyms: ["B1", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S1
   smiles: "O=C(C[C@H](SO)O)O"
@@ -218,12 +250,14 @@
   stereochemistry: true
   pseudonyms: ["B1", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B1
   smiles: "O=C(O)CC(O)SO"
   display_smiles: "O=C(CC([1*])O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R2^R
   smiles: "C[C@@H]([C@@H](SO)O)C(O)=O"
@@ -231,6 +265,7 @@
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R2^S
   smiles: "C[C@H]([C@@H](SO)O)C(O)=O"
@@ -238,6 +273,7 @@
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R2
   smiles: "CC([C@@H](SO)O)C(O)=O"
@@ -245,6 +281,7 @@
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S2^R
   smiles: "C[C@@H]([C@H](SO)O)C(O)=O"
@@ -252,6 +289,7 @@
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S2^S
   smiles: "C[C@H]([C@H](SO)O)C(O)=O"
@@ -259,6 +297,7 @@
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S2
   smiles: "CC([C@H](SO)O)C(O)=O"
@@ -266,12 +305,14 @@
   stereochemistry: true
   pseudonyms: ["B2", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B2
   smiles: "CC(C(=O)O)C(O)SO"
   display_smiles: "CC(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B2-alpha-carboxy
   smiles: CC(C(=O)O)(C(=O)O)C(O)SO
@@ -285,6 +326,7 @@
   pseudonyms:
   - PK_B
   - PK
+  sequence_role: backbone
 
 - name: B2-alpha-hydroxymethyl
   smiles: CC(CO)(C(=O)O)C(O)SO
@@ -298,6 +340,7 @@
   pseudonyms:
   - PK_B
   - PK
+  sequence_role: backbone
 
 - name: B^R3
   smiles: "CC(C(O)=O)([C@@H](SO)O)C"
@@ -305,6 +348,7 @@
   stereochemistry: true
   pseudonyms: ["B3", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S3
   smiles: "CC(C(O)=O)([C@H](SO)O)C"
@@ -312,12 +356,14 @@
   stereochemistry: true
   pseudonyms: ["B3", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B3
   smiles: "CC(C)(C(=O)O)C(O)SO"
   display_smiles: "CC(C)(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R4^R
   smiles: "CC[C@@H]([C@@H](SO)O)C(O)=O"
@@ -325,6 +371,7 @@
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R4^S
   smiles: "CC[C@H]([C@@H](SO)O)C(O)=O"
@@ -332,6 +379,7 @@
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S4^R
   smiles: "CC[C@@H]([C@H](SO)O)C(O)=O"
@@ -339,6 +387,7 @@
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S4^S
   smiles: "CC[C@H]([C@H](SO)O)C(O)=O"
@@ -346,12 +395,14 @@
   stereochemistry: true
   pseudonyms: ["B4", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B4
   smiles: "CCC(C(=O)O)C(O)SO"
   display_smiles: "CCC(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R5^R
   smiles: "O=C([C@H]([C@@H](SO)O)O)O"
@@ -359,6 +410,7 @@
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R5^S
   smiles: "O=C([C@@H]([C@@H](SO)O)O)O"
@@ -366,6 +418,7 @@
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S5^R
   smiles: "O=C([C@H]([C@H](SO)O)O)O"
@@ -373,6 +426,7 @@
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S5^S
   smiles: "O=C([C@@H]([C@H](SO)O)O)O"
@@ -380,12 +434,14 @@
   stereochemistry: true
   pseudonyms: ["B5", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B5
   smiles: "O=C(O)C(O)C(O)SO"
   display_smiles: "O=C(S[2*])C(O)C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R6^R
   smiles: "C[C@@](C(O)=O)([C@@H](SO)O)O"
@@ -393,6 +449,7 @@
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R6^S
   smiles: "C[C@](C(O)=O)([C@@H](SO)O)O"
@@ -400,6 +457,7 @@
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S6^R
   smiles: "C[C@@](C(O)=O)([C@H](SO)O)O"
@@ -407,6 +465,7 @@
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S6^S
   smiles: "C[C@](C(O)=O)([C@H](SO)O)O"
@@ -414,12 +473,14 @@
   stereochemistry: true
   pseudonyms: ["B6", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B6
   smiles: "CC(O)(C(=O)O)C(O)SO"
   display_smiles: "CC(O)(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R7^R
   smiles: "O=C([C@H]([C@@H](SO)O)CO)O"
@@ -427,6 +488,7 @@
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R7^S
   smiles: "O=C([C@@H]([C@@H](SO)O)CO)O"
@@ -434,6 +496,7 @@
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S7^R
   smiles: "O=C([C@H]([C@H](SO)O)CO)O"
@@ -441,6 +504,7 @@
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S7^S
   smiles: "O=C([C@@H]([C@H](SO)O)CO)O"
@@ -448,12 +512,14 @@
   stereochemistry: true
   pseudonyms: ["B7", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B7
   smiles: "O=C(O)C(CO)C(O)SO"
   display_smiles: "O=C(S[2*])C(CO)C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R8
   smiles: "C[C@](CC(O)=O)(SO)O"
@@ -461,6 +527,7 @@
   stereochemistry: true
   pseudonyms: ["B8", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S8
   smiles: "C[C@@](CC(O)=O)(SO)O"
@@ -468,12 +535,14 @@
   stereochemistry: true
   pseudonyms: ["B8", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B8
   smiles: "CC(O)(CC(=O)O)SO"
   display_smiles: "CC(O)(CC(=O)S[2*])[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R9^R
   smiles: "C[C@@H]([C@](O)(SO)C)C(O)=O"
@@ -481,6 +550,7 @@
   stereochemistry: true
   pseudonyms: ["B9", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R9^S
   smiles: "C[C@H]([C@](O)(SO)C)C(O)=O"
@@ -488,6 +558,7 @@
   stereochemistry: true
   pseudonyms: ["B9", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S9^R
   smiles: "C[C@@H]([C@@](O)(SO)C)C(O)=O"
@@ -495,6 +566,7 @@
   stereochemistry: true
   pseudonyms: ["B9", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S9^S
   smiles: "C[C@H]([C@@](O)(SO)C)C(O)=O"
@@ -502,12 +574,14 @@
   stereochemistry: true
   pseudonyms: ["B9", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B9
   smiles: "CC(C(=O)O)C(C)(O)SO"
   display_smiles: "CC(C(=O)S[2*])C(C)(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R10^R
   smiles: "C[C@@](SO)([C@@H](C(O)=O)O)O"
@@ -515,6 +589,7 @@
   stereochemistry: true
   pseudonyms: ["B10", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R10^S
   smiles: "C[C@@](SO)([C@H](C(O)=O)O)O"
@@ -522,6 +597,7 @@
   stereochemistry: true
   pseudonyms: ["B10", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S10^R
   smiles: "C[C@](SO)([C@@H](C(O)=O)O)O"
@@ -529,6 +605,7 @@
   stereochemistry: true
   pseudonyms: ["B10", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S10^S
   smiles: "C[C@](SO)([C@H](C(O)=O)O)O"
@@ -536,18 +613,21 @@
   stereochemistry: true
   pseudonyms: ["B10", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B10
   smiles: "CC(O)(SO)C(O)C(=O)O"
   display_smiles: "CC(O)([1*])C(O)C(=O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B11
   smiles: "O=C(O)C(=O)C(O)SO"
   display_smiles: "O=C(S[2*])C(=O)C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R12^R
   smiles: "N[C@@H]([C@@H](SO)O)C(O)=O"
@@ -555,6 +635,7 @@
   stereochemistry: true
   pseudonyms: ["B12", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R12^S
   smiles: "N[C@H]([C@@H](SO)O)C(O)=O"
@@ -562,6 +643,7 @@
   stereochemistry: true
   pseudonyms: ["B12", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S12^R
   smiles: "N[C@@H]([C@H](SO)O)C(O)=O"
@@ -569,6 +651,7 @@
   stereochemistry: true
   pseudonyms: ["B12", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S12^S
   smiles: "N[C@H]([C@H](SO)O)C(O)=O"
@@ -576,12 +659,14 @@
   stereochemistry: true
   pseudonyms: ["B12", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B12
   smiles: "NC(C(=O)O)C(O)SO"
   display_smiles: "NC(C(=O)S[2*])C(O)[1*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^R13
   smiles: "OS[C@H](C(C(O)=O)C(O)=O)O"
@@ -589,6 +674,7 @@
   stereochemistry: true
   pseudonyms: ["B13", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B^S13
   smiles: "OS[C@@H](C(C(O)=O)C(O)=O)O"
@@ -596,12 +682,14 @@
   stereochemistry: true
   pseudonyms: ["B13", "PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: B13
   smiles: "OSC(O)C(C(=O)O)C(=O)O"
   display_smiles: "[1*]C(O)C(C(=O)O)C(=O)S[2*]"
   pseudonyms: ["PK_B", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C^E1
   smiles: 'O=C(/C=C/SO)O'
@@ -609,6 +697,7 @@
   stereochemistry: true
   pseudonyms: ["PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C^Z1
   smiles: 'O=C(/C=C\SO)O'
@@ -616,12 +705,14 @@
   stereochemistry: true
   pseudonyms: ["PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C1
   smiles: "O=C(O)C=CSO"
   display_smiles: "O=C(S[2*])C=C[1*]"
   pseudonyms: ["PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C^E2
   smiles: 'C/C(C(O)=O)=C\SO'
@@ -629,6 +720,7 @@
   stereochemistry: true
   pseudonyms: ["C2", "PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C^Z2
   smiles: 'C/C(C(O)=O)=C/SO'
@@ -636,12 +728,14 @@
   stereochemistry: true
   pseudonyms: ["C2", "PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C2
   smiles: "CC(=CSO)C(=O)O"
   display_smiles: "CC(=C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C^E4
   smiles: 'CC/C(C(O)=O)=C\SO'
@@ -649,6 +743,7 @@
   stereochemistry: true
   pseudonyms: ["C4", "PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C^Z4
   smiles: 'CC/C(C(O)=O)=C/SO'
@@ -656,6 +751,7 @@
   stereochemistry: true
   pseudonyms: ["C4", "PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C4
   smiles: "CCC(=CSO)C(=O)O"
@@ -669,6 +765,7 @@
   stereochemistry: true
   pseudonyms: ["C7", "PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C^Z7
   smiles: 'O=C(/C(CO)=C\SO)O'
@@ -676,24 +773,28 @@
   stereochemistry: true
   pseudonyms: ["C7", "PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C7
   smiles: "O=C(O)C(=CSO)CO"
   display_smiles: "O=C(S[2*])C(=C[1*])CO"
   pseudonyms: ["PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: C13
   smiles: "O=C(C(C(O)=O)=CSO)O"
   display_smiles: "O=C(C(C(O)=O)=C[1*])S[2*]"
   pseudonyms: ["PK_C", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D1
   smiles: "O=C(O)CCSO"
   display_smiles: "O=C(S[2*])CC[1*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D2^R
   smiles: "C[C@H](C(O)=O)CSO"
@@ -701,6 +802,7 @@
   stereochemistry: true
   pseudonyms: ["D2", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D2^S
   smiles: "C[C@@H](C(O)=O)CSO"
@@ -708,18 +810,21 @@
   stereochemistry: true
   pseudonyms: ["D2", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D2
   smiles: "CC(CSO)C(=O)O"
   display_smiles: "CC(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D3
   smiles: "CC(C)(CSO)C(=O)O"
   display_smiles: "CC(C)(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D4^R
   smiles: "CC[C@H](C(O)=O)CSO"
@@ -727,6 +832,7 @@
   stereochemistry: true
   pseudonyms: ["D4", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D4^S
   smiles: "CC[C@@H](C(O)=O)CSO"
@@ -734,12 +840,14 @@
   stereochemistry: true
   pseudonyms: ["D4", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D4
   smiles: "CCC(CSO)C(=O)O"
   display_smiles: "CCC(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D5^R
   smiles: "O=C([C@H](CSO)O)O"
@@ -747,6 +855,7 @@
   pseudonyms: ["D5", "PK_D", "PK"]
   stereochemistry: true
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D5^S
   smiles: "O=C([C@@H](CSO)O)O"
@@ -754,12 +863,14 @@
   stereochemistry: true
   pseudonyms: ["D5", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D5
   smiles: "O=C(O)C(O)CSO"
   display_smiles: "O=C(S[2*])C(O)C[1*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D6^R
   smiles: "C[C@](CSO)(C(O)=O)O"
@@ -767,6 +878,7 @@
   stereochemistry: true
   pseudonyms: ["D6", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D6^S
   smiles: "C[C@@](CSO)(C(O)=O)O"
@@ -774,12 +886,14 @@
   stereochemistry: true
   pseudonyms: ["D6", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D6
   smiles: "CC(O)(CSO)C(=O)O"
   display_smiles: "CC(O)(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D7^R
   smiles: "O=C([C@H](CSO)CO)O"
@@ -787,6 +901,7 @@
   stereochemistry: true
   pseudonyms: ["D7", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D7^S
   smiles: "O=C([C@@H](CSO)CO)O"
@@ -794,12 +909,14 @@
   stereochemistry: true
   pseudonyms: ["D7", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D7
   smiles: "O=C(O)C(CO)CSO"
   display_smiles: "O=C(S[2*])C(CO)C[1*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D^R8
   smiles: "C[C@@H](SO)CC(O)=O"
@@ -807,6 +924,7 @@
   stereochemistry: true
   pseudonyms: ["D8", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D^S8
   smiles: "C[C@H](SO)CC(O)=O"
@@ -814,12 +932,14 @@
   stereochemistry: true
   pseudonyms: ["D8", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D8
   smiles: "CC(CC(=O)O)SO"
   display_smiles: "CC(CC(=O)S[2*])[1*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D^R10^R
   smiles: "C[C@H]([C@@H](C(O)=O)O)SO"
@@ -827,6 +947,7 @@
   stereochemistry: true
   pseudonyms: ["D10", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D^R10^S
   smiles: "C[C@H]([C@H](C(O)=O)O)SO"
@@ -834,6 +955,7 @@
   stereochemistry: true
   pseudonyms: ["D10", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D^S10^R
   smiles: "C[C@@H]([C@@H](C(O)=O)O)SO"
@@ -841,6 +963,7 @@
   stereochemistry: true
   pseudonyms: ["D10", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D^S10^S
   smiles: "C[C@@H]([C@H](C(O)=O)O)SO"
@@ -848,12 +971,14 @@
   stereochemistry: true
   pseudonyms: ["D10", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D10
   smiles: "CC(SO)C(O)C(=O)O"
   display_smiles: "CC([1*])C(O)C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D11
   smiles: "O=C(O)C(=O)CSO"
@@ -974,42 +1099,53 @@
   preserve_across_routes: false
 
 - name: methylation
+  sequence_role: tailoring
   smiles: "C"
 
 - name: oxidation
+  sequence_role: tailoring
   smiles: "O"
 
 - name: amination
+  sequence_role: tailoring
   smiles: "N"
 
 - name: cyanide
+  sequence_role: tailoring
   smiles: "C#N"
 
 - name: boronation
+  sequence_role: tailoring
   smiles: "B"
 
 - name: phosphonylation
+  sequence_role: tailoring
   smiles: "OP(O)(O)O"
 
 - name: phosphate
+  sequence_role: tailoring
   smiles: "O=P(O)(O)O"
   terminal: true
   props:
     note: "Ordinary phosphate, distinct from the existing OP(O)(O)O phosphonylation entry."
 
 - name: fluorination
+  sequence_role: tailoring
   smiles: "F"
   pseudonyms: ["halogenation"]
 
 - name: chlorination
+  sequence_role: tailoring
   smiles: "Cl"
   pseudonyms: ["halogenation"]
 
 - name: bromination
+  sequence_role: tailoring
   smiles: "Br"
   pseudonyms: ["halogenation"]
 
 - name: iodination
+  sequence_role: tailoring
   smiles: "I"
   pseudonyms: ["halogenation"]
 
@@ -1041,96 +1177,125 @@
   smiles: "CCC(O)=O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1CC(N)C(O)C(O)O1"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1OC(O)CC(N)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1OC(O)CC(C)(O)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1CC(O)C(O)C(O)O1"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "NC1C(O)OC(O)C(O)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "OC1COC(O)C(O)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "OCC1OC(O)C(O)C(O)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1OC(O)CCC1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1OC(O)CC(O)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1OC(O)C(O)C(O)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1OC(O)C(O)C(N)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC(C1(C(C(C(OC1C)O)O)O)O)O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC(C1(O)C(O)C(O)C(O)OC1C)=O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "NC1C(C(C(OC1O)CO)O)O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "NC1COC(CC1O)O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "OC1C(O)C(N)C(C)OC1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1OC(CC(C1S)O)O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "CC1(N)CC(O)OC(C)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "NC1C(O)C(O)C(O)C(N)C1"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "O=CC1(O)C(CO)OC(O)C1O"
 
 # Tautomers
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "NC(N)=NC1C(O)C(O)C(O)C(N=C(N)N)C1O"
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "N=C(N)NC1C(O)C(NC(=N)N)C(O)C(O)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "OCC1OC(O)C(O)C1O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "NCC1OC(C(C(C1O)O)N)O"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "OC1CC(C)(OC)C(O)C(C)O1"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: "OC1C(O)C(N(C)C)CC(C)O1"
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: CC1OC(O)CC(C)([N+](=O)[O-])C1N
   props:
     reference: https://pubmed.ncbi.nlm.nih.gov/17985890/
     note: Kijanose-derived nitrosugar after removing the N-methoxycarbonyl tailoring group.
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: CC1OC(O)CC(C)([N+](=O)[O-])C1O
   props:
     reference: https://doi.org/10.1007/s00203-007-0337-3
     note: O-demethylated rubranitrose/evernitrose constitution; stereochemistry is not specified.
 
 - name: glycosylation
+  sequence_role: tailoring
   smiles: CC1OC(O)CCC1=O
   props:
     reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC1851095/

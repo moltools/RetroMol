@@ -43,6 +43,19 @@ def test_coverage_ignores_identified_intermediates_and_unknown_leaves() -> None:
     assert Result.from_dict(result.to_dict()).calculate_coverage() == pytest.approx(0.5)
 
 
+@pytest.mark.parametrize('known, expected_coverage', [(False, 0.5), (True, 1.0)])
+def test_identified_only_readout_leaves_assembly_coverage_unchanged(known, expected_coverage):
+    result = make_result('CCOC', [('[1CH3][2CH3]', True), ('[3OH][4CH3]', known)])
+    assembly = result.assembly_graph
+    before = assembly.to_dict()
+    readout = result.linear_readout
+    assert sum(map(len, readout.paths)) == 1 + int(known)
+    assert all(node.is_identified for path in readout.paths for node in path)
+    assert 'X' not in readout.primary_sequence()
+    assert assembly.to_dict() == before
+    assert result.calculate_coverage(assembly) == pytest.approx(expected_coverage)
+
+
 def test_coverage_counts_assembly_monomers_without_linear_paths(monkeypatch) -> None:
     result = make_result("CCOC", [("[1CH3][2CH3]", True), ("[3OH][4CH3]", True)])
 

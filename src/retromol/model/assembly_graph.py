@@ -297,12 +297,18 @@ class AssemblyGraph:
     
     def longest_path(self, keep_unassigned: bool = False, max_starts: int = 25) -> list[MolNode]:
         """
-        Find the longest path of monomer nodes in assembly graph.
+        Find a long simple path across all components, with stable tie-breaking.
+
+        Exact for trees; cyclic graphs use a bounded multi-start heuristic.
+        Orientation is deterministic for the same tagged graph, not an inferred
+        biosynthetic direction.
 
         :param keep_unassigned: Whether to keep the unassigned node in the graph (default: False)
         :param max_starts: Maximum number of starting nodes for greedy search (default: 25)
-        :return: List of MolNode instances representing the longest path
+        :return: List of MolNode instances representing the selected path
         """
+        if type(max_starts) is not int or max_starts < 1:
+            raise ValueError("max_starts must be a positive integer")
         g = self.g
         h = g.copy()
 
@@ -340,11 +346,20 @@ class AssemblyGraph:
             """
             return [node_to_molnode(n) for n in path_nodes]
 
+        def node_key(node_id: Any) -> tuple:
+            node = node_to_molnode(node_id)
+            name = node.identity.name if node.is_identified else "X"
+            return name, tuple(sorted(h.nodes[node_id].get("tags", set()))), str(node_id)
 
+        def path_key(path: list[Any]) -> tuple:
+            return -len(path), tuple(node_key(n) for n in path)
+
+        def oriented(path: list[Any]) -> list[Any]:
+            return min(path, list(reversed(path)), key=path_key)
+
+        best_path_nodes: list[Any] = []
         for comp_nodes in nx.connected_components(h):
             # Work per connected component; pick the longest result
-            best_path_nodes: list[Any] = []
-            
             c = h.subgraph(comp_nodes).copy()
             if c.number_of_nodes() == 0:
                 continue
@@ -353,15 +368,15 @@ class AssemblyGraph:
             is_tree = nx.is_connected(c) and (c.number_of_edges() == c.number_of_nodes() - 1)
             if is_tree:
                 # Diameter of a tree via two BFS
-                start = next(iter(c.nodes))
+                start = min(c.nodes, key=node_key)
                 dist1 = nx.single_source_shortest_path_length(c, start)
-                u = max(dist1, key=dist1.get)
+                u = min(dist1, key=lambda n: (-dist1[n], node_key(n)))
 
                 dist2 = nx.single_source_shortest_path_length(c, u)
-                v = max(dist2, key=dist2.get)
+                v = min(dist2, key=lambda n: (-dist2[n], node_key(n)))
 
-                path_uv = nx.shortest_path(c, u, v)
-                if len(path_uv) > len(best_path_nodes):
+                path_uv = oriented(nx.shortest_path(c, u, v))
+                if path_key(path_uv) < path_key(best_path_nodes):
                     best_path_nodes = path_uv
                 continue
 
@@ -378,7 +393,7 @@ class AssemblyGraph:
                 cur = start
 
                 while True:
-                    options = [nb for nb in c.neighbors(cur) if nb not in used]
+                    options = sorted((nb for nb in c.neighbors(cur) if nb not in used), key=node_key)
                     if not options:
                         break
 
@@ -411,24 +426,24 @@ class AssemblyGraph:
                 return path
 
             # Try low-degree starts first (often good for long simple paths)
-            nodes_sorted = sorted(c.nodes, key=lambda n: c.degree(n))
+            nodes_sorted = sorted(c.nodes, key=lambda n: (c.degree(n), node_key(n)))
             n_starts = min(max_starts, len(nodes_sorted))
             starts = nodes_sorted[:n_starts]
 
             best_comp_path: list[Any] = []
             for s in starts:
-                cand = greedy_walk(s)
-                if len(cand) > len(best_comp_path):
+                cand = oriented(greedy_walk(s))
+                if path_key(cand) < path_key(best_comp_path):
                     best_comp_path = cand
 
             # Try starting from the found endpoints (sometimes extends)
             if best_comp_path:
                 for endpoint in (best_comp_path[0], best_comp_path[-1]):
-                    cand = greedy_walk(endpoint)
-                    if len(cand) > len(best_comp_path):
+                    cand = oriented(greedy_walk(endpoint))
+                    if path_key(cand) < path_key(best_comp_path):
                         best_comp_path = cand
 
-            if len(best_comp_path) > len(best_path_nodes):
+            if path_key(best_comp_path) < path_key(best_path_nodes):
                 best_path_nodes = best_comp_path
 
         return to_molnodes(best_path_nodes)

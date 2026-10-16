@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from importlib.resources import files
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from rdkit.Chem.rdchem import Mol
@@ -31,6 +31,8 @@ from retromol.chem.masking import is_masked_preserved
 
 
 log = logging.getLogger(__name__)
+
+SequenceRole = Literal["backbone", "tailoring"]
 
 
 @dataclass(frozen=True)
@@ -412,6 +414,8 @@ class MatchingRule:
         may not be the clearest depiction of the motif on its own.
     :cvar preserve_across_routes: Whether a terminal match also protects its atom
         region from subdivision in alternative derivations. Defaults to True.
+    :cvar sequence_role: Optional role in a linear assembly readout. None uses
+        the bond-element heuristic; this setting does not affect parsing.
     """
 
     name: str
@@ -422,6 +426,7 @@ class MatchingRule:
     stereochemistry: bool = False
     display_smiles: str | None = None
     preserve_across_routes: bool = True
+    sequence_role: SequenceRole | None = None
 
     mol: Mol = field(init=False, repr=False)
 
@@ -433,6 +438,8 @@ class MatchingRule:
         object.__setattr__(self, "mol", mol)
         if type(self.preserve_across_routes) is not bool:
             raise ValueError(f"{self.name}: preserve_across_routes must be a boolean")
+        if self.sequence_role not in (None, "backbone", "tailoring"):
+            raise ValueError(f"{self.name}: sequence_role must be 'backbone', 'tailoring', or null")
 
     @property
     def id(self) -> str:
@@ -458,6 +465,7 @@ class MatchingRule:
             "stereochemistry": self.stereochemistry,
             "display_smiles": self.display_smiles,
             "preserve_across_routes": self.preserve_across_routes,
+            "sequence_role": self.sequence_role,
         }
 
     @classmethod
@@ -480,6 +488,7 @@ class MatchingRule:
             stereochemistry=data.get("stereochemistry", False),
             display_smiles=data.get("display_smiles"),
             preserve_across_routes=data.get("preserve_across_routes", legacy_preserve),
+            sequence_role=data.get("sequence_role"),
         )
         return matching_rule
 

@@ -8,7 +8,7 @@ This directory contains three YAML configuration files:
 | [mxn.yml](mxn.yml) | SMILES that identify whole fragments as monomers, modified units, or tailoring groups. |
 | [pmp.yml](pmp.yml) | Maps predictions from BGC annotations/models onto matching-rule names or pseudonyms. It does not control compound disconnections. |
 
-Settings that affect parsing belong at the top level of each rule. `props` is for descriptive metadata such as references, notes, and example structures.
+Settings that affect parsing or sequence readout belong at the top level of each rule. `props` is for descriptive metadata such as references, notes, and example structures.
 
 ## How compound parsing uses the rules
 
@@ -84,6 +84,7 @@ This file is also a YAML list.
 | `stereochemistry` | Boolean; `false` | Marks a stereo-specific rule. These rules are prioritized when global stereochemical matching is enabled and skipped when it is disabled. |
 | `preserve_across_routes` | Boolean; `true` | For terminal matches, also protect the original atom region against subdivision through alternative routes. See below. |
 | `display_smiles` | String or `null`; `null` | Optional alternative structure for depiction. It does not replace `smiles` during matching or change coverage. |
+| `sequence_role` | `backbone`, `tailoring`, or `null`; `null` | Role of this monomer in linear assembly readouts. It does not change matching, expansion, terminal protection, or coverage. See below. |
 | `props` | Mapping; `{}` | Descriptive metadata, such as a reference or an explanation of a modified residue. |
 
 For example:
@@ -99,6 +100,44 @@ For example:
   props:
     note: Formal capped beta-keto PK unit.
 ```
+
+### Backbone and tailoring roles
+
+Set `sequence_role` on a monomer matching rule when its role in the sequence view
+is known:
+
+```yaml
+- name: methylation
+  smiles: C
+  sequence_role: tailoring
+```
+
+`tailoring` means a separately represented modification that should be read
+outside the backbone path, even if attached through C–C or C–N. Connected tailoring
+units form their own paths, including multi-unit moieties. A modification already
+contained in a matched monomer, such as N-methylalanine, stays part of that monomer;
+its name alone does not make the whole unit tailoring. This is a representation
+policy, not evidence that a reaction happened after backbone synthesis.
+
+Connections between two explicit `backbone` units are also retained regardless of
+bond elements. Where either non-tailoring endpoint has no role, the readout falls
+back to C–C/C–N connections. A `tailoring` endpoint always separates from an untagged
+or `backbone` endpoint. The defaults mark the existing modification identities as
+tailoring and leave other units untagged; no role is inferred from size or degree.
+Role choices can depend on the intended compound class, so use custom matching
+rules where a motif plays a different role.
+
+Roles are saved with matching rules in result JSON. Older results without the
+field remain readable and use the fallback; reparse with annotated rules to
+apply the new defaults to those compounds.
+
+`assembly_to_primary_sequence(assembly)` returns the resulting paths as
+`list[list[str]]`. It retains branches in additional paths and does not label an
+unannotated leftover branch as tailoring. Each identified monomer occurs once;
+unresolved fragments and the synthetic unassigned node are omitted. Unresolved
+regions break paths. Assembly coverage measures how much of the compound these
+named units represent: 100% means all submitted heavy atoms have a monomer
+identity. See the [Python example](../../../README.md#linear-sequences-from-sampled-assemblies).
 
 ### `terminal` versus `preserve_across_routes`
 
