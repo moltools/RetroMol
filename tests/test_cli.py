@@ -1,4 +1,4 @@
-"""Single-mode drawing limits use distinct, reproducible assembly projections."""
+"""Single-mode drawings and sequence exports use the same assembly projections."""
 
 import json
 from pathlib import Path
@@ -7,6 +7,7 @@ import pytest
 
 from retromol.model.assembly_graph import AssemblyGraph
 from retromol.model.assembly_sampling import AssemblyLimitError, AssemblySpace
+from retromol.model.readout import assembly_to_primary_sequence
 from retromol.model.result import Result
 from retromol.visualization.assembly_layout import MoleculeLayout
 from retromol_cli import cli as cli_module
@@ -48,6 +49,8 @@ def single_run(monkeypatch, tmp_path):
         assert 'linear_readout' not in payload
         assert 'assembly_graph' not in payload
         assert len(visualized) == 1
+        sequences = json.loads((output / 'assembly_sequences.json').read_text())
+        assert [entry['assembly_graph'] for entry in sequences] == [name for name, _ in drawn]
         return Result.from_dict(payload), list(drawn)
 
     return run
@@ -56,6 +59,31 @@ def single_run(monkeypatch, tmp_path):
 def test_single_default_keeps_default_assembly_filename_and_selection(single_run):
     result, drawn = single_run()
     assert drawn == [('assembly_graph.png', tuple(sorted(result.assembly_graph.monomer_ids())))]
+
+
+@pytest.mark.parametrize('maximum', [1, 3])
+def test_single_exports_sequence_and_coverage_for_each_drawn_assembly(single_run, tmp_path, maximum):
+    result, drawn = single_run('--max-assembly-graphs', str(maximum))
+    entries = json.loads((tmp_path / 'output' / 'assembly_sequences.json').read_text())
+    space = result.assembly_space()
+    for entry, (filename, nodes) in zip(entries, drawn):
+        assembly = space.build(frozenset(nodes))
+        assert entry == {
+            'assembly_graph': filename,
+            'coverage': result.calculate_coverage(assembly),
+            'primary_sequence': assembly_to_primary_sequence(assembly),
+        }
+    # These sampled resolutions have different monomer identities, so exporting
+    # the default readout repeatedly cannot satisfy the per-drawing contract.
+    assert len({json.dumps(entry['primary_sequence']) for entry in entries}) == maximum
+
+
+@pytest.mark.parametrize('maximum', [0, 1])
+def test_single_rerun_replaces_sequence_export(single_run, tmp_path, maximum):
+    single_run('--max-assembly-graphs', '3')
+    single_run('--max-assembly-graphs', str(maximum))
+    entries = json.loads((tmp_path / 'output' / 'assembly_sequences.json').read_text())
+    assert len(entries) == maximum
 
 
 @pytest.mark.parametrize('maximum,expected_count', [(0, 0), (1, 1), (3, 3), (10, 5)])
@@ -139,7 +167,7 @@ def test_daptomycin_samples_only_full_coverage_and_keeps_all_resolutions(single_
     assert any(n.identity.name == 'B12' for n in result.reaction_graph.identified_nodes.values())
 
 
-def test_single_default_also_uses_maximum_if_default_projection_is_lower(single_run, monkeypatch):
+def test_single_default_also_uses_maximum_if_default_projection_is_lower(single_run, monkeypatch, tmp_path):
     from .test_assembly_sampling import partially_identified_result
 
     parsed = partially_identified_result()
@@ -150,6 +178,11 @@ def test_single_default_also_uses_maximum_if_default_projection_is_lower(single_
     assert result.calculate_coverage(result.assembly_space().build(frozenset(drawn[0][1]))) == 1
     _, lower = single_run('--min-coverage', '.75')
     assert lower == [('assembly_graph.png', tuple(sorted(result.assembly_graph.monomer_ids())))]
+    entries = json.loads((tmp_path / 'output' / 'assembly_sequences.json').read_text())
+    assert entries[0]['coverage'] == .75
+    sequence = entries[0]['primary_sequence']
+    assert sum(map(len, sequence)) == 3
+    assert all(name not in ('X', 'unassigned') for part in sequence for name in part)
     _, all_views = single_run('--max-assembly-graphs', '10', '--min-coverage', '.75')
     assert len(all_views) == 4
 

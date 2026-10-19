@@ -985,24 +985,28 @@
   display_smiles: "O=C(S[2*])C(=O)C[1*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D11
   smiles: "O=C(O)C(O)=CSO"
   display_smiles: "O=C(S[2*])C(O)=C[1*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D14
   smiles: "CC(O)C(CSO)C(=O)O"
   display_smiles: "CC(O)C(C[1*])C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D15
   smiles: "C=C(C(O)=O)CSO"
   display_smiles: "C=C(C(S[2*])=O)C[1*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D16^R
   smiles: "OSC[C@@H](C(O)=O)CC=O"
@@ -1010,6 +1014,7 @@
   stereochemistry: true
   pseudonyms: ["D16", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D16^S
   smiles: "OSC[C@H](C(O)=O)CC=O"
@@ -1017,12 +1022,14 @@
   stereochemistry: true
   pseudonyms: ["D16", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D16
   smiles: "OSCC(CC=O)C(=O)O"
   display_smiles: "[1*]CC(CC=O)C(=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D^R17
   smiles: "O=C(O)C([C@H](SO)C)=O"
@@ -1030,6 +1037,7 @@
   stereochemistry: true
   pseudonyms: ["D17", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D^S17
   smiles: "O=C(O)C([C@@H](SO)C)=O"
@@ -1037,66 +1045,77 @@
   stereochemistry: true
   pseudonyms: ["D17", "PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D17
   smiles: "O=C(C(C(C)SO)=O)O"
   display_smiles: "O=C(C(C(C)[1*])=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: D17
   smiles: "O=C(C(O)=C(C)SO)O"
   display_smiles: "O=C(C(C(C)[1*])=O)S[2*]"
   pseudonyms: ["PK_D", "PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A
   smiles: "OSC(N)CC(=O)O"
   display_smiles: "[1*]C(N)CC(=O)S[2*]"
   pseudonyms: ["PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A
   smiles: "OSC(N)C(C)C(=O)O"
   display_smiles: "[1*]C(N)C(C)C(=O)S[2*]"
   pseudonyms: ["PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A
   smiles: "OSC(N)C(C)(C)C(=O)O"
   display_smiles: "[1*]C(N)C(C)(C)C(=O)S[2*]"
   pseudonyms: ["PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A
   smiles: "OSC(N)C(CC)C(=O)O"
   display_smiles: "[1*]C(N)C(CC)C(=O)S[2*]"
   pseudonyms: ["PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A
   smiles: "OSC(N)C(C)(O)C(=O)O"
   display_smiles: "[1*]C(N)C(C)(O)C(=O)S[2*]"
   pseudonyms: ["PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A
   smiles: "NC(C(O)=O)CSO"
   display_smiles: "NC(C(S[2*])=O)C[1*]"
   pseudonyms: ["PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A
   smiles: "NC(C(C(O)=O)O)SO"
   display_smiles: "NC(C(C(S[2*])=O)O)[1*]"
   pseudonyms: ["PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: A
   smiles: "O=C(C(C(C(O)=O)SO)O)O"
   display_smiles: "O=C(C(C(C(O)=O)[1*])O)S[2*]"
   pseudonyms: ["PK"]
   preserve_across_routes: false
+  sequence_role: backbone
 
 - name: methylation
   sequence_role: tailoring
@@ -1151,30 +1170,39 @@
 
 - name: methanol
   smiles: "CO"
+  sequence_role: tailoring
 
 - name: ethanol
   smiles: "CCO"
+  sequence_role: tailoring
 
 - name: propanol
   smiles: "CCCO"
+  sequence_role: tailoring
 
 - name: formaldehyde
   smiles: "C=O"
+  sequence_role: tailoring
 
 - name: carbamic acid
   smiles: "NC(=O)O"
+  sequence_role: tailoring
 
 - name: carbonic acid
   smiles: "OC(=O)O"
+  sequence_role: tailoring
 
 - name: acetic acid
   smiles: "CC(=O)O"
+  sequence_role: tailoring
 
 - name: glyceric acid
   smiles: "OC(CO)C(O)=O"
+  sequence_role: tailoring
 
 - name: propanoic acid
   smiles: "CCC(O)=O"
+  sequence_role: tailoring
 
 - name: glycosylation
   sequence_role: tailoring
@@ -1304,210 +1332,270 @@
 # Tautomers
 - name: arginine
   smiles: "NC(N)=NCCCC(N)C(=O)O"
+  sequence_role: backbone
 - name: arginine
   smiles: "N=C(N)NCCCC(N)C(=O)O"
+  sequence_role: backbone
 - name: arginine^L
   smiles: "NC(N)=NCC[C@H](N)C(=O)O"
   stereochemistry: true
   pseudonyms: ["arginine"]
+  sequence_role: backbone
 - name: arginine^D
   smiles: "NC(N)=NCC[C@@H](N)C(=O)O"
   stereochemistry: true
   pseudonyms: ["arginine"]
+  sequence_role: backbone
 - name: N-methylarginine
   smiles: "NC(N)=NCCCC(NC)C(=O)O"
+  sequence_role: backbone
 - name: N-methylarginine^L
   smiles: "NC(N)=NCC[C@H](NC)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylarginine"]
+  sequence_role: backbone
 - name: N-methylarginine^D
   smiles: "NC(N)=NCC[C@@H](NC)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylarginine"]
+  sequence_role: backbone
 
 - name: histidine
   smiles: "NC(Cc1cnc[nH]1)C(=O)O"
+  sequence_role: backbone
 - name: histidine^L
   smiles: "N[C@@H](Cc1cnc[nH]1)C(=O)O"
   stereochemistry: true
   pseudonyms: ["histidine"]
+  sequence_role: backbone
 - name: histidine^D
   smiles: "N[C@H](Cc1cnc[nH]1)C(=O)O"
   stereochemistry: true
   pseudonyms: ["histidine"]
+  sequence_role: backbone
 - name: N-methylhistidine
   smiles: "CNC(Cc1cnc[nH]1)C(=O)O"
+  sequence_role: backbone
 - name: N-methylhistidine^L
   smiles: "CN[C@@H](Cc1cnc[nH]1)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylhistidine"]
+  sequence_role: backbone
 - name: N-methylhistidine^D
   smiles: "CN[C@H](Cc1cnc[nH]1)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylhistidine"]
+  sequence_role: backbone
 
 - name: 3-hydroxy histdine
   smiles: "NC(C(c1[nH]cnc1)O)C(O)=O"
+  sequence_role: backbone
 
 - name: lysine
   smiles: "NCCCCC(N)C(=O)O"
+  sequence_role: backbone
 - name: lysine^L
   smiles: "NCCCC[C@H](N)C(=O)O"
   stereochemistry: true
   pseudonyms: ["lysine"]
+  sequence_role: backbone
 - name: lysine^D
   smiles: "NCCCC[C@@H](N)C(=O)O"
   stereochemistry: true
   pseudonyms: ["lysine"]
+  sequence_role: backbone
 - name: N-methyllysine
   smiles: "NCCCCC(NC)C(=O)O"
+  sequence_role: backbone
 - name: N-methyllysine^L
   smiles: "NCCCC[C@H](NC)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methyllysine"]
+  sequence_role: backbone
 - name: N-methyllysine^D
   smiles: "NCCCC[C@@H](NC)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methyllysine"]
+  sequence_role: backbone
 
 - name: aspartic acid
   smiles: "NC(CC(=O)O)C(=O)O"
+  sequence_role: backbone
 - name: aspartic acid^L
   smiles: "N[C@@H](CC(=O)O)C(=O)O"
   stereochemistry: true
   pseudonyms: ["aspartic acid"]
+  sequence_role: backbone
 - name: aspartic acid^D
   smiles: "N[C@H](CC(=O)O)C(=O)O"
   stereochemistry: true
   pseudonyms: ["aspartic acid"]
+  sequence_role: backbone
 - name: N-methylaspartic acid
   smiles: "CNC(CC(=O)O)C(=O)O"
+  sequence_role: backbone
 - name: N-methylaspartic acid^L
   smiles: "CN[C@@H](CC(=O)O)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylaspartic acid"]
+  sequence_role: backbone
 - name: N-methylaspartic acid^D
   smiles: "CN[C@H](CC(=O)O)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylaspartic acid"]
+  sequence_role: backbone
 
 - name: glutamic acid
   smiles: "NC(CCC(=O)O)C(=O)O"
+  sequence_role: backbone
 - name: glutamic acid^L
   smiles: "N[C@@H](CCC(=O)O)C(=O)O"
   stereochemistry: true
   pseudonyms: ["glutamic acid"]
+  sequence_role: backbone
 - name: glutamic acid^D
   smiles: "N[C@H](CCC(=O)O)C(=O)O"
   stereochemistry: true
   pseudonyms: ["glutamic acid"]
+  sequence_role: backbone
 - name: N-methylglutamic acid
   smiles: "CNC(CCC(=O)O)C(=O)O"
+  sequence_role: backbone
 - name: N-methylglutamic acid^L
   smiles: "CN[C@@H](CCC(=O)O)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylglutamic acid"]
+  sequence_role: backbone
 - name: N-methylglutamic acid^D
   smiles: "CN[C@H](CCC(=O)O)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylglutamic acid"]
+  sequence_role: backbone
 
 - name: serine
   smiles: "NC(CO)C(=O)O"
+  sequence_role: backbone
 - name: serine^L
   smiles: "N[C@@H](CO)C(=O)O"
   stereochemistry: true
   pseudonyms: ["serine"]
+  sequence_role: backbone
 - name: serine^D
   smiles: "N[C@H](CO)C(=O)O"
   stereochemistry: true
   pseudonyms: ["serine"]
+  sequence_role: backbone
 - name: N-methylserine
   smiles: "CNC(CO)C(=O)O"
+  sequence_role: backbone
 - name: N-methylserine^L
   smiles: "CN[C@@H](CO)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylserine"]
+  sequence_role: backbone
 - name: N-methylserine^D
   smiles: "CN[C@H](CO)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylserine"]
+  sequence_role: backbone
 
 - name: threonine
   smiles: "CC(O)C(N)C(=O)O"
+  sequence_role: backbone
 - name: N-methylthreonine
   smiles: "CNC(C(O)C)C(=O)O"
   terminal: true
+  sequence_role: backbone
 
 - name: asparagine
   smiles: "NC(=O)CC(N)C(=O)O"
+  sequence_role: backbone
 - name: asparagine^L
   smiles: "NC(=O)C[C@H](N)C(=O)O"
   stereochemistry: true
   pseudonyms: ["asparagine"]
+  sequence_role: backbone
 - name: asparagine^D
   smiles: "NC(=O)C[C@@H](N)C(=O)O"
   stereochemistry: true
   pseudonyms: ["asparagine"]
+  sequence_role: backbone
 - name: N-methylasparagine
   smiles: "NC(=O)CC(NC)C(=O)O"
+  sequence_role: backbone
 - name: N-methylasparagine^L
   smiles: "NC(=O)C[C@H](NC)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylasparagine"]
+  sequence_role: backbone
 - name: N-methylasparagine^D
   smiles: "NC(=O)C[C@@H](NC)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylasparagine"]
+  sequence_role: backbone
 
 - name: glutamine
   smiles: "NC(=O)CCC(N)C(=O)O"
+  sequence_role: backbone
 - name: glutamine^L
   smiles: "NC(=O)CC[C@H](N)C(=O)O"
   stereochemistry: true
   pseudonyms: ["glutamine"]
+  sequence_role: backbone
 - name: glutamine^D
   smiles: "NC(=O)CC[C@@H](N)C(=O)O"
   stereochemistry: true
   pseudonyms: ["glutamine"]
+  sequence_role: backbone
 - name: N-methylglutamine
   smiles: "NC(=O)CCC(NC)C(=O)O"
+  sequence_role: backbone
 - name: N-methylglutamine^L
   smiles: "NC(=O)CC[C@H](NC)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylglutamine"]
+  sequence_role: backbone
 - name: N-methylglutamine^D
   smiles: "NC(=O)CC[C@@H](NC)C(=O)O"
   stereochemistry: true
   pseudonyms: ["N-methylglutamine"]
+  sequence_role: backbone
 
 - name: glycine
   smiles: "NCC(=O)O"
+  sequence_role: backbone
 - name: sarcosine
   smiles: "CNCC(=O)O"
   pseudonyms: ["N-methylglycine"]
   terminal: true
+  sequence_role: backbone
 
 - name: proline
   smiles: "O=C(O)C1CCCN1"
+  sequence_role: backbone
 - name: proline^L
   smiles: "O=C(O)[C@@H]1CCCN1"
   stereochemistry: true
   pseudonyms: ["proline"]
+  sequence_role: backbone
 - name: proline^D
   smiles: "O=C(O)[C@H]1CCCN1"
   stereochemistry: true
   pseudonyms: ["proline"]
+  sequence_role: backbone
 - name: N-methylproline
   smiles: "O=C(O)C1CCCN1C"
+  sequence_role: backbone
 - name: N-methylproline^L
   smiles: "O=C(O)[C@@H]1CCCN1C"
   stereochemistry: true
   pseudonyms: ["N-methylproline"]
+  sequence_role: backbone
 - name: N-methylproline^D
   smiles: "O=C(O)[C@H]1CCCN1C"
   stereochemistry: true
   pseudonyms: ["N-methylproline"]
+  sequence_role: backbone
 
 - name: cysteine
   smiles: "NC(CS)C(=O)O"

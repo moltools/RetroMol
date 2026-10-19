@@ -16,6 +16,7 @@ from rdkit import RDLogger
 from retromol.utils.logging import setup_logging, add_file_handler
 from retromol.model.rules import RuleSet
 from retromol.model.result import Result
+from retromol.model.readout import assembly_to_primary_sequence
 from retromol.model.assembly_sampling import AssemblyConstraintError, AssemblyLimitError
 from retromol.model.submission import Submission
 from retromol.pipelines.parsing import run_retromol_with_timeout
@@ -256,10 +257,23 @@ def main() -> None:
                 os.remove(entry.path)
 
         drawing_layout = MoleculeLayout.from_mol(result2.root.mol) if assemblies else None
+        assembly_sequences = []
         for index, assembly in enumerate(assemblies, start=1):
             filename = "assembly_graph.png" if args.max_assembly_graphs == 1 else f"assembly_graph_{index:03d}.png"
             assembly.draw(show_unassigned=True, savepath=os.path.join(args.outdir, filename), layout=drawing_layout)
-            log.info("%s coverage: %.2f%%", filename, 100 * result2.calculate_coverage(assembly))
+            coverage = result2.calculate_coverage(assembly)
+            assembly_sequences.append({
+                "assembly_graph": filename,
+                "coverage": coverage,
+                "primary_sequence": assembly_to_primary_sequence(assembly),
+            })
+            log.info("%s coverage: %.2f%%", filename, 100 * coverage)
+
+        sequences_path = os.path.join(args.outdir, "assembly_sequences.json")
+        with open(sequences_path, "w", encoding="utf-8") as f:
+            json.dump(assembly_sequences, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        log.info("Saved %d assembly sequences to %s", len(assembly_sequences), sequences_path)
 
         # Visualize reaction graph
         visualize_reaction_graph(
