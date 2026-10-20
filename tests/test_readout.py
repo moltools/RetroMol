@@ -12,7 +12,10 @@ from retromol.chem.mol import smiles_to_mol
 from retromol.model.assembly_graph import AssemblyGraph, RootBondLink
 from retromol.model.identity import MolIdentity
 from retromol.model.reaction_graph import MolNode
-from retromol.model.readout import LinearReadout, _backbone_entry_tags, assembly_to_primary_sequence, split_named_paths
+from retromol.model.readout import (
+    LinearReadout, _backbone_entry_tags, _connected_backbone_order,
+    assembly_to_primary_sequence, split_named_paths,
+)
 from retromol.model.result import Result
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol.model.submission import Submission
@@ -282,13 +285,27 @@ def test_carboxyl_direction_does_not_reorient_tailoring_paths(ruleset):
     assert result.linear_readout.primary_sequence_parts() == [['alanine', 'glycine']]
 
 
-def test_converging_carboxyl_links_do_not_invent_a_direction(ruleset):
-    # Gly and Ala both donate to Lys (backbone N and side-chain N respectively).
-    # The undirected path has no consistent N-to-C traversal through all three.
-    result = run_retromol(Submission('NCC(=O)NC(CCCCNC(=O)C(N)C)C(=O)O'), ruleset)
-    expected = [[node.identity.name for node in result.assembly_graph.longest_path()]]
+@pytest.mark.parametrize('explicit_roles', [False, True])
+@pytest.mark.parametrize('smiles, expected', [
+    # Gly enters the backbone N; Ala acylates the side-chain N.
+    ('NCC(=O)NC(CCCCNC(=O)C(N)C)C(=O)O', [['glycine', 'lysine'], ['alanine']]),
+    # Exchanging the acyl donors must exchange their roles in the readout.
+    ('CC(N)C(=O)NC(CCCCNC(=O)CN)C(=O)O', [['alanine', 'lysine'], ['glycine']]),
+    # A side-chain amide alone is insufficient evidence to split a path.
+    ('NC(CCCCNC(=O)C(N)C)C(=O)O', [['alanine', 'lysine']]),
+])
+def test_side_chain_amides_compete_with_connected_backbone_entries(smiles, expected, explicit_roles, ruleset):
+    if explicit_roles:
+        ruleset = replace(ruleset, matching_rules=[
+            replace(rule, sequence_role='backbone') if rule.name in ('glycine', 'alanine', 'lysine') else rule
+            for rule in ruleset.matching_rules
+        ])
+    result = run_retromol(Submission(smiles), ruleset)
+    before = result.assembly_graph.to_dict()
     assert result.linear_readout.primary_sequence_parts() == expected
-    assert len(expected[0]) == 3
+    assert result.assembly_graph.to_dict() == before
+    restored = AssemblyGraph.from_dict(json.loads(json.dumps(before)))
+    assert assembly_to_primary_sequence(restored) == expected
 
 
 def test_cyclic_peptide_preserves_conventional_start_and_carboxyl_direction(ruleset):
@@ -298,6 +315,68 @@ def test_cyclic_peptide_preserves_conventional_start_and_carboxyl_direction(rule
     assert readout.primary_sequence_parts() == [['alanine', 'serine', 'glycine']]
     restored = LinearReadout.from_dict(readout.to_dict())
     assert restored.primary_sequence_parts() == readout.primary_sequence_parts()
+
+
+def crosslinked_capped_chain():
+    """A source, two capped units and an amino acid, with competing ring bonds."""
+    g = nx.Graph()
+    for index, (name, smiles) in enumerate([
+        ('z-source', '[1CH3]C(=O)O'),
+        ('b-unit', '[2CH2](SO)[3CH2]C(=O)O'),
+        ('a-unit', '[4CH2](SO)[5CH2]C(=O)O'),
+        ('c-end', '[6NH2][7CH]([8CH3])[9C](=[10O])[11OH]'),
+    ]):
+        mol = smiles_to_mol(smiles)
+        identity = MolIdentity(MatchingRule(name, smiles, {}, [], sequence_role='backbone'))
+        node = MolNode(f'unit-{index}', mol, smiles, identity, True)
+        g.add_node(index, molnode=node, identity=identity,
+                   tags={atom.GetIsotope() for atom in mol.GetAtoms() if atom.GetIsotope()})
+    for u, v, a, b, symbol in [
+        (0, 1, 1, 2, 'C'), (1, 2, 3, 4, 'C'), (2, 3, 5, 6, 'N'),
+        (3, 1, 9, 2, 'C'),  # Ring closure into an already connected entry.
+        (1, 3, 3, 6, 'N'),  # Exit-to-entry shortcut that skips a unit.
+    ]:
+        bond = RootBondLink(a - 1, b - 1, a, b, 'C', symbol, 'SINGLE', 1.0)
+        if g.has_edge(u, v):
+            g[u][v]['bonds'].append(bond)
+            g[u][v]['n_bonds'] += 1
+        else:
+            g.add_edge(u, v, bonds=[bond], n_bonds=1)
+    return AssemblyGraph(g)
+
+
+def test_entry_exit_connections_select_order_before_undirected_crosslinks():
+    a = crosslinked_capped_chain()
+    before = a.to_dict()
+    expected = [['z-source', 'b-unit', 'a-unit', 'c-end']]
+    assert assembly_to_primary_sequence(a) == expected
+    # This connected path takes a ring shortcut; neither orientation is correct.
+    saved = LinearReadout(a, [[a.g.nodes[i]['molnode'] for i in (0, 1, 3, 2)]])
+    assert saved.primary_sequence_parts() == expected
+    assert LinearReadout.from_dict(saved.to_dict()).primary_sequence_parts() == expected
+    assert a.to_dict() == before
+
+    # Labels and graph insertion order cannot choose a different backbone.
+    for i, data in a.g.nodes(data=True):
+        rule = replace(data['molnode'].identity.matched_rule, name=f'renamed-{3 - i}')
+        data['identity'] = MolIdentity(rule)
+        data['molnode'] = replace(data['molnode'], identity=data['identity'])
+    reordered = nx.Graph()
+    reordered.add_nodes_from(reversed(list(a.g.nodes(data=True))))
+    reordered.add_edges_from((v, u, data) for u, v, data in reversed(list(a.g.edges(data=True))))
+    readout = LinearReadout.from_assembly_graph(AssemblyGraph(reordered))
+    assert [[node.enc for node in path] for path in readout.paths] == [
+        ['unit-0', 'unit-1', 'unit-2', 'unit-3'],
+    ]
+
+
+def test_competing_complete_port_orders_are_left_ambiguous():
+    a = crosslinked_capped_chain()
+    # The terminal acid can also enter the middle unit: both 0-1-2-3 and
+    # 0-1-3-2 now follow exit-to-entry links, so neither is uniquely supported.
+    a.g[3][2]['bonds'].append(RootBondLink(8, 3, 9, 4, 'C', 'C', 'SINGLE', 1.0))
+    a.g[3][2]['n_bonds'] += 1
+    assert _connected_backbone_order(a.g) is None
 
 
 def test_reconstruction_consumes_the_oriented_peptide_readout(ruleset):

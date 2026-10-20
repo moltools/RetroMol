@@ -1,0 +1,13 @@
+# Fixed regression readouts of the current structural parsing policy.
+# These are not a claim of biological correctness for every cyclic/branched case.
+# "assemblies" follows the entry order in the corresponding *_assemblies.yml.
+# "default_assembly" is a zero-based reference; "default_sequence" covers a
+# default decomposition not represented by those required assembly fixtures.
+# Known starter-order limitations have separate strict expected-failure tests.
+
+"ring-opened Z double bond (small-ring C1 unit)":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "B^S1", "B^R1", "D^R8", "B^R1", "B^R1", "C^Z1"]
+      - ["methylation"]

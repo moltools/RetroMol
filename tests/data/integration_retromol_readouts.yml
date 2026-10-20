@@ -1,0 +1,1301 @@
+# Fixed regression readouts of the current structural parsing policy.
+# These are not a claim of biological correctness for every cyclic/branched case.
+# "assemblies" follows the entry order in the corresponding *_assemblies.yml.
+# "default_assembly" is a zero-based reference; "default_sequence" covers a
+# default decomposition not represented by those required assembly fixtures.
+# Known starter-order limitations have separate strict expected-failure tests.
+
+"10-deoxymethynolide":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "B2", "C1", "A2", "D2", "B2"]
+
+"13-deoxytedanolide":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "C2", "C2", "B7", "A2", "D1", "A2", "C2", "B2", "A2", "B5"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"2-deoxystreptamine":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycosylation"]
+
+"6-deoxyerythronolide B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "B2", "B2", "A2", "D2", "B2", "B2"]
+
+"AF-toxin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D17", "C1", "C1", "C1"]
+      - ["acetic acid starter", "B10"]
+      - ["2-hydroxy-3-methylpentanoic acid"]
+      - ["oxidation"]
+
+"abyssomicin C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C1", "C1", "A2", "D2", "A1"]
+      - ["glyceric acid"]
+      - ["oxidation"]
+
+"atrop-abyssocymin C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C1", "C1", "A2", "D2", "A1"]
+      - ["glyceric acid"]
+      - ["oxidation"]
+
+"aculeximycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "B2", "B4", "C1", "B2", "B1", "C2", "B2", "B1", "B2", "B1", "B1", "B5", "A1", "B2", "D1", "B1", "B1", "C4"]
+      - ["glycosylation", "glycosylation", "glycosylation"]
+      - ["glycosylation"]
+      - ["glycosylation"]
+
+"acutiphycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "D1", "B1", "C2", "B3", "A2", "C2", "B1", "B1", "A1"]
+
+"aflatoxin G1":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["methylation"]
+
+"alternapyrone":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-methylbutyric acid", "C2", "D1", "D2", "C2", "C2", "D2", "A2", "A2"]
+
+"amicoumacin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["asparagine", "B5", "leucine", "B1", "C1", "C1", "A1"]
+
+"amphidinolide J":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "C1", "D10", "B1", "C2", "B1", "C1", "D15", "D8"]
+
+"amphidinolide P":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-methylprop-2-enoic acid", "D10", "C1", "A8", "C1", "B1", "A9", "A1"]
+      - ["oxidation"]
+
+"ansamitocin P-3 ":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-amino-5-hydroxybenzoic acid", "D2", "C1", "D11", "A1", "B2", "C2", "B1"]
+      - ["carbamic acid"]
+      - ["chlorination"]
+      - ["isobutyric acid"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"anthracimycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B1", "C1", "C2", "C1", "C1", "D2", "C1", "C1", "A1", "A2"]
+
+"apoptolidin":
+  default_sequence:
+    - ["malonic acid", "B2", "B2", "A5", "B1", "B5", "D1", "C2", "C1", "B2", "C2", "C2", "C2"]
+    - ["glycosylation", "glycosylation", "methylation"]
+    - ["glycosylation", "methylation"]
+    - ["methanol", "methylation"]
+    - ["methylation"]
+  assemblies:
+    -
+      - ["glycolic acid", "B1", "B2", "B2", "A5", "B1", "B5", "D1", "C2", "C1", "B2", "C2", "C2", "C2"]
+      - ["glycosylation", "glycosylation", "methylation"]
+      - ["glycosylation", "methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"avilamycin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "methanol"]
+      - ["acetic acid starter", "C1", "A1", "A1"]
+      - ["chlorination"]
+      - ["chlorination"]
+      - ["isobutyric acid"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"avilamycin C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "glycosylation", "methanol"]
+      - ["acetic acid starter", "C1", "A1", "A1"]
+      - ["chlorination"]
+      - ["chlorination"]
+      - ["isobutyric acid"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"bitungolide F":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["cinnamic acid", "C1", "B1", "B1", "D2", "B4", "C1"]
+
+"borrelidin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["cyclopentane-1,2-dicarboxylic acid", "B1", "C1", "C1", "B2", "D2", "D2", "D2", "B1"]
+      - ["cyanide"]
+
+"butirosin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycosylation", "glycosylation", "glycosylation"]
+      - ["glycine", "D5"]
+
+"butirosin B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycosylation", "glycosylation", "glycosylation"]
+      - ["glycine", "D5"]
+
+"calicheamicin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "A5", "A1"]
+      - ["ethanol", "glycosylation", "glycosylation", "glycosylation"]
+      - ["carbonic acid", "methylation"]
+      - ["glycosylation", "methylation"]
+      - ["iodination"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"callystatin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-methylbutyric acid", "B2", "A2", "C2", "C1", "D2", "C4", "C1", "B1", "C1"]
+
+"carolacton":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["malonic acid", "B2", "A2", "C2", "B2", "D1", "D2", "C1", "B5"]
+      - ["methylation"]
+
+"chaetoglobosin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C2", "C1", "C1", "D2", "C2", "B11", "C1", "A1", "tryptophan"]
+      - ["oxidation"]
+
+"chichorine":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["C1", "glycine", "D11", "D17"]
+      - ["methylation"]
+
+"chlorotonil A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B1", "C1", "C2", "C1", "C1", "D2", "C2", "C1", "A1", "A2"]
+      - ["chlorination"]
+      - ["chlorination"]
+
+"chlorothricin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C13", "C1", "C1", "D1", "D1", "C1", "C1", "B1", "D1", "C1"]
+      - ["acetic acid starter", "C1", "C1", "A1"]
+      - ["glycosylation", "glycosylation"]
+      - ["chlorination"]
+      - ["glyceric acid"]
+      - ["glycolic acid"]
+      - ["methylation"]
+
+"coelimycin P1":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid"]
+      - ["cysteine"]
+
+"compactin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C1", "C1", "D5", "C1", "D1", "B1", "B1"]
+      - ["2-methylbutyric acid"]
+
+"cremimycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "D1", "D1", "A", "A1", "D1", "B1", "A1", "B1", "C1", "C2", "C1", "C1"]
+      - ["methylation", "glycosylation", "oxidation"]
+
+"deschlorothricin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C13", "C1", "C1", "D1", "D1", "C1", "C1", "B1", "D1", "C1"]
+      - ["acetic acid starter", "C1", "C1", "A1"]
+      - ["glycosylation", "glycosylation"]
+      - ["glyceric acid"]
+      - ["glycolic acid"]
+      - ["methylation"]
+
+"daptomycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "D1", "D1", "D1", "tryptophan", "asparagine", "aspartic acid", "threonine", "glycine", "ornithine", "aspartic acid", "alanine", "aspartic acid", "glycine", "serine", "3-methylglutamic acid", "kynurenine"]
+
+"dictyostatin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C2", "B2", "B1", "D2", "D2", "B2", "C1", "B1", "B2", "C1", "C1"]
+
+"discodermolide":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C2", "B2", "B2", "D2", "C2", "B2", "C1", "B1", "B2", "B2"]
+      - ["carbamic acid"]
+
+"epothilone":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "cysteine", "C2", "B1", "C1", "D1", "D2", "B2", "A3", "B1"]
+      - ["oxidation"]
+
+"erythromycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "B6", "B2", "A2", "D6", "B2", "B2"]
+      - ["glycosylation", "methylation"]
+      - ["glycosylation"]
+
+"georatusin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-methylbutyric acid", "D2", "B2", "D2", "B2", "D2", "A2", "tryptophan"]
+
+"gephyronic acid":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["isobutyric acid", "C2", "C2", "B2", "D2", "A3", "B2", "B1"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"harzianic acid":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "C1", "C1", "A1", "artificial amino acid harzianic acid"]
+      - ["methylation"]
+
+"herboxidiene":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "B2", "C2", "D2", "C1", "C2", "B2", "D1", "C1"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"hydroxystreptomycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycosylation", "glycosylation", "glycosylation", "methylation"]
+
+"hymenosetin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C2", "C1", "D2", "D1", "C2", "A1", "threonine"]
+
+"indanomycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["pyrrole-2-carboxylic acid", "A1", "C1", "D4", "C1", "C1", "C1", "C4", "B2", "D1", "C2"]
+
+"ircinianin":
+  default_sequence:
+    - ["furan-3-carboxylic acid", "D1", "D2", "C1", "C2", "C1", "D2", "D11"]
+    - ["propanoic acid"]
+  assemblies:
+    -
+      - ["furan-3-carboxylic acid", "D1", "D2", "C1", "C2", "C1", "D2", "D11", "A2"]
+
+"iriomoteolide 1a":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "D8", "B2", "C1", "D6", "A1", "A8", "B1", "C1", "B2", "A8"]
+
+"iriomoteolide 3a":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "D8", "B2", "C1", "D6", "A1", "A8", "B1", "C1", "B2", "A8"]
+
+"jerangolid A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "C2", "C1", "B2", "C2", "C1", "B1", "A7"]
+      - ["methylation"]
+
+"kirromycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C1", "B3", "B5", "A4", "glycine", "C1", "C2", "B2", "D11", "B5", "C1", "C1", "C2", "A1", "beta-alanine"]
+      - ["methylation"]
+
+"lactimidomycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-(2,6-dioxopiperidin-4-yl)acetic acid", "B1", "A2", "C2", "B2", "C1", "C1", "D1", "C1"]
+
+"lankamycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B2", "B2", "B2", "A6", "D2", "B2", "B2"]
+      - ["acetic acid", "glycosylation", "methylation"]
+      - ["glycosylation", "methylation"]
+      - ["acetic acid"]
+
+"latrunculin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["cysteine", "A1", "B1", "B1", "D2", "C1", "C1", "D1", "A8"]
+      - ["carbonic acid"]
+
+"leiodermatolide":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "B2", "B-beta-carboxymethyl", "C1", "C2", "B2", "C1", "C1", "B2", "B2", "A8", "D1"]
+      - ["carbamic acid"]
+
+"lovastatin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C1", "C2", "D5", "C1", "D1", "B1", "B1"]
+      - ["2-methylbutyric acid"]
+
+"macrolactin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B1", "D1", "C1", "C1", "B1", "B1", "C1", "C1", "B1", "C1", "C1"]
+
+"maytansine":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-amino-5-hydroxybenzoic acid", "D2", "C1", "D11", "A1", "B2", "C2", "B1"]
+      - ["N-methylalanine"]
+      - ["acetic acid"]
+      - ["carbamic acid"]
+      - ["chlorination"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"megalomycin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "B6", "B2", "A2", "D6", "B2", "B2"]
+      - ["methylation", "glycosylation", "methylation"]
+      - ["glycosylation"]
+      - ["glycosylation"]
+
+"micacocidin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "D1", "C1", "C1", "A1", "cysteine", "cysteine", "B3", "cysteine"]
+      - ["methylation"]
+      - ["methylation"]
+
+"migrastatin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-(2,6-dioxopiperidin-4-yl)acetic acid", "D1", "A2", "B2", "C2", "B5", "C1", "D1", "C1"]
+      - ["methylation"]
+
+"narbonolide":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "B2", "C1", "A2", "D2", "B2", "A2"]
+
+"pederin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B2", "A8", "A5", "2-hydroxyglycine", "B1", "B3", "C1"]
+      - ["methanol", "methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"peluriside A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D7", "C2", "B1", "B1", "B3", "A5", "B1", "B1", "B5"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"penicillin G":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-phenylacetic acid", "cysteine", "valine"]
+
+"periconiasin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C2", "C1", "D2", "C1", "B1", "A1", "leucine"]
+
+"periconiasin I":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C2", "C1", "D2", "C1", "B1", "A1", "leucine"]
+      - ["oxidation"]
+
+"ratjadon":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "B2", "B1", "D11", "C1", "C2", "D2", "C2", "C1", "B1", "C1"]
+
+"soraphen A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["benzoic acid", "B1", "D1", "D5", "B1", "C2", "B2", "B5", "A2"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"spiculoic acid A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-phenylacetic acid", "C4", "C4", "C2", "A4", "C4"]
+
+"spongidepsin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-butynoic acid", "D1", "B1", "D8", "D2", "D2", "N-methylphenylalanine"]
+
+"thailanstatin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "C1", "threonine", "D2", "C1", "C2", "C1", "B5", "A8", "C1"]
+      - ["acetic acid"]
+      - ["oxidation"]
+
+"theopederin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B2", "A8", "A5", "2-hydroxyglycine", "B5", "B3", "C1", "B1", "D1"]
+      - ["formaldehyde"]
+      - ["methylation"]
+      - ["methylation"]
+
+"theopederin B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B2", "A8", "A5", "2-hydroxyglycine", "B5", "B3", "C1", "B1", "D1"]
+      - ["formaldehyde"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"thermolide A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B1", "B2", "B2", "D2", "B2", "D2", "B1", "B1", "alanine"]
+      - ["acetic acid"]
+
+"thiocoraline":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-hydroxyquinaldic acid", "cysteine", "glycine", "N-methylcysteine", "N-methylcysteine"]
+      - ["3-hydroxyquinaldic acid", "cysteine", "glycine", "N-methylcysteine", "N-methylcysteine"]
+      - ["methylation"]
+      - ["methylation"]
+
+"zincophorin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "D2", "C2", "B2", "C1", "D1", "B2", "B2", "B2", "B2", "D1", "C2"]
+
+"zwittermicin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["serine", "B1", "B12", "B5", "2,3-diaminopropionate"]
+      - ["amination"]
+      - ["carbamic acid"]
+
+"enterobactin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2,3-dihydroxybenzoic acid", "serine"]
+      - ["2,3-dihydroxybenzoic acid", "serine"]
+      - ["2,3-dihydroxybenzoic acid", "serine"]
+
+"curvularide C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D5", "D2", "B6", "C1", "isoleucinol"]
+      - ["methylation"]
+
+"neopeltolide":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "B1", "B1", "D8", "B1", "B1", "C1"]
+      - ["glycine", "C1", "serine", "D1", "C1"]
+      - ["carbonic acid", "methylation"]
+      - ["methylation"]
+
+"dihydroxydione":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "cysteine", "C2", "B1", "C2", "D1", "A2", "B2", "propanoic acid starter"]
+
+"amamistatin B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "D1", "D1", "B3", "N6-hydroxylysine"]
+      - ["salicylic acid", "threonine", "N6-formyl-N6-hydroxylysine"]
+
+"nocardichelin B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "D1", "D1", "D1", "D1", "C1", "N-(5-aminopentyl)hydroxylamine", "butanedioic acid", "N-(5-aminopentyl)hydroxylamine", "serine", "salicylic acid"]
+
+"borophycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "B1", "C1", "D1", "B1", "A3", "B1", "D2", "A5"]
+      - ["propanoic acid starter", "B1", "C1", "D1", "B1", "A3", "B1", "D2", "A5"]
+      - ["boronation"]
+
+"aplasmomycin C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "B1", "C1", "C1", "B3", "B1", "D2", "A5"]
+      - ["lactic acid", "B1", "C1", "C1", "B3", "B1", "D2", "A5"]
+      - ["acetic acid"]
+      - ["acetic acid"]
+      - ["boronation"]
+
+"chaetosemin G":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B1", "C1", "A2", "A1"]
+      - ["chlorination"]
+
+"actinoquinoline B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-hydroxyquinaldic acid", "5-hydroxylysine"]
+      - ["acetic acid starter", "D8"]
+
+"NRP with intramolecular threonine-cysteine bridges":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycine", "threonine", "cysteine", "threonine", "valine", "cysteine", "histidine", "tryptophan", "glycine", "tyrosine", "threonine", "isoleucine", "leucine", "cysteine", "aspartic acid", "aspartic acid", "phenylalanine", "serine", "threonine", "arginine", "serine"]
+
+"vancomycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["N-methylleucine", "beta-hydroxytyrosine", "asparagine", "4-hydroxyphenylglycine", "4-hydroxyphenylglycine", "beta-hydroxytyrosine", "3,5-dihydroxyphenylglycine"]
+      - ["glycosylation", "glycosylation"]
+      - ["chlorination"]
+      - ["chlorination"]
+
+"capreomycin IA":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2,3-diaminoacrylic acid", "capreomycidine", "2,3-diaminopropionate", "serine", "2,3-diaminopropionate"]
+      - ["beta-lysine"]
+      - ["carbamic acid"]
+
+"aeruginosin 98-A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["4-hydroxybenzoic acid", "D5", "isoleucine", "2-carboxy-6-hydroxyoctahydroindole", "agmatine"]
+      - ["chlorination"]
+      - ["sulfate"]
+
+"corpeptin A":
+  default_assembly: 1
+  assemblies:
+    -
+      - ["3-hydroxydecanoic acid", "dehydrobutyrine", "proline", "alanine", "alanine", "alanine", "valine", "valine", "dehydrobutyrine", "homoserine", "valine", "isoleucine", "dehydroalanine", "alanine", "alanine", "alanine", "valine", "dehydrobutyrine", "threonine", "alanine", "2,4-diaminobytyric acid", "serine", "isoleucine"]
+    -
+      - ["acetic acid starter", "D1", "D1", "D1", "B1", "dehydrobutyrine", "proline", "alanine", "alanine", "alanine", "valine", "valine", "dehydrobutyrine", "homoserine", "valine", "isoleucine", "dehydroalanine", "alanine", "alanine", "alanine", "valine", "dehydrobutyrine", "threonine", "alanine", "2,4-diaminobytyric acid", "serine", "isoleucine"]
+
+"cyanopeptolin 1138":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["homotyrosine", "threonine", "homotyrosine", "glutamate-5-semialdehyde", "isoleucine", "N-methylphenylalanine", "isoleucine"]
+      - ["glyceric acid", "methylation"]
+      - ["sulfate"]
+
+"gramicidin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["formic acid", "valine", "glycine", "alanine", "leucine", "alanine", "valine", "valine", "valine", "tryptophan", "leucine", "tryptophan", "leucine", "tryptophan", "leucine", "tryptophan", "ethanolamine"]
+
+"hormaomycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["N-hydroxypyrrole-2-carboxylic acid", "3-(2-nitrocyclopropylalanine)", "threonine", "beta-methylphenylalanine", "3-(2-nitrocyclopropylalanine)", "beta-methylphenylalanine", "isoleucine", "4-propenylproline"]
+      - ["chlorination"]
+
+"myxochelin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2,3-dihydroxybenzoic acid", "lysinol", "2,3-dihydroxybenzoic acid"]
+
+"marformycin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["formic acid", "valine", "threonine", "tyrosine", "isoleucine", "piperazic acid", "leucine", "N-methylvaline"]
+      - ["methylation"]
+
+"antimycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-formamido-2-hydroxybenzoic acid", "threonine"]
+      - ["acetic acid starter", "D8"]
+      - ["lactic acid", "B-alpha-hexyl"]
+    -
+      - ["3-formamido-2-hydroxybenzoic acid", "threonine"]
+      - ["lactic acid", "B-alpha-hexyl"]
+      - ["3-methylbutanoic acid"]
+
+"phorbactazole A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B1", "B2", "A1", "serine", "C2", "B2", "B1", "C1", "C2", "serine", "B1", "B5", "C1", "B1", "B5", "C1", "B1", "B2", "C1", "C1"]
+      - ["carbamic acid"]
+      - ["methylation"]
+
+"pacidamycin 1":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["alanine", "2,3-diaminobutyric acid", "3'-deoxy-4',5'-enamino-uridine"]
+      - ["alanine", "meta-tyrosine"]
+      - ["carbonic acid"]
+      - ["methylation"]
+      - ["tryptophan"]
+
+"napsamycin C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["homocysteine", "2,3-diaminobutyric acid", "3'-deoxy-4',5'-enamino-dihydrouridine"]
+      - ["6-hydroxy-tetrahydro-isoquinoline-3-carboxylic acid"]
+      - ["carbonic acid"]
+      - ["meta-tyrosine"]
+      - ["methylation"]
+      - ["methylation"]
+
+"napsamycin B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["homocysteine", "2,3-diaminobutyric acid", "3'-deoxy-4',5'-enamino-uridine"]
+      - ["1-methyl-6-hydroxy-tetrahydroisoquinoline-3-carboxylic acid"]
+      - ["carbonic acid"]
+      - ["meta-tyrosine"]
+      - ["methylation"]
+      - ["methylation"]
+
+"sansanmycin C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["methionine sulfoxide", "2,3-diaminobutyric acid", "3'-deoxy-4',5'-enamino-uridine"]
+      - ["carbonic acid"]
+      - ["meta-tyrosine"]
+      - ["methylation"]
+      - ["tryptophan"]
+
+"sansanmycin K":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["homocysteine", "2,3-diaminobutyric acid", "3'-deoxy-4',5'-enamino-uridine"]
+      - ["8-hydroxy-tetrahydroisoquinoline-3-carboxylic acid"]
+      - ["carbonic acid"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["tyrosine"]
+
+"tenuazonic acid":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "isoleucine"]
+
+"epifadin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["phenylalanine", "phenylalanine", "aspartic acid", "asparagine", "alanine", "C1", "C1", "C1", "C1", "D1", "D1", "D1", "C1", "A1", "aspartic acid"]
+
+"tubulysin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["N-methylpipecolic acid", "isoleucine", "valine", "D5", "cysteine", "tyrosine", "D2"]
+      - ["acetic acid starter", "D8"]
+      - ["acetic acid"]
+      - ["formaldehyde"]
+
+"actinomycin D":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["N-methylvaline", "sarcosine", "proline", "valine", "threonine", "4-methyl-3-hydroxyanthranilic acid", "4-methyl-3-hydroxyanthranilic acid", "threonine", "valine", "proline", "sarcosine", "N-methylvaline"]
+
+"tenellin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-methylbutyric acid", "C2", "C1", "A1", "tyrosine"]
+      - ["oxidation"]
+
+"disorazole Z9":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "B2-alpha-carboxy", "B1", "C1", "C1", "C1", "serine"]
+      - ["acetic acid starter", "C1", "B2-alpha-hydroxymethyl", "B1", "C1", "C1", "C1", "serine"]
+
+"Ristocetin B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["4-hydroxyphenylglycine", "beta-hydroxytyrosine", "4-methyl-3,5-dihydroxyphenylglycine", "4-hydroxyphenylglycine", "4-hydroxyphenylglycine", "beta-hydroxytyrosine", "3,5-dihydroxyphenylglycine"]
+      - ["glycosylation", "glycosylation"]
+      - ["glycosylation"]
+      - ["glycosylation"]
+      - ["methylation"]
+
+"suomilide":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "D1"]
+      - ["acetic acid starter", "D1", "D1"]
+      - ["isoleucine", "hydrolyzed suomilide Abn", "Aeap"]
+      - ["glyceric acid", "methylation"]
+      - ["carbonic acid"]
+      - ["glycosylation"]
+      - ["sulfate"]
+
+"3,6-dialkyl-α-pyrone":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "A1", "A4"]
+
+"heterobactin S2":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2,3-dihydroxy-4-(methylsulfonyl)benzoic acid", "A", "glycine", "N5-hydroxyornithine"]
+
+"bleomycin A2":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-hydroxy histdine", "alanine", "B2", "threonine", "beta-alanine", "cysteine", "cysteine", "3-aminopropyl-dimethylsulfonium"]
+      - ["carbamic acid", "glycosylation", "glycosylation"]
+      - ["amination"]
+
+"monensin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycolic acid", "A2", "D2", "A1", "D2", "A4", "D1", "A2", "D1", "A1", "B2", "B2", "B2"]
+      - ["methylation"]
+
+"rapamycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3,4-dihydroxycyclohexanecarboxylic acid", "D2", "B1", "A2", "C2", "B5", "A2", "D2", "C1", "C1", "C2", "B1", "B1", "D2", "A1-alpha-oxo", "pipecolic acid"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+
+"Basiliskamide A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["2-methylbutyric acid", "B2", "B1", "C1", "C1"]
+      - ["amination"]
+      - ["cinnamic acid"]
+
+"epipyriculol":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "B5", "C1", "C1", "C1", "A1"]
+
+"kijanimicin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C7", "C1", "C2", "B1", "C2", "C1", "C1", "B2", "D2", "C2", "A1"]
+      - ["glycosylation", "glycosylation", "glycosylation", "methylation"]
+      - ["glycosylation", "carbonic acid", "methylation"]
+      - ["glyceric acid"]
+      - ["glycosylation"]
+
+"rubradirin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["glycosylation", "methylation"]
+      - ["methylation"]
+
+"4-hexadecanoyl-3-hydroxy-2-(hydroxymethyl)-2H-furan-5-one":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "D1", "D1", "D1", "D1", "D1", "D1", "A1"]
+      - ["glyceric acid"]
+
+"granaticin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["C1"]
+
+"actinospirol A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["fumaric acid", "C1", "A1", "A1-alpha-oxo", "C1", "A8", "A1"]
+      - ["chlorination"]
+
+"acyltetronate diketo tautomer":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "D1", "D1", "D1", "D1", "D1", "D1", "D1", "A1"]
+      - ["glyceric acid"]
+
+"PK shifted alkene donor H0":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["isobutyric acid", "C1"]
+
+"PK shifted alkene donor H1":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "C1"]
+
+"PK shifted alkene donor H2":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1"]
+
+"stambomycin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "C1", "B1", "B1", "D1", "B2", "B1", "D2", "B1", "B1", "D8", "D5", "B-alpha-(4-methylhexyl)", "C2", "B1", "B1", "D1", "B2", "B1", "C1", "C2", "B2", "B1", "B2", "A1"]
+      - ["methylation", "glycosylation", "methylation"]
+
+"stambomycin B":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "C1", "B1", "B1", "D1", "B2", "B1", "D2", "B1", "B1", "D8", "D5", "B-alpha-(5-methylhexyl)", "C2", "B1", "B1", "D1", "B2", "B1", "C1", "C2", "B2", "B1", "B2", "A1"]
+      - ["methylation", "glycosylation", "methylation"]
+
+"stambomycin C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "C1", "B1", "B1", "D1", "B2", "B1", "D2", "B1", "B1", "D8", "D5", "B-alpha-(4-methylpentyl)", "C2", "B1", "B1", "D1", "B2", "B1", "C1", "C2", "B2", "B1", "B2", "A1"]
+      - ["methylation", "glycosylation", "methylation"]
+
+"stambomycin D":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["lactic acid", "C1", "B1", "B1", "D1", "B2", "B1", "D2", "B1", "B1", "D8", "D5", "B-alpha-hexyl", "C2", "B1", "B1", "D1", "B2", "B1", "C1", "C2", "B2", "B1", "B2", "A1"]
+      - ["methylation", "glycosylation", "methylation"]
+
+"filipin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B5", "C1", "C1", "C1", "C1", "C2", "B1", "B1", "B1", "B1", "B1", "B1", "B-alpha-(1-hydroxyhexyl)"]
+
+"splenocin C":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-formamido-2-hydroxybenzoic acid", "threonine"]
+      - ["lactic acid", "B-alpha-benzyl"]
+      - ["2-methylbutyric acid"]
+
+"solanapyrone D":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C1", "C1", "D1", "D1", "C1", "A1", "A-alpha-carboxyl"]
+      - ["methylation"]
+
+"emodin":
+  default_sequence:
+    - ["acetic acid starter", "A1", "A1", "C1", "A1", "A1", "A1", "A1"]
+    - ["oxidation"]
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "A1", "A1", "A1", "A1", "A1", "A1"]
+      - ["oxidation"]
+
+"endocrocin":
+  default_sequence:
+    - ["acetic acid starter", "C1", "A1-alpha-oxo", "C1", "A1", "A1", "A1", "A1"]
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "A1", "A1", "A1", "A1", "A1", "A1"]
+      - ["oxidation"]
+
+"aclacinomycin":
+  default_sequence:
+    - ["A1", "A1", "A1", "C1", "C1", "A1-alpha-oxo", "C1", "malonic acid", "B1", "propanoic acid starter"]
+    - ["glycosylation", "glycosylation", "glycosylation", "methylation"]
+    - ["methylation"]
+    - ["methylation"]
+  known_starter_order_issue: "A default path places its only starter after another unit; backbone direction or separation remains unresolved."
+  assemblies:
+    -
+      - ["propanoic acid starter", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "C1", "A1"]
+      - ["glycosylation", "glycosylation", "glycosylation", "methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"daunorubicin":
+  default_sequence:
+    - ["pyruvic acid", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "A5", "C1"]
+    - ["glycosylation"]
+    - ["methylation"]
+    - ["oxidation"]
+  assemblies:
+    -
+      - ["pyruvic acid", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "D11", "A1"]
+      - ["glycosylation"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"doxorubicin":
+  default_sequence:
+    - ["hydroxypyruvic acid", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "A5", "C1"]
+    - ["glycosylation"]
+    - ["methylation"]
+    - ["oxidation"]
+  assemblies:
+    -
+      - ["hydroxypyruvic acid", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "D11", "A1"]
+      - ["glycosylation"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"rhodomycin":
+  default_sequence:
+    - ["propanoic acid starter", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "A5", "C1"]
+    - ["methylation", "glycosylation", "methylation"]
+    - ["methylation", "glycosylation", "methylation"]
+    - ["oxidation"]
+    - ["oxidation"]
+  assemblies:
+    -
+      - ["propanoic acid starter", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "D11", "A1"]
+      - ["methylation", "glycosylation", "methylation"]
+      - ["methylation", "glycosylation", "methylation"]
+      - ["oxidation"]
+      - ["oxidation"]
+
+"nogalaviketone":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "C1", "A1"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"14-hydroxyisochainin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "B5", "C1", "C1", "C1", "C1", "C2", "B5", "B1", "B1", "B1", "B1", "B1", "B-alpha-butyl"]
+
+"PK aldol ring donor H0":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["isobutyric acid", "A1", "D1", "A1"]
+
+"PK aldol ring donor H1":
+  default_sequence:
+    - ["D1", "propanoic acid starter", "A1", "malonic acid"]
+  known_starter_order_issue: "A default path places its only starter after another unit; backbone direction or separation remains unresolved."
+  assemblies:
+    -
+      - ["propanoic acid starter", "A1", "D1", "A1"]
+
+"PK aldol ring donor H2":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "D1", "A1"]
+
+"PK pentyl-branched beta-hydroxy chain":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["propanoic acid starter", "B-alpha-pentyl"]
+
+"anthraquinone without peri hydroxyls":
+  default_assembly: 0
+  assemblies:
+    - []
+
+"cylindrocyclophane F":
+  default_sequence:
+    - ["A1", "A1", "A1", "D8", "D1", "D1", "D1", "A1", "A1", "A1", "D8", "D1", "D1", "D1", "D1", "acetic acid starter"]
+    - ["acetic acid starter", "D1"]
+  known_starter_order_issue: "A default path places its only starter after another unit; backbone direction or separation remains unresolved."
+  assemblies:
+    -
+      - ["A1", "A1", "A1", "decanoic acid", "D8", "A1", "A1", "A1", "decanoic acid", "D8"]
+
+"carbamidocyclophane A":
+  default_sequence:
+    - ["A1", "A1", "A1", "D10", "D1", "D1", "D1", "A1", "A1", "A1", "D10", "D1", "D1", "D1", "D1", "acetic acid starter"]
+    - ["acetic acid starter", "D1"]
+    - ["carbamic acid"]
+    - ["carbamic acid"]
+    - ["chlorination"]
+    - ["chlorination"]
+    - ["chlorination"]
+    - ["chlorination"]
+  known_starter_order_issue: "A default path places its only starter after another unit; backbone direction or separation remains unresolved."
+  assemblies:
+    -
+      - ["A1", "A1", "A1", "D10", "decanoic acid", "A1", "A1", "A1", "D10", "decanoic acid"]
+      - ["carbamic acid"]
+      - ["carbamic acid"]
+      - ["chlorination"]
+      - ["chlorination"]
+      - ["chlorination"]
+      - ["chlorination"]
+
+"geldanamycin":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-amino-5-hydroxybenzoic acid", "D2", "D5", "B2", "C2", "B5", "C1", "C2"]
+      - ["methylation", "oxidation"]
+      - ["carbamic acid"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"herbimycin A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-amino-5-hydroxybenzoic acid", "B2", "D5", "B2", "C2", "B5", "C1", "C2"]
+      - ["carbamic acid"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"macbecin II":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["3-amino-5-hydroxybenzoic acid", "B2", "D5", "B2", "C2", "B2", "C1", "C2"]
+      - ["carbamic acid"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["methylation"]
+      - ["oxidation"]
+
+"orcinol":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "A1", "A1"]
+
+"1,3,6,8-tetrahydroxynaphthalene":
+  default_sequence:
+    - ["acetic acid starter", "C1", "A1", "A1", "A1"]
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "A1", "A1", "A1"]
+
+"flaviolin":
+  default_sequence:
+    - ["acetic acid starter", "C1", "A1", "A1", "A1"]
+    - ["oxidation"]
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "A1", "A1", "A1"]
+      - ["oxidation"]
+
+"alternariol":
+  default_sequence:
+    - ["acetic acid starter", "C1", "A1", "A1", "A1", "A1", "A1"]
+  assemblies:
+    -
+      - ["acetic acid starter", "A1", "A1", "A1", "A1", "A1", "A1"]
+
+"nidulin":
+  default_sequence:
+    - ["acetic acid starter", "C2", "A1", "A2", "A1", "A1", "A1", "C1", "acetic acid starter"]
+    - ["chlorination"]
+    - ["chlorination"]
+    - ["chlorination"]
+    - ["methylation"]
+  assemblies:
+    -
+      - ["acetic acid starter", "C2", "A1", "A2", "A1", "A1", "A1", "A1", "acetic acid starter"]
+      - ["chlorination"]
+      - ["chlorination"]
+      - ["chlorination"]
+      - ["methylation"]
+
+"agonodepside A":
+  default_assembly: 0
+  assemblies:
+    -
+      - ["acetic acid starter", "C2", "A1", "A2", "A1"]
+      - ["acetic acid starter", "C2", "C1", "A2", "A1"]
+
+"resorcinol without a carbon substituent":
+  default_assembly: 0
+  assemblies:
+    - []
+
+"monohydroxynaphthalene":
+  default_assembly: 0
+  assemblies:
+    - []
+
+"naphthoquinone without peri hydroxyls":
+  default_assembly: 0
+  assemblies:
+    - []

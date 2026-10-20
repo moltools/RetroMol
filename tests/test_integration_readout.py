@@ -34,6 +34,40 @@ THIOCORALINE = (
 
 READOUT_CASES = [
     pytest.param(
+        dict(ASSEMBLY_CASES)['actinoquinoline B'],
+        [['3-hydroxyquinaldic acid', '5-hydroxylysine'], ['acetic acid starter', 'D8']],
+        [['3-hydroxyquinaldic acid', '5-hydroxylysine'], ['acetic acid starter', 'D8']],
+        id='actinoquinoline-B',
+    ),
+    pytest.param(
+        dict(ASSEMBLY_CASES)['chaetoglobosin A'],
+        [['acetic acid starter', 'C2', 'C1', 'C1', 'D2', 'C2', 'B11', 'C1', 'A1', 'tryptophan'],
+         ['oxidation']],
+        [['acetic acid starter', 'C2', 'C1', 'C^E1', 'D2^R', 'C^E2', 'B11', 'C^E1', 'A1', 'tryptophan^L'],
+         ['oxidation']],
+        id='chaetoglobosin-A',
+    ),
+    pytest.param(
+        dict(ASSEMBLY_CASES)['chlorothricin'],
+        [['acetic acid starter', 'C13', 'C1', 'C1', 'D1', 'D1', 'C1', 'C1', 'B1', 'D1', 'C1'],
+         ['acetic acid starter', 'C1', 'C1', 'A1'],
+         ['glycosylation', 'glycosylation'], ['chlorination'], ['glyceric acid'],
+         ['glycolic acid'], ['methylation']],
+        [['acetic acid starter', 'C13', 'C1', 'C1', 'D1', 'D1', 'C1', 'C1', 'B^R1', 'D1', 'C1'],
+         ['acetic acid starter', 'C1', 'C1', 'A1'],
+         ['glycosylation', 'glycosylation'], ['chlorination'], ['glyceric acid'],
+         ['glycolic acid'], ['methylation']],
+        id='chlorothricin',
+    ),
+    pytest.param(
+        dict(ASSEMBLY_CASES)['cremimycin'],
+        [['propanoic acid starter', 'D1', 'D1', 'A', 'A1', 'D1', 'B1', 'A1', 'B1', 'C1', 'C2', 'C1', 'C1'],
+         ['methylation', 'glycosylation', 'oxidation']],
+        [['propanoic acid starter', 'D1', 'D1', 'A', 'A1', 'D1', 'B1', 'A1', 'B1', 'C1', 'C^E2', 'C^Z1', 'C^Z1'],
+         ['methylation', 'glycosylation', 'oxidation']],
+        id='cremimycin',
+    ),
+    pytest.param(
         dict(ASSEMBLY_CASES)['enterobactin'],
         [['2,3-dihydroxybenzoic acid', 'serine'],
          ['2,3-dihydroxybenzoic acid', 'serine'],

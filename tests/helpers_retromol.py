@@ -1,6 +1,8 @@
 """Shared helpers for RetroMol integration tests."""
 
+from collections import Counter
 from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import Sequence
 
@@ -10,8 +12,10 @@ import yaml
 from retromol.model.assembly_graph import AssemblyGraph
 from retromol.model.rules import RuleSet
 from retromol.model.result import Result
+from retromol.model.readout import LinearReadout
 from retromol.model.submission import Submission
 from retromol.pipelines.parsing import run_retromol_with_timeout
+from retromol_fingerprint.fingerprint import TOKEN_LINK
 
 
 def load_rule_set() -> RuleSet:
@@ -93,6 +97,85 @@ def load_expected_assemblies(path: Path) -> dict[str, tuple[ExpectedAssembly, ..
     return expectations
 
 
+SequenceParts = tuple[tuple[str, ...], ...]
+
+
+@dataclass(frozen=True)
+class ExpectedReadouts:
+    """Fixed default sequence and one sequence per required assembly graph."""
+
+    default: SequenceParts
+    assemblies: tuple[SequenceParts, ...]
+    known_starter_order_issue: str | None = None
+
+
+def load_expected_readouts(
+    path: Path, assemblies: dict[str, tuple[ExpectedAssembly, ...]],
+) -> dict[str, ExpectedReadouts]:
+    """Validate readout fixtures against the independently specified graphs."""
+    raw = yaml.safe_load(path.read_text())
+    if not isinstance(raw, dict) or set(raw) != set(assemblies):
+        raise ValueError("Readout fixtures must cover exactly the assembly compound set")
+
+    def parts(value) -> SequenceParts:
+        if not isinstance(value, list) or any(
+            not isinstance(part, list) or not part
+            or any(not isinstance(name, str) or not name for name in part)
+            for part in value
+        ):
+            raise ValueError("A readout must be a list of nonempty named paths (or [] if unidentified)")
+        return tuple(tuple(part) for part in value)
+
+    expectations = {}
+    for name, data in raw.items():
+        if not isinstance(data, dict) or set(data) - {
+            "assemblies", "default_assembly", "default_sequence", "known_starter_order_issue",
+        }:
+            raise ValueError(f"{name}: invalid readout fields")
+        sequences = data.get("assemblies")
+        if not isinstance(sequences, list) or len(sequences) != len(assemblies[name]):
+            raise ValueError(f"{name}: provide one readout for every expected assembly")
+        sequences = tuple(parts(sequence) for sequence in sequences)
+        for index, (sequence, graph) in enumerate(zip(sequences, assemblies[name])):
+            if Counter(token for part in sequence for token in part) != Counter(
+                label for label, _ in graph.nodes if label is not None
+            ):
+                raise ValueError(f"{name} assembly {index}: readout must include every identified unit exactly once")
+        if ("default_assembly" in data) == ("default_sequence" in data):
+            raise ValueError(f"{name}: choose either default_assembly or default_sequence")
+        if "default_assembly" in data:
+            index = data["default_assembly"]
+            if type(index) is not int or not 0 <= index < len(sequences):
+                raise ValueError(f"{name}: invalid default assembly index")
+            default = sequences[index]
+        else:
+            default = parts(data["default_sequence"])
+        issue = data.get("known_starter_order_issue")
+        if issue is not None and (not isinstance(issue, str) or not issue.strip()):
+            raise ValueError(f"{name}: known starter-order issue must have a reason")
+        expectations[name] = ExpectedReadouts(default, sequences, issue)
+    return expectations
+
+
+def assert_linear_readout(assembly: AssemblyGraph, expected: SequenceParts) -> None:
+    """Check exact direction, part boundaries, multiplicity, flat export and reload."""
+    before = assembly.to_dict()
+    readout = LinearReadout.from_assembly_graph(assembly)
+    assert readout.primary_sequence_parts() == [list(part) for part in expected], "Wrong linear readout"
+    flat = []
+    for part in expected:
+        if flat:
+            flat.append(TOKEN_LINK)
+        flat.extend(part)
+    assert readout.primary_sequence() == flat, "Wrong flat sequence readout"
+    actual = [node.enc for part in readout.paths for node in part]
+    identified = {node.enc for node in assembly.monomer_nodes() if node.is_identified}
+    assert len(actual) == len(set(actual)) and set(actual) == identified, "Missing or repeated readout units"
+    assert assembly.to_dict() == before, "Readout changed the assembly"
+    restored = AssemblyGraph.from_dict(json.loads(json.dumps(before)))
+    assert LinearReadout.from_assembly_graph(restored).primary_sequence_parts() == [list(part) for part in expected]
+
+
 def assembly_comparison_graph(result: Result, assembly: AssemblyGraph) -> nx.Graph:
     """Keep labels, original atom counts and connectivity, excluding empty nodes.
 
@@ -136,6 +219,7 @@ def assert_assemblies(
     expected: Sequence[ExpectedAssembly],
     *,
     coverage_tolerance: float = 1e-2,
+    expected_readouts: Sequence[SequenceParts] | None = None,
 ) -> None:
     """Require EVERY expected graph to occur among the valid parsed assemblies.
 
@@ -145,6 +229,8 @@ def assert_assemblies(
     """
     if not expected:
         raise ValueError("At least one expected assembly graph is required")
+    if expected_readouts is not None and len(expected_readouts) != len(expected):
+        raise ValueError("Provide one readout for every expected assembly graph")
     unmatched = {index: (fixture, fixture.graph())
                  for index, fixture in enumerate(expected, start=1)}
     space = result.assembly_space()
@@ -152,6 +238,7 @@ def assert_assemblies(
         min_coverage=max(0.0, min(alternative.coverage for alternative in expected) - coverage_tolerance),
     )
     diagnostics = []
+    readout_mismatches = []
     node_match = nx.algorithms.isomorphism.categorical_node_match(
         ["name", "heavy_atoms"], [None, None],
     )
@@ -164,6 +251,14 @@ def assert_assemblies(
             if abs(coverage - fixture.coverage) > coverage_tolerance:
                 continue
             if nx.is_isomorphic(actual_graph, expected_graph, node_match=node_match, edge_match=edge_match):
+                if expected_readouts is not None:
+                    sequence = expected_readouts[index - 1]
+                    actual = LinearReadout.from_assembly_graph(assembly).primary_sequence_parts()
+                    if actual != [list(part) for part in sequence]:
+                        if len(readout_mismatches) < 5:
+                            readout_mismatches.append(f"#{index}: expected {sequence!r}; actual {actual!r}")
+                        continue
+                    assert_linear_readout(assembly, sequence)
                 del unmatched[index]
         if not unmatched:
             return
@@ -180,4 +275,6 @@ def assert_assemblies(
         + f"\nParsed {len(space.frontiers)} valid assemblies; {len(frontiers)} meet the coverage lower bound."
         + f" Maximum coverage: {space.max_coverage:.6f}.\nFirst candidates (at most 5):\n  "
         + "\n  ".join(diagnostics)
+        + ("\nMatching graphs with wrong readouts:\n  " + "\n  ".join(readout_mismatches)
+           if readout_mismatches else "")
     )

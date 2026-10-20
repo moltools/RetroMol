@@ -1,7 +1,7 @@
 """Data structures for representing readouts from RetroMol parsing results."""
 
 from dataclasses import dataclass
-from typing import Callable, Literal, TypeVar
+from typing import Any, Callable, Literal, TypeVar
 
 import networkx as nx
 
@@ -60,12 +60,12 @@ def _remove_side_links(g: nx.Graph) -> None:
 
     A capped unit's incoming carbon and an amino acid's backbone nitrogen are
     equivalent entry sites. If an entry is connected to a preceding carboxyl
-    side, an additional acyl link to the same unit's O/S is a side attachment,
-    whether it closes a ring or joins separate chains.
+    side, an additional acyl link to a non-entry O/S/N on the same unit is a
+    side attachment, whether it closes a ring or joins separate chains.
     Being a graph bridge does not make that attachment a backbone continuation.
     An extra ether link to the already connected incoming carbon likewise does
     not replace the connection from the preceding unit's carboxyl side.
-    Esters without this competing entry evidence retain their connectivity.
+    Acyl links without this competing entry evidence retain their connectivity.
     This mutates only the readout's graph copy, never the source assembly.
     """
     nodes = {key: data["molnode"] for key, data in g.nodes(data=True)
@@ -98,13 +98,18 @@ def _remove_side_links(g: nx.Graph) -> None:
                 (bond.a1_tag, bond.a2_tag, bond.a1_symbol, bond.a2_symbol),
                 (bond.a2_tag, bond.a1_tag, bond.a2_symbol, bond.a1_symbol),
             ):
-                if bond.bond_type == "SINGLE" and carbon_symbol == "C" and hetero_symbol in ("O", "S") and (
-                    carbon in retained[u] and hetero in g.nodes[v]["tags"] and connected_entries[v]
-                    or carbon in retained[v] and hetero in g.nodes[u]["tags"] and connected_entries[u]
-                    or carbon in connected_entries[u] and hetero in g.nodes[v]["tags"]
-                    or carbon in connected_entries[v] and hetero in g.nodes[u]["tags"]
-                ):
-                    side_attachment = True
+                if bond.bond_type != "SINGLE" or carbon_symbol != "C":
+                    continue
+                for donor, acceptor in ((u, v), (v, u)):
+                    if hetero not in g.nodes[acceptor]["tags"]:
+                        continue
+                    if (hetero_symbol in ("O", "S", "N")
+                            and carbon in retained[donor]
+                            and hetero not in entries[acceptor]
+                            and connected_entries[acceptor]):
+                        side_attachment = True
+                    if hetero_symbol in ("O", "S") and carbon in connected_entries[donor]:
+                        side_attachment = True
             if not side_attachment:
                 kept.append(bond)
         if len(kept) == len(data["bonds"]):
@@ -143,14 +148,56 @@ def _readout_graph(assembly: AssemblyGraph) -> nx.Graph:
     return g
 
 
+def _connected_backbone_order(g: nx.Graph) -> list[Any] | None:
+    """Find a complete order determined by carboxyl-exit to entry connections.
+
+    Ring crosslinks can give an undirected longest path the right units in the
+    wrong order. Prefer the fragment ports when they determine a single chain
+    through every unit. This applies equally to peptide, PK, and hybrid units.
+    At each step, only one successor may still reach all remaining units; a
+    shortcut that strands units or a closure into an already visited entry
+    cannot replace the next backbone step. Ambiguous components, incomplete
+    port evidence, and rings without a source retain the usual path fallback.
+    """
+    if len(g) < 2 or any(data["molnode"].identity.matched_rule.sequence_role == "tailoring"
+                         for _, data in g.nodes(data=True)):
+        return None
+    entries = {key: _backbone_entry_tags(data["molnode"]) for key, data in g.nodes(data=True)}
+    exits = {key: _carboxyl_exit_tags(data["molnode"]) for key, data in g.nodes(data=True)}
+    directed = nx.DiGraph()
+    directed.add_nodes_from(g)
+    for u, v, data in g.edges(data=True):
+        for bond in data["bonds"]:
+            for left, right in ((bond.a1_tag, bond.a2_tag), (bond.a2_tag, bond.a1_tag)):
+                if left in exits[u] and right in entries[v]:
+                    directed.add_edge(u, v)
+                if left in entries[u] and right in exits[v]:
+                    directed.add_edge(v, u)
+    sources = [key for key, degree in directed.in_degree() if degree == 0]
+    if len(sources) != 1:
+        return None
+    path = [sources[0]]
+    remaining = set(g) - set(path)
+    while remaining:
+        subgraph = directed.subgraph(remaining)
+        candidates = [key for key in directed.successors(path[-1]) if key in remaining
+                      and len(nx.descendants(subgraph, key)) + 1 == len(remaining)]
+        if len(candidates) != 1:
+            return None
+        path.append(candidates[0])
+        remaining.remove(candidates[0])
+    return path
+
+
 def _orient_paths(assembly: AssemblyGraph, paths: list[list[MolNode]]) -> list[list[MolNode]]:
     """Orient paths toward the carboxyl end when connection evidence agrees.
 
     Root bond tags identify the actual connection; merely finding a free acid
-    (including an Asp/Glu side-chain acid) is not a direction signal. Missing or
-    contradictory connection evidence can still be resolved by a unique retained
-    terminal carboxyl. Otherwise the existing deterministic orientation is kept.
-    Closed rings keep their selected start, a convention rather than a terminus.
+    (including an Asp/Glu side-chain acid) is not a direction signal.
+    A complete order supported by entry/exit connections also corrects paths
+    saved with a crosslink in place of a backbone step. Otherwise, missing or
+    contradictory evidence can be resolved by a unique retained terminal acid.
+    Rings without a source keep a conventional start rather than a terminus.
     """
     g = _readout_graph(assembly)
     by_enc = {data["molnode"].enc: node_id for node_id, data in g.nodes(data=True)}
@@ -163,6 +210,12 @@ def _orient_paths(assembly: AssemblyGraph, paths: list[list[MolNode]]) -> list[l
         ids = [by_enc.get(node.enc) for node in path]
         if any(node_id is None for node_id in ids):
             oriented.append(path)
+            continue
+
+        connected_order = _connected_backbone_order(g.subgraph(ids))
+        if connected_order is not None:
+            by_id = dict(zip(ids, path))
+            oriented.append([by_id[node_id] for node_id in connected_order])
             continue
 
         closed = len(path) > 2 and g.has_edge(ids[-1], ids[0])
@@ -339,22 +392,25 @@ class LinearReadout:
         regardless of bond elements (e.g. a connected sugar chain). Otherwise,
         the C-C/C-N heuristic applies to non-tailoring units.
 
-        Repeatedly extract a long simple path and process its remaining branches
+        Prefer a complete chain determined by fragment entry/exit connections.
+        Otherwise extract a long simple path and process its remaining branches
         so every identified MolNode occurs exactly once. Unidentified and
         unassigned nodes are excluded before traversal, breaking paths at gaps.
         The input graph is unchanged; use its coverage to measure completeness.
         Side attachments competing with an already connected backbone entry
         (capped carbon or amino-acid N) are omitted before selecting paths.
         Carboxyl-side connections orient consistent paths N/starter-to-C end.
-        Ambiguous paths retain deterministic direction. Rings have a conventional
-        start, not a biological terminus; cyclic path selection is heuristic.
+        Ambiguous paths retain deterministic direction. Rings without a source
+        have a conventional start; their path selection remains heuristic.
         """
         g = _readout_graph(assembly_graph)
         paths: list[list[MolNode]] = []
         pending = AssemblyGraph(g, unassigned=assembly_graph.unassigned).connected_components()
         while pending:
             h = pending.pop()
-            path = h.longest_path()
+            connected_order = _connected_backbone_order(h.g)
+            path = ([h.g.nodes[node_id]["molnode"] for node_id in connected_order]
+                    if connected_order is not None else h.longest_path())
             paths.append(path)
             # Graph node IDs need not be identical to MolNode.enc.
             used = {id(node) for node in path}
