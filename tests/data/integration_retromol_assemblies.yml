@@ -1054,7 +1054,7 @@
       - ["B2", 4]
       - ["C2", 3]
       - ["cysteine", 4]
-      - ["acetic acid", 2]
+      - ["acetic acid starter", 2]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
       - [0, 7, ["C-C:SINGLE"]]
@@ -2204,7 +2204,7 @@
       - ["B1", 3]
       - ["C2", 3]
       - ["cysteine", 4]
-      - ["acetic acid", 2]
+      - ["acetic acid starter", 2]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
       - [1, 2, ["C-C:SINGLE"]]

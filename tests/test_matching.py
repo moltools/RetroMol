@@ -124,6 +124,23 @@ def test_default_starter_cases_remain_available_for_named_reconstruction(name, r
     assert [part[0] for part in reconstructed.primary_sequence] == [name + ' starter', 'A1']
 
 
+@pytest.mark.parametrize('name, prefix', [
+    ('acetic acid', '[1CH3]'), ('propanoic acid', '[1CH3][2CH2]'),
+])
+@pytest.mark.parametrize('acid, starter', [
+    ('C(=O)O', True),  # Complete cap added by PK cleavage.
+    ('[3C](=O)O', True),  # Original thiazole carbon; both oxygens restored.
+    ('[3C](=[4O])O', False),  # O-/N-acyl cleavage retains carbonyl oxygen.
+    ('[3C](=O)[5OH]', False),  # One new oxygen alone is insufficient.
+    ('[3C](=[4O])[5OH]', False),  # Original free acid.
+])
+def test_default_acid_case_accepts_restored_oxygens_with_either_carbon_origin(name, prefix, acid, starter, ruleset):
+    rule, = [r for r in ruleset.matching_rules if r.name == name]
+    identity = match_mol(smiles_to_mol(prefix + acid), [rule])
+    assert identity.name == name + (' starter' if starter else '')
+    assert identity.matched_rule.sequence_role == ('backbone' if starter else 'tailoring')
+
+
 @pytest.mark.parametrize('smiles, expected', [
     ('[1CH3]C(=O)O', True),
     ('[1CH3][2C](=[3O])O', False),  # Cleaved acetyl group; only OH is added.
@@ -191,16 +208,16 @@ def test_condition_serialization_ids_and_legacy_defaults(tmp_path):
 
 
 @pytest.mark.parametrize('smiles, expected', [
-    ('CC(=O)CC(=O)O', [['A1', 'acetic acid starter']]),
-    ('CCC(=O)CC(=O)O', [['A1', 'propanoic acid starter']]),
-    ('CC(O)CC(=O)O', [['B1', 'acetic acid starter']]),
-    ('CC=CC(=O)O', [['C1', 'acetic acid starter']]),
-    ('CCCC(=O)O', [['D1', 'acetic acid starter']]),
-    ('CC(=O)CC(=O)CC(=O)O', [['A1', 'A1', 'acetic acid starter']]),
-    ('CC(OC(C)=O)CC(=O)O', [['B1', 'acetic acid starter'], ['acetic acid']]),
-    ('NC(COC(C)=O)C(=O)NC(C)C(=O)O', [['alanine', 'serine'], ['acetic acid']]),
-    ('NC(CCCCNC(C)=O)C(=O)NC(C)C(=O)O', [['alanine', 'lysine'], ['acetic acid']]),
-    ('CC(=O)NCC(=O)NC(C)C(=O)O', [['alanine', 'glycine'], ['acetic acid']]),
+    ('CC(=O)CC(=O)O', [['acetic acid starter', 'A1']]),
+    ('CCC(=O)CC(=O)O', [['propanoic acid starter', 'A1']]),
+    ('CC(O)CC(=O)O', [['acetic acid starter', 'B1']]),
+    ('CC=CC(=O)O', [['acetic acid starter', 'C1']]),
+    ('CCCC(=O)O', [['acetic acid starter', 'D1']]),
+    ('CC(=O)CC(=O)CC(=O)O', [['acetic acid starter', 'A1', 'A1']]),
+    ('CC(OC(C)=O)CC(=O)O', [['acetic acid starter', 'B1'], ['acetic acid']]),
+    ('NC(COC(C)=O)C(=O)NC(C)C(=O)O', [['serine', 'alanine'], ['acetic acid']]),
+    ('NC(CCCCNC(C)=O)C(=O)NC(C)C(=O)O', [['lysine', 'alanine'], ['acetic acid']]),
+    ('CC(=O)NCC(=O)NC(C)C(=O)O', [['glycine', 'alanine'], ['acetic acid']]),
     ('CC(=O)O', [['acetic acid']]),
     ('CCC(=O)O', [['propanoic acid']]),
 ])

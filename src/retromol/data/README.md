@@ -106,17 +106,19 @@ For example:
 ### Conditional names and sequence roles
 
 Define the structure once, then use `cases` to assign a name and role based on
-the matched fragment's existing atom tags. The default PK cleavage rules add a complete
-carboxyl cap to the remaining chain. An acetate starter therefore has an
-artificial carboxyl carbon and oxygens (tag zero), whereas acetate cleaved from
-an acetyl substituent retains its original carbonyl atoms (positive tags):
+the matched fragment's existing atom tags. The default PK cleavage rules add a
+complete carboxyl cap to the remaining chain. Reversing thiazole formation instead
+retains the original acyl carbon and restores its carbonyl oxygen; subsequent
+amide cleavage adds the acid hydroxyl. Both starter representations have two
+reaction-added acid oxygens (tag zero). Ordinary O- or N-acetyl substituents
+retain their original carbonyl oxygen (a positive tag):
 
 ```yaml
 - name: acetic acid
   smiles: 'CC(=O)O'
   sequence_role: tailoring
   cases:
-    - requires_smarts: '[0C](=[0O])[0OH]'
+    - requires_smarts: '[C](=[0O])[0OH]'
       name: acetic acid starter
       sequence_role: backbone
 ```
@@ -139,8 +141,17 @@ contained in a matched monomer, such as N-methylalanine, stays part of that mono
 its name alone does not make the whole unit tailoring. This is a representation
 policy, not evidence that a reaction happened after backbone synthesis.
 
-Connections between two explicit `backbone` units are also retained regardless of
-bond elements. Where either non-tailoring endpoint has no role, the readout falls
+Connections between two explicit `backbone` units are initially retained regardless
+of bond elements. The readout then excludes acyl side attachments: if a unit's
+artificial S–OH cap marks an incoming carbon already connected to a preceding
+unit's carboxyl side, an extra ester/thioester connection to its O/S is omitted
+from traversal. This covers ring closures and ester attachments between separate
+backbones; both chains remain backbone sequences. Extra ether links to the already
+connected incoming carbon are also excluded, so they cannot redirect the path.
+Esters without that competing entry evidence remain eligible, including ordinary
+ester-linked backbone steps. All original bonds remain in the assembly graph.
+
+Where either non-tailoring endpoint has no role, the readout falls
 back to C–C/C–N connections. A `tailoring` endpoint always separates from an untagged
 or `backbone` endpoint. The defaults explicitly mark PK units and conditional
 acid starters as backbone and modification identities as tailoring. Other units

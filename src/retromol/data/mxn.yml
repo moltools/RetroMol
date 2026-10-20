@@ -1196,7 +1196,7 @@
   smiles: "CC(=O)O"
   sequence_role: tailoring
   cases:
-    - requires_smarts: "[0C](=[0O])[0OH]"
+    - requires_smarts: "[C](=[0O])[0OH]"
       name: acetic acid starter
       sequence_role: backbone
 
@@ -1208,7 +1208,7 @@
   smiles: "CCC(O)=O"
   sequence_role: tailoring
   cases:
-    - requires_smarts: "[0C](=[0O])[0OH]"
+    - requires_smarts: "[C](=[0O])[0OH]"
       name: propanoic acid starter
       sequence_role: backbone
 

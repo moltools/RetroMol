@@ -3,6 +3,9 @@
 from dataclasses import dataclass
 from typing import Callable, Literal, TypeVar
 
+import networkx as nx
+
+from retromol.chem.mol import smarts_to_mol
 from retromol.model.reaction_graph import MolNode, ReactionGraph
 from retromol.model.assembly_graph import AssemblyGraph
 from retromol_fingerprint.fingerprint import TOKEN_LINK
@@ -11,6 +14,184 @@ from retromol_fingerprint.fingerprint import TOKEN_LINK
 ReadoutMode = Literal["leaf_identified", "first_identified"]
 
 T = TypeVar("T")
+
+_CARBOXYL = smarts_to_mol("[CX3](=[OX1])-[OX2H1,OX1-]")
+_UNIT_ENTRY_CAP = smarts_to_mol("[#6]-[0S]-[0OH]")
+
+
+def _carboxyl_exit_tags(node: MolNode, include_added_caps: bool = True) -> set[int]:
+    """Original atoms at a fragment's carboxyl-side continuation points.
+
+    A retained carboxyl carbon is the donor in a cleaved peptide/ester link.
+    When the entire carboxyl is an added cap (tag zero), its original carbon
+    neighbor is the continuation point instead. This uses the same fragment
+    representation for peptide, PK, and hybrid paths, without rematching units.
+    """
+    exits: set[int] = set()
+    for carbon_idx, oxo_idx, hydroxyl_idx in node.mol.GetSubstructMatches(_CARBOXYL):
+        carbon = node.mol.GetAtomWithIdx(carbon_idx)
+        if carbon.GetIsotope():
+            exits.add(carbon.GetIsotope())
+        elif include_added_caps and all(node.mol.GetAtomWithIdx(i).GetIsotope() == 0
+                                        for i in (oxo_idx, hydroxyl_idx)):
+            exits.update(atom.GetIsotope() for atom in carbon.GetNeighbors()
+                         if atom.GetAtomicNum() == 6 and atom.GetIsotope())
+    return exits
+
+
+def _remove_side_links(g: nx.Graph) -> None:
+    """Omit side attachments that compete with connected backbone entries.
+
+    The artificial S-OH cap marks the original atom receiving the preceding
+    unit. If that entry is connected, an additional acyl link to the same unit's
+    O/S is a side attachment, whether it closes a ring or joins separate chains.
+    Being a graph bridge does not make that attachment a backbone continuation.
+    An extra ether link to the already connected incoming carbon likewise does
+    not replace the connection from the preceding unit's carboxyl side.
+    Esters without this competing entry evidence retain their connectivity.
+    This mutates only the readout's graph copy, never the source assembly.
+    """
+    nodes = {key: data["molnode"] for key, data in g.nodes(data=True)
+             if data["molnode"].identity.matched_rule.sequence_role != "tailoring"}
+    entries = {
+        key: {node.mol.GetAtomWithIdx(match[0]).GetIsotope()
+              for match in node.mol.GetSubstructMatches(_UNIT_ENTRY_CAP)
+              if node.mol.GetAtomWithIdx(match[0]).GetIsotope()}
+        for key, node in nodes.items()
+    }
+    if not any(entries.values()):
+        return
+    exits = {key: _carboxyl_exit_tags(node) for key, node in nodes.items()}
+    retained = {key: _carboxyl_exit_tags(node, include_added_caps=False) for key, node in nodes.items()}
+    connected_entries = {key: set() for key in nodes}
+    for u, v, data in g.edges(data=True):
+        if u not in nodes or v not in nodes:
+            continue
+        for bond in data["bonds"]:
+            for left, right in ((bond.a1_tag, bond.a2_tag), (bond.a2_tag, bond.a1_tag)):
+                if left in exits[u] and right in entries[v]:
+                    connected_entries[v].add(right)
+                if left in entries[u] and right in exits[v]:
+                    connected_entries[u].add(left)
+    if not any(connected_entries.values()):
+        return
+
+    for u, v, data in list(g.edges(data=True)):
+        if u not in nodes or v not in nodes:
+            continue
+        kept = []
+        for bond in data["bonds"]:
+            side_attachment = False
+            for carbon, hetero, symbol in (
+                (bond.a1_tag, bond.a2_tag, bond.a2_symbol),
+                (bond.a2_tag, bond.a1_tag, bond.a1_symbol),
+            ):
+                if bond.bond_type == "SINGLE" and symbol in ("O", "S") and (
+                    carbon in retained[u] and hetero in g.nodes[v]["tags"] and connected_entries[v]
+                    or carbon in retained[v] and hetero in g.nodes[u]["tags"] and connected_entries[u]
+                    or carbon in connected_entries[u] and hetero in g.nodes[v]["tags"]
+                    or carbon in connected_entries[v] and hetero in g.nodes[u]["tags"]
+                ):
+                    side_attachment = True
+            if not side_attachment:
+                kept.append(bond)
+        if len(kept) == len(data["bonds"]):
+            continue
+        if kept:
+            g[u][v].update(bonds=kept, n_bonds=len(kept))
+        else:
+            g.remove_edge(u, v)
+
+
+def _readout_graph(assembly: AssemblyGraph) -> nx.Graph:
+    """Shared connectivity for both path selection and path orientation."""
+    g = assembly.g.copy()
+    if g.has_node(assembly.unassigned):
+        g.remove_node(assembly.unassigned)
+    roles = {}
+    for node_id, data in list(g.nodes(data=True)):
+        node = data.get("molnode")
+        if node is None:
+            raise ValueError(f"AssemblyGraph node {node_id!r} has no 'molnode' attached!")
+        if not node.is_identified or node.identity is None:
+            g.remove_node(node_id)
+            continue
+        roles[node_id] = node.identity.matched_rule.sequence_role
+
+    backbone_pairs = {frozenset(("C", "C")), frozenset(("C", "N"))}
+    for u, v, data in list(g.edges(data=True)):
+        if roles[u] is not None and roles[u] == roles[v]:
+            continue
+        if "tailoring" in (roles[u], roles[v]) or not any(
+            frozenset((bond.a1_symbol, bond.a2_symbol)) in backbone_pairs
+            for bond in data["bonds"]
+        ):
+            g.remove_edge(u, v)
+    _remove_side_links(g)
+    return g
+
+
+def _orient_paths(assembly: AssemblyGraph, paths: list[list[MolNode]]) -> list[list[MolNode]]:
+    """Orient paths toward the carboxyl end when connection evidence agrees.
+
+    Root bond tags identify the actual connection; merely finding a free acid
+    (including an Asp/Glu side-chain acid) is not a direction signal. Missing or
+    contradictory connection evidence can still be resolved by a unique retained
+    terminal carboxyl. Otherwise the existing deterministic orientation is kept.
+    Closed rings keep their selected start, a convention rather than a terminus.
+    """
+    g = _readout_graph(assembly)
+    by_enc = {data["molnode"].enc: node_id for node_id, data in g.nodes(data=True)}
+    exits = {node.enc: _carboxyl_exit_tags(node) for path in paths for node in path}
+    oriented = []
+    for path in paths:
+        if len(path) < 2 or any(node.identity.matched_rule.sequence_role == "tailoring" for node in path):
+            oriented.append(path)
+            continue
+        ids = [by_enc.get(node.enc) for node in path]
+        if any(node_id is None for node_id in ids):
+            oriented.append(path)
+            continue
+
+        closed = len(path) > 2 and g.has_edge(ids[-1], ids[0])
+        steps = list(zip(range(len(path) - 1), range(1, len(path))))
+        if closed:
+            steps.append((len(path) - 1, 0))
+        directions: set[int] = set()
+        for i, j in steps:
+            edge = g.get_edge_data(ids[i], ids[j])
+            if edge is None:
+                continue
+            left_tags = g.nodes[ids[i]]["tags"]
+            right_tags = g.nodes[ids[j]]["tags"]
+            for bond in edge["bonds"]:
+                # Root bond begin/end order is unrelated to sequence direction.
+                for left, right in ((bond.a1_tag, bond.a2_tag), (bond.a2_tag, bond.a1_tag)):
+                    if left in left_tags and right in right_tags:
+                        if left in exits[path[i].enc]:
+                            directions.add(1)
+                        if right in exits[path[j].enc]:
+                            directions.add(-1)
+        reverse = directions == {-1}
+        if len(directions) != 1 and not closed:
+            terminal_ends = []
+            for i, j in ((0, 1), (len(path) - 1, len(path) - 2)):
+                retained = _carboxyl_exit_tags(path[i], include_added_caps=False)
+                edge = g.get_edge_data(ids[i], ids[j], {})
+                connected = {tag for bond in edge.get("bonds", []) for tag in (bond.a1_tag, bond.a2_tag)}
+                # A side-chain acid is not a terminal anchor when the same unit
+                # donates through another retained carboxyl to its neighbor.
+                if retained and not retained.intersection(connected):
+                    terminal_ends.append(i)
+            if len(terminal_ends) == 1:
+                reverse = terminal_ends[0] == 0
+        if reverse:
+            path = list(reversed(path))
+            if closed:
+                # Preserve the chosen ring start while reversing its traversal.
+                path = path[-1:] + path[:-1]
+        oriented.append(path)
+    return oriented
 
 
 def merge_named_paths(paths: list[list[T]], key: Callable[[T], str], link_item: T) -> list[T]:
@@ -79,7 +260,7 @@ class LinearReadout:
     paths: list[list[MolNode]]
 
     def __post_init__(self) -> None:
-        """Keep direct construction and older serialized paths identified-only."""
+        """Normalize identified paths and their direction, including saved paths."""
         paths: list[list[MolNode]] = []
         for path in self.paths:
             part: list[MolNode] = []
@@ -91,6 +272,8 @@ class LinearReadout:
                     part = []
             if part:
                 paths.append(part)
+        paths = _orient_paths(self.assembly_graph, paths)
+        paths.sort(key=lambda path: (-len(path), [_node_name(node) for node in path], [node.enc for node in path]))
         object.__setattr__(self, "paths", paths)
 
     def __str__(self) -> str:
@@ -148,33 +331,13 @@ class LinearReadout:
         so every identified MolNode occurs exactly once. Unidentified and
         unassigned nodes are excluded before traversal, breaking paths at gaps.
         The input graph is unchanged; use its coverage to measure completeness.
-        Rings are opened deterministically, without assigning a biological start
-        or direction; cyclic path selection is heuristic.
+        Ester closures competing with an already connected cap-defined unit
+        entry are omitted from traversal before selecting paths.
+        Carboxyl-side connections orient consistent paths N/starter-to-C end.
+        Ambiguous paths retain deterministic direction. Rings have a conventional
+        start, not a biological terminus; cyclic path selection is heuristic.
         """
-        g = assembly_graph.g.copy()
-        if g.has_node(assembly_graph.unassigned):
-            g.remove_node(assembly_graph.unassigned)
-
-        roles = {}
-        for node_id, data in list(g.nodes(data=True)):
-            node = data.get("molnode")
-            if node is None:
-                raise ValueError(f"AssemblyGraph node {node_id!r} has no 'molnode' attached!")
-            if not node.is_identified or node.identity is None:
-                g.remove_node(node_id)
-                continue
-            roles[node_id] = node.identity.matched_rule.sequence_role
-
-        backbone_pairs = {frozenset(("C", "C")), frozenset(("C", "N"))}
-        for u, v, data in list(g.edges(data=True)):
-            if roles[u] is not None and roles[u] == roles[v]:
-                continue
-            if "tailoring" in (roles[u], roles[v]) or not any(
-                frozenset((bond.a1_symbol, bond.a2_symbol)) in backbone_pairs
-                for bond in data["bonds"]
-            ):
-                g.remove_edge(u, v)
-
+        g = _readout_graph(assembly_graph)
         paths: list[list[MolNode]] = []
         pending = AssemblyGraph(g, unassigned=assembly_graph.unassigned).connected_components()
         while pending:
@@ -186,7 +349,6 @@ class LinearReadout:
             h.g.remove_nodes_from([n for n, data in h.g.nodes(data=True) if id(data["molnode"]) in used])
             pending.extend(h.connected_components())
 
-        paths.sort(key=lambda path: (-len(path), [_node_name(node) for node in path], [node.enc for node in path]))
         return cls(assembly_graph=assembly_graph, paths=paths)
 
     def primary_sequence_parts(self) -> list[list[str]]:
@@ -197,6 +359,7 @@ class LinearReadout:
         coverage measures completeness. Sublists do not encode attachment
         points, omitted crosslinks, or ring closures; retain ``assembly_graph``
         when those are needed. Untagged paths are not biological role labels.
+        Consistent carboxyl-side connection evidence puts the N/starter end first.
         """
         return sorted(
             [[_node_name(node) for node in path] for path in self.paths],
@@ -247,8 +410,10 @@ def assembly_to_primary_sequence(assembly_graph: AssemblyGraph) -> list[list[str
     Uses matching-rule sequence roles with a C-C/C-N fallback and includes every
     identified monomer once. Unresolved and unassigned regions are excluded;
     use ``result.calculate_coverage(assembly_graph)`` for completeness. Parts are ordered
-    longest first, then lexically. Ordering is structural, not biosynthetic;
-    branch attachments and ring closures remain in the input assembly graph.
+    longest first, then lexically. Within each path, consistent carboxyl-side
+    connections orient N/starter-to-C end; ambiguous paths retain deterministic
+    order. This is not proof of biosynthesis. Branch attachments and ring closures
+    remain in the input assembly graph.
 
     For the corresponding MolNodes (including atom tags and identities), use
     ``LinearReadout.from_assembly_graph(assembly_graph).paths``.

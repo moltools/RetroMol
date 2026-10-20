@@ -6,6 +6,7 @@ from dataclasses import replace
 
 import networkx as nx
 import pytest
+from rdkit import Chem
 
 from retromol.chem.mol import smiles_to_mol
 from retromol.model.assembly_graph import AssemblyGraph, RootBondLink
@@ -16,6 +17,7 @@ from retromol.model.result import Result
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol.model.submission import Submission
 from retromol.pipelines.parsing import run_retromol
+from retromol_synthesis.reconstruction import reconstruct_linear_readout
 
 
 def assembly(names, edges=(), roles=None):
@@ -190,3 +192,148 @@ def test_sequences_from_sampled_assemblies_and_saved_result(ruleset):
     assert all(len(parts) == 1 for parts in sequences)
     restored = Result.from_dict(json.loads(json.dumps(result.to_dict())))
     assert [assembly_to_primary_sequence(a) for a in restored.sample_assemblies(10, seed=42)] == sequences
+
+
+@pytest.mark.parametrize('reverse_atoms', [False, True])
+@pytest.mark.parametrize('smiles, expected', [
+    ('NCC(=O)NC(C)C(=O)O', [['glycine', 'alanine']]),
+    ('CC(N)C(=O)NCC(=O)O', [['alanine', 'glycine']]),
+    ('NC(CC(=O)O)C(=O)NC(C)C(=O)O', [['aspartic acid', 'alanine']]),
+    ('NCC(=O)NC(CC(=O)O)C(=O)O', [['glycine', 'aspartic acid']]),
+    ('NCC(=O)N(C)C(C)C(=O)O', [['glycine', 'N-methylalanine']]),
+    ('NCC(=O)NC(C)C(N)=O', [['glycine', 'alanine'], ['amination']]),
+    ('CC(=O)CC(O)CC(=O)O', [['acetic acid starter', 'A1', 'B1']]),
+    ('CCC(=O)CC(=O)O', [['propanoic acid starter', 'A1']]),
+    ('NCC(=O)CC(=O)O', [['glycine', 'A1']]),
+    ('CC(=O)CC(=O)NCC(=O)NC(C)C(=O)O', [['acetic acid starter', 'A1', 'glycine', 'alanine']]),
+    ('CC(=O)CC(=O)NCC(=O)CC(=O)O', [['acetic acid starter', 'A1', 'glycine', 'A1']]),
+])
+def test_readout_runs_from_n_or_starter_end_to_carboxyl_end(smiles, expected, reverse_atoms, ruleset):
+    mol = smiles_to_mol(smiles)
+    if reverse_atoms:
+        mol = Chem.RenumberAtoms(mol, list(reversed(range(mol.GetNumAtoms()))))
+    result = run_retromol(Submission(Chem.MolToSmiles(mol, canonical=False)), ruleset)
+    a = result.assembly_graph
+    before = a.to_dict()
+    readout = LinearReadout.from_assembly_graph(a)
+    assert readout.primary_sequence_parts() == expected
+    assert a.to_dict() == before
+    assert result.calculate_coverage(a) == 1.0
+    # Orientation must also work without the in-memory root molecule.
+    restored = AssemblyGraph.from_dict(json.loads(json.dumps(before)))
+    assert 'root_mol' not in restored.g.graph
+    assert assembly_to_primary_sequence(restored) == expected
+    # Direct construction and old saved readouts may contain the opposite direction.
+    reversed_readout = readout.to_dict()
+    reversed_readout['paths'] = [list(reversed(path)) for path in reversed_readout['paths']]
+    assert LinearReadout.from_dict(reversed_readout).primary_sequence_parts() == expected
+    assert LinearReadout(a, [list(reversed(path)) for path in readout.paths]).primary_sequence_parts() == expected
+
+
+def test_oxygen_linked_backbone_uses_the_same_direction_rule(ruleset):
+    backbone_rules = replace(ruleset, matching_rules=[
+        replace(rule, sequence_role='backbone') if rule.name in ('glycine', 'lactic acid', 'alanine') else rule
+        for rule in ruleset.matching_rules
+    ])
+    result = run_retromol(Submission('NCC(=O)OC(C)C(=O)NC(C)C(=O)O'), backbone_rules)
+    assert result.linear_readout.primary_sequence_parts() == [['glycine', 'lactic acid', 'alanine']]
+
+
+def test_retained_terminal_carboxyl_anchors_alternative_pk_decompositions(ruleset):
+    # This structure also admits a reverse-cut route containing malonic acid.
+    # Its competing artificial caps must not put the retained terminal acid first.
+    result = run_retromol(Submission('CCC(=O)CC(O)CC(=O)O'), ruleset)
+    sequences = [assembly_to_primary_sequence(a) for a in result.sample_assemblies(10, seed=42)]
+    assert sorted(sequences) == sorted([
+        [['propanoic acid starter', 'A1', 'B1']],
+        [['propanoic acid starter', 'B1', 'malonic acid']],
+    ])
+
+
+def test_carboxyl_direction_does_not_reorient_tailoring_paths(ruleset):
+    tailoring_rules = replace(ruleset, matching_rules=[
+        replace(rule, sequence_role='tailoring') for rule in ruleset.matching_rules
+    ])
+    result = run_retromol(Submission('NCC(=O)NC(C)C(=O)O'), tailoring_rules)
+    assert result.linear_readout.primary_sequence_parts() == [['alanine', 'glycine']]
+
+
+def test_converging_carboxyl_links_do_not_invent_a_direction(ruleset):
+    # Gly and Ala both donate to Lys (backbone N and side-chain N respectively).
+    # The undirected path has no consistent N-to-C traversal through all three.
+    result = run_retromol(Submission('NCC(=O)NC(CCCCNC(=O)C(N)C)C(=O)O'), ruleset)
+    expected = [[node.identity.name for node in result.assembly_graph.longest_path()]]
+    assert result.linear_readout.primary_sequence_parts() == expected
+    assert len(expected[0]) == 3
+
+
+def test_cyclic_peptide_preserves_conventional_start_and_carboxyl_direction(ruleset):
+    # Around this ring: Gly -> Ala -> Ser -> Gly; there is no natural terminus.
+    result = run_retromol(Submission('O=C1NCC(=O)NC(C)C(=O)NC(CO)1'), ruleset)
+    readout = result.linear_readout
+    assert readout.primary_sequence_parts() == [['alanine', 'serine', 'glycine']]
+    restored = LinearReadout.from_dict(readout.to_dict())
+    assert restored.primary_sequence_parts() == readout.primary_sequence_parts()
+
+
+def test_reconstruction_consumes_the_oriented_peptide_readout(ruleset):
+    smiles = 'NCC(=O)NC(C)C(=O)O'
+    result = run_retromol(Submission(smiles), ruleset)
+    reconstruction, = reconstruct_linear_readout(result)
+    assert [name for name, _ in reconstruction.primary_sequence] == ['glycine', 'alanine']
+    mol = smiles_to_mol(reconstruction.tagged_backbone_smiles)
+    for atom in mol.GetAtoms():
+        atom.SetIsotope(0)
+    assert Chem.MolToSmiles(mol) == Chem.MolToSmiles(smiles_to_mol(smiles))
+
+
+ARTIFICIAL_ERYTHROMYCIN = (
+    'CC[C@@H]1[C@@](C)(O)[C@H](O)[C@@H](C)C([C@H](C)C[C@@](C)(OC(C)=O)'
+    '[C@H](O[C@H]2[C@H](O)[C@@H](N(C)C)C[C@@H](C)O2)[C@@H](C)'
+    '[C@H](O[C@H]3C[C@@](C)(O)[C@@H](O)[C@H](C)O3)[C@@H](C)C(O1)=O)=O'
+)
+
+
+@pytest.mark.parametrize('stereo', [False, True])
+@pytest.mark.parametrize('reverse_atoms', [False, True])
+def test_macrolactone_closure_does_not_shortcut_the_linear_backbone(stereo, reverse_atoms, ruleset, stereo_ruleset):
+    mol = smiles_to_mol(ARTIFICIAL_ERYTHROMYCIN)
+    if reverse_atoms:
+        mol = Chem.RenumberAtoms(mol, list(reversed(range(mol.GetNumAtoms()))))
+    result = run_retromol(Submission(Chem.MolToSmiles(mol, canonical=False)), stereo_ruleset if stereo else ruleset)
+    a = result.assembly_graph
+    before = a.to_dict()
+    backbone = ['propanoic acid starter', 'B^R6^S', 'B^S2^S', 'A2^R', 'D6^S', 'B^S2^S', 'B^S2^S'] if stereo else [
+        'propanoic acid starter', 'B6', 'B2', 'A2', 'D6', 'B2', 'B2',
+    ]
+    expected = [backbone, ['acetic acid'], ['glycosylation'], ['glycosylation']]
+    readout = LinearReadout.from_assembly_graph(a)
+    assert readout.primary_sequence_parts() == expected
+    assert result.calculate_coverage(a) == 1.0
+    assert a.to_dict() == before
+    assert assembly_to_primary_sequence(AssemblyGraph.from_dict(json.loads(json.dumps(before)))) == expected
+    # Every sequential connection follows C-C; the original lactone closure is
+    # still present as a C-O connection between the first and last PK units.
+    path = readout.paths[0]
+    assert a.g.has_edge(path[1].enc, path[-1].enc)
+    for left, right in zip(path, path[1:]):
+        assert all((b.a1_symbol, b.a2_symbol) == ('C', 'C') for b in a.g[left.enc][right.enc]['bonds'])
+
+    # Direction/topology must not depend on a name containing "starter".
+    renamed = a.g.copy()
+    for i, node in enumerate(path):
+        identity = MolIdentity(replace(node.identity.matched_rule, name=f'unit-{len(path) - i}'))
+        renamed.nodes[node.enc]['molnode'] = replace(node, identity=identity)
+        renamed.nodes[node.enc]['identity'] = identity
+    renamed_path = LinearReadout.from_assembly_graph(AssemblyGraph(renamed)).paths[0]
+    assert [node.enc for node in renamed_path] == [node.enc for node in path]
+
+    # A side attachment must not become a continuation merely because it is
+    # the only link between two chains. The acceptor still has its own entry.
+    opened = a.g.copy()
+    opened.remove_edge(path[3].enc, path[4].enc)
+    opened_readout = LinearReadout.from_assembly_graph(AssemblyGraph(opened))
+    closure_pair = {path[1].enc, path[-1].enc}
+    assert not any({left.enc, right.enc} == closure_pair
+                   for part in opened_readout.paths for left, right in zip(part, part[1:]))
+    assert opened_readout.primary_sequence_parts() == [backbone[:4], backbone[4:], *expected[1:]]
