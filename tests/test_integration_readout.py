@@ -25,9 +25,34 @@ NEOPELTOLIDE = (
     r'O=C(/C=C\CCC1=COC(/C=C\CNC(OC)=O)=N1)O[C@@H]2C[C@@H]('
     r'C[C@@H](C)C[C@H](OC)C[C@H](CCC)OC(C3)=O)O[C@@H]3C2'
 )
+THIOCORALINE = (
+    'CSCC1N(C)C(=O)C2CSSCC(N(C)C(=O)CNC(=O)C(CSC1=O)NC(=O)'
+    'C1=NC3=CC=CC=C3C=C1O)C(=O)N(C)C(CSC)C(=O)SCC(NC(=O)'
+    'C1=C(O)C=C3C=CC=CC3=N1)C(=O)NCC(=O)N2C'
+)
 
 
 READOUT_CASES = [
+    pytest.param(
+        dict(ASSEMBLY_CASES)['enterobactin'],
+        [['2,3-dihydroxybenzoic acid', 'serine'],
+         ['2,3-dihydroxybenzoic acid', 'serine'],
+         ['2,3-dihydroxybenzoic acid', 'serine']],
+        [['2,3-dihydroxybenzoic acid', 'serine'],
+         ['2,3-dihydroxybenzoic acid', 'serine'],
+         ['2,3-dihydroxybenzoic acid', 'serine']],
+        id='enterobactin',
+    ),
+    pytest.param(
+        THIOCORALINE,
+        [['3-hydroxyquinaldic acid', 'cysteine', 'glycine', 'N-methylcysteine', 'N-methylcysteine'],
+         ['3-hydroxyquinaldic acid', 'cysteine', 'glycine', 'N-methylcysteine', 'N-methylcysteine'],
+         ['methylation'], ['methylation']],
+        [['3-hydroxyquinaldic acid', 'cysteine', 'glycine', 'N-methylcysteine', 'N-methylcysteine'],
+         ['3-hydroxyquinaldic acid', 'cysteine', 'glycine', 'N-methylcysteine', 'N-methylcysteine'],
+         ['methylation'], ['methylation']],
+        id='thiocoraline',
+    ),
     pytest.param(
         NEOPELTOLIDE,
         [['acetic acid starter', 'D1', 'B1', 'B1', 'D8', 'B1', 'B1', 'C1'],

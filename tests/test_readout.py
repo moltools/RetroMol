@@ -12,7 +12,7 @@ from retromol.chem.mol import smiles_to_mol
 from retromol.model.assembly_graph import AssemblyGraph, RootBondLink
 from retromol.model.identity import MolIdentity
 from retromol.model.reaction_graph import MolNode
-from retromol.model.readout import LinearReadout, assembly_to_primary_sequence, split_named_paths
+from retromol.model.readout import LinearReadout, _backbone_entry_tags, assembly_to_primary_sequence, split_named_paths
 from retromol.model.result import Result
 from retromol.model.rules import MatchingRule, RuleSet
 from retromol.model.submission import Submission
@@ -237,6 +237,30 @@ def test_oxygen_linked_backbone_uses_the_same_direction_rule(ruleset):
     ])
     result = run_retromol(Submission('NCC(=O)OC(C)C(=O)NC(C)C(=O)O'), backbone_rules)
     assert result.linear_readout.primary_sequence_parts() == [['glycine', 'lactic acid', 'alanine']]
+
+
+@pytest.mark.parametrize('smiles, expected', [
+    ('NCC(=O)NC(COC(=O)C(C)N)C(=O)O', [['glycine', 'serine'], ['alanine']]),
+    ('NCC(=O)N(C)C(COC(=O)C(C)N)C(=O)O', [['glycine', 'N-methylserine'], ['alanine']]),
+    ('NC(COC(=O)C(C)N)C(=O)O', [['alanine', 'serine']]),
+])
+def test_amino_entry_connection_distinguishes_side_esters_from_continuations(smiles, expected, ruleset):
+    # All units are explicitly backbone, so separation cannot come from the
+    # fallback bond filter. An unconnected amine alone does not exclude an ester.
+    backbone_rules = replace(ruleset, matching_rules=[
+        replace(rule, sequence_role='backbone')
+        if rule.name in ('glycine', 'alanine', 'serine', 'N-methylserine') else rule
+        for rule in ruleset.matching_rules
+    ])
+    result = run_retromol(Submission(smiles), backbone_rules)
+    assert result.linear_readout.primary_sequence_parts() == expected
+    assert result.calculate_coverage() == 1.0
+
+
+def test_amino_entry_excludes_lysine_side_chain_nitrogen():
+    tagged = '[1NH2][2CH]([3CH2][4CH2][5CH2][6CH2][7NH2])[8C](=[9O])[10OH]'
+    node = MolNode('lysine', smiles_to_mol(tagged), 'NC(CCCCN)C(=O)O')
+    assert _backbone_entry_tags(node) == {1}
 
 
 def test_retained_terminal_carboxyl_anchors_alternative_pk_decompositions(ruleset):

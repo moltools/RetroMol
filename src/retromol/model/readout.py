@@ -17,6 +17,7 @@ T = TypeVar("T")
 
 _CARBOXYL = smarts_to_mol("[CX3](=[OX1])-[OX2H1,OX1-]")
 _UNIT_ENTRY_CAP = smarts_to_mol("[#6]-[0S]-[0OH]")
+_AMINO_ACID_ENTRY = smarts_to_mol("[NX3,NX4+]-[CX4]-[CX3](=[OX1])-[OX2H1,OX1-]")
 
 
 def _carboxyl_exit_tags(node: MolNode, include_added_caps: bool = True) -> set[int]:
@@ -39,12 +40,28 @@ def _carboxyl_exit_tags(node: MolNode, include_added_caps: bool = True) -> set[i
     return exits
 
 
+def _backbone_entry_tags(node: MolNode) -> set[int]:
+    """Incoming carbon of a capped unit or backbone N of an amino acid.
+
+    The N must be attached to the carbon next to the fragment's carboxyl;
+    unrelated amino groups (such as lysine's side-chain N) are not entries.
+    Original tags let these same sites be located in the assembly's root bonds.
+    """
+    return {
+        node.mol.GetAtomWithIdx(match[0]).GetIsotope()
+        for pattern in (_UNIT_ENTRY_CAP, _AMINO_ACID_ENTRY)
+        for match in node.mol.GetSubstructMatches(pattern)
+        if node.mol.GetAtomWithIdx(match[0]).GetIsotope()
+    }
+
+
 def _remove_side_links(g: nx.Graph) -> None:
     """Omit side attachments that compete with connected backbone entries.
 
-    The artificial S-OH cap marks the original atom receiving the preceding
-    unit. If that entry is connected, an additional acyl link to the same unit's
-    O/S is a side attachment, whether it closes a ring or joins separate chains.
+    A capped unit's incoming carbon and an amino acid's backbone nitrogen are
+    equivalent entry sites. If an entry is connected to a preceding carboxyl
+    side, an additional acyl link to the same unit's O/S is a side attachment,
+    whether it closes a ring or joins separate chains.
     Being a graph bridge does not make that attachment a backbone continuation.
     An extra ether link to the already connected incoming carbon likewise does
     not replace the connection from the preceding unit's carboxyl side.
@@ -53,12 +70,7 @@ def _remove_side_links(g: nx.Graph) -> None:
     """
     nodes = {key: data["molnode"] for key, data in g.nodes(data=True)
              if data["molnode"].identity.matched_rule.sequence_role != "tailoring"}
-    entries = {
-        key: {node.mol.GetAtomWithIdx(match[0]).GetIsotope()
-              for match in node.mol.GetSubstructMatches(_UNIT_ENTRY_CAP)
-              if node.mol.GetAtomWithIdx(match[0]).GetIsotope()}
-        for key, node in nodes.items()
-    }
+    entries = {key: _backbone_entry_tags(node) for key, node in nodes.items()}
     if not any(entries.values()):
         return
     exits = {key: _carboxyl_exit_tags(node) for key, node in nodes.items()}
@@ -82,11 +94,11 @@ def _remove_side_links(g: nx.Graph) -> None:
         kept = []
         for bond in data["bonds"]:
             side_attachment = False
-            for carbon, hetero, symbol in (
-                (bond.a1_tag, bond.a2_tag, bond.a2_symbol),
-                (bond.a2_tag, bond.a1_tag, bond.a1_symbol),
+            for carbon, hetero, carbon_symbol, hetero_symbol in (
+                (bond.a1_tag, bond.a2_tag, bond.a1_symbol, bond.a2_symbol),
+                (bond.a2_tag, bond.a1_tag, bond.a2_symbol, bond.a1_symbol),
             ):
-                if bond.bond_type == "SINGLE" and symbol in ("O", "S") and (
+                if bond.bond_type == "SINGLE" and carbon_symbol == "C" and hetero_symbol in ("O", "S") and (
                     carbon in retained[u] and hetero in g.nodes[v]["tags"] and connected_entries[v]
                     or carbon in retained[v] and hetero in g.nodes[u]["tags"] and connected_entries[u]
                     or carbon in connected_entries[u] and hetero in g.nodes[v]["tags"]
@@ -323,7 +335,7 @@ class LinearReadout:
         """Partition a sampled assembly into deterministic, disjoint paths.
 
         Matching-rule ``sequence_role`` separates tailoring units from other
-        units. Connections between units with the same explicit role survive
+        units. Connections between units with the same explicit role are candidates
         regardless of bond elements (e.g. a connected sugar chain). Otherwise,
         the C-C/C-N heuristic applies to non-tailoring units.
 
@@ -331,8 +343,8 @@ class LinearReadout:
         so every identified MolNode occurs exactly once. Unidentified and
         unassigned nodes are excluded before traversal, breaking paths at gaps.
         The input graph is unchanged; use its coverage to measure completeness.
-        Ester closures competing with an already connected cap-defined unit
-        entry are omitted from traversal before selecting paths.
+        Side attachments competing with an already connected backbone entry
+        (capped carbon or amino-acid N) are omitted before selecting paths.
         Carboxyl-side connections orient consistent paths N/starter-to-C end.
         Ambiguous paths retain deterministic direction. Rings have a conventional
         start, not a biological terminus; cyclic path selection is heuristic.

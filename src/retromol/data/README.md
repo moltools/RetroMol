@@ -142,14 +142,19 @@ its name alone does not make the whole unit tailoring. This is a representation
 policy, not evidence that a reaction happened after backbone synthesis.
 
 Connections between two explicit `backbone` units are initially retained regardless
-of bond elements. The readout then excludes acyl side attachments: if a unit's
-artificial S–OH cap marks an incoming carbon already connected to a preceding
-unit's carboxyl side, an extra ester/thioester connection to its O/S is omitted
+of bond elements. The readout then distinguishes backbone continuation from side
+attachments using connection sites in the fragments: an incoming carbon marked
+by an artificial S–OH cap, or an alpha-amino acid's backbone nitrogen. If that
+entry is already connected to a preceding unit's carboxyl side, an extra
+ester/thioester connection to the unit's O/S is omitted
 from traversal. This covers ring closures and ester attachments between separate
 backbones; both chains remain backbone sequences. Extra ether links to the already
 connected incoming carbon are also excluded, so they cannot redirect the path.
 Esters without that competing entry evidence remain eligible, including ordinary
 ester-linked backbone steps. All original bonds remain in the assembly graph.
+For example, enterobactin's three N-acylated serines yield three identical
+`['2,3-dihydroxybenzoic acid', 'serine']` paths; their side-chain ester links do
+not merge those paths. Repeated parts are retained as separate occurrences.
 
 Where either non-tailoring endpoint has no role, the readout falls
 back to C–C/C–N connections. A `tailoring` endpoint always separates from an untagged
