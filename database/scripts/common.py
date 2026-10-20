@@ -58,7 +58,7 @@ def build_fingerprint_context(ruleset: RuleSet) -> tuple[dict[str, MatchingRule]
     vocab_tokens: set[str] = set()
     name_to_rule: dict[str, MatchingRule] = {}
 
-    for rule in ruleset.matching_rules:
+    for rule in ruleset.matching_rule_variants:
         vocab_tokens.add(rule.name)
         vocab_tokens.update(rule.pseudonyms)
         name_to_rule.setdefault(rule.name, rule)

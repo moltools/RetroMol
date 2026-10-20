@@ -11,6 +11,7 @@ from enum import Enum
 from typing import Any, Literal, overload
 
 from retromol.chem.mol import smiles_to_mol
+from retromol.chem.tagging import tag_mol
 from retromol.model.rules import RuleSet
 from retromol_antismash.model import Region, Gene, Strand, Domain
 from retromol_antismash.predictions import (
@@ -1167,7 +1168,7 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
         the same "unidentified block" convention used for compound primary sequences.
     """
     def _by_name(name: str) -> tuple[str, list[str]] | None:
-        matches = [r for r in ruleset.matching_rules if r.name == name]
+        matches = [r for r in ruleset.matching_rule_variants if r.name == name]
         if not matches:
             return None
         tokens: set[str] = set()
@@ -1246,6 +1247,9 @@ def module_primary_sequence_tokens(module: Module, ruleset: RuleSet) -> tuple[st
     except ValueError:
         return "X", []
 
+    # Predicted substrates are input structures, not reaction-added fragments.
+    # Preserve that distinction for origin-sensitive requires_smarts conditions.
+    tag_mol(mol)
     matches = ruleset.find_structural_matches(mol, match_stereochemistry=ruleset.match_stereochemistry)
     if not matches:
         return "X", []

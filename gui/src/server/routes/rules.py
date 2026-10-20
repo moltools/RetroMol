@@ -119,6 +119,16 @@ def rule_set() -> tuple[Response, int]:
             "terminal": r.terminal,
             "stereochemistry": r.stereochemistry,
             "preserveAcrossRoutes": r.preserve_across_routes,
+            "sequenceRole": r.sequence_role,
+            "requiresSmarts": r.requires_smarts,
+            "cases": [
+                {
+                    "requiresSmarts": case.requires_smarts,
+                    "name": case.name,
+                    "sequenceRole": case.sequence_role,
+                }
+                for case in r.cases
+            ],
             "props": r.props,
         }
         for r in rules.matching_rules

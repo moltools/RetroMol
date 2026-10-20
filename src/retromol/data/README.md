@@ -79,6 +79,8 @@ This file is also a YAML list.
 | --- | --- | --- |
 | `name` | String; required | Identity assigned to the matched fragment and used in assembly graphs. Multiple structural entries can share a name, for example keto/enol representations of one unit. |
 | `smiles` | String; required | The whole fragment structure to recognize, including any artificial caps expected after disconnection. This field takes SMILES, not a SMARTS query. |
+| `requires_smarts` | SMARTS string or `null`; `null` | Additional substructure condition on the tagged fragment. Both this query and the whole-fragment `smiles` match must succeed. Compiled and validated when loading the rule. |
+| `cases` | List; `[]` | Conditional `name` and/or `sequence_role` overrides after the structural match. Each case requires `requires_smarts`; the first matching case wins, otherwise the rule's defaults apply. |
 | `pseudonyms` | List of strings; `[]` | Alternative names or broader groups, such as `PK_A` and `PK`, used by downstream representations and BGC matching. They do not change the structural match. |
 | `terminal` | Boolean; `true` | Stop expanding a fragment identified by this rule. With `false`, keep its identity but also allow further reactions and finer assemblies. |
 | `stereochemistry` | Boolean; `false` | Marks a stereo-specific rule. These rules are prioritized when global stereochemical matching is enabled and skipped when it is disabled. |
@@ -99,6 +101,24 @@ For example:
   preserve_across_routes: false
   props:
     note: Formal capped beta-keto PK unit.
+```
+
+### Conditional names and sequence roles
+
+Define the structure once, then use `cases` to assign a name and role based on
+the matched fragment's existing atom tags. The default PK cleavage rules add a complete
+carboxyl cap to the remaining chain. An acetate starter therefore has an
+artificial carboxyl carbon and oxygens (tag zero), whereas acetate cleaved from
+an acetyl substituent retains its original carbonyl atoms (positive tags):
+
+```yaml
+- name: acetic acid
+  smiles: 'CC(=O)O'
+  sequence_role: tailoring
+  cases:
+    - requires_smarts: '[0C](=[0O])[0OH]'
+      name: acetic acid starter
+      sequence_role: backbone
 ```
 
 ### Backbone and tailoring roles
@@ -122,8 +142,9 @@ policy, not evidence that a reaction happened after backbone synthesis.
 Connections between two explicit `backbone` units are also retained regardless of
 bond elements. Where either non-tailoring endpoint has no role, the readout falls
 back to C–C/C–N connections. A `tailoring` endpoint always separates from an untagged
-or `backbone` endpoint. The defaults mark the existing modification identities as
-tailoring and leave other units untagged; no role is inferred from size or degree.
+or `backbone` endpoint. The defaults explicitly mark PK units and conditional
+acid starters as backbone and modification identities as tailoring. Other units
+can remain untagged; no role is inferred from size or degree.
 Role choices can depend on the intended compound class, so use custom matching
 rules where a motif plays a different role.
 
@@ -181,7 +202,14 @@ Use YAML booleans `true` and `false`, not quoted strings. Quote SMILES/SMARTS; s
 
 Older YAML files and saved results with `props.preserve_across_routes` or `props.product_max_matches` are still accepted through `from_dict`. Loading moves these values out of metadata. If both locations occur, the explicit top-level value wins, including `true` or an empty `{}`. Serialization always writes the new top-level fields. When constructing Python rule objects directly, pass these settings as named constructor arguments.
 
-Individual rule IDs are hashes of their SMARTS or SMILES strings. Ruleset hashes include the ordered serialized definitions, including behavior settings, names, and metadata. Moving to the new serialization therefore changes ruleset hashes even when the chemistry and effective settings are unchanged; old saved provenance remains historical. Treat loaded rules and their nested mappings as immutable.
+Reaction rule IDs hash their SMARTS. Matching rule IDs hash their SMILES and,
+when present, the top-level `requires_smarts`. Cases choose output identities
+without changing this structural ID, so variants of one rule share an ID.
+Matching rules without a top-level condition retain their SMILES-only IDs.
+Ruleset hashes include the ordered serialized definitions, including behavior
+settings, names, cases, and metadata. Adding serialized fields therefore changes
+ruleset hashes even when effective behavior is unchanged; old saved provenance
+remains historical. Treat loaded rules and their nested mappings as immutable.
 
 ## Prediction mapping: `pmp.yml`
 

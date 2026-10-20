@@ -154,7 +154,7 @@ def test_daptomycin_samples_only_full_coverage_and_keeps_all_resolutions(single_
     assert 'Drawing 5 of 5 eligible assemblies (5 total' in caplog.text
     assemblies = [space.build(frozenset(nodes)) for _, nodes in drawn]
     assert all(result.calculate_coverage(a) == 1 for a in assemblies)
-    fatty_acids = {'decanoic acid', 'octanoic acid', 'hexanoic acid', 'butanoic acid', 'acetic acid'}
+    fatty_acids = {'decanoic acid', 'octanoic acid', 'hexanoic acid', 'butanoic acid', 'acetic acid starter'}
     assert fatty_acids <= {node.identity.name for a in assemblies for node in a.monomer_nodes()}
     assert len({nodes for _, nodes in drawn}) == 5
     threonine = next(n.enc for n in result.reaction_graph.identified_nodes.values()

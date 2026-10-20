@@ -610,7 +610,7 @@ def reconstruct_named_sequence(rule_set: RuleSet, names: list[str]) -> Reconstru
     if not names:
         raise BackboneReconstructionError("No building blocks given.")
 
-    name_to_rule = {rule.name: rule for rule in rule_set.matching_rules}
+    name_to_rule = {rule.name: rule for rule in rule_set.matching_rule_variants}
 
     building_blocks: list[str] = []
     primary_sequence: list[tuple[str, set[int]]] = []
