@@ -21,7 +21,8 @@ def match_mol(
     """
     for rl in rules:
         if not rl.stereochemistry or (rl.stereochemistry and match_stereochemistry):
-            if rl.is_match(mol, match_stereochemistry):
-                return MolIdentity(matched_rule=rl)
+            resolved = rl.match(mol, match_stereochemistry)
+            if resolved is not None:
+                return MolIdentity(matched_rule=resolved)
 
     return None

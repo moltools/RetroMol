@@ -1,19 +1,39 @@
 """Shared helpers for RetroMol integration tests."""
 
+from collections import Counter
+from dataclasses import dataclass
+import json
+from pathlib import Path
+from typing import Sequence
+
+import networkx as nx
+import yaml
+
+from retromol.model.assembly_graph import AssemblyGraph
 from retromol.model.rules import RuleSet
 from retromol.model.result import Result
+from retromol.model.readout import LinearReadout
 from retromol.model.submission import Submission
-from retromol.model.reaction_graph import MolNode
 from retromol.pipelines.parsing import run_retromol_with_timeout
+from retromol_fingerprint.fingerprint import TOKEN_LINK
 
 
 def load_rule_set() -> RuleSet:
     """
     Load the default RetroMol rule set once.
-    
+
     :return: the loaded RuleSet object
     """
     return RuleSet.load_default(match_stereochemistry=False)
+
+
+def load_stereo_rule_set() -> RuleSet:
+    """
+    Load the default RetroMol rule set once, matching stereochemistry.
+
+    :return: the loaded RuleSet object
+    """
+    return RuleSet.load_default(match_stereochemistry=True)
 
 
 def parse_compound(smiles: str, ruleset: RuleSet) -> Result:
@@ -28,46 +48,237 @@ def parse_compound(smiles: str, ruleset: RuleSet) -> Result:
     return run_retromol_with_timeout(submission, ruleset)
 
 
-def compare_floats(a: float, b: float, tol: float = 1e-2) -> bool:
+@dataclass(frozen=True)
+class ExpectedAssembly:
+    """An explicit, node-ID-independent assembly graph fixture.
+
+    Nodes are (monomer name or None, original heavy-atom count). None denotes
+    an unresolved region. Edges are (node index, node index, root bond labels),
+    e.g. (0, 1, ("C-N:SINGLE",)). Repeated bond labels represent multiple root
+    bonds between the same two monomers, as in a cyclic dipeptide.
     """
-    Compare two floating-point numbers for equality within a tolerance.
 
-    :param a: the first float to compare
-    :param b: the second float to compare
-    :param tol: the tolerance for comparison
-    :return: True if the numbers are equal within the tolerance, False otherwise
+    coverage: float
+    nodes: tuple[tuple[str | None, int], ...]
+    edges: tuple[tuple[int, int, tuple[str, ...]], ...]
+
+    def graph(self) -> nx.Graph:
+        if not 0 <= self.coverage <= 1:
+            raise ValueError("Expected coverage must be between 0 and 1")
+        graph = nx.Graph()
+        for index, (name, heavy_atoms) in enumerate(self.nodes):
+            if (name is not None and not isinstance(name, str)) or heavy_atoms < 1:
+                raise ValueError(f"Invalid expected assembly node: {(name, heavy_atoms)!r}")
+            graph.add_node(index, name=name, heavy_atoms=heavy_atoms)
+        for left, right, bonds in self.edges:
+            if left not in graph or right not in graph or left == right or not bonds:
+                raise ValueError(f"Invalid expected assembly edge: {(left, right, bonds)!r}")
+            if graph.has_edge(left, right):
+                raise ValueError("Put all bonds between two monomers in a single edge")
+            graph.add_edge(left, right, bonds=tuple(sorted(bonds)))
+        return graph
+
+
+def load_expected_assemblies(path: Path) -> dict[str, tuple[ExpectedAssembly, ...]]:
+    """Read fixed, reviewable fixtures; never derive expectations during a test."""
+    raw = yaml.safe_load(path.read_text())
+    expectations = {}
+    for name, alternatives in raw.items():
+        if not alternatives:
+            raise ValueError(f"No expected assemblies supplied for {name!r}")
+        expected = tuple(ExpectedAssembly(
+            coverage=alternative["coverage"],
+            nodes=tuple((label, count) for label, count in alternative["nodes"]),
+            edges=tuple((left, right, tuple(bonds)) for left, right, bonds in alternative["edges"]),
+        ) for alternative in alternatives)
+        for alternative in expected:
+            alternative.graph()  # Reject malformed fixtures during collection.
+        expectations[name] = expected
+    return expectations
+
+
+SequenceParts = tuple[tuple[str, ...], ...]
+
+
+@dataclass(frozen=True)
+class ExpectedReadouts:
+    """Fixed default sequence and one sequence per required assembly graph."""
+
+    default: SequenceParts
+    assemblies: tuple[SequenceParts, ...]
+
+
+def load_expected_readouts(
+    path: Path, assemblies: dict[str, tuple[ExpectedAssembly, ...]],
+) -> dict[str, ExpectedReadouts]:
+    """Validate readout fixtures against the independently specified graphs."""
+    raw = yaml.safe_load(path.read_text())
+    if not isinstance(raw, dict) or set(raw) != set(assemblies):
+        raise ValueError("Readout fixtures must cover exactly the assembly compound set")
+
+    def parts(value) -> SequenceParts:
+        if not isinstance(value, list) or any(
+            not isinstance(part, list) or not part
+            or any(not isinstance(name, str) or not name for name in part)
+            for part in value
+        ):
+            raise ValueError("A readout must be a list of nonempty named paths (or [] if unidentified)")
+        return tuple(tuple(part) for part in value)
+
+    expectations = {}
+    for name, data in raw.items():
+        if not isinstance(data, dict) or set(data) - {
+            "assemblies", "default_assembly", "default_sequence",
+        }:
+            raise ValueError(f"{name}: invalid readout fields")
+        sequences = data.get("assemblies")
+        if not isinstance(sequences, list) or len(sequences) != len(assemblies[name]):
+            raise ValueError(f"{name}: provide one readout for every expected assembly")
+        sequences = tuple(parts(sequence) for sequence in sequences)
+        for index, (sequence, graph) in enumerate(zip(sequences, assemblies[name])):
+            if Counter(token for part in sequence for token in part) != Counter(
+                label for label, _ in graph.nodes if label is not None
+            ):
+                raise ValueError(f"{name} assembly {index}: readout must include every identified unit exactly once")
+        if ("default_assembly" in data) == ("default_sequence" in data):
+            raise ValueError(f"{name}: choose either default_assembly or default_sequence")
+        if "default_assembly" in data:
+            index = data["default_assembly"]
+            if type(index) is not int or not 0 <= index < len(sequences):
+                raise ValueError(f"{name}: invalid default assembly index")
+            default = sequences[index]
+        else:
+            default = parts(data["default_sequence"])
+        expectations[name] = ExpectedReadouts(default, sequences)
+    return expectations
+
+
+def assert_linear_readout(assembly: AssemblyGraph, expected: SequenceParts) -> None:
+    """Check exact direction, part boundaries, multiplicity, flat export and reload."""
+    before = assembly.to_dict()
+    readout = LinearReadout.from_assembly_graph(assembly)
+    assert readout.primary_sequence_parts() == [list(part) for part in expected], "Wrong linear readout"
+    assert all(index == 0 for part in readout.primary_sequence_parts()
+               for index, name in enumerate(part) if name.endswith(' starter')), "Starter inside a backbone"
+    flat = []
+    for part in expected:
+        if flat:
+            flat.append(TOKEN_LINK)
+        flat.extend(part)
+    assert readout.primary_sequence() == flat, "Wrong flat sequence readout"
+    actual = [node.enc for part in readout.paths for node in part]
+    identified = {node.enc for node in assembly.monomer_nodes() if node.is_identified}
+    assert len(actual) == len(set(actual)) and set(actual) == identified, "Missing or repeated readout units"
+    assert assembly.to_dict() == before, "Readout changed the assembly"
+    restored = AssemblyGraph.from_dict(json.loads(json.dumps(before)))
+    assert LinearReadout.from_assembly_graph(restored).primary_sequence_parts() == [list(part) for part in expected]
+    reordered = nx.Graph()
+    reordered.add_nodes_from(reversed(list(restored.g.nodes(data=True))))
+    reordered.add_edges_from((v, u, data) for u, v, data in reversed(list(restored.g.edges(data=True))))
+    assert LinearReadout.from_assembly_graph(AssemblyGraph(reordered)).primary_sequence_parts() == [
+        list(part) for part in expected
+    ], "Readout depends on graph insertion order"
+
+
+def assembly_comparison_graph(result: Result, assembly: AssemblyGraph) -> nx.Graph:
+    """Keep labels, original atom counts and connectivity, excluding empty nodes.
+
+    Node hashes, root atom numbering, reaction history, and reaction-added atoms
+    are not assembly identities. Nonempty unresolved regions and every root
+    bond between regions remain part of the comparison.
     """
-    return abs(a - b) <= tol
+    root_heavy_tags = {
+        atom.GetIsotope() for atom in result.root.mol.GetAtoms()
+        if atom.GetAtomicNum() > 1 and atom.GetIsotope() != 0
+    }
+    graph = nx.Graph()
+    for key, data in assembly.g.nodes(data=True):
+        heavy_atoms = len(data["tags"] & root_heavy_tags)
+        if not heavy_atoms:
+            continue
+        node = data["molnode"]
+        name = node.identity.name if node is not None and node.is_identified else None
+        graph.add_node(key, name=name, heavy_atoms=heavy_atoms)
+    for left, right, links in assembly.edges_with_bonds():
+        if left in graph and right in graph:
+            bonds = tuple(sorted(
+                f'{"-".join(sorted((link.a1_symbol, link.a2_symbol)))}:{link.bond_type}'
+                for link in links
+            ))
+            graph.add_edge(left, right, bonds=bonds)
+    return graph
 
 
-def compare_lists(list1: list[str], list2: list[str]) -> bool:
+def _graph_summary(graph: nx.Graph) -> str:
+    """Include numbered edges so equal monomer lists with wrong wiring are clear."""
+    indices = {node: index for index, node in enumerate(graph)}
+    nodes = [(data["name"], data["heavy_atoms"]) for _, data in graph.nodes(data=True)]
+    edges = [(indices[left], indices[right], data["bonds"])
+             for left, right, data in graph.edges(data=True)]
+    return f"nodes={nodes!r}, edges={edges!r}"
+
+
+def assert_assemblies(
+    result: Result,
+    expected: Sequence[ExpectedAssembly],
+    *,
+    coverage_tolerance: float = 1e-2,
+    expected_readouts: Sequence[SequenceParts] | None = None,
+) -> None:
+    """Require EVERY expected graph to occur among the valid parsed assemblies.
+
+    Extra assemblies are allowed. Search is exhaustive and deterministic, not
+    random sampling or selection of the default route. Enumeration-limit errors
+    propagate instead of silently accepting an incomplete search.
     """
-    Compare two lists of strings for equality, ignoring order.
+    if not expected:
+        raise ValueError("At least one expected assembly graph is required")
+    if expected_readouts is not None and len(expected_readouts) != len(expected):
+        raise ValueError("Provide one readout for every expected assembly graph")
+    unmatched = {index: (fixture, fixture.graph())
+                 for index, fixture in enumerate(expected, start=1)}
+    space = result.assembly_space()
+    frontiers = space.eligible_frontiers(
+        min_coverage=max(0.0, min(alternative.coverage for alternative in expected) - coverage_tolerance),
+    )
+    diagnostics = []
+    readout_mismatches = []
+    node_match = nx.algorithms.isomorphism.categorical_node_match(
+        ["name", "heavy_atoms"], [None, None],
+    )
+    edge_match = nx.algorithms.isomorphism.categorical_edge_match("bonds", ())
+    for frontier in frontiers:
+        assembly = space.build(frontier)
+        coverage = result.calculate_coverage(assembly)
+        actual_graph = assembly_comparison_graph(result, assembly)
+        for index, (fixture, expected_graph) in list(unmatched.items()):
+            if abs(coverage - fixture.coverage) > coverage_tolerance:
+                continue
+            if nx.is_isomorphic(actual_graph, expected_graph, node_match=node_match, edge_match=edge_match):
+                if expected_readouts is not None:
+                    sequence = expected_readouts[index - 1]
+                    actual = LinearReadout.from_assembly_graph(assembly).primary_sequence_parts()
+                    if actual != [list(part) for part in sequence]:
+                        if len(readout_mismatches) < 5:
+                            readout_mismatches.append(f"#{index}: expected {sequence!r}; actual {actual!r}")
+                        continue
+                    assert_linear_readout(assembly, sequence)
+                del unmatched[index]
+        if not unmatched:
+            return
+        if len(diagnostics) < 5:
+            diagnostics.append(f"coverage={coverage:.6f}, {_graph_summary(actual_graph)}")
 
-    :param list1: the first list to compare
-    :param list2: the second list to compare
-    :return: True if the lists contain the same elements, False otherwise
-    """
-    return sorted(list1) == sorted(list2)
-
-
-def assert_result(result: Result, expected_coverage: float, expected_monomers: list[str]) -> None:
-    """
-    Common assertion logic used by all integration tests.
-    
-    :param result: the Result object to check
-    :param expected_coverage: the expected total coverage value
-    :param expected_monomers: the expected list of monomer identities
-    """
-    coverage: float = result.calculate_coverage()
-    assert compare_floats(coverage, expected_coverage), f"expected coverage {expected_coverage}, got {coverage}"
-
-    ident_nodes: MolNode = result.reaction_graph.identified_nodes.values()
-    assert all(n.is_identified for n in ident_nodes), "not all identified nodes are marked as identified"
-    found_monomers: list[str] = [n.identity.name for n in ident_nodes]
-
-    # Sort monomers before comparison; easier to read in case of failure
-    found_monomers.sort()
-    expected_monomers.sort()
-
-    assert compare_lists(found_monomers, expected_monomers), f"expected monomers {expected_monomers}, got {found_monomers}"
+    expected_descriptions = [
+        f"#{index}: coverage={fixture.coverage:.6f}, {_graph_summary(graph)}"
+        for index, (fixture, graph) in unmatched.items()
+    ]
+    raise AssertionError(
+        f"Missing {len(unmatched)} of {len(expected)} expected assembly graphs.\nUnmatched expected graphs:\n  "
+        + "\n  ".join(expected_descriptions)
+        + f"\nParsed {len(space.frontiers)} valid assemblies; {len(frontiers)} meet the coverage lower bound."
+        + f" Maximum coverage: {space.max_coverage:.6f}.\nFirst candidates (at most 5):\n  "
+        + "\n  ".join(diagnostics)
+        + ("\nMatching graphs with wrong readouts:\n  " + "\n  ".join(readout_mismatches)
+           if readout_mismatches else "")
+    )

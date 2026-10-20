@@ -2,20 +2,9 @@ import { z } from "zod";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
-export async function postJson<S extends z.ZodTypeAny>(
-  url: string,
-  body: unknown,
-  schema: S
-): Promise<z.output<S>> {
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: JSON_HEADERS,
-    body: JSON.stringify(body),
-  })
-
+async function parseJsonResponse<S extends z.ZodTypeAny>(url: string, resp: Response, schema: S): Promise<z.output<S>> {
   if (!resp.ok) {
     const text = await resp.text().catch(() => "");
-    // throw new Error(`${url} failed (${resp.status})${text ? `: ${text}` : ""}`);
     const error: any = new Error(`${url} failed (${resp.status})${text ? `: ${text}` : ""}`);
     error.status = resp.status;
     error.body = text;
@@ -40,4 +29,29 @@ export async function postJson<S extends z.ZodTypeAny>(
   }
 
   return parsed.data;
+}
+
+export async function postJson<S extends z.ZodTypeAny>(
+  url: string,
+  body: unknown,
+  schema: S,
+  signal?: AbortSignal
+): Promise<z.output<S>> {
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+    signal,
+  })
+
+  return parseJsonResponse(url, resp, schema);
+}
+
+export async function getJson<S extends z.ZodTypeAny>(
+  url: string,
+  schema: S,
+  signal?: AbortSignal
+): Promise<z.output<S>> {
+  const resp = await fetch(url, { method: "GET", signal });
+  return parseJsonResponse(url, resp, schema);
 }

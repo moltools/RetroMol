@@ -11,14 +11,16 @@
 </h1>
 
 <p align="center">
-    <a href="https://github.com/MolTools/RetroMol/actions/workflows/tests.yml">
-      <img alt="testing & quality" src="https://github.com/MolTools/RetroMol/actions/workflows/tests.yml/badge.svg" /></a>
+    <a href="https://github.com/MolTools/RetroMol/actions/workflows/gui-tests.yml">
+      <img alt="GUI tests" src="https://github.com/MolTools/RetroMol/actions/workflows/gui-tests.yml/badge.svg?event=pull_request" /></a>
+    <a href="https://github.com/MolTools/RetroMol/actions/workflows/python-tests.yml">
+      <img alt="Python tests" src="https://github.com/MolTools/RetroMol/actions/workflows/python-tests.yml/badge.svg?event=pull_request" /></a>
     <a href="https://pypi.org/project/retromol">
       <img alt="PyPI" src="https://img.shields.io/pypi/v/retromol" /></a>
     <a href="https://pypi.org/project/retromol">
       <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/retromol" /></a>
      <a href="https://doi.org/10.5281/zenodo.17555655">
-      <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.17555655.svg" alt="DOI" /></a>
+      <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17555655-blue.svg" alt="DOI" /></a>
 </p>
 
 RetroMol is retrosynthetic parsing and fingerprinting tool for modular natural products. 
@@ -49,17 +51,16 @@ The RetroMol CLI has two modes, single and batch:
 * `single`: process a single compound at a time.
 * `batch`: process multiple compounds in a single command.
 
-In either case a the output folder will contain a log file together with the results in either JSON or JSONL format. JSONL is standard output mode for batch mode to allow for easy parsing of large result sets. Batch mode also supports parallel processing.
-
-Any column, field, or property in the input file, either CSV, TSV, SDF, or JSON, is preserved as props in the output JSON or JSONL.
-
-Stereochemistry parsing is supported by supplying the `-c` flag.
+In either case the output folder contains a log file and results. Batch mode
+defaults to gzip-compressed JSONL (`results.jsonl.gz`), supports parallel
+processing, and writes results as they arrive. Single mode writes compact JSON
+(`result.json`); add `--compression gzip` to write `result.json.gz`.
 
 Result JSONs or lines from a JSONL file can be loaded into Python using RetroMol's `Result` class for further downstream analyses.
 
 ### Using custom rules
 
-RetroMol comes with a default set of retrosynthetic rules for modular natural products. See [the default rules](src/retromol/data/) for examples of the included rules.
+RetroMol comes with a default set of retrosynthetic rules for modular natural products. See the [rule-writing guide](src/retromol/data/README.md) for all supported settings, examples, and how matching and reaction rules work together.
 
 ## Attribution
 

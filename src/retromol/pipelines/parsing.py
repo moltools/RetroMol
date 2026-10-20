@@ -11,7 +11,6 @@ from retromol.model.submission import Submission
 from retromol.model.rules import RuleSet, index_uncontested, apply_uncontested
 from retromol.model.result import Result
 from retromol.model.reaction_graph import ReactionGraph, ReactionStep, RxnEdge
-from retromol.model.readout import LinearReadout
 from retromol.model.synthesis import SynthesisExtractResult
 from retromol.chem.mol import Mol, encode_mol, mol_to_smiles
 from retromol.chem.tagging import get_tags_mol
@@ -34,6 +33,10 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
     g = ReactionGraph()
 
     original_taken_tags = get_tags_mol(submission.mol)
+    # Copy so bonds discovered mid-pipeline (e.g. a double bond that only becomes
+    # stereo-defined once a ring is opened) can be merged in without mutating the
+    # Submission's own registry.
+    stereo_registry = dict(submission.stereo_registry)
     failed_combos: set[tuple[int, frozenset[int]]] = set()
 
     # Track queue/expansion status by encoding to avoid duplicate work
@@ -68,7 +71,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
         if uncontested:
             log.debug(f"Applying {len(uncontested)} uncontested rule(s) in bulk")
 
-            products, applied_in_bulk, new_failed = apply_uncontested(parent, uncontested, original_taken_tags)
+            products, applied_in_bulk, new_failed = apply_uncontested(parent, uncontested, original_taken_tags, stereo_registry)
             failed_combos.update(new_failed)
 
             # If uncontested existed but none succeed, fall through to contested
@@ -92,7 +95,7 @@ def process_mol(submission: Submission, ruleset: RuleSet) -> ReactionGraph:
         # Contested exhaustive
         for rl in reaction_rules:
 
-            results = rl.apply(parent, None)
+            results = rl.apply(parent, None, stereo_registry)
             if not results:
                 continue
 
@@ -121,6 +124,7 @@ def extract_min_edge_synthesis_subgraph(
     edge_base_cost: float = 1.0,
     nonterminal_leaf_penalty: float = 0.25,
     unsolved_leaf_penalty: float = 5.0,
+    weight_pruned_atoms: bool = False,
 ) -> SynthesisExtractResult:
     """
     Extract a minimum-edge synthesis subgraph from a retrosynthesis ReactionGraph.
@@ -132,6 +136,8 @@ def extract_min_edge_synthesis_subgraph(
 
     The extracted subgraph contains at most one chosen outgoing edge per expanded node
     and includes all required precursor branches for that choice.
+    Self-dependent reactions are ignored. If no finite route exists because of a
+    cycle, keep an unresolved frontier so partial results still contain the root.
 
     :param g: The full retrosynthesis reaction graph
     :param root_enc: Encoding of the root molecule to extract from
@@ -139,6 +145,8 @@ def extract_min_edge_synthesis_subgraph(
     :param edge_base_cost: Base cost per reaction edge
     :param nonterminal_leaf_penalty: Penalty for identified leaves that are non-terminal
     :param unsolved_leaf_penalty: Penalty for unsolved leaves (i.e., "give up" cost)
+    :param weight_pruned_atoms: Charge collapsed unresolved regions per original
+        heavy atom, so pruning does not make a large unknown region cheap
     :return: The extracted synthesis subgraph and status
     :raises ValueError: If root_enc is not in the graph
     """
@@ -146,11 +154,25 @@ def extract_min_edge_synthesis_subgraph(
         raise ValueError(f"Root encoding {root_enc} not found in reaction graph nodes!")
 
     # Adjacency list of outgoing edges for quick access
-    out_edges: dict[int, list[int]] = defaultdict(list)
+    out_edges: dict[str, list[int]] = defaultdict(list)
     for ei, e in enumerate(g.edges):
+        # An AND reaction that requires its own reactant cannot make progress,
+        # even if it also produces other fragments (e.g. sulfate plus water).
+        if e.src in e.dsts:
+            continue
         out_edges[e.src].append(ei)
 
     kind_rank = {k: i for i, k in enumerate(prefer_kind)}
+    root_heavy_tags = {
+        atom.GetIsotope() for atom in g.nodes[root_enc].mol.GetAtoms()
+        if atom.GetAtomicNum() > 1 and atom.GetIsotope() != 0
+    }
+
+    def unresolved_cost(enc: str) -> float:
+        node = g.nodes[enc]
+        if not weight_pruned_atoms or not node.pruned:
+            return unsolved_leaf_penalty
+        return unsolved_leaf_penalty * len(get_tags_mol(node.mol) & root_heavy_tags)
 
     def edge_cost(e: RxnEdge) -> float:
         # Primary objective: fewer edges
@@ -160,9 +182,10 @@ def extract_min_edge_synthesis_subgraph(
         return edge_base_cost + kind_penalty + branch_penalty
 
     # DP memo: cost to "solve" a node into identified leaves
-    memo_cost: dict[int, float] = {}
-    memo_choice: dict[int, Optional[int]] = {}  # node -> chosen edge index
-    visiting: set[int] = set()
+    memo_cost: dict[str, float] = {}
+    memo_choice: dict[str, Optional[int]] = {}  # node -> chosen edge index
+    visiting: set[str] = set()
+    allow_cycle_frontier = False
 
     def is_terminal(enc: str) -> bool:
         n = g.nodes.get(enc)
@@ -185,7 +208,7 @@ def extract_min_edge_synthesis_subgraph(
             # Identified nonterminal with no edges is still fine as 0, else unsolved penalty
             if n and n.is_identified:
                 return 0.0
-            return unsolved_leaf_penalty
+            return unresolved_cost(enc)
 
         # Soft leaves: identified + terminal=False
         leaf_cost = inf
@@ -226,20 +249,29 @@ def extract_min_edge_synthesis_subgraph(
 
         visiting.remove(enc)
 
+        if best == inf and allow_cycle_frontier:
+            # All continuations return to an ancestor. Preserve this molecule as
+            # an unresolved leaf rather than discarding its entire parent route.
+            best = unresolved_cost(enc)
+
         memo_cost[enc] = best
         memo_choice[enc] = best_ei
         return best
 
     total = solve_cost(root_enc)
-    # solved = no unsolved frontier was needed
-    solved = total < inf and total < unsolved_leaf_penalty
     if total == inf:
-        return SynthesisExtractResult(graph=ReactionGraph(), solved=False, total_cost=inf)
+        # Prefer any existing finite route before introducing cycle frontiers.
+        # Choices from the first traversal depended on its active ancestors, so
+        # recompute them together when allowing unresolved cyclic fragments.
+        allow_cycle_frontier = True
+        memo_cost.clear()
+        memo_choice.clear()
+        total = solve_cost(root_enc)
 
     # Extract chosen policy edges into a new small graph
     new_g = ReactionGraph()
 
-    kept_nodes: set[int] = set()
+    kept_nodes: set[str] = set()
     kept_edge_indices: set[int] = set()
 
     def extract(enc: str) -> None:
@@ -281,6 +313,9 @@ def extract_min_edge_synthesis_subgraph(
         new_g.edges.append(new_edge)
         new_g.out_edges.setdefault(e.src, []).append(len(new_g.edges) - 1)
 
+    # Reaction costs can exceed the unresolved-leaf penalty even for a fully
+    # identified route. Determine completion from the selected frontier itself.
+    solved = total < inf and all(n.is_identified for n in new_g.get_leaf_nodes(identified_only=False))
     return SynthesisExtractResult(graph=new_g, solved=solved, total_cost=total)
 
 
@@ -296,26 +331,16 @@ def run_retromol(submission: Submission, rules: RuleSet) -> Result:
     g = process_mol(submission, rules)
     log.debug(f"Retrosynthesis graph has {len(g.nodes)} ({len(g.identified_nodes)} identified) nodes and {len(g.edges)} edges")
 
-    # Extract minimum-edge synthesis subgraph
     root = encode_mol(submission.mol)
-    r = extract_min_edge_synthesis_subgraph(
-        g,
-        root_enc=root,
-        edge_base_cost=0.25,                # low base cost encourages longer syntheses
-        nonterminal_leaf_penalty=100.0,     # high penalty forces expansion of non-terminal leaves (e.g., fatty acids)
-    )
-    log.debug(f"Extracted synthesis subgraph has {len(r.graph.nodes)} ({len(r.graph.identified_nodes)} identified) nodes and {len(r.graph.edges)} edges")
-
-    if not r.solved:
-        log.debug("Retrosynthesis extraction failed to find a solution")
-
-    # Calculate the linear readouts for the synthesis graph
-    linear_readout = LinearReadout.from_reaction_graph(root, r.graph)
-
+    # Retain all informative explored alternatives. Readout policy belongs to
+    # consumers, and is not applied while parsing or serializing a result.
     return Result(
         submission=submission,
-        reaction_graph=r.graph,
-        linear_readout=linear_readout,
+        reaction_graph=g.prune_unidentified(root),
+        root_enc=root,
+        reaction_rules_hash=rules.reaction_rules_hash,
+        matching_rules_hash=rules.matching_rules_hash,
+        match_stereochemistry=rules.match_stereochemistry,
     )
 
 

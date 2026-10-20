@@ -54,7 +54,7 @@ function RetrieveSession() {
     // Try to retrieve the session from the backend
     try {
       await getSession(sessionId);
-      document.cookie = `sessionId=${sessionId}; path=/; secure; samesite=strict;`;
+      createCookie("sessionId", sessionId);
       navigate("/dashboard");
     } catch (err) {
       console.error("error retrieving session:", err);
@@ -112,14 +112,6 @@ export default function HomeAppBar() {
       "_blank",
       "noopener,noreferrer"
     );
-  }
-
-  // Function to scroll the "retrieve session" section into view
-  const handleScrollRetrieveSession = () => {
-    const retrieveSessionSection = document.getElementById("retrieve-session");
-    if (retrieveSessionSection) {
-      retrieveSessionSection.scrollIntoView({ behavior: "smooth" });
-    }
   }
 
   // Function to handle the opening and closing of the drawer

@@ -6,6 +6,26 @@ import { z } from "zod";
 
 export const MAX_ITEMS = 50;
 
+// How many submit requests are allowed in flight at once. Bounded (rather than
+// unlimited Promise.all) so a large batch doesn't slam the backend with 50
+// concurrent compute-heavy jobs at the same instant.
+const SUBMIT_CONCURRENCY = 5;
+
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const item = items[cursor++];
+      await worker(item);
+    }
+  });
+  await Promise.all(runners);
+}
+
 const SubmitJobRespSchema = z.object({
   ok: z.boolean(),
   elapsed_ms: z.number().int().nonnegative(),
@@ -40,6 +60,7 @@ export async function submitClusterJob(
       itemId: item.id,
       name: item.name,
       fileContent: item.fileContent,
+      parasThreshold: item.parasThreshold,
     },
     SubmitJobRespSchema
   );
@@ -62,7 +83,10 @@ export async function importCompoundsBatch(
 
   // Update local session (queued items)
   setSession((prev) => {
-    const existingCount = prev.items.length;
+    // MAX_ITEMS is this tab's own cap (compound/cluster uploads) -- discoveryQuery
+    // items share the same session.items array but have their own separate cap
+    // (see WorkspaceDiscovery's MAX_DISCOVERY_QUERY_ITEMS), so they don't count here.
+    const existingCount = prev.items.filter((it) => it.kind === "compound" || it.kind === "cluster").length;
     const remainingSlots = MAX_ITEMS - existingCount;
 
     if (remainingSlots <= 0) {
@@ -126,8 +150,8 @@ export async function importCompoundsBatch(
     return [];
   };
 
-  // Submit jobs sequentially
-  for (const item of newItems) {
+  // Submit jobs concurrently (bounded), instead of one-at-a-time
+  await runWithConcurrency(newItems, SUBMIT_CONCURRENCY, async (item) => {
     try {
       await submitCompoundJob(sessionId, item as CompoundItem);
     } catch (err) {
@@ -149,7 +173,7 @@ export async function importCompoundsBatch(
         )
       }));
     };
-  };
+  });
 
   return newItems;
 };
@@ -166,7 +190,7 @@ export async function importCompound(
 // Batch cluster import
 export async function importClustersBatch(
   deps: WorkspaceImportDeps,
-  clusters: { name: string; fileContent: string }[],
+  clusters: { name: string; fileContent: string; parasThreshold: number }[],
 ): Promise<SessionItem[]> {
   const { pushNotification, setSession, sessionId } = deps;
 
@@ -180,7 +204,10 @@ export async function importClustersBatch(
 
   // Update local session (queued items)
   setSession((prev) => {
-    const existingCount = prev.items.length;
+    // MAX_ITEMS is this tab's own cap (compound/cluster uploads) -- discoveryQuery
+    // items share the same session.items array but have their own separate cap
+    // (see WorkspaceDiscovery's MAX_DISCOVERY_QUERY_ITEMS), so they don't count here.
+    const existingCount = prev.items.filter((it) => it.kind === "compound" || it.kind === "cluster").length;
     const remainingSlots = MAX_ITEMS - existingCount;
 
     if (remainingSlots <= 0) {
@@ -196,11 +223,12 @@ export async function importClustersBatch(
       pushNotification(`Only importing ${limited.length} clusters to avoid exceeding maximum of ${MAX_ITEMS} items`, "warning");
     };
 
-    const createdItems: SessionItem[] = limited.map(({ name, fileContent }) => ({
+    const createdItems: SessionItem[] = limited.map(({ name, fileContent, parasThreshold }) => ({
       id: crypto.randomUUID(),
       kind: "cluster",
       name,
       fileContent,
+      parasThreshold,
       status: "queued",
       errorMessage: null,
       updatedAt: Date.now(),
@@ -241,8 +269,8 @@ export async function importClustersBatch(
     return [];
   };
 
-  // Submit jobs sequentially
-  for (const item of newItems) {
+  // Submit jobs concurrently (bounded), instead of one-at-a-time
+  await runWithConcurrency(newItems, SUBMIT_CONCURRENCY, async (item) => {
     try {
       await submitClusterJob(sessionId, item as ClusterItem);
     } catch (err) {
@@ -264,7 +292,7 @@ export async function importClustersBatch(
         )
       }));
     };
-  };
+  });
 
   return newItems;
 };
