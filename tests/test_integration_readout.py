@@ -34,6 +34,34 @@ THIOCORALINE = (
 
 READOUT_CASES = [
     pytest.param(
+        dict(ASSEMBLY_CASES)['PK aldol ring donor H1'],
+        [['propanoic acid starter', 'D1', 'A1', 'malonic acid']],
+        [['propanoic acid starter', 'D1', 'A1', 'malonic acid']],
+        id='PK-aldol-ring-donor-H1',
+    ),
+    pytest.param(
+        dict(ASSEMBLY_CASES)['aclacinomycin'],
+        [['propanoic acid starter', 'B1', 'A1', 'A1', 'A1', 'C1', 'C1', 'A1-alpha-oxo', 'C1', 'malonic acid'],
+         ['glycosylation', 'glycosylation', 'glycosylation', 'methylation'], ['methylation'], ['methylation']],
+        [['propanoic acid starter', 'B^R1', 'A1', 'A1', 'A1', 'C1', 'C1', 'A1-alpha-oxo', 'C1', 'malonic acid'],
+         ['glycosylation', 'glycosylation', 'glycosylation', 'methylation'], ['methylation'], ['methylation']],
+        id='aclacinomycin',
+    ),
+    pytest.param(
+        dict(ASSEMBLY_CASES)['cylindrocyclophane F'],
+        [['acetic acid starter', 'D1', 'D1', 'D1', 'D1', 'D8', 'A1', 'A1', 'A1']] * 2,
+        [['acetic acid starter', 'D1', 'D1', 'D1', 'D1', 'D^R8', 'A1', 'A1', 'A1']] * 2,
+        id='cylindrocyclophane-F',
+    ),
+    pytest.param(
+        dict(ASSEMBLY_CASES)['carbamidocyclophane A'],
+        [['acetic acid starter', 'D1', 'D1', 'D1', 'D1', 'D10', 'A1', 'A1', 'A1']] * 2
+        + [['carbamic acid']] * 2 + [['chlorination']] * 4,
+        [['acetic acid starter', 'D1', 'D1', 'D1', 'D1', 'D^R10^S', 'A1', 'A1', 'A1']] * 2
+        + [['carbamic acid']] * 2 + [['chlorination']] * 4,
+        id='carbamidocyclophane-A',
+    ),
+    pytest.param(
         dict(ASSEMBLY_CASES)['actinoquinoline B'],
         [['3-hydroxyquinaldic acid', '5-hydroxylysine'], ['acetic acid starter', 'D8']],
         [['3-hydroxyquinaldic acid', '5-hydroxylysine'], ['acetic acid starter', 'D8']],

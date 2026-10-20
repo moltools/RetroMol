@@ -40,23 +40,3 @@ def test_integration_demo_set(name: str, smiles: str, ruleset: RuleSet) -> None:
     assert_assemblies(result, EXPECTED_ASSEMBLIES[name], expected_readouts=readouts.assemblies)
     assert_linear_readout(result.assembly_graph, readouts.default)
     assert result.linear_readout.primary_sequence_parts() == [list(part) for part in readouts.default]
-
-
-@pytest.mark.parametrize("name, smiles", [
-    pytest.param(name, smiles, id=name, marks=pytest.mark.xfail(
-        strict=True, raises=AssertionError, reason=EXPECTED_READOUTS[name].known_starter_order_issue,
-    ))
-    for name, smiles in CASES if EXPECTED_READOUTS[name].known_starter_order_issue
-])
-def test_known_backbone_starter_order(name, smiles, ruleset):
-    """Keep known ordering errors visible independently of compatibility snapshots.
-
-    These checks express the desired property, not the current faulty order.
-    A fix must remove its expected-failure mark and update the corresponding
-    regression fixture; strict XPASS prevents leaving a fixed issue hidden.
-    """
-    result = parse_compound(smiles, ruleset)
-    paths = result.linear_readout.primary_sequence_parts()
-    single_starter_paths = [part for part in paths if sum(token.endswith(' starter') for token in part) == 1]
-    assert single_starter_paths, f"{name}: the starter disappeared from the readout"
-    assert all(part[0].endswith(' starter') for part in single_starter_paths), paths

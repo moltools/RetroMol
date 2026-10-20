@@ -13,7 +13,7 @@ from retromol.model.assembly_graph import AssemblyGraph, RootBondLink
 from retromol.model.identity import MolIdentity
 from retromol.model.reaction_graph import MolNode
 from retromol.model.readout import (
-    LinearReadout, _backbone_entry_tags, _connected_backbone_order,
+    LinearReadout, _backbone_entry_tags, _backbone_connections,
     assembly_to_primary_sequence, split_named_paths,
 )
 from retromol.model.result import Result
@@ -370,13 +370,88 @@ def test_entry_exit_connections_select_order_before_undirected_crosslinks():
     ]
 
 
-def test_competing_complete_port_orders_are_left_ambiguous():
+def test_competing_complete_port_orders_have_one_deterministic_readout():
     a = crosslinked_capped_chain()
     # The terminal acid can also enter the middle unit: both 0-1-2-3 and
     # 0-1-3-2 now follow exit-to-entry links, so neither is uniquely supported.
     a.g[3][2]['bonds'].append(RootBondLink(8, 3, 9, 4, 'C', 'C', 'SINGLE', 1.0))
     a.g[3][2]['n_bonds'] += 1
-    assert _connected_backbone_order(a.g) is None
+    readout = LinearReadout.from_assembly_graph(a)
+    directed = _backbone_connections(a.g)
+    by_enc = {data['molnode'].enc: key for key, data in a.g.nodes(data=True)}
+    assert len(readout.paths) == 1 and len(readout.paths[0]) == 4
+    assert readout.paths[0][0].enc == 'unit-0'
+    assert all(directed.has_edge(by_enc[u.enc], by_enc[v.enc])
+               for u, v in zip(readout.paths[0], readout.paths[0][1:]))
+    reordered = nx.Graph()
+    reordered.add_nodes_from(reversed(list(a.g.nodes(data=True))))
+    reordered.add_edges_from(reversed(list(a.g.edges(data=True))))
+    assert assembly_to_primary_sequence(AssemblyGraph(reordered)) == readout.primary_sequence_parts()
+
+
+@pytest.mark.parametrize('crosslinks', [1, 2])
+def test_exit_crosslinks_separate_chains_even_when_they_are_graph_bridges(crosslinks):
+    first = crosslinked_capped_chain()
+    second = crosslinked_capped_chain().to_dict()
+    # Shift the complete second graph, including the original atom tags.
+    for data in second['nodes']:
+        data['id'] += 4
+        data['tags'] = [tag + 30 for tag in data['tags']]
+        mol = smiles_to_mol(data['molnode']['tagged_smiles'])
+        for atom in mol.GetAtoms():
+            if atom.GetIsotope():
+                atom.SetIsotope(atom.GetIsotope() + 30)
+        data['molnode']['tagged_smiles'] = Chem.MolToSmiles(mol)
+        data['molnode']['enc'] += '-second'
+    for edge in second['edges']:
+        edge['u'] += 4
+        edge['v'] += 4
+        for bond in edge['bonds']:
+            bond['a1_tag'] += 30
+            bond['a2_tag'] += 30
+    g = nx.compose(first.g, AssemblyGraph.from_dict(second).g)
+    for u, v, a, b in [(1, 6, 3, 35), (2, 5, 5, 33)][:crosslinks]:
+        bond = RootBondLink(a - 1, b - 1, a, b, 'C', 'C', 'SINGLE', 1.)
+        g.add_edge(u, v, bonds=[bond], n_bonds=1)
+    a = AssemblyGraph(g)
+    before = a.to_dict()
+    assert nx.is_connected(g)
+    expected = [['z-source', 'b-unit', 'a-unit', 'c-end']] * 2
+    readout = LinearReadout.from_assembly_graph(a)
+    assert readout.primary_sequence_parts() == expected
+    assert a.to_dict() == before
+    # Cached paths, including missing units, cannot select a different readout.
+    saved = readout.to_dict()
+    saved['paths'] = [[a.g.nodes[3]['molnode'].to_dict()]]
+    assert LinearReadout.from_dict(saved).primary_sequence_parts() == expected
+    assert LinearReadout(a, [a.monomer_nodes()]).primary_sequence_parts() == expected
+
+
+def test_reverse_caps_need_both_a_terminal_acid_and_a_connected_acyl_source():
+    g = nx.Graph()
+    for key, smiles in enumerate([
+        '[1CH3]C(=O)O',
+        'OS[2CH2][3CH2][4C](=[5O])O',
+        'O=C(O)[6CH2][7CH2]SO',
+        'O=C(O)[8CH2][9C](=[10O])[11OH]',
+    ]):
+        mol = smiles_to_mol(smiles)
+        # Adversarial names: ordering must come from the ports, not labels.
+        identity = MolIdentity(MatchingRule(f'unit-{3 - key}', smiles, {}, []))
+        node = MolNode(str(key), mol, smiles, identity, True)
+        g.add_node(key, molnode=node, identity=identity,
+                   tags={a.GetIsotope() for a in mol.GetAtoms() if a.GetIsotope()})
+    for u, v, a, b in [(0, 1, 1, 4), (1, 2, 2, 6), (2, 3, 7, 8), (0, 2, 1, 7)]:
+        bond = RootBondLink(a - 1, b - 1, a, b, 'C', 'C', 'SINGLE', 1.)
+        g.add_edge(u, v, bonds=[bond], n_bonds=1)
+    a = AssemblyGraph(g)
+    assert assembly_to_primary_sequence(a) == [['unit-3', 'unit-2', 'unit-1', 'unit-0']]
+    assert assembly_to_primary_sequence(AssemblyGraph.from_dict(a.to_dict())) == [
+        ['unit-3', 'unit-2', 'unit-1', 'unit-0'],
+    ]
+    # Without the second anchor this could be a starter with a free side acid.
+    g.remove_node(0)
+    assert assembly_to_primary_sequence(AssemblyGraph(g)) == [['unit-0', 'unit-1', 'unit-2']]
 
 
 def test_reconstruction_consumes_the_oriented_peptide_readout(ruleset):

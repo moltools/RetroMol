@@ -3,7 +3,8 @@
 # "assemblies" follows the entry order in the corresponding *_assemblies.yml.
 # "default_assembly" is a zero-based reference; "default_sequence" covers a
 # default decomposition not represented by those required assembly fixtures.
-# Known starter-order limitations have separate strict expected-failure tests.
+# Each input assembly has exactly one readout; these fields describe different
+# input graphs, not alternative readout modes.
 
 "10-deoxymethynolide":
   default_assembly: 0
@@ -635,7 +636,8 @@
   default_assembly: 0
   assemblies:
     -
-      - ["acetic acid starter", "cysteine", "C2", "B1", "C2", "D1", "A2", "B2", "propanoic acid starter"]
+      - ["acetic acid starter", "cysteine", "C2", "B1", "C2", "D1", "A2", "B2"]
+      - ["propanoic acid starter"]
 
 "amamistatin B":
   default_assembly: 0
@@ -648,7 +650,9 @@
   default_assembly: 0
   assemblies:
     -
-      - ["acetic acid starter", "D1", "D1", "D1", "D1", "D1", "C1", "N-(5-aminopentyl)hydroxylamine", "butanedioic acid", "N-(5-aminopentyl)hydroxylamine", "serine", "salicylic acid"]
+      - ["acetic acid starter", "D1", "D1", "D1", "D1", "D1", "C1", "N-(5-aminopentyl)hydroxylamine"]
+      - ["salicylic acid", "serine", "N-(5-aminopentyl)hydroxylamine"]
+      - ["butanedioic acid"]
 
 "borophycin":
   default_assembly: 0
@@ -746,7 +750,8 @@
   default_assembly: 0
   assemblies:
     -
-      - ["2,3-dihydroxybenzoic acid", "lysinol", "2,3-dihydroxybenzoic acid"]
+      - ["2,3-dihydroxybenzoic acid", "lysinol"]
+      - ["2,3-dihydroxybenzoic acid"]
 
 "marformycin A":
   default_assembly: 0
@@ -853,7 +858,8 @@
   default_assembly: 0
   assemblies:
     -
-      - ["N-methylvaline", "sarcosine", "proline", "valine", "threonine", "4-methyl-3-hydroxyanthranilic acid", "4-methyl-3-hydroxyanthranilic acid", "threonine", "valine", "proline", "sarcosine", "N-methylvaline"]
+      - ["4-methyl-3-hydroxyanthranilic acid", "threonine", "valine", "proline", "sarcosine", "N-methylvaline"]
+      - ["4-methyl-3-hydroxyanthranilic acid", "threonine", "valine", "proline", "sarcosine", "N-methylvaline"]
 
 "tenellin":
   default_assembly: 0
@@ -1071,11 +1077,10 @@
 
 "aclacinomycin":
   default_sequence:
-    - ["A1", "A1", "A1", "C1", "C1", "A1-alpha-oxo", "C1", "malonic acid", "B1", "propanoic acid starter"]
+    - ["propanoic acid starter", "B1", "A1", "A1", "A1", "C1", "C1", "A1-alpha-oxo", "C1", "malonic acid"]
     - ["glycosylation", "glycosylation", "glycosylation", "methylation"]
     - ["methylation"]
     - ["methylation"]
-  known_starter_order_issue: "A default path places its only starter after another unit; backbone direction or separation remains unresolved."
   assemblies:
     -
       - ["propanoic acid starter", "A1", "A1", "A1", "A1", "A1", "C1", "C1", "C1", "A1"]
@@ -1147,8 +1152,7 @@
 
 "PK aldol ring donor H1":
   default_sequence:
-    - ["D1", "propanoic acid starter", "A1", "malonic acid"]
-  known_starter_order_issue: "A default path places its only starter after another unit; backbone direction or separation remains unresolved."
+    - ["propanoic acid starter", "D1", "A1", "malonic acid"]
   assemblies:
     -
       - ["propanoic acid starter", "A1", "D1", "A1"]
@@ -1172,27 +1176,27 @@
 
 "cylindrocyclophane F":
   default_sequence:
-    - ["A1", "A1", "A1", "D8", "D1", "D1", "D1", "A1", "A1", "A1", "D8", "D1", "D1", "D1", "D1", "acetic acid starter"]
-    - ["acetic acid starter", "D1"]
-  known_starter_order_issue: "A default path places its only starter after another unit; backbone direction or separation remains unresolved."
+    - ["acetic acid starter", "D1", "D1", "D1", "D1", "D8", "A1", "A1", "A1"]
+    - ["acetic acid starter", "D1", "D1", "D1", "D1", "D8", "A1", "A1", "A1"]
   assemblies:
     -
-      - ["A1", "A1", "A1", "decanoic acid", "D8", "A1", "A1", "A1", "decanoic acid", "D8"]
+      - ["decanoic acid", "D8", "A1", "A1", "A1"]
+      - ["decanoic acid", "D8", "A1", "A1", "A1"]
 
 "carbamidocyclophane A":
   default_sequence:
-    - ["A1", "A1", "A1", "D10", "D1", "D1", "D1", "A1", "A1", "A1", "D10", "D1", "D1", "D1", "D1", "acetic acid starter"]
-    - ["acetic acid starter", "D1"]
+    - ["acetic acid starter", "D1", "D1", "D1", "D1", "D10", "A1", "A1", "A1"]
+    - ["acetic acid starter", "D1", "D1", "D1", "D1", "D10", "A1", "A1", "A1"]
     - ["carbamic acid"]
     - ["carbamic acid"]
     - ["chlorination"]
     - ["chlorination"]
     - ["chlorination"]
     - ["chlorination"]
-  known_starter_order_issue: "A default path places its only starter after another unit; backbone direction or separation remains unresolved."
   assemblies:
     -
-      - ["A1", "A1", "A1", "D10", "decanoic acid", "A1", "A1", "A1", "D10", "decanoic acid"]
+      - ["decanoic acid", "D10", "A1", "A1", "A1"]
+      - ["decanoic acid", "D10", "A1", "A1", "A1"]
       - ["carbamic acid"]
       - ["carbamic acid"]
       - ["chlorination"]
@@ -1265,14 +1269,16 @@
 
 "nidulin":
   default_sequence:
-    - ["acetic acid starter", "C2", "A1", "A2", "A1", "A1", "A1", "C1", "acetic acid starter"]
+    - ["acetic acid starter", "C2", "A1", "A2", "A1"]
+    - ["acetic acid starter", "C1", "A1", "A1"]
     - ["chlorination"]
     - ["chlorination"]
     - ["chlorination"]
     - ["methylation"]
   assemblies:
     -
-      - ["acetic acid starter", "C2", "A1", "A2", "A1", "A1", "A1", "A1", "acetic acid starter"]
+      - ["acetic acid starter", "C2", "A1", "A2", "A1"]
+      - ["acetic acid starter", "A1", "A1", "A1"]
       - ["chlorination"]
       - ["chlorination"]
       - ["chlorination"]

@@ -106,7 +106,6 @@ class ExpectedReadouts:
 
     default: SequenceParts
     assemblies: tuple[SequenceParts, ...]
-    known_starter_order_issue: str | None = None
 
 
 def load_expected_readouts(
@@ -129,7 +128,7 @@ def load_expected_readouts(
     expectations = {}
     for name, data in raw.items():
         if not isinstance(data, dict) or set(data) - {
-            "assemblies", "default_assembly", "default_sequence", "known_starter_order_issue",
+            "assemblies", "default_assembly", "default_sequence",
         }:
             raise ValueError(f"{name}: invalid readout fields")
         sequences = data.get("assemblies")
@@ -150,10 +149,7 @@ def load_expected_readouts(
             default = sequences[index]
         else:
             default = parts(data["default_sequence"])
-        issue = data.get("known_starter_order_issue")
-        if issue is not None and (not isinstance(issue, str) or not issue.strip()):
-            raise ValueError(f"{name}: known starter-order issue must have a reason")
-        expectations[name] = ExpectedReadouts(default, sequences, issue)
+        expectations[name] = ExpectedReadouts(default, sequences)
     return expectations
 
 
@@ -162,6 +158,8 @@ def assert_linear_readout(assembly: AssemblyGraph, expected: SequenceParts) -> N
     before = assembly.to_dict()
     readout = LinearReadout.from_assembly_graph(assembly)
     assert readout.primary_sequence_parts() == [list(part) for part in expected], "Wrong linear readout"
+    assert all(index == 0 for part in readout.primary_sequence_parts()
+               for index, name in enumerate(part) if name.endswith(' starter')), "Starter inside a backbone"
     flat = []
     for part in expected:
         if flat:
@@ -174,6 +172,12 @@ def assert_linear_readout(assembly: AssemblyGraph, expected: SequenceParts) -> N
     assert assembly.to_dict() == before, "Readout changed the assembly"
     restored = AssemblyGraph.from_dict(json.loads(json.dumps(before)))
     assert LinearReadout.from_assembly_graph(restored).primary_sequence_parts() == [list(part) for part in expected]
+    reordered = nx.Graph()
+    reordered.add_nodes_from(reversed(list(restored.g.nodes(data=True))))
+    reordered.add_edges_from((v, u, data) for u, v, data in reversed(list(restored.g.edges(data=True))))
+    assert LinearReadout.from_assembly_graph(AssemblyGraph(reordered)).primary_sequence_parts() == [
+        list(part) for part in expected
+    ], "Readout depends on graph insertion order"
 
 
 def assembly_comparison_graph(result: Result, assembly: AssemblyGraph) -> nx.Graph:
