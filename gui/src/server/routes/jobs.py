@@ -307,21 +307,13 @@ def submit_compound() -> tuple[Response, int]:
 
 
 DB_MATCHING_SEQUENCE_NOTE = (
-    "This is the exact primary sequence the database-population pipeline stores for "
-    "this molecule (read directly off result.linear_readout with no backbone "
-    "reconstruction, no eligibility/orientation filtering, no length filtering: "
-    "every path found in the assembly graph is included, tailoring events like "
-    "glycosylation/methylation among them). Every path is merged into this one "
-    "sequence, longest first, ties broken lexicographically, joined by \"<LINK>\". "
-    "The same merge database/scripts/common.py's primary_sequence_from_result "
-    "applies before storing a compound. Use this to search, not a reconstructed "
-    "candidate above: reconstruct_linear_readout builds a separate identified-only "
-    "readout to attempt backbone reconstruction, which diverges from what's actually "
-    "stored for a real fraction of compounds (anything with unidentified content). "
-    "Querying with that instead silently caps how similar a match can ever score, "
-    "even against the molecule's own database entry. To search with just one "
-    "biosynthetic chain rather than the whole molecule, split this sequence on "
-    "\"<LINK>\" and use one of the resulting subsequences instead."
+    "This sequence includes all identified monomers, including tailoring groups. "
+    "Unresolved and unassigned regions are omitted; coverage shows the fraction "
+    "of submitted heavy atoms represented by these identities. Paths are joined "
+    "by \"<LINK>\", longest first with lexical tie-breaking. This is the sequence "
+    "format used when populating the database. Backbone reconstruction can use "
+    "only a subset of these monomers. To search with one path, split this sequence "
+    "on \"<LINK>\" and use the desired part."
 )
 
 
@@ -329,9 +321,8 @@ def _db_matching_primary_sequences(result: Result) -> list[dict]:
     """
     The single primary sequence read directly off result.linear_readout -- the same
     representation database/scripts/common.py's primary_sequence_from_result uses to
-    populate the persistent database (itself reproducing the original
-    db_scripts/create_database.py recipe, recovered from git history at commit
-    72a1bbb). Every path is merged into one sequence, nothing filtered out (see
+    populate the persistent database. Every identified path is merged into one
+    sequence; unresolved and unassigned regions are excluded (see
     retromol.model.readout.LinearReadout.primary_sequence / merge_named_paths).
     Shaped identically to a Reconstruction dict, in a one-element list, so the
     frontend can render it the same way it does reconstruct_linear_readout's
@@ -346,9 +337,7 @@ def _db_matching_primary_sequences(result: Result) -> list[dict]:
     tagged_input_smiles = mol_to_smiles(result.submission.mol, include_tags=True)
 
     named_paths = [
-        [[name, list(get_tags_mol(node.mol))] for name, node in zip(
-            [n.identity.matched_rule.name if n.is_identified else "X" for n in path], path
-        )]
+        [[node.identity.name, list(get_tags_mol(node.mol))] for node in path]
         for path in result.linear_readout.paths
     ]
 

@@ -8,7 +8,7 @@ This directory contains three YAML configuration files:
 | [mxn.yml](mxn.yml) | SMILES that identify whole fragments as monomers, modified units, or tailoring groups. |
 | [pmp.yml](pmp.yml) | Maps predictions from BGC annotations/models onto matching-rule names or pseudonyms. It does not control compound disconnections. |
 
-Settings that affect parsing belong at the top level of each rule. `props` is for descriptive metadata such as references, notes, and example structures.
+Settings that affect parsing or sequence readout belong at the top level of each rule. `props` is for descriptive metadata such as references, notes, and example structures.
 
 ## How compound parsing uses the rules
 
@@ -79,11 +79,14 @@ This file is also a YAML list.
 | --- | --- | --- |
 | `name` | String; required | Identity assigned to the matched fragment and used in assembly graphs. Multiple structural entries can share a name, for example keto/enol representations of one unit. |
 | `smiles` | String; required | The whole fragment structure to recognize, including any artificial caps expected after disconnection. This field takes SMILES, not a SMARTS query. |
+| `requires_smarts` | SMARTS string or `null`; `null` | Additional substructure condition on the tagged fragment. Both this query and the whole-fragment `smiles` match must succeed. Compiled and validated when loading the rule. |
+| `cases` | List; `[]` | Conditional `name` and/or `sequence_role` overrides after the structural match. Each case requires `requires_smarts`; the first matching case wins, otherwise the rule's defaults apply. |
 | `pseudonyms` | List of strings; `[]` | Alternative names or broader groups, such as `PK_A` and `PK`, used by downstream representations and BGC matching. They do not change the structural match. |
 | `terminal` | Boolean; `true` | Stop expanding a fragment identified by this rule. With `false`, keep its identity but also allow further reactions and finer assemblies. |
 | `stereochemistry` | Boolean; `false` | Marks a stereo-specific rule. These rules are prioritized when global stereochemical matching is enabled and skipped when it is disabled. |
 | `preserve_across_routes` | Boolean; `true` | For terminal matches, also protect the original atom region against subdivision through alternative routes. See below. |
 | `display_smiles` | String or `null`; `null` | Optional alternative structure for depiction. It does not replace `smiles` during matching or change coverage. |
+| `sequence_role` | `backbone`, `tailoring`, or `null`; `null` | Role of this monomer in linear assembly readouts. It does not change matching, expansion, terminal protection, or coverage. See below. |
 | `props` | Mapping; `{}` | Descriptive metadata, such as a reference or an explanation of a modified residue. |
 
 For example:
@@ -99,6 +102,79 @@ For example:
   props:
     note: Formal capped beta-keto PK unit.
 ```
+
+### Conditional names and sequence roles
+
+Define the structure once, then use `cases` to assign a name and role based on
+the matched fragment's existing atom tags. The default PK cleavage rules add a
+complete carboxyl cap to the remaining chain. Reversing thiazole formation instead
+retains the original acyl carbon and restores its carbonyl oxygen; subsequent
+amide cleavage adds the acid hydroxyl. Both starter representations have two
+reaction-added acid oxygens (tag zero). Ordinary O- or N-acetyl substituents
+retain their original carbonyl oxygen (a positive tag):
+
+```yaml
+- name: acetic acid
+  smiles: 'CC(=O)O'
+  sequence_role: tailoring
+  cases:
+    - requires_smarts: '[C](=[0O])[0OH]'
+      name: acetic acid starter
+      sequence_role: backbone
+```
+
+### Backbone and tailoring roles
+
+Set `sequence_role` on a monomer matching rule when its role in the sequence view
+is known:
+
+```yaml
+- name: methylation
+  smiles: C
+  sequence_role: tailoring
+```
+
+`tailoring` means a separately represented modification that should be read
+outside the backbone path, even if attached through C–C or C–N. Connected tailoring
+units form their own paths, including multi-unit moieties. A modification already
+contained in a matched monomer, such as N-methylalanine, stays part of that monomer;
+its name alone does not make the whole unit tailoring. This is a representation
+policy, not evidence that a reaction happened after backbone synthesis.
+
+Connections between two explicit `backbone` units are initially retained regardless
+of bond elements. The readout then distinguishes backbone continuation from side
+attachments using connection sites in the fragments: an incoming carbon marked
+by an artificial S–OH cap, or an alpha-amino acid's backbone nitrogen. If that
+entry is already connected to a preceding unit's carboxyl side, an extra
+ester/thioester connection to the unit's O/S is omitted
+from traversal. This covers ring closures and ester attachments between separate
+backbones; both chains remain backbone sequences. Extra ether links to the already
+connected incoming carbon are also excluded, so they cannot redirect the path.
+Esters without that competing entry evidence remain eligible, including ordinary
+ester-linked backbone steps. All original bonds remain in the assembly graph.
+For example, enterobactin's three N-acylated serines yield three identical
+`['2,3-dihydroxybenzoic acid', 'serine']` paths; their side-chain ester links do
+not merge those paths. Repeated parts are retained as separate occurrences.
+
+Where either non-tailoring endpoint has no role, the readout falls
+back to C–C/C–N connections. A `tailoring` endpoint always separates from an untagged
+or `backbone` endpoint. The defaults explicitly mark PK units and conditional
+acid starters as backbone and modification identities as tailoring. Other units
+can remain untagged; no role is inferred from size or degree.
+Role choices can depend on the intended compound class, so use custom matching
+rules where a motif plays a different role.
+
+Roles are saved with matching rules in result JSON. Older results without the
+field remain readable and use the fallback; reparse with annotated rules to
+apply the new defaults to those compounds.
+
+`assembly_to_primary_sequence(assembly)` returns the resulting paths as
+`list[list[str]]`. It retains branches in additional paths and does not label an
+unannotated leftover branch as tailoring. Each identified monomer occurs once;
+unresolved fragments and the synthetic unassigned node are omitted. Unresolved
+regions break paths. Assembly coverage measures how much of the compound these
+named units represent: 100% means all submitted heavy atoms have a monomer
+identity. See the [Python example](../../../README.md#linear-sequences-from-sampled-assemblies).
 
 ### `terminal` versus `preserve_across_routes`
 
@@ -142,7 +218,14 @@ Use YAML booleans `true` and `false`, not quoted strings. Quote SMILES/SMARTS; s
 
 Older YAML files and saved results with `props.preserve_across_routes` or `props.product_max_matches` are still accepted through `from_dict`. Loading moves these values out of metadata. If both locations occur, the explicit top-level value wins, including `true` or an empty `{}`. Serialization always writes the new top-level fields. When constructing Python rule objects directly, pass these settings as named constructor arguments.
 
-Individual rule IDs are hashes of their SMARTS or SMILES strings. Ruleset hashes include the ordered serialized definitions, including behavior settings, names, and metadata. Moving to the new serialization therefore changes ruleset hashes even when the chemistry and effective settings are unchanged; old saved provenance remains historical. Treat loaded rules and their nested mappings as immutable.
+Reaction rule IDs hash their SMARTS. Matching rule IDs hash their SMILES and,
+when present, the top-level `requires_smarts`. Cases choose output identities
+without changing this structural ID, so variants of one rule share an ID.
+Matching rules without a top-level condition retain their SMILES-only IDs.
+Ruleset hashes include the ordered serialized definitions, including behavior
+settings, names, cases, and metadata. Adding serialized fields therefore changes
+ruleset hashes even when effective behavior is unchanged; old saved provenance
+remains historical. Treat loaded rules and their nested mappings as immutable.
 
 ## Prediction mapping: `pmp.yml`
 

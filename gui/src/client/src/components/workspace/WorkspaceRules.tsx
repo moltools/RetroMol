@@ -76,6 +76,7 @@ function MatchingRuleRow({ rule }: { rule: MatchingRule }) {
           </Typography>
         </Box>
 
+        {rule.cases.length > 0 && <Chip label="Conditional roles" size="small" sx={{ fontSize: "0.7rem" }} />}
         {rule.terminal && <Chip label="Terminal" size="small" sx={{ fontSize: "0.7rem" }} />}
         {rule.stereochemistry && <Chip label="Stereochemistry" size="small" color="info" sx={{ fontSize: "0.7rem", color: "white" }} />}
         {rule.pseudonyms.length > 0 && (
@@ -146,6 +147,35 @@ function MatchingRuleRow({ rule }: { rule: MatchingRule }) {
               </Box>
             )}
 
+            <Typography variant="body2" color="text.secondary">
+              Default sequence role: {rule.sequenceRole ?? "inferred from bonds"}
+            </Typography>
+            {rule.requiresSmarts && (
+              <Box>
+                <Typography variant="caption" color="text.secondary">Required SMARTS</Typography>
+                <Typography variant="body2" sx={{ fontFamily: "monospace", wordBreak: "break-all" }}>
+                  {rule.requiresSmarts}
+                </Typography>
+              </Box>
+            )}
+            {rule.cases.length > 0 && (
+              <Stack spacing={0.5}>
+                <Typography variant="caption" color="text.secondary">
+                  Cases after structural matching (first match wins; otherwise use defaults)
+                </Typography>
+                {rule.cases.map((ruleCase, i) => (
+                  <Box key={i}>
+                    <Typography variant="body2">
+                      {i + 1}. <MotifName name={ruleCase.name ?? rule.name} />
+                      {" · "}{ruleCase.sequenceRole ?? rule.sequenceRole ?? "inferred from bonds"}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: "monospace", wordBreak: "break-all" }}>
+                      {ruleCase.requiresSmarts}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            )}
             {rule.terminal && (
               <Typography variant="body2" color="text.secondary">
                 {rule.preserveAcrossRoutes
@@ -242,7 +272,11 @@ export const WorkspaceRules: React.FC = () => {
   const filteredMatchingRules = React.useMemo(() => {
     const rules = ruleSetQuery.data?.matchingRules ?? [];
     if (!search.trim()) return rules;
-    return rules.filter((r) => matchesQuery([r.name, r.smiles, r.displaySmiles ?? "", ...r.pseudonyms], search));
+    return rules.filter((r) => matchesQuery([
+      r.name, r.smiles, r.displaySmiles ?? "", ...r.pseudonyms,
+      r.sequenceRole ?? "", r.requiresSmarts ?? "",
+      ...r.cases.flatMap((c) => [c.name ?? "", c.requiresSmarts, c.sequenceRole ?? ""]),
+    ], search));
   }, [ruleSetQuery.data, search]);
 
   const filteredReactionRules = React.useMemo(() => {

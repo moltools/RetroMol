@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const SequenceRoleSchema = z.enum(["backbone", "tailoring"]).nullable();
+
 export const MatchingRuleSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -11,6 +13,13 @@ export const MatchingRuleSchema = z.object({
   terminal: z.boolean(),
   stereochemistry: z.boolean(),
   preserveAcrossRoutes: z.boolean(),
+  sequenceRole: SequenceRoleSchema.default(null),
+  requiresSmarts: z.string().nullable().default(null),
+  cases: z.array(z.object({
+    requiresSmarts: z.string(),
+    name: z.string().nullable(),
+    sequenceRole: SequenceRoleSchema,
+  })).default([]),
   props: z.record(z.string(), z.any()),
 });
 export type MatchingRule = z.output<typeof MatchingRuleSchema>;

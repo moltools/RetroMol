@@ -162,3 +162,4 @@ def test_single_can_save_compressed_result(tmp_path, monkeypatch):
     with gzip.open(tmp_path / 'result.json.gz', 'rt') as handle:
         result = Result.from_dict(json.load(handle))
     assert result.calculate_coverage() == .75
+    assert json.loads((tmp_path / 'assembly_sequences.json').read_text()) == []

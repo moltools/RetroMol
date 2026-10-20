@@ -2,7 +2,7 @@
 "10-deoxymethynolide":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B2", 4]
       - ["C1", 2]
       - ["A2", 4]
@@ -19,7 +19,7 @@
 "13-deoxytedanolide":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["C2", 3]
       - ["C2", 3]
       - ["oxidation", 1]
@@ -56,7 +56,7 @@
 "6-deoxyerythronolide B":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B2", 4]
       - ["B2", 4]
       - ["A2", 4]
@@ -80,10 +80,10 @@
       - ["C1", 2]
       - ["C1", 2]
       - ["C1", 5]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["oxidation", 1]
       - ["B10", 7]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-O:SINGLE"]]
       - [0, 7, ["C-O:SINGLE"]]
@@ -102,7 +102,7 @@
       - ["A2", 4]
       - ["oxidation", 1]
       - ["D2", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 2]
       - ["C1", 2]
       - ["A1", 5]
@@ -123,7 +123,7 @@
     nodes:
       - ["oxidation", 1]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 2]
       - ["C1", 2]
       - ["A1", 5]
@@ -144,7 +144,7 @@
 "aculeximycin":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["B2", 4]
       - ["glycosylation", 10]
@@ -200,7 +200,7 @@
 "acutiphycin":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["D1", 2]
       - ["B1", 3]
@@ -278,7 +278,7 @@
 "amphidinolide J":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["C1", 2]
       - ["D10", 4]
@@ -373,7 +373,7 @@
       - ["C1", 2]
       - ["C1", 2]
       - ["D2", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-C:DOUBLE"]]
       - [0, 6, ["C-C:SINGLE"]]
@@ -459,7 +459,7 @@
       - ["methylation", 1]
       - ["chlorination", 1]
       - ["chlorination", 1]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-O:SINGLE"]]
       - [0, 12, ["C-O:SINGLE"]]
@@ -502,7 +502,7 @@
       - ["methylation", 1]
       - ["chlorination", 1]
       - ["chlorination", 1]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-O:SINGLE"]]
       - [0, 12, ["C-O:SINGLE"]]
@@ -615,7 +615,7 @@
       - ["glycosylation", 10]
       - ["methylation", 1]
       - ["iodination", 1]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-N:SINGLE"]]
       - [1, 2, ["C-O:SINGLE"]]
@@ -700,7 +700,7 @@
       - ["C1", 2]
       - ["B11", 4]
       - ["C2", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
       - [0, 9, ["C-C:SINGLE"]]
@@ -747,7 +747,7 @@
       - ["D2", 3]
       - ["chlorination", 1]
       - ["chlorination", 1]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-C:DOUBLE"]]
       - [0, 6, ["C-C:SINGLE"]]
@@ -768,7 +768,7 @@
 "chlorothricin":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C13", 5]
       - ["C1", 2]
       - ["glyceric acid", 5]
@@ -783,7 +783,7 @@
       - ["glycosylation", 9]
       - ["A1", 5]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["chlorination", 1]
       - ["C1", 2]
       - ["methylation", 1]
@@ -834,7 +834,7 @@
       - ["C1", 2]
       - ["C1", 2]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 2]
       - ["D1", 2]
       - ["B1", 3]
@@ -855,7 +855,7 @@
 "cremimycin":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["D1", 2]
       - ["D1", 2]
       - ["A", 3]
@@ -893,7 +893,7 @@
 "deschlorothricin":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C13", 5]
       - ["C1", 2]
       - ["glyceric acid", 5]
@@ -908,7 +908,7 @@
       - ["glycosylation", 9]
       - ["A1", 5]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 2]
       - ["methylation", 1]
       - ["D1", 2]
@@ -942,7 +942,7 @@
 "daptomycin":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["D1", 2]
       - ["D1", 2]
@@ -995,7 +995,7 @@
       - ["D2", 3]
       - ["C2", 3]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
       - [0, 9, ["C-C:SINGLE"]]
@@ -1025,7 +1025,7 @@
       - ["B2", 4]
       - ["C2", 3]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["carbamic acid", 3]
     edges:
       - [0, 1, ["C-C:SINGLE", "C-O:SINGLE"]]
@@ -1054,7 +1054,7 @@
       - ["B2", 4]
       - ["C2", 3]
       - ["cysteine", 4]
-      - ["acetic acid", 2]
+      - ["acetic acid starter", 2]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
       - [0, 7, ["C-C:SINGLE"]]
@@ -1071,7 +1071,7 @@
 "erythromycin":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B6", 5]
       - ["B2", 4]
       - ["A2", 4]
@@ -1143,7 +1143,7 @@
 "harzianic acid":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["C1", 2]
       - ["C1", 2]
@@ -1200,7 +1200,7 @@
 "hymenosetin":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 2]
       - ["C2", 3]
       - ["C1", 2]
@@ -1336,7 +1336,7 @@
       - ["B2", 4]
       - ["methylation", 1]
       - ["C2", 3]
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B1", 3]
       - ["C1", 2]
       - ["C2", 3]
@@ -1372,7 +1372,7 @@
       - ["B3", 5]
       - ["C1", 2]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-N:SINGLE"]]
       - [0, 13, ["C-C:SINGLE"]]
@@ -1430,7 +1430,7 @@
       - ["acetic acid", 3]
       - ["methylation", 1]
       - ["B2", 4]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["acetic acid", 3]
       - ["methylation", 1]
     edges:
@@ -1485,7 +1485,7 @@
       - ["C1", 2]
       - ["B2", 4]
       - ["C1", 2]
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B-beta-carboxymethyl", 6]
       - ["B2", 4]
       - ["A8", 3]
@@ -1516,7 +1516,7 @@
       - ["C1", 2]
       - ["C1", 2]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["B1", 3]
       - ["B1", 5]
@@ -1536,7 +1536,7 @@
 "macrolactin A":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["B1", 3]
       - ["D1", 2]
       - ["C1", 2]
@@ -1603,7 +1603,7 @@
 "megalomycin A":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B6", 5]
       - ["B2", 4]
       - ["A2", 4]
@@ -1632,7 +1632,7 @@
 "micacocidin A":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["D1", 2]
       - ["C1", 2]
@@ -1686,7 +1686,7 @@
 "narbonolide":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B2", 4]
       - ["C1", 2]
       - ["A2", 4]
@@ -1717,7 +1717,7 @@
       - ["methylation", 1]
       - ["methylation", 1]
       - ["methylation", 1]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-O:SINGLE"]]
       - [0, 2, ["C-C:SINGLE"]]
@@ -1737,7 +1737,7 @@
 "peluriside A":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D7", 4]
       - ["C2", 3]
       - ["B1", 3]
@@ -1779,7 +1779,7 @@
 "periconiasin A":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C2", 3]
       - ["leucine", 7]
       - ["A1", 5]
@@ -1808,7 +1808,7 @@
       - ["C1", 2]
       - ["C2", 3]
       - ["leucine", 7]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["oxidation", 1]
     edges:
       - [0, 1, ["C-C:DOUBLE"]]
@@ -1825,7 +1825,7 @@
 "ratjadon":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 2]
       - ["B2", 4]
       - ["B1", 3]
@@ -1963,7 +1963,7 @@
       - ["methylation", 1]
       - ["formaldehyde", 1]
       - ["methylation", 1]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-O:SINGLE"]]
       - [0, 2, ["C-C:SINGLE"]]
@@ -1997,7 +1997,7 @@
       - ["methylation", 1]
       - ["formaldehyde", 1]
       - ["methylation", 1]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-O:SINGLE"]]
       - [0, 2, ["C-C:SINGLE"]]
@@ -2028,7 +2028,7 @@
       - ["B2", 4]
       - ["B2", 4]
       - ["B1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["acetic acid", 3]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
@@ -2076,7 +2076,7 @@
 "zincophorin":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["D2", 3]
       - ["C2", 3]
       - ["B2", 4]
@@ -2145,7 +2145,7 @@
       - ["B6", 5]
       - ["D2", 3]
       - ["D5", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["methylation", 1]
     edges:
       - [0, 1, ["C-N:SINGLE"]]
@@ -2172,7 +2172,7 @@
       - ["methylation", 1]
       - ["B1", 3]
       - ["D1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 4]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
@@ -2196,7 +2196,7 @@
 "dihydroxydione":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B2", 6]
       - ["A2", 4]
       - ["D1", 2]
@@ -2204,7 +2204,7 @@
       - ["B1", 3]
       - ["C2", 3]
       - ["cysteine", 4]
-      - ["acetic acid", 2]
+      - ["acetic acid starter", 2]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
       - [1, 2, ["C-C:SINGLE"]]
@@ -2218,7 +2218,7 @@
 "amamistatin B":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["D1", 2]
       - ["D1", 2]
@@ -2240,7 +2240,7 @@
 "nocardichelin B":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["D1", 2]
       - ["D1", 2]
@@ -2283,9 +2283,9 @@
       - ["D1", 2]
       - ["C1", 2]
       - ["B1", 3]
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["D2", 3]
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["D2", 3]
     edges:
       - [0, 1, ["B-O:SINGLE", "B-O:SINGLE"]]
@@ -2365,7 +2365,7 @@
       - ["A2", 4]
       - ["A1", 5]
       - ["B1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 2]
       - ["chlorination", 1]
     edges:
@@ -2380,7 +2380,7 @@
 "actinoquinoline B":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D8", 5]
       - ["5-hydroxylysine", 10]
       - ["3-hydroxyquinaldic acid", 13]
@@ -2587,7 +2587,7 @@
       - ["isoleucine", 8]
       - ["alanine", 5]
       - ["alanine", 5]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["B1", 5]
       - ["D1", 2]
       - ["D1", 2]
@@ -2752,7 +2752,7 @@
       - ["B-alpha-hexyl", 11]
       - ["lactic acid", 3]
       - ["3-formamido-2-hydroxybenzoic acid", 12]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D8", 5]
       - ["threonine", 7]
     edges:
@@ -2785,7 +2785,7 @@
       - ["C1", 2]
       - ["B1", 3]
       - ["B5", 4]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["B1", 3]
       - ["C1", 2]
       - ["C2", 3]
@@ -2930,7 +2930,7 @@
     nodes:
       - ["isoleucine", 8]
       - ["A1", 5]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 1, ["C-C:DOUBLE", "C-N:SINGLE"]]
       - [1, 2, ["C-C:SINGLE"]]
@@ -2977,7 +2977,7 @@
       - ["D2", 6]
       - ["formaldehyde", 2]
       - ["D8", 5]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["N-methylpipecolic acid", 9]
       - ["valine", 5]
       - ["tyrosine", 10]
@@ -3046,7 +3046,7 @@
       - ["C1", 2]
       - ["C1", 2]
       - ["B2-alpha-carboxy", 7]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["B2-alpha-hydroxymethyl", 6]
       - ["C1", 2]
       - ["serine", 5]
@@ -3054,7 +3054,7 @@
       - ["serine", 5]
       - ["C1", 4]
       - ["B1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 8, ["C-C:SINGLE"]]
       - [0, 9, ["C-C:SINGLE"]]
@@ -3110,7 +3110,7 @@
       - ["glyceric acid", 6]
       - ["isoleucine", 8]
       - ["Aeap", 11]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["glycosylation", 11]
       - ["D1", 4]
@@ -3118,7 +3118,7 @@
       - ["D1", 4]
       - ["carbonic acid", 2]
       - ["D1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["sulfate", 4]
     edges:
       - [0, 6, ["C-O:SINGLE"]]
@@ -3139,7 +3139,7 @@
     nodes:
       - ["C1", 2]
       - ["A1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A4", 7]
     edges:
       - [0, 2, ["C-C:SINGLE"]]
@@ -3291,7 +3291,7 @@
       - ["C1", 2]
       - ["C1", 2]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 5]
     edges:
       - [0, 5, ["C-C:SINGLE"]]
@@ -3306,7 +3306,7 @@
     nodes:
       - ["C1", 2]
       - ["D2", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C2", 3]
       - ["B2", 4]
       - ["C2", 3]
@@ -3370,7 +3370,7 @@
       - ["D1", 2]
       - ["D1", 2]
       - ["A1", 5]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["D1", 2]
       - ["D1", 2]
@@ -3424,7 +3424,7 @@
       - ["D1", 2]
       - ["D1", 2]
       - ["A1", 5]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["D1", 2]
       - ["D1", 2]
       - ["D1", 2]
@@ -3451,13 +3451,13 @@
   - coverage: 1.0
     nodes:
       - ["C1", 5]
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
     edges:
       - [0, 1, ["C-C:DOUBLE"]]
 "PK shifted alkene donor H2":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["C1", 5]
     edges:
       - [0, 1, ["C-C:DOUBLE"]]
@@ -3716,7 +3716,7 @@
       - ["B1", 3]
       - ["C1", 2]
       - ["B1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["B1", 3]
       - ["B1", 3]
       - ["B1", 3]
@@ -3769,7 +3769,7 @@
       - ["C1", 2]
       - ["C1", 2]
       - ["D1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 6, ["C-C:SINGLE"]]
       - [0, 7, ["C-C:SINGLE"]]
@@ -3789,7 +3789,7 @@
       - ["A1", 2]
       - ["A1", 3]
       - ["A1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 3]
       - ["A1", 3]
       - ["oxidation", 1]
@@ -3818,7 +3818,7 @@
       - ["A1", 2]
       - ["A1", 2]
       - ["A1", 6]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 3]
       - ["A1", 3]
     edges:
@@ -3843,7 +3843,7 @@
       - ["A1", 3]
       - ["glycosylation", 9]
       - ["methylation", 1]
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["oxidation", 1]
       - ["glycosylation", 9]
       - ["glycosylation", 8]
@@ -3952,7 +3952,7 @@
       - ["methylation", 1]
       - ["D11", 3]
       - ["glycosylation", 9]
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["A1", 3]
       - ["A1", 3]
       - ["methylation", 1]
@@ -4003,7 +4003,7 @@
       - ["C1", 2]
       - ["C1", 2]
       - ["A1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
     edges:
       - [0, 6, ["C-C:AROMATIC"]]
       - [0, 7, ["C-C:AROMATIC"]]
@@ -4025,7 +4025,7 @@
   - coverage: 1.0
     nodes:
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["B5", 4]
       - ["C2", 3]
       - ["B1", 3]
@@ -4070,7 +4070,7 @@
 "PK aldol ring donor H1":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["A1", 6]
       - ["D1", 2]
       - ["A1", 3]
@@ -4084,7 +4084,7 @@
   - coverage: 1.0
     nodes:
       - ["A1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 6]
       - ["D1", 2]
     edges:
@@ -4096,7 +4096,7 @@
 "PK pentyl-branched beta-hydroxy chain":
   - coverage: 1.0
     nodes:
-      - ["propanoic acid", 2]
+      - ["propanoic acid starter", 2]
       - ["B-alpha-pentyl", 11]
     edges:
       - [0, 1, ["C-C:SINGLE"]]
@@ -4274,7 +4274,7 @@
   - coverage: 1.0
     nodes:
       - ["A1", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 2]
       - ["A1", 3]
     edges:
@@ -4287,7 +4287,7 @@
   - coverage: 1.0
     nodes:
       - ["A1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 3]
       - ["A1", 3]
       - ["A1", 5]
@@ -4303,7 +4303,7 @@
   - coverage: 1.0
     nodes:
       - ["A1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["oxidation", 1]
       - ["A1", 3]
       - ["A1", 3]
@@ -4323,7 +4323,7 @@
       - ["A1", 3]
       - ["A1", 2]
       - ["A1", 5]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 3]
       - ["A1", 2]
       - ["A1", 3]
@@ -4341,12 +4341,12 @@
 "nidulin":
   - coverage: 1.0
     nodes:
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 3]
       - ["chlorination", 1]
       - ["A1", 2]
       - ["A1", 5]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["chlorination", 1]
       - ["chlorination", 1]
       - ["A2", 4]
@@ -4376,11 +4376,11 @@
       - ["C2", 3]
       - ["A2", 4]
       - ["C1", 2]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 5]
       - ["A1", 3]
       - ["C2", 3]
-      - ["acetic acid", 1]
+      - ["acetic acid starter", 1]
       - ["A1", 2]
       - ["A2", 4]
     edges:

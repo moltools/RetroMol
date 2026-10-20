@@ -538,7 +538,7 @@ def test_decanoic_lipopeptide_has_five_resolutions(ruleset):
     assert sorted(len(a.monomer_ids()) for a in assemblies) == [3, 4, 5, 6, 7]
     fatty_names = {n.identity.name for a in assemblies for n in a.monomer_nodes()
                    if 'acid' in n.identity.name}
-    assert fatty_names == {'decanoic acid', 'octanoic acid', 'hexanoic acid', 'butanoic acid', 'acetic acid'}
+    assert fatty_names == {'decanoic acid', 'octanoic acid', 'hexanoic acid', 'butanoic acid', 'acetic acid starter'}
     assert all(result.calculate_coverage(a) == 1 for a in assemblies)
     sequences = [LinearReadout.from_assembly_graph(a).primary_sequence() for a in assemblies]
     assert sorted(map(len, sequences)) == [3, 4, 5, 6, 7]

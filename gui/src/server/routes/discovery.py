@@ -127,7 +127,7 @@ def _build_context() -> DiscoveryContext:
     name_to_rule: dict[str, MatchingRule] = {}
     records: list[tuple[str, str]] = []
 
-    for rule in rules.matching_rules:
+    for rule in rules.matching_rule_variants:
         vocab_tokens.add(rule.name)
         vocab_tokens.update(rule.pseudonyms)
         name_to_rule.setdefault(rule.name, rule)
@@ -540,7 +540,7 @@ def motif_structures() -> tuple[Response, int]:
     structures = {name: (rule.display_smiles or rule.smiles) for name, rule in ctx.name_to_rule.items()}
 
     smiles_by_name: dict[str, set[str]] = {}
-    for rule in ctx.ruleset.matching_rules:
+    for rule in ctx.ruleset.matching_rule_variants:
         smiles_by_name.setdefault(rule.name, set()).add(rule.display_smiles or rule.smiles)
     ambiguous_names = sorted(name for name, smiles in smiles_by_name.items() if len(smiles) > 1)
 

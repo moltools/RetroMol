@@ -58,7 +58,7 @@ def build_fingerprint_context(ruleset: RuleSet) -> tuple[dict[str, MatchingRule]
     vocab_tokens: set[str] = set()
     name_to_rule: dict[str, MatchingRule] = {}
 
-    for rule in ruleset.matching_rules:
+    for rule in ruleset.matching_rule_variants:
         vocab_tokens.add(rule.name)
         vocab_tokens.update(rule.pseudonyms)
         name_to_rule.setdefault(rule.name, rule)
@@ -115,18 +115,12 @@ def npatlas_url(npaid: str | None) -> str | None:
 def primary_sequence_from_result(result: Result) -> list[str]:
     """
     The single primary sequence for a parsed compound, read directly off
-    `result.linear_readout` -- no backbone reconstruction involved, that's a
-    display-only concern this pipeline has no use for. `result.linear_readout` is
-    already computed by retromol.pipelines.parsing.run_retromol (it's just a field
-    on Result); every path through the molecule -- including single-node paths for
-    tailoring events that don't connect to any chain, e.g. glycosylation/methylation
-    (AssemblyGraph only keeps C-C/C-N bonds as "connections", so a sugar attached via
-    a glycosidic C-O-C linkage always ends up disconnected from the main chain) --
-    is merged into one sequence (longest first, ties broken lexicographically, joined
-    by TOKEN_LINK -- see `LinearReadout.primary_sequence`), and that single sequence
-    becomes this compound's one db entry (see load_compounds.py). Nothing found in
-    the assembly graph is dropped. An unidentified node is named "X", the same
-    convention used everywhere else in RetroMol.
+    `result.linear_readout`. The readout is calculated
+    on demand and includes every identified monomer, including tailoring groups.
+    Unresolved and unassigned regions are excluded and break paths. The paths are
+    merged longest first, with lexical ties and TOKEN_LINK between them (see
+    `LinearReadout.primary_sequence`). This becomes the compound's one database
+    sequence; `result.calculate_coverage()` measures its heavy-atom completeness.
 
     :param result: a parsed RetroMol Result
     :return: the single primary sequence
