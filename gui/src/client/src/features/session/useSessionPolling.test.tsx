@@ -19,12 +19,12 @@ function makeSession(status: "queued" | "processing" | "done" = "queued", sessio
 
 function setup(initial = makeSession()) {
   const onError = jest.fn();
-  const hook = renderHook(() => {
+  const view = renderHook(() => {
     const [session, setSession] = React.useState<Session | null>(initial);
     useSessionPolling(session, setSession, onError);
     return { session, setSession };
   });
-  return { ...hook, onError };
+  return { ...view, onError };
 }
 
 async function advance(ms: number) {
