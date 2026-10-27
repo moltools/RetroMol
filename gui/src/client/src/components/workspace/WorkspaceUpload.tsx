@@ -162,8 +162,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
 
     try {
       await deleteSessionItem(session.sessionId, id);
-      // DO NOTHING ELSE
-      // SSE refresh will remove item from session
+      setSession((prev) => prev ? { ...prev, items: prev.items.filter((item) => item.id !== id) } : prev);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       pushNotification(`Failed to delete item: ${msg}`, "error");
@@ -185,7 +184,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
       for (const id of ids) {
         await deleteSessionItem(session.sessionId, id);
       }
-      // SSE will update the session state
+      setSession((prev) => prev ? { ...prev, items: prev.items.filter((item) => !ids.includes(item.id)) } : prev);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       pushNotification(`Failed to delete selected items from session: ${msg}`, "error");

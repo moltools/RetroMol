@@ -54,7 +54,7 @@ You can also check the backend's health endpoints directly:
 
 ```bash
 curl -i http://<server-ip>/api/health  # 200 OK: the process is up
-curl -i http://<server-ip>/api/ready   # 200 OK: DuckDB *and* Redis are both reachable
+curl -i http://<server-ip>/api/ready   # 200 OK: DuckDB and Redis are both reachable
 ```
 
 For local runs, use `http://localhost:4005` in place of `<server-ip>`.
@@ -165,13 +165,12 @@ WORKER_QUEUES=heavy_compute bash ./gui/scripts/dev_worker.sh
 
 ### Run the frontend locally
 
-Make sure to add `.env.development.local` to `src/client` and add the following line for SSE:
+Workspace updates use short requests through the normal API proxy: every 2 seconds
+while jobs are queued or processing, and every 10 seconds when idle. Hidden tabs
+pause refreshes and refresh immediately when shown again. No SSE-specific URL or
+additional service is required.
 
-```
-REACT_APP_SSE_BASE=http://localhost:4000
-```
-
-From the React client directory `src/client`, install dependencies and start the development server:
+From the React client directory `gui/src/client`, install dependencies and start the development server:
 
 ```bash
 cd ./gui/src/client

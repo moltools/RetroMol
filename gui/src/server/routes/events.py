@@ -1,12 +1,8 @@
 import json
-import time
-from typing import Iterator
 
-import redis
-from flask import Blueprint, Response, jsonify, request, stream_with_context
+from flask import Blueprint, Response, jsonify, request
 
 from routes.session_store import (
-    REDIS_URL,
     SSE_TICKET_TTL_SECONDS,
     consume_sse_ticket,
     create_sse_ticket,
@@ -15,15 +11,6 @@ from routes.session_store import (
 
 blp_events = Blueprint("events", __name__)
 blp_sse_ticket = Blueprint("sse_ticket", __name__)
-
-
-def _get_redis() -> "redis.Redis":
-    """
-    Get a Redis client.
-
-    :return: redis.Redis
-    """
-    return redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 
 @blp_sse_ticket.post("/api/sessionEventsTicket")
@@ -53,7 +40,7 @@ def session_events_ticket() -> tuple[Response, int]:
 @blp_events.get("/api/sessionEvents")
 def session_events() -> Response:
     """
-    SSE endpoint. Client connects once per session and receives notifications.
+    Compatibility endpoint for browser tabs loaded before session polling.
 
     Authorized via a one-time ticket (see /api/sessionEventsTicket above)
     rather than a raw sessionId, since EventSource can only send a GET and
@@ -72,51 +59,9 @@ def session_events() -> Response:
     if load_session_meta(session_id) is None:
         return Response("session not found\n", status=404, mimetype="text/plain")
 
-    r = _get_redis()
-    pubsub = r.pubsub(ignore_subscribe_messages=True)
-    channel = f"session_events:{session_id}"
-    pubsub.subscribe(channel)
-
-    def sse(event: str, data: dict) -> str:
-        return f"event: {event}\ndata: {json.dumps(data)}\n\n"
-
-    @stream_with_context
-    def gen() -> Iterator[str]:
-        # Initial hello
-        yield sse("hello", {"sessionId": session_id})
-
-        # Keepalive cadence (seconds)
-        keepalive_every = 15
-        last_keepalive = time.time()
-
-        try:
-            while True:
-                msg = pubsub.get_message(timeout=1.0)
-                if msg and msg.get("type") == "message":
-                    try:
-                        payload = json.loads(msg["data"])
-                    except Exception:
-                        payload = {"type": "unknown", "raw": msg.get("data")}
-
-                    # Event name comes from payload["type"]
-                    evt_type = payload.get("type", "message")
-                    yield sse(evt_type, payload)
-
-                # Keepalive so proxies don't kill the stream
-                now = time.time()
-                if now - last_keepalive >= keepalive_every:
-                    yield sse("keepalive", {"timestamp": int(now * 1000)})
-                    last_keepalive = now
-
-        finally:
-            try:
-                pubsub.close()
-            except Exception:
-                pass
-
     headers = {
         "Cache-Control": "no-cache",
-        "X-Accel-Buffering": "no",  # helps if behind nginx
-        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
     }
-    return Response(gen(), mimetype="text/event-stream", headers=headers)
+    body = f"event: hello\ndata: {json.dumps({'sessionId': session_id})}\n\n"
+    return Response(body, mimetype="text/event-stream", headers=headers)
