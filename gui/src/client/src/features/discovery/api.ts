@@ -1,4 +1,5 @@
 import { getJson, postJson } from "../http";
+import { withSessionWrite } from "../session/api";
 import {
   SubmitDiscoveryQueryRespSchema,
   GetDiscoveryQueryResultRespSchema,
@@ -56,12 +57,12 @@ export async function runDiscoveryCompareTanimoto(
 }
 
 // Fire-and-forget: the created item (status "queued") comes back immediately, and its
-// status/payload updates flow through the existing SSE + getSession mechanism from
+// status/payload updates flow through workspace session polling from
 // there -- same pattern as jobs/api.ts's submitCompoundJob, just returning the item
 // since (unlike a compound) it isn't created client-side first.
 export async function submitDiscoveryQuery(payload: SubmitDiscoveryQueryReq): Promise<DiscoveryQueryItem> {
   const validated = SubmitDiscoveryQueryReqSchema.parse(payload);
-  const data = await postJson("/api/submitDiscoveryQuery", validated, SubmitDiscoveryQueryRespSchema);
+  const data = await withSessionWrite(() => postJson("/api/submitDiscoveryQuery", validated, SubmitDiscoveryQueryRespSchema));
   return data.item;
 }
 

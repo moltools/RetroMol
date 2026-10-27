@@ -451,7 +451,9 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
         queryOriginSmiles,
         flags: { computeMsa, computeCompare, computeEnrichment },
       });
-      setSession((prev) => (prev ? { ...prev, items: [...prev.items, item] } : prev));
+      setSession((prev) => (prev && !prev.items.some((existing) => existing.id === item.id)
+        ? { ...prev, items: [...prev.items, item] }
+        : prev));
       setViewingItemId(item.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -465,7 +467,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
     setDeletingIds((prev) => new Set(prev).add(id));
     try {
       await deleteSessionItem(session.sessionId, id);
-      // SSE refresh will remove the item from session; nothing else to do here.
+      setSession((prev) => prev ? { ...prev, items: prev.items.filter((item) => item.id !== id) } : prev);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       pushNotification(`Failed to delete query: ${msg}`, "error");
@@ -512,7 +514,7 @@ export const WorkspaceDiscovery: React.FC<WorkspaceDiscoveryProps> = ({ session,
       for (const id of ids) {
         await deleteSessionItem(session.sessionId, id);
       }
-      // SSE will update the session state
+      setSession((prev) => prev ? { ...prev, items: prev.items.filter((item) => !ids.includes(item.id)) } : prev);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       pushNotification(`Failed to delete selected queries: ${msg}`, "error");

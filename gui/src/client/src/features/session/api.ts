@@ -1,9 +1,29 @@
 import { postJson } from "../http";
-import { Session, initSession, SessionSchema, CreateSessionRespSchema, GetSessionRespSchema, SseTicketRespSchema } from "./types";
+import { Session, initSession, SessionSchema, CreateSessionRespSchema, GetSessionRespSchema } from "./types";
 import { getCookie } from "./utils";
 import { z } from "zod";
 
 const OkRespSchema = z.object({ ok: z.boolean() }).partial();
+
+let pendingSessionWrites = 0;
+let sessionWriteVersion = 0;
+
+// A poll may only apply its snapshot if no write was pending when it started
+// and no write has begun since. Track writes independently of React renders,
+// including optimistic edits whose save has not reached the server yet.
+export function getSessionWriteVersion(): number | null {
+  return pendingSessionWrites ? null : sessionWriteVersion;
+}
+
+export async function withSessionWrite<T>(operation: () => Promise<T>): Promise<T> {
+  pendingSessionWrites += 1;
+  sessionWriteVersion += 1;
+  try {
+    return await operation();
+  } finally {
+    pendingSessionWrites -= 1;
+  }
+}
 
 export async function createSession(): Promise<string> {
   const newSession = initSession();
@@ -11,32 +31,32 @@ export async function createSession(): Promise<string> {
   return data.sessionId;
 };
 
-export async function getSession(sessionIdArg?: string): Promise<Session> {
+export async function getSession(sessionIdArg?: string, signal?: AbortSignal): Promise<Session> {
   const sessionId = sessionIdArg ?? getCookie("sessionId");
   if (!sessionId) throw new Error("No sessionId provided or found in cookies");
-  const data = await postJson("/api/getSession", { sessionId }, GetSessionRespSchema);
+  const data = await postJson("/api/getSession", { sessionId }, GetSessionRespSchema, signal);
   // Dont have to sanitize session: postJson already validates with GetSessionRespSchema
   return data.session;
 };
 
-export async function refreshSession(sessionId: string): Promise<Session> {
-  return getSession(sessionId);
+export async function refreshSession(sessionId: string, signal?: AbortSignal): Promise<Session> {
+  return getSession(sessionId, signal);
 };
 
 export async function saveSession(session: Session): Promise<void> {
   // Runtime validate before sending (especially useful because session is user-mutated in UI)
   const sanitized = SessionSchema.parse(session);
-  await postJson("/api/saveSession", { session: sanitized }, z.unknown());
+  await withSessionWrite(() => postJson("/api/saveSession", { session: sanitized }, z.unknown()));
 };
 
 export async function deleteSession(): Promise<void> {
   const sessionId = getCookie("sessionId");
   if (!sessionId) throw new Error("No sessionId cookie found");
-  await postJson("/api/deleteSession", { sessionId }, z.unknown());
+  await withSessionWrite(() => postJson("/api/deleteSession", { sessionId }, z.unknown()));
 };
 
 export async function deleteSessionItem(sessionId: string, itemId: string): Promise<void> {
-  await postJson("/api/deleteSessionItem", { sessionId, itemId }, OkRespSchema);
+  await withSessionWrite(() => postJson("/api/deleteSessionItem", { sessionId, itemId }, OkRespSchema));
 };
 
 export async function renameSessionItem(session: Session, itemId: string, name: string): Promise<Session> {
@@ -46,13 +66,4 @@ export async function renameSessionItem(session: Session, itemId: string, name: 
   };
   await saveSession(nextSession);
   return nextSession;
-};
-
-// EventSource can only issue a plain GET (no custom headers/body), so the SSE
-// endpoint can't be authorized with a POSTed sessionId like everything else
-// here. Instead we mint a short-lived, single-use ticket via a normal POST,
-// and only that opaque ticket ever ends up in the SSE URL.
-export async function getSessionEventsTicket(sessionId: string): Promise<string> {
-  const data = await postJson("/api/sessionEventsTicket", { sessionId }, SseTicketRespSchema);
-  return data.ticket;
 };
