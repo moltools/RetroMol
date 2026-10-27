@@ -7,13 +7,16 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import { useNotifications } from "../NotificationProvider";
 import { useOverlay } from "../OverlayProvider";
 import { Session } from "../../features/session/types";
-import { getSession, refreshSession } from "../../features/session/api";
+import { getSession } from "../../features/session/api";
+import { useSessionPolling } from "../../features/session/useSessionPolling";
 import { WorkspaceNavbar } from "./WorkspaceNavbar";
 import { WorkspaceSideMenu } from "./WorkspaceSideMenu";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import { WorkspaceHome } from "./WorkspaceHome";
 import { WorkspaceUpload } from "./WorkspaceUpload";
-// import { WorkspaceEnrichment } from "./tabs/enrichment/WorkspaceEnrichment";
+import { WorkspaceDiscovery } from "./WorkspaceDiscovery";
+import { WorkspaceRules } from "./WorkspaceRules";
+import { WorkspaceGenerate } from "./WorkspaceGenerate";
 
 export const Workspace: React.FC = () => {
   const { showOverlay, hideOverlay } = useOverlay();
@@ -51,52 +54,11 @@ export const Workspace: React.FC = () => {
     else hideOverlay();
   }, [loading, showOverlay, hideOverlay]);
 
-  // SSE: refresh session when server says something changed
-  React.useEffect(() => {
-    if (!session?.sessionId) return;
-
-    let alive = true;
-    let refreshTimer: number | null = null;
-
-    const scheduleRefresh = () => {
-      if (!alive) return;
-      if (refreshTimer !== null) return;
-
-      refreshTimer = window.setTimeout(() => {
-        refreshTimer = null;
-
-        refreshSession(session.sessionId)
-          .then((fresh) => {
-            if (!alive) return;
-            setSession(fresh);
-          })
-          .catch((err) => {
-            const msg = err instanceof Error ? err.message : String(err);
-            pushNotification(`Failed to refresh session: ${msg}`, "error");
-          });
-      }, 250);
-    };
-
-    const SSE_BASE = process.env.REACT_APP_SSE_BASE ?? "";
-    const es = new EventSource(
-      `${SSE_BASE}/api/sessionEvents?sessionId=${encodeURIComponent(session.sessionId)}`
-    );
-
-    // Attach scheduleRefresh to all relevant events
-    es.addEventListener("hello", scheduleRefresh);
-    es.addEventListener("item_updated", scheduleRefresh);
-    es.addEventListener("session_merged", scheduleRefresh);
-
-    es.onopen = () => {
-      // EventSource retries automatically; avoid spamming notifications
-    };
-
-    return () => {
-      alive = false;
-      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
-      es.close();
-    };
-  }, [session?.sessionId, pushNotification]);
+  const reportRefreshError = React.useCallback(
+    (message: string) => pushNotification(message, "error"),
+    [pushNotification],
+  );
+  useSessionPolling(session, setSession, reportRefreshError);
 
   // Determine what to show
   const showContent = !!session && !loading;
@@ -130,10 +92,9 @@ export const Workspace: React.FC = () => {
                 <Routes>
                   <Route index element={<WorkspaceHome />} />
                   <Route path="upload" element={<WorkspaceUpload session={session} setSession={setSession} />} />
-                  {/*<Route path="discovery" element={<WorkspaceDiscovery session={session} setSession={setSession} />} />*/}
-                  <Route path="discovery" element={<div>Analysis currently available. Check back later.</div>} />
-                  {/*<Route path="enrichment" element={<WorkspaceEnrichment session={session} setSession={setSession} />} />*/}
-                  <Route path="enrichment" element={<div>Analysis currently available. Check back later.</div>} />
+                  <Route path="discovery" element={<WorkspaceDiscovery session={session} setSession={setSession} />} />
+                  <Route path="generate" element={<WorkspaceGenerate />} />
+                  <Route path="rules" element={<WorkspaceRules />} />
                 </Routes>
               </Box>
             </Fade>

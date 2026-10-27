@@ -6,6 +6,7 @@ from typing import Any
 from rdkit.Chem.rdchem import Mol
 
 from retromol.chem.mol import standardize_from_smiles, mol_to_inchikey
+from retromol.chem.stereo import BondStereoRecord, capture_double_bond_stereo
 from retromol.chem.tagging import tag_mol
 
 
@@ -32,6 +33,7 @@ class Submission:
 
     mol: Mol = field(init=False, repr=False)
     inchikey: str = field(init=False, repr=False)
+    stereo_registry: dict[frozenset[int], BondStereoRecord] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         """
@@ -54,9 +56,14 @@ class Submission:
         # Tag molecule
         tag_mol(mol)
 
+        # Record original double bond stereo (by atom tag) so it can be restored on
+        # products of reaction rules that otherwise can't reconstruct it themselves
+        stereo_registry = capture_double_bond_stereo(mol)
+
         object.__setattr__(self, "smiles", smiles)
         object.__setattr__(self, "mol", mol)
         object.__setattr__(self, "inchikey", inchikey)
+        object.__setattr__(self, "stereo_registry", stereo_registry)
 
     def __str__(self) -> str:
         """

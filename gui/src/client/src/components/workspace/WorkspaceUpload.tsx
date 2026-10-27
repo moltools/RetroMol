@@ -15,7 +15,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { DialogImportCompound } from "./DialogImportCompound";
 import { DialogImportGeneCluster } from "./DialogImportGeneClusters";
 import { WorkspaceItemCard } from "./WorkspaceItemCard";
-import { Session } from "../../features/session/types";
+import { Session, type CompoundItem, type ClusterItem } from "../../features/session/types";
 import { deleteSessionItem, refreshSession } from "../../features/session/api";
 import { NewCompoundJob } from "../../features/jobs/types";
 import { MAX_ITEMS, importCompound, importCompoundsBatch, importClustersBatch } from "../../features/jobs/api";
@@ -74,6 +74,13 @@ type WorkspaceUploadProps = {
 export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSession }) => {
   const theme = useTheme();
   const { pushNotification } = useNotifications();
+
+  // This tab only ever shows/manages compound & cluster uploads -- discoveryQuery
+  // items (see WorkspaceDiscovery's "Saved queries") live in the same session.items
+  // array but have their own dedicated list and cap, so they're filtered out here.
+  const uploadItems = session.items.filter(
+    (item): item is CompoundItem | ClusterItem => item.kind === "compound" || item.kind === "cluster"
+  );
 
   const [openCompounds, setOpenCompounds] = React.useState(false);
   const [openClusters, setOpenClusters] = React.useState(false);
@@ -141,8 +148,8 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
   };
 
   const handleSelectAll = () => {
-    if (!session.items.length) return;
-    setSelectedIds(new Set(session.items.map(item => item.id)));
+    if (!uploadItems.length) return;
+    setSelectedIds(new Set(uploadItems.map(item => item.id)));
   };
 
   const handleClearSelection = () => {
@@ -155,8 +162,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
 
     try {
       await deleteSessionItem(session.sessionId, id);
-      // DO NOTHING ELSE
-      // SSE refresh will remove item from session
+      setSession((prev) => prev ? { ...prev, items: prev.items.filter((item) => item.id !== id) } : prev);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       pushNotification(`Failed to delete item: ${msg}`, "error");
@@ -178,7 +184,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
       for (const id of ids) {
         await deleteSessionItem(session.sessionId, id);
       }
-      // SSE will update the session state
+      setSession((prev) => prev ? { ...prev, items: prev.items.filter((item) => !ids.includes(item.id)) } : prev);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       pushNotification(`Failed to delete selected items from session: ${msg}`, "error");
@@ -217,7 +223,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
   };
 
   // Import cluster handler
-  const handleImportClusters = async (files: File[]) => {
+  const handleImportClusters = async (files: File[], parasThreshold: number) => {
     if (!files.length) return;
 
     const oversized = files.filter(f => f.size > MAX_FILE_SIZE_BYTES);
@@ -234,13 +240,14 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
       return;
     };
 
-    let payloads: { name: string; fileContent: string }[] = [];
+    let payloads: { name: string; fileContent: string; parasThreshold: number }[] = [];
 
     try {
       payloads = await Promise.all(
         files.map(async (file) => ({
           name: file.name,
           fileContent: await file.text(),
+          parasThreshold,
         }))
       )
       await importClustersBatch(deps, payloads);
@@ -252,7 +259,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
 
   // Selection states
   const anySelected = selectedIds.size > 0;
-  const allSelected = session.items.length > 0 && selectedIds.size === session.items.length;
+  const allSelected = uploadItems.length > 0 && selectedIds.size === uploadItems.length;
 
   return (
     <Box
@@ -278,7 +285,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
             Getting started
           </Typography>
           <Typography variant="body1">
-            In this tab you can import compounds and biosynthetic gene clusters (BGCs) into your workspace. Use the buttons below to upload your data files. After importing, you can visualize and analyze your data within the&nbsp;
+            In this tab you can import compounds and biosynthetic gene clusters (BGCs) into your workspace. Use the buttons below to upload your data files. After importing, you can visualize and analyze your data (including enrichment analysis against your nearest neighbors) within the&nbsp;
             <MuiLink
               component={RouterLink}
               to="/dashboard/discovery"
@@ -288,17 +295,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
             >
               Discovery
             </MuiLink>
-            &nbsp;and&nbsp;
-            <MuiLink
-              component={RouterLink}
-              to="/dashboard/enrichment"
-              underline="hover"
-              color={(theme.vars || theme).palette.primary.main}
-              sx={{ fontWeight: "500" }}
-            >
-              Enrichment
-            </MuiLink>
-            &nbsp;tabs. A maximum of <b>{MAX_ITEMS} items</b> can be imported into the workspace. Keep an eye on <NotificationsRoundedIcon fontSize={'small'} sx={{ verticalAlign: 'middle' }} /> for updates on your queries.
+            &nbsp;tab. A maximum of <b>{MAX_ITEMS} items</b> can be imported into the workspace. Keep an eye on <NotificationsRoundedIcon fontSize={'small'} sx={{ verticalAlign: 'middle' }} /> for updates on your queries.
           </Typography>
 
           <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
@@ -306,7 +303,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
               Import compounds
             </Button>
 
-            <Button variant="contained" onClick={handleOpenBGCs} disabled>
+            <Button variant="contained" onClick={handleOpenBGCs}>
               Import BGCs
             </Button>
           </Stack>
@@ -326,7 +323,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
         onImport={handleImportClusters}
       />
 
-      {session.items.length > 0 && (
+      {uploadItems.length > 0 && (
         <Card variant="outlined">
           <CardContent>
             <Stack
@@ -337,7 +334,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
             >
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Typography component="h1" variant="subtitle1">
-                  Workspace items ({session.items.length}/{MAX_ITEMS})
+                  Workspace items ({uploadItems.length}/{MAX_ITEMS})
                 </Typography>
                 <Tooltip title="Refresh workspace items" arrow>
                   <RefreshIcon
@@ -364,7 +361,7 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
                   size="small"
                   variant="text"
                   onClick={handleSelectAll}
-                  disabled={session.items.length === 0 || allSelected}
+                  disabled={uploadItems.length === 0 || allSelected}
                 >
                   Select all
                 </Button>
@@ -389,10 +386,11 @@ export const WorkspaceUpload: React.FC<WorkspaceUploadProps> = ({ session, setSe
             </Stack>
 
             <Stack spacing={1}>
-              {session.items.map((item) => (
+              {uploadItems.map((item) => (
                 <WorkspaceItemCard
                   key={item.id}
-                  sessionId={session.sessionId}
+                  session={session}
+                  setSession={setSession}
                   item={item}
                   selected={selectedIds.has(item.id)}
                   disabled={deletingIds.has(item.id)}

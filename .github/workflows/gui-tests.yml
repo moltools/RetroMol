@@ -1,0 +1,43 @@
+name: GUI tests
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "gui/**"
+
+defaults:
+  run:
+    working-directory: gui/src/client
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: gui/src/client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint src --ext .ts,.tsx,.js
+
+      - name: Check SmilesDrawer version attribution
+        run: npm run check:smiles-drawer-version
+
+      - name: Test
+        run: npm test -- --watchAll=false
+        env:
+          CI: true
+
+      - name: Build
+        run: npm run build

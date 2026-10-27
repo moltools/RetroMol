@@ -15,8 +15,9 @@ dependencies = [
     "biopython",
     "pyhmmer",
     "tqdm",
-    "numpy<2",  # scikit-learn 1.2.0 requires numpy<2
-    "scikit-learn==1.2.0",
+    "numpy",
+    "scikit-learn<=1.8",
+    "scipy",
     "pandas",
     "pyyaml",
     "ijson",
@@ -67,11 +68,16 @@ packages = [
     "src/retromol_database",
     "src/retromol_fingerprint",
     "src/retromol_synthesis",
+    "src/retromol_paras",
 ]
 include = [
     "src/retromol/data/mxn.yml",
     "src/retromol/data/rxn.yml",
-    "src/retromol_antismash/data/AMP-binding_converted.hmm",
+    "src/retromol/data/pmp.yml",
+    "src/retromol_paras/data/*.hmm",
+    "src/retromol_paras/data/*.txt",
+    "src/retromol_paras/data/*.fasta",
+    "src/retromol_paras/data/database_files/*",
 ]
 
 [project.scripts]

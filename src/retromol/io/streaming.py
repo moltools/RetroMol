@@ -43,8 +43,9 @@ def _process_compound(args_tuple: tuple[str, dict[str, Any]]) -> tuple[dict[str,
         result_obj = run_retromol_with_timeout(submission, _G_RULESET)
         return result_obj.to_dict(), None
     except Exception as e:
-        # Traceback not returned here to keep workers light-weight; caller can log
-        return None, str(e)
+        # Keep failures reproducible when results arrive out of input order.
+        # Do not return the full row or traceback for every failed compound.
+        return None, f"{type(e).__name__}: {e} (SMILES={smiles!r})"
 
 
 @dataclass
@@ -176,12 +177,12 @@ def stream_sdf_records(sdf_path: str, fast: bool = False) -> Iterator[dict[str, 
             continue
 
 
-def stream_json_records(path: str, jsonl: bool = False) -> Iterator[dict[str, Any]]:
+def stream_json_records(path: str, jsonl: bool | None = None) -> Iterator[dict[str, Any]]:
     """
-    Stream JSON or JSONL records as dicts.
+    Stream plain or gzip JSON or JSONL records as dicts.
 
     :param path: Path to JSON or JSONL file.
-    :param jsonl: If True, treat as JSONL (one JSON object per line).
+    :param jsonl: True for JSONL, False for an array, or infer from suffix (default).
     :return: Iterator over record dicts.
     """
     for rec in iter_json(path, jsonl=jsonl):
