@@ -1,6 +1,6 @@
 import React from "react";
 import { alpha, Theme, Components } from "@mui/material/styles";
-import { outlinedInputClasses, svgIconClasses, toggleButtonGroupClasses, toggleButtonClasses } from "@mui/material";
+import { outlinedInputClasses, selectClasses, svgIconClasses, toggleButtonGroupClasses, toggleButtonClasses } from "@mui/material";
 import {
   CheckBoxOutlineBlankRounded as CheckBoxOutlineBlankRoundedIcon,
   CheckRounded as CheckRoundedIcon,
@@ -381,23 +381,27 @@ export const inputsCustomizations: Components<Theme> = {
     styleOverrides: {
       input: {
         padding: 0,
+        // Select reuses this same input slot for its display box, but needs its
+        // native padding back so the value text doesn't run under the dropdown arrow.
+        [`&.${selectClasses.select}`]: {
+          paddingRight: 24,
+        },
       },
       root: ({ theme }) => ({
         padding: "8px 12px",
         color: (theme.vars || theme).palette.text.primary,
         borderRadius: (theme.vars || theme).shape.borderRadius,
-        border: `1px solid ${(theme.vars || theme).palette.divider}`,
         backgroundColor: (theme.vars || theme).palette.background.default,
-        transition: "border 120ms ease-in",
-        "&:hover": {
+        transition: "color 120ms ease-in",
+        [`&:hover .${outlinedInputClasses.notchedOutline}`]: {
           borderColor: gray[400],
         },
-        [`&.${outlinedInputClasses.focused}`]: {
-          outline: `3px solid ${alpha(brand[500], 0.5)}`,
+        [`&.${outlinedInputClasses.focused} .${outlinedInputClasses.notchedOutline}`]: {
           borderColor: brand[400],
+          borderWidth: "2px",
         },
         ...theme.applyStyles("dark", {
-          "&:hover": {
+          [`&:hover .${outlinedInputClasses.notchedOutline}`]: {
             borderColor: gray[500],
           },
         }),
@@ -420,9 +424,10 @@ export const inputsCustomizations: Components<Theme> = {
           },
         ],
       }),
-      notchedOutline: {
-        border: "none",
-      },
+      notchedOutline: ({ theme }) => ({
+        borderColor: (theme.vars || theme).palette.divider,
+        transition: "border-color 120ms ease-in",
+      }),
     },
   },
   MuiInputAdornment: {
@@ -441,6 +446,19 @@ export const inputsCustomizations: Components<Theme> = {
         typography: theme.typography.caption,
         marginBottom: 8,
       }),
+    },
+  },
+  MuiInputLabel: {
+    styleOverrides: {
+      root: {
+        // The OutlinedInput root above uses an explicit 8px vertical padding
+        // (instead of MUI's default), so the un-shrunk label -- which sits on
+        // top of the input's content rather than the notch -- needs the same
+        // offset to stay vertically centered in the box.
+        "&.MuiInputLabel-outlined.MuiInputLabel-sizeSmall:not(.MuiFormLabel-filled):not(.Mui-focused)": {
+          transform: "translate(14px, 8px) scale(1)",
+        },
+      },
     },
   },
 }

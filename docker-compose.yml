@@ -1,3 +1,25 @@
+# Shared by backend and worker -- both run the same image (gui/docker/backend.Dockerfile)
+# and need the same Redis/DuckDB/PARAS access, now that discovery_query and
+# reconstruct_gene_cluster (among others) run as RQ jobs on worker too, not just on
+# backend. Kept in one place so the two services can't drift out of sync.
+#
+# PARAS_CACHE_DIR is read by whichever NRPS model pmp.yml's predictors.nrps.a_domain
+# selects (see retromol_antismash.inference.factory.build_nrps_a_domain_model) -- in
+# practice, "paras_cli"'s (src/retromol_paras/) trained-model + extracted-training-
+# signatures cache. Mounted read-only here so containers pick up an already-trained
+# model instead of each one training its own on first use -- run scripts/
+# train_paras.py once (locally, or via `docker compose run backend ...`) to populate
+# PARAS_CACHE_HOST_PATH, then restart backend/worker to pick it up.
+x-backend-env: &backend-common
+  env_file:
+    - gui/docker/backend.env
+  environment:
+    PARAS_CACHE_DIR: ${PARAS_CACHE_DIR}
+    RETROMOL_DUCKDB_PATH: /data/retromol.duckdb
+  volumes:
+    - ${PARAS_CACHE_HOST_PATH}:${PARAS_CACHE_DIR}:ro
+    - ${RETROMOL_DUCKDB_HOST_PATH}:/data/retromol.duckdb:ro
+
 services:
   redis:
     image: redis:7
@@ -5,19 +27,11 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     # No ports: exposed only inside the Docker network
-    networks: [ retromol_network ]
-
-  maintenance:
-    build:
-      context: .
-      dockerfile: gui/docker/maintenance.Dockerfile
-    container_name: retromol_maintenance
-    restart: unless-stopped
-    env_file:
-      - gui/docker/backend.env
-    depends_on:
-      redis:
-        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"${REDIS_PASSWORD}\" ping | grep -q PONG"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     networks: [ retromol_network ]
 
   backend:
@@ -26,18 +40,49 @@ services:
       dockerfile: gui/docker/backend.Dockerfile
     container_name: retromol_backend
     restart: unless-stopped
-    env_file:
-      - gui/docker/backend.env
-    environment:
-      PARAS_MODEL_PATH: ${PARAS_MODEL_PATH}
-      RETROMOL_DUCKDB_PATH: /data/retromol.duckdb
-    volumes:
-      - ${PARAS_MODEL_HOST_PATH}:${PARAS_MODEL_PATH}:ro
-      - ${RETROMOL_DUCKDB_HOST_PATH}:/data/retromol.duckdb:ro
+    <<: *backend-common
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     networks: [ retromol_network ]
+    # Healthcheck comes from the image's own HEALTHCHECK (hits /api/ready) --
+    # nothing to override here.
+
+  # Runs the same image as backend, just executing RQ jobs instead of serving HTTP --
+  # see routes/queue.py and app.py's blueprints for what ends up here (RetroMol
+  # parsing, PARAS inference, alignment, RDKit fingerprinting).
+  #
+  # A single pool draining the one `heavy_compute` queue (routes/queue.py). Scale
+  # `RQ_WORKER_REPLICAS` in the repo root .env (Compose resolves its own ${VAR}
+  # interpolation from there, not from an env_file: like gui/docker/backend.env --
+  # or use `docker compose up --scale worker=N` if this Compose version doesn't
+  # apply `deploy.replicas` outside swarm mode).
+  worker:
+    build:
+      context: .
+      dockerfile: gui/docker/backend.Dockerfile
+    restart: unless-stopped
+    <<: *backend-common
+    # entrypoint inherited from the image (conda run -n retromol-gui ...); only the
+    # command differs from backend's. REDIS_URL comes from gui/docker/backend.env
+    # (loaded into the *container's* environment via env_file above) -- run through
+    # a shell so `$REDIS_URL` expands there. `$$` escapes Compose's own interpolation
+    # (which matches bare $VAR too, not just ${VAR}, and only sees the host/.env
+    # environment, not env_file) so the container receives the literal `$REDIS_URL`.
+    command: ["sh", "-c", "rq worker --url \"$$REDIS_URL\" heavy_compute"]
+    deploy:
+      replicas: ${RQ_WORKER_REPLICAS:-2}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [ retromol_network ]
+    # No fixed container_name -- incompatible with replicas > 1.
+    # The image's inherited HEALTHCHECK probes an HTTP server this container never
+    # runs (it runs `rq worker`, not gunicorn) -- disabled here rather than left to
+    # fail forever. A simple worker loop's meaningful failure mode is the process
+    # exiting, which `restart: unless-stopped` already reacts to.
+    healthcheck:
+      disable: true
 
   web:
     build:
@@ -49,6 +94,15 @@ services:
       - backend
     ports:
       - "4005:80"
+    healthcheck:
+      # 127.0.0.1, not localhost -- this Alpine image resolves "localhost" to ::1
+      # first, but nginx's `listen 80` only binds IPv4, so wget would hit
+      # "connection refused" on the (nothing-listening) IPv6 address and the
+      # container would report unhealthy despite actually serving requests fine.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     networks: [ retromol_network ]
 
 networks:

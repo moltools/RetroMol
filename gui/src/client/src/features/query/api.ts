@@ -1,5 +1,5 @@
 import { postJson } from "../http";
-import { QueryResult, QueryResultSchema, CreateQueryResultRespSchema, GetQueryResultRespSchema } from "./types";
+import { QueryResult, QueryResultSchema } from "./types";
 import { z } from "zod";
 
 // Shared option types

@@ -1,7 +1,9 @@
 """Data structures for representing reaction application graphs."""
 
 import logging
-from dataclasses import dataclass, field
+import json
+from collections import defaultdict, deque
+from dataclasses import dataclass, field, replace
 from typing import Any, Iterable, Literal
 
 from retromol.chem.mol import Mol, encode_mol, mol_to_smiles, smiles_to_mol
@@ -32,6 +34,7 @@ class MolNode:
     smiles: str
     identity: MolIdentity | None = None
     identified: bool | None = None  # None=unknown, False=checked-no, True=checked-yes
+    pruned: bool = False  # uninformative descendants were collapsed here
 
     @property
     def is_checked(self) -> bool:
@@ -86,6 +89,7 @@ class MolNode:
             "smiles": self.smiles,
             "identity": self.identity.to_dict() if self.identity else None,
             "identified": self.identified,
+            "pruned": self.pruned,
         }
     
     @classmethod
@@ -104,6 +108,7 @@ class MolNode:
             smiles=data["smiles"],
             identity=identity,
             identified=data["identified"],
+            pruned=data.get("pruned", False),
         )
         return node
 
@@ -157,13 +162,13 @@ class RxnEdge:
     """
     Directed hyper-edge parent -> children, labeled by ReactionStep.
 
-    :var src: int: Encoding of source molecule node.
-    :var dsts: Tuple[int, ...]: encodings of child molecule nodes.
+    :var src: str: Encoding of source molecule node.
+    :var dsts: Tuple[str, ...]: encodings of child molecule nodes.
     :var step: ReactionStep: details of the reaction application.
     """
 
-    src: int
-    dsts: tuple[int, ...]
+    src: str
+    dsts: tuple[str, ...]
     step: ReactionStep
 
     def to_dict(self) -> dict[str, Any]:
@@ -224,7 +229,7 @@ class ReactionGraph:
         """
         return f"ReactionGraph(num_nodes={len(self.nodes)}, num_edges={len(self.edges)})"
 
-    def add_node(self, mol: Mol) -> int:
+    def add_node(self, mol: Mol) -> str:
         """
         Add a molecule node to the graph if not already present.
         
@@ -276,30 +281,124 @@ class ReactionGraph:
 
         return leaves
 
-    
-    def to_dict(self) -> dict[str, Any]:
-        """
-        Serialize the ReactionGraph to a dictionary.
+    def prune_unidentified(self, root_enc: str) -> "ReactionGraph":
+        """Collapse wholly unidentified subtrees to unresolved boundary nodes.
 
-        :return: Dictionary representation of the ReactionGraph.
+        Keep every explored alternative leading to an identification, together
+        with all its sibling products. Identified intermediates remain selectable.
+        Direct self-dependent reactions cannot form finite decompositions and
+        are discarded. Longer cycles are handled when selecting assemblies.
         """
-        return {
-            "nodes": {enc: node.to_dict() for enc, node in self.nodes.items()},
-            "edges": [edge.to_dict() for edge in self.edges],
-            "out_edges": {enc: indices for enc, indices in self.out_edges.items()},
-        }
+        if root_enc not in self.nodes:
+            raise ValueError(f"Root {root_enc!r} is absent from the reaction graph")
+        incoming: dict[str, set[str]] = defaultdict(set)
+        outgoing: dict[str, list[RxnEdge]] = defaultdict(list)
+        for edge in self.edges:
+            if edge.src in edge.dsts:
+                continue
+            outgoing[edge.src].append(edge)
+            for child in edge.dsts:
+                incoming[child].add(edge.src)
+
+        productive = set(self.identified_nodes)
+        queue = deque(productive)
+        while queue:
+            for parent in incoming[queue.popleft()]:
+                if parent not in productive:
+                    productive.add(parent)
+                    queue.append(parent)
+
+        graph = ReactionGraph()
+        queue = deque([root_enc])
+        while queue:
+            enc = queue.popleft()
+            if enc in graph.nodes:
+                continue
+            node = self.nodes[enc]
+            # A wholly unproductive reaction alternative adds no information.
+            # Retain unresolved products only when they are siblings required
+            # by an informative reaction, rather than creating cheap dead-end
+            # alternatives by truncating those reactions to unknown leaves.
+            edges = [edge for edge in outgoing[enc] if any(d in productive for d in edge.dsts)]
+            collapsed = bool(self.out_edges.get(enc)) and not edges
+            graph.nodes[enc] = replace(node, pruned=True) if collapsed else node
+            graph.out_edges[enc] = []
+            for edge in edges:
+                graph.out_edges[enc].append(len(graph.edges))
+                graph.edges.append(edge)
+                queue.extend(edge.dsts)
+        return graph
+
+    def to_dict(self) -> dict[str, Any]:
+        """Compact graph: indexed nodes/edges and interned identities/steps.
+
+        Atom-tagged SMILES preserve structure, stereo, and original-atom mapping.
+        Encodings, untagged SMILES and adjacency are reconstructed on load.
+        Node indices follow sorted encodings, also used by Result.root.
+        """
+        indices = {enc: i for i, enc in enumerate(sorted(self.nodes))}
+        identities: list[dict[str, Any]] = []
+        identity_indices: dict[str, int] = {}
+        nodes = []
+        for enc in indices:
+            node = self.nodes[enc]
+            record: dict[str, Any] = {"smiles": mol_to_smiles(node.mol, include_tags=True)}
+            if node.is_identified:
+                if node.identity is None:
+                    raise ValueError(f"Identified node {enc!r} has no identity")
+                identity = node.identity.matched_rule.to_dict()
+                key = json.dumps(identity, sort_keys=True, separators=(",", ":"))
+                if key not in identity_indices:
+                    identity_indices[key] = len(identities)
+                    identities.append(identity)
+                record["identity"] = identity_indices[key]
+            elif not node.is_checked:
+                record["checked"] = False
+            if node.pruned:
+                record["pruned"] = True
+            nodes.append(record)
+
+        steps: list[dict[str, Any]] = []
+        step_indices: dict[ReactionStep, int] = {}
+        edges = []
+        for edge in self.edges:
+            if edge.step not in step_indices:
+                step_indices[edge.step] = len(steps)
+                steps.append(edge.step.to_dict())
+            edges.append({"src": indices[edge.src], "dsts": [indices[d] for d in edge.dsts],
+                          "step": step_indices[edge.step]})
+        return {"nodes": nodes, "identities": identities, "steps": steps, "edges": edges}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ReactionGraph":
-        """
-        Deserialize a ReactionGraph from a dictionary.
+        """Load the compact graph format; rebuild encodings and adjacency."""
+        identities = [MolIdentity(MatchingRule.from_dict(d)) for d in data["identities"]]
+        steps = [ReactionStep.from_dict(d) for d in data["steps"]]
+        graph = cls()
+        encodings = []
+        for record in data["nodes"]:
+            mol = smiles_to_mol(record["smiles"])
+            enc = encode_mol(mol)
+            if enc in graph.nodes:
+                raise ValueError("Duplicate molecule in reaction graph nodes")
+            identity = cls._at(identities, record["identity"]) if "identity" in record else None
+            graph.nodes[enc] = MolNode(
+                enc, mol, mol_to_smiles(mol), identity,
+                True if identity else (False if record.get("checked", True) else None),
+                pruned=record.get("pruned", False),
+            )
+            graph.out_edges[enc] = []
+            encodings.append(enc)
+        for record in data["edges"]:
+            edge = RxnEdge(cls._at(encodings, record["src"]),
+                           tuple(cls._at(encodings, d) for d in record["dsts"]),
+                           cls._at(steps, record["step"]))
+            graph.out_edges[edge.src].append(len(graph.edges))
+            graph.edges.append(edge)
+        return graph
 
-        :param data: Dictionary representation of the ReactionGraph.
-        :return: ReactionGraph object.
-        """
-        reaction_graph = cls(
-            nodes={enc: MolNode.from_dict(node_data) for enc, node_data in data["nodes"].items()},
-            edges=[RxnEdge.from_dict(edge_data) for edge_data in data["edges"]],
-            out_edges={enc: indices for enc, indices in data["out_edges"].items()},
-        )
-        return reaction_graph
+    @staticmethod
+    def _at(items: list, index: int):
+        if type(index) is not int or not 0 <= index < len(items):
+            raise ValueError(f"Invalid graph reference: {index!r}")
+        return items[index]

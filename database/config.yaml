@@ -1,0 +1,83 @@
+sources:
+  # Direct download links. MIBiG ships as tar.gz archives (one file per BGC inside);
+  # NPAtlas ships as a single SDF (optionally gzipped) -- download_sources.py handles
+  # extraction based on the URL's extension either way.
+  npatlas_sdf_url: "https://www.npatlas.org/static/downloads/NPAtlas_download.sdf"
+  mibig_json_url: "https://dl.secondarymetabolites.org/mibig/mibig_json_4.0.tar.gz"
+  mibig_gbk_url: "https://dl.secondarymetabolites.org/mibig/mibig_gbk_4.0.tar.gz"
+
+enabled:
+  # Toggle whole branches of the pipeline off. Disabling a source skips its downloads
+  # and RetroMol parsing entirely (not just db loading) -- e.g. npatlas: false means
+  # download_npatlas/parse_npatlas never run. mibig covers both MIBiG compounds and
+  # BGCs (they share the same JSON/GBK downloads). npclassifier gates step 9
+  # (chemical-class annotation) independently of which source(s) loaded the compounds
+  # it classifies.
+  npatlas: true
+  mibig: true
+  npclassifier: true
+  chebi: true
+
+paths:
+  # Final DuckDB database produced by the pipeline.
+  database: "/Users/davidmeijer/Desktop/retromol.duckdb"
+
+  # Scratch space for downloads and intermediate per-step results.
+  workdir: "/Users/davidmeijer/Desktop/retromol_tmp"
+
+  # null -> RuleSet.load_default()'s bundled reaction/matching rules.
+  reaction_rules: null
+  matching_rules: null
+
+# Whether structural matching (both compound parsing and NRPS substrate resolution,
+# e.g. matching a PARAS-predicted substrate's SMILES against mxn.yml -- see
+# retromol_antismash.modules.module_primary_sequence_tokens) requires an exact
+# stereochemistry match, not just constitution. False (the default) treats e.g. two
+# rules that only differ in a stereocenter as interchangeable.
+match_stereochemistry: false
+
+npclassifier:
+  # Rate limit for the free, GNPS2-hosted NPClassifier API (no published limit --
+  # kept conservative). This is the *combined* rate across all workers below, not
+  # per-worker. Classifications are cached in workdir/npclassifier/cache.jsonl, so
+  # reruns only pay for compounds not already classified.
+  requests_per_second: 50.0
+
+  # Concurrent requests. Classification is I/O-bound (waiting on the API), not
+  # CPU-bound, so this is safe to raise well past your core count -- it's bounded by
+  # requests_per_second above either way.
+  workers: 8
+
+taxonomy:
+  # NCBI taxdump (names.dmp/nodes.dmp), downloaded once into workdir/taxdump and reused
+  # across pipeline runs -- used to standardize phylogeny genus/species/type to NCBI
+  # taxids (see database/scripts/taxonomy.py). Set to null to skip taxid resolution
+  # entirely (phylogeny is then stored as raw, unstandardized text/no taxids).
+  enabled: true
+
+paras:
+  threshold: 0.1
+  keep_top: 3
+
+  # Path to a pmp.yml prediction-mapping file (see src/retromol/data/pmp.yml).
+  # null -> the packaged default. Its "predictors.nrps.a_domain" selects which
+  # model (if any) actually runs here -- "paras" (pyhmmer, a pretrained model
+  # file), "paras_cli" (src/retromol_paras/, retrained/cached locally from
+  # command-line HMMER2/HMMER3/MUSCLE3 -- see envs/retromol_paras.yaml -- or
+  # rather environment.yml at repo root), or a source: qualifier method that
+  # reads antiSMASH's own NRPS substrate call and runs no model at all. Same
+  # file the GUI backend and scripts/predict_bgc.py read, so switching
+  # predictors here changes every entry point at once.
+  pmp_path: null
+
+  # Cache directory for whichever model pmp_path selects (a download cache for
+  # "paras", a training-signature + fitted-model cache for "paras_cli").
+  cache_dir: null
+
+  # "paras_cli"-only: retrain from scratch even if a cached model is present.
+  force_retrain: false
+
+compute:
+  # Both are embarrassingly parallel over independent compounds/files.
+  parse_compounds_workers: 4
+  parse_gbks_workers: 4

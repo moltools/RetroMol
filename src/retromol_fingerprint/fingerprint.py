@@ -4,7 +4,12 @@ import numpy as np
 
 
 TOKEN_UNK = "<UNK>"
-SPECIAL_TOKENS = [TOKEN_UNK]
+# Joins two candidate primary sequence paths that couldn't be threaded into one
+# path (e.g. a disconnected sugar, or a branched/cyclic assembly) into a single
+# sequence, so every compound/BGC always has exactly one primary sequence. See
+# retromol.model.readout.merge_named_paths.
+TOKEN_LINK = "<LINK>"
+SPECIAL_TOKENS = [TOKEN_UNK, TOKEN_LINK]
 
 
 class Vocabulary:

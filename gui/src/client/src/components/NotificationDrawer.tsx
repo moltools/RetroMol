@@ -10,13 +10,13 @@ import ClearAllIcon from "@mui/icons-material/ClearAll";
 import { styled, useTheme } from "@mui/material/styles";
 import { useNotifications } from "./NotificationProvider";
 
-// Custom styling for the drawer
+// Custom styling for the drawer paper (the visible panel). Deliberately does NOT set
+// width/etc. on the Drawer's own root -- that root is the fixed, full-viewport-covering
+// container MUI uses internally to compute how far off-screen the panel starts before
+// sliding in; shrinking it to the panel's own width corrupts that calculation and makes
+// the panel appear to enter from the left instead of the right.
 const drawerWidth = 400;
 const Drawer = styled(MuiDrawer)({
-  width: drawerWidth,
-  flexShrink: 0,
-  boxSizing: "border-box",
-  mt: 10,
   [`& .${drawerClasses.paper}`]: {
     width: drawerWidth,
     boxSizing: "border-box",

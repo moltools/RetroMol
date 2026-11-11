@@ -1,0 +1,22 @@
+# Every listed graph must match a parsed assembly. Extra parsed assemblies are allowed.
+"ring-opened Z double bond (small-ring C1 unit)":
+  - coverage: 1.0
+    nodes:
+      - ["B^S1", 3]
+      - ["D1", 2]
+      - ["acetic acid starter", 1]
+      - ["B^R1", 3]
+      - ["D^R8", 3]
+      - ["B^R1", 3]
+      - ["B^R1", 3]
+      - ["C^Z1", 4]
+      - ["methylation", 1]
+    edges:
+      - [0, 1, ["C-C:SINGLE"]]
+      - [0, 3, ["C-C:SINGLE"]]
+      - [1, 2, ["C-C:SINGLE"]]
+      - [3, 4, ["C-C:SINGLE"]]
+      - [3, 8, ["C-O:SINGLE"]]
+      - [4, 5, ["C-C:SINGLE"]]
+      - [5, 6, ["C-C:SINGLE"]]
+      - [6, 7, ["C-C:SINGLE", "C-O:SINGLE"]]

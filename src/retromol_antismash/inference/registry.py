@@ -104,12 +104,27 @@ class Ctx:
         return ("[" + " ".join(parts) + "] ") if parts else ""
 
 
-def annotate_region(region: Region) -> None:
+def annotate_region(
+    region: Region,
+    gene_models: list[GeneInferenceModel] | None = None,
+    domain_models: list[DomainInferenceModel] | None = None,
+) -> None:
     """
-    Annotate all domains in all genes of the given region using registered models.
-    
+    Annotate all domains in all genes of the given region.
+
     :param region: the genomic region to annotate
+    :param gene_models: gene inference models to run, or None to use every globally
+        registered gene model (`get_gene_models()`).
+    :param domain_models: domain inference models to run, or None to use every
+        globally registered domain model (`get_domain_models()`). Pass this
+        explicitly rather than registering globally when a model needs per-call
+        configuration (e.g. PARAS' probability threshold) -- `register_domain_model`
+        keeps whichever instance was registered first, so it can't express "use a
+        different threshold for this call."
     """
+    gene_models = get_gene_models() if gene_models is None else gene_models
+    domain_models = get_domain_models() if domain_models is None else domain_models
+
     log.debug(Ctx(region=region.id).prefix() + f"annotating {len(region.genes)} genes")
 
     for gene in region.iter_genes():
@@ -117,7 +132,7 @@ def annotate_region(region: Region) -> None:
         log.debug(gctx.prefix() + "annotating gene")
 
         # Gene inference
-        for m in get_gene_models():
+        for m in gene_models:
             mctx = Ctx(region=region.id, gene=gene.id, model=m.name)
             log.debug(mctx.prefix() + "running gene inference")
 
@@ -127,12 +142,36 @@ def annotate_region(region: Region) -> None:
 
             log.debug(mctx.prefix() + f"added {len(results)} results")
 
-        # Domain inference
-        for domain in gene.iter_domains():
-            dctx = Ctx(region=region.id, gene=gene.id, domain=domain.id)
+    # Domain inference. Batched per model across the WHOLE region (not per gene, and
+    # not per domain) wherever a model supports it -- a model like paras_cli that
+    # shells out to command-line tools pays a large fixed cost per call (reloading an
+    # entire HMM profile database from scratch), so calling predict() once per domain
+    # instead of predict_many() once for every domain a model cares about is a major
+    # (not just marginal) slowdown, not a style choice. Models without predict_many
+    # (e.g. gene-level-adjacent PFAM domain models) fall back to the original
+    # per-domain predict() loop, unaffected.
+    all_domains = [domain for gene in region.iter_genes() for domain in gene.iter_domains()]
 
-            for m in get_domain_models():
-                mctx = Ctx(region=region.id, gene=gene.id, domain=domain.id, model=m.name)
+    for m in domain_models:
+        predict_many = getattr(m, "predict_many", None)
+        if predict_many is None:
+            continue
+
+        mctx = Ctx(region=region.id, model=m.name)
+        log.debug(mctx.prefix() + f"running batched domain inference over {len(all_domains)} domains")
+
+        results_by_id = predict_many(all_domains)
+        for domain in all_domains:
+            for r in results_by_id.get(domain.id, []):
+                domain.annotations.add(r)
+
+    unbatched_models = [m for m in domain_models if getattr(m, "predict_many", None) is None]
+    if unbatched_models:
+        for domain in all_domains:
+            dctx = Ctx(region=region.id, domain=domain.id)
+
+            for m in unbatched_models:
+                mctx = Ctx(region=region.id, domain=domain.id, model=m.name)
                 log.debug(mctx.prefix() + f"running domain inference ({domain.type})")
 
                 results = m.predict(domain)
